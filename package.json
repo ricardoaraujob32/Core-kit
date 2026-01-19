@@ -1,0 +1,13 @@
+{
+  "name": "core-kit",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "echo \"lint: (placeholder)\"",
+    "typecheck": "echo \"typecheck: (placeholder)\"",
+    "test:unit": "echo \"test:unit: (placeholder)\""
+  }
+}
