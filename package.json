@@ -1,6 +1,7 @@
 {
   "name": "core-kit",
   "private": true,
+  "version": "0.1.0",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -9,5 +10,8 @@
     "lint": "echo \"lint: (placeholder)\"",
     "typecheck": "echo \"typecheck: (placeholder)\"",
     "test:unit": "echo \"test:unit: (placeholder)\""
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
