@@ -18,11 +18,14 @@ export type AppError = {
   cause?: unknown;
 };
 
+/**
+ * Constrói um AppError padronizado.
+ */
 export function appError(
   code: AppErrorCode,
   message: string,
   details?: Record<string, unknown>,
-  cause?: unknown
+  cause?: unknown,
 ): AppError {
   return { code, message, details, cause };
 }
