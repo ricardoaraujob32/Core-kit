@@ -1,5 +1,18 @@
 {
   "name": "@core-kit/api",
   "private": true,
-  "version": "0.0.0"
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "node --watch dist/index.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@core-kit/core": "0.1.0",
+    "fastify": "^4.0.0"
+  }
 }
