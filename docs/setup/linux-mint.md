@@ -4,11 +4,13 @@ Este guia prepara o ambiente local de desenvolvimento do Core Kit (monorepo).
 Objetivo: setup reproduzível, sem Docker (por enquanto), com pin de versões.
 
 ## Pré-requisitos
+
 - Linux Mint (ou Ubuntu-based)
 - Permissão de sudo
 - Git instalado (se não, o script instala)
 
 ## Visão geral do padrão adotado
+
 - Node via NVM (+ .nvmrc no repositório)
 - Python via venv (Python do sistema)
 - Postgres: cliente local (psql). Servidor pode ser local ou remoto dependendo do ambiente.
@@ -16,6 +18,7 @@ Objetivo: setup reproduzível, sem Docker (por enquanto), com pin de versões.
 - Script "doctor" para validar setup
 
 ## Passo a passo (modo recomendado)
+
 1. Rodar dependências do sistema:
    - `tools/env/linux-mint/01-system-deps.sh`
 2. Instalar/atualizar Node via NVM:
@@ -30,16 +33,19 @@ Objetivo: setup reproduzível, sem Docker (por enquanto), com pin de versões.
    - `tools/env/linux-mint/99-doctor.sh`
 
 ## Variáveis de ambiente
+
 - Nunca commitar `.env` com segredos.
 - Use `.env.example` e documente as variáveis por app.
 - Em produção/homolog: variáveis ficam no provedor/VM, não no repositório.
 
 ## Sem Docker (por enquanto): como manter consistência
+
 - Pin de Node por `.nvmrc`
 - Scripts de setup versionados
 - CI valida build/typecheck/test
-- Ambiente por app (apps/*) e pacotes (packages/*)
+- Ambiente por app (apps/_) e pacotes (packages/_)
 
 ## Evolução futura
+
 - Se um dia adotar Docker: manter estes scripts como "modo sem Docker"
 - Para homolog/prod: automatizar provisionamento com Ansible/Terraform/cloud-init (sem depender de Docker)

@@ -4,12 +4,7 @@ import tseslint from "typescript-eslint";
 export default [
   // Ignorados
   {
-    ignores: [
-      "**/dist/**",
-      "**/build/**",
-      "**/.next/**",
-      "**/node_modules/**"
-    ]
+    ignores: ["**/dist/**", "**/build/**", "**/.next/**", "**/node_modules/**"],
   },
 
   // Regras JS padrão
@@ -22,7 +17,7 @@ export default [
   {
     rules: {
       // Você pode apertar isso depois:
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }]
-    }
-  }
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    },
+  },
 ];

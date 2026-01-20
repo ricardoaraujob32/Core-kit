@@ -3,7 +3,7 @@ version: 2
 updates:
   # Dependências Node.js (npm)
   - package-ecosystem: "npm"
-    directory: "/"          # raiz do repositório (ajuste depois para monorepo)
+    directory: "/" # raiz do repositório (ajuste depois para monorepo)
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
