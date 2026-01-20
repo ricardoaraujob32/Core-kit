@@ -6,13 +6,16 @@ import type { ContextoExecucao, Permissao } from "./locatario";
  * Retorna true se o contexto possuir a permissão.
  */
 export function temPermissao(ctx: ContextoExecucao, permissao: Permissao): boolean {
-  const perms = ctx.permissoes ?? [];
+  const perms: Permissao[] = ctx.permissoes ?? [];
   return perms.includes(permissao);
 }
 
 /**
  * Exige UMA permissão específica.
- * Retorna Result<void, AppError> para compor fluxo sem exceção.
+ *
+ * - Retorna UNAUTHORIZED se usuarioId não existir.
+ * - Retorna FORBIDDEN se a permissão não estiver presente.
+ * - Retorna Ok(void) quando permitido.
  */
 export function exigirPermissao(
   ctx: ContextoExecucao,
@@ -35,6 +38,10 @@ export function exigirPermissao(
 
 /**
  * Exige TODAS as permissões da lista (AND).
+ *
+ * - Retorna UNAUTHORIZED se usuarioId não existir.
+ * - Retorna FORBIDDEN com lista de faltantes se alguma estiver ausente.
+ * - Retorna Ok(void) quando permitido.
  */
 export function exigirTodas(
   ctx: ContextoExecucao,
@@ -44,8 +51,8 @@ export function exigirTodas(
     return err(appError("UNAUTHORIZED", "Usuário não autenticado."));
   }
 
-  const perms = ctx.permissoes ?? [];
-  const faltantes = permissoes.filter((p) => !perms.includes(p));
+  const perms: Permissao[] = ctx.permissoes ?? [];
+  const faltantes: Permissao[] = permissoes.filter((p) => !perms.includes(p));
 
   if (faltantes.length > 0) {
     return err(
@@ -61,6 +68,10 @@ export function exigirTodas(
 
 /**
  * Exige PELO MENOS UMA permissão da lista (OR).
+ *
+ * - Retorna UNAUTHORIZED se usuarioId não existir.
+ * - Retorna FORBIDDEN se nenhuma permissão da lista estiver presente.
+ * - Retorna Ok(void) quando permitido.
  */
 export function exigirAlguma(
   ctx: ContextoExecucao,
@@ -70,8 +81,8 @@ export function exigirAlguma(
     return err(appError("UNAUTHORIZED", "Usuário não autenticado."));
   }
 
-  const perms = ctx.permissoes ?? [];
-  const temAlguma = permissoes.some((p) => perms.includes(p));
+  const perms: Permissao[] = ctx.permissoes ?? [];
+  const temAlguma: boolean = permissoes.some((p) => perms.includes(p));
 
   if (!temAlguma) {
     return err(
