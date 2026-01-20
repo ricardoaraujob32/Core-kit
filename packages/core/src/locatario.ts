@@ -8,9 +8,9 @@ export type UsuarioId = string;
 
 /**
  * "Papel" é um rótulo (apelido) que pode variar por locatário.
- * Ex.: "ADMIN_LOCATARIO", "GERENTE", "OPERADOR"
+ * Ex.: "ADMIN_LOCATARIO", "GERENTE", "OPERADOR".
  *
- * Não confundir papel com permissão. Papel é UX + organização.
+ * Papel ajuda na UX e organização, mas o motor real de autorização usa permissões.
  */
 export type Papel = string;
 
@@ -21,18 +21,15 @@ export type Papel = string;
  */
 export type Permissao = string;
 
+/**
+ * ContextoExecucao representa as informações mínimas para execução segura:
+ * - quem (usuarioId)
+ * - em qual locatário (locatarioId)
+ * - quais permissões já foram resolvidas (permissoes)
+ */
 export type ContextoExecucao = {
   locatarioId: LocatarioId;
   usuarioId?: UsuarioId;
-
-  /**
-   * Papéis do usuário no locatário atual (opcional, útil para UI e auditoria).
-   */
   papeis?: Papel[];
-
-  /**
-   * Permissões já resolvidas para o usuário no locatário atual.
-   * Esta lista é o que o RBAC usa de verdade.
-   */
   permissoes?: Permissao[];
 };
