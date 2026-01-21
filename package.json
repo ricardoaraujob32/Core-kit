@@ -18,23 +18,13 @@
     "build": "npm -ws run build",
     "test:unit": "vitest run"
   },
-  "lint-staged": {
-    "*.{js,cjs,mjs,ts,tsx}": [
-      "eslint --fix"
-    ],
-    "*.{json,yml,yaml,md}": [
-      "prettier --write"
-    ]
-  },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@types/node": "^25.0.9",
     "eslint": "^9.0.0",
-    "lint-staged": "^15.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.0.0",
-    "vitest": "^1.6.0",
-    "husky": "^9.0.0"
+    "vitest": "^1.6.0"
   }
 }
