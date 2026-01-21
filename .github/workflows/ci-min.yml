@@ -1,10 +1,9 @@
-name: CI (minimal)
+name: ci-min
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: [main, develop]
   pull_request:
-    branches: ["main", "develop"]
 
 jobs:
   quality:
@@ -18,18 +17,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
+          cache: "npm"
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install dependencies (root)
+        run: npm ci
 
+      # ✅ roda em todos os workspaces, mas não falha se algum não tiver o script
       - name: Format check
-        run: npm run format:check
+        run: npm -ws --if-present run format:check
 
       - name: Lint
-        run: npm run lint
+        run: npm -ws --if-present run lint
 
       - name: Typecheck
-        run: npm run typecheck
+        run: npm -ws --if-present run typecheck
 
       - name: Unit tests
-        run: npm run test:unit
+        run: npm -ws --if-present run test
