@@ -10,7 +10,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "prepare": "husky",
+    "prepare": "node -e \"if (!process.env.CI) require('child_process').execSync('husky install', { stdio: 'inherit' })\"",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "lint": "eslint .",
