@@ -1,18 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-
-    "strict": true,
-    "exactOptionalPropertyTypes": true,
-
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
     "types": ["node"],
-    "skipLibCheck": true,
-
-    "baseUrl": ".",
-    "paths": {
-      "@core-kit/core": ["packages/core/src"]
-    }
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
   }
 }
