@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { exigirPermissao, exigirAlguma, exigirTodas } from "../src/rbac";
-import type { ContextoExecucao } from "../src/locatario";
+import type { ContextoExecucao, Permissao } from "../src/locatario";
 
 describe("RBAC", () => {
   const ctxBase: ContextoExecucao = {
@@ -9,26 +9,90 @@ describe("RBAC", () => {
     permissoes: ["usuarios:criar", "usuarios:listar"],
   };
 
-  it("permite quando possui permissão", () => {
+  it("exigirPermissao() permite quando possui permissão", () => {
     const r = exigirPermissao(ctxBase, "usuarios:criar");
-    expect(r.ok).toBe(true);
+
+    expect(r).toEqual({ ok: true, value: undefined });
+    expect(JSON.parse(JSON.stringify(r))).toEqual({ ok: true });
   });
 
-  it("nega quando não possui permissão", () => {
+  it("exigirPermissao() nega quando não possui permissão (FORBIDDEN + details)", () => {
     const r = exigirPermissao(ctxBase, "usuarios:editar");
+
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("FORBIDDEN");
+      expect(r.error).toEqual({
+        code: "FORBIDDEN",
+        message: "Permissões insuficientes.",
+        details: { permissaoExigida: "usuarios:editar" },
+        cause: undefined,
+      });
+
+      // serializável de forma previsível
+      expect(JSON.parse(JSON.stringify(r.error))).toEqual({
+        code: "FORBIDDEN",
+        message: "Permissões insuficientes.",
+        details: { permissaoExigida: "usuarios:editar" },
+      });
     }
   });
 
-  it("exige todas as permissões", () => {
-    const r = exigirTodas(ctxBase, ["usuarios:criar", "usuarios:listar"]);
-    expect(r.ok).toBe(true);
+  it("exigirPermissao() retorna UNAUTHORIZED quando ctx.permissoes está ausente", () => {
+    const ctxSemPerm: ContextoExecucao = {
+      locatarioId: "loc-1",
+      usuarioId: "usr-1",
+      permissoes: undefined,
+    };
+
+    const r = exigirPermissao(ctxSemPerm, "usuarios:listar");
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.code).toBe("UNAUTHORIZED");
+      expect(r.error.message).toBe("Usuário não autenticado.");
+    }
   });
 
-  it("exige alguma permissão", () => {
+  it("exigirTodas() permite quando possui todas", () => {
+    const r = exigirTodas(ctxBase, ["usuarios:criar", "usuarios:listar"]);
+    expect(r).toEqual({ ok: true, value: undefined });
+  });
+
+  it("exigirTodas() nega quando falta alguma (primeira faltante)", () => {
+    const r = exigirTodas(ctxBase, ["usuarios:criar", "usuarios:editar"]);
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.code).toBe("FORBIDDEN");
+      expect(r.error.message).toBe("Permissões insuficientes.");
+      expect(r.error.details).toEqual({ permissaoExigida: "usuarios:editar" });
+    }
+  });
+
+  it("exigirAlguma() permite quando possui pelo menos uma", () => {
     const r = exigirAlguma(ctxBase, ["usuarios:editar", "usuarios:listar"]);
-    expect(r.ok).toBe(true);
+    expect(r).toEqual({ ok: true, value: undefined });
+  });
+
+  it("exigirAlguma() nega quando não possui nenhuma (details com join '|')", () => {
+    const r = exigirAlguma(ctxBase, ["usuarios:editar", "usuarios:remover"]);
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.code).toBe("FORBIDDEN");
+      expect(r.error.details).toEqual({
+        permissaoExigida: "usuarios:editar|usuarios:remover",
+      });
+    }
+  });
+
+  it("exigirAlguma() trata lista vazia como falha (permissaoExigida vazio)", () => {
+    const r = exigirAlguma(ctxBase, [] as Permissao[]);
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.code).toBe("FORBIDDEN");
+      expect(r.error.details).toEqual({ permissaoExigida: "" });
+    }
   });
 });

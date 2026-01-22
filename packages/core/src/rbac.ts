@@ -1,93 +1,68 @@
-import { appError, type AppError } from "./errors";
+import type { Permissao, ContextoExecucao } from "./locatario";
+import { appError } from "./errors";
 import { err, ok, type Result } from "./result";
-import type { ContextoExecucao, Permissao } from "./locatario";
 
-/**
- * Retorna true se o contexto possuir a permissão.
- */
-export function temPermissao(ctx: ContextoExecucao, permissao: Permissao): boolean {
-  const perms: Permissao[] = ctx.permissoes ?? [];
-  return perms.includes(permissao);
+function naoAutenticado(ctx: ContextoExecucao): boolean {
+  // `permissoes` ausente geralmente significa que o contexto não foi montado/validado
+  // (ex.: request sem autenticação). Nesse caso, tratamos como UNAUTHORIZED.
+  return !ctx.usuarioId || ctx.permissoes == null;
 }
 
-/**
- * Exige UMA permissão específica.
- *
- * - Retorna UNAUTHORIZED se usuarioId não existir.
- * - Retorna FORBIDDEN se a permissão não estiver presente.
- * - Retorna Ok(void) quando permitido.
- */
 export function exigirPermissao(
   ctx: ContextoExecucao,
   permissao: Permissao,
-): Result<void, AppError> {
-  if (!ctx.usuarioId) {
+): Result<void, ReturnType<typeof appError>> {
+  if (naoAutenticado(ctx)) {
     return err(appError("UNAUTHORIZED", "Usuário não autenticado."));
   }
 
-  if (!temPermissao(ctx, permissao)) {
+  const permissoes = ctx.permissoes ?? [];
+  if (!permissoes.includes(permissao)) {
     return err(
-      appError("FORBIDDEN", "Permissão insuficiente.", {
-        permissaoExigida: permissao,
-      }),
+      appError("FORBIDDEN", "Permissões insuficientes.", { permissaoExigida: permissao }),
     );
   }
 
   return ok(undefined);
 }
 
-/**
- * Exige TODAS as permissões da lista (AND).
- *
- * - Retorna UNAUTHORIZED se usuarioId não existir.
- * - Retorna FORBIDDEN com lista de faltantes se alguma estiver ausente.
- * - Retorna Ok(void) quando permitido.
- */
 export function exigirTodas(
   ctx: ContextoExecucao,
-  permissoes: Permissao[],
-): Result<void, AppError> {
-  if (!ctx.usuarioId) {
+  permissoesExigidas: Permissao[],
+): Result<void, ReturnType<typeof appError>> {
+  if (naoAutenticado(ctx)) {
     return err(appError("UNAUTHORIZED", "Usuário não autenticado."));
   }
 
-  const perms: Permissao[] = ctx.permissoes ?? [];
-  const faltantes: Permissao[] = permissoes.filter((p) => !perms.includes(p));
+  const permissoes = ctx.permissoes ?? [];
+  const faltantes = permissoesExigidas.filter((p) => !permissoes.includes(p));
 
   if (faltantes.length > 0) {
+    // Mantém o payload de details estável e simples para uso em UI/logs
     return err(
-      appError("FORBIDDEN", "Permissões insuficientes.", {
-        permissoesExigidas: permissoes,
-        permissoesFaltantes: faltantes,
-      }),
+      appError("FORBIDDEN", "Permissões insuficientes.", { permissaoExigida: faltantes[0] }),
     );
   }
 
   return ok(undefined);
 }
 
-/**
- * Exige PELO MENOS UMA permissão da lista (OR).
- *
- * - Retorna UNAUTHORIZED se usuarioId não existir.
- * - Retorna FORBIDDEN se nenhuma permissão da lista estiver presente.
- * - Retorna Ok(void) quando permitido.
- */
 export function exigirAlguma(
   ctx: ContextoExecucao,
-  permissoes: Permissao[],
-): Result<void, AppError> {
-  if (!ctx.usuarioId) {
+  permissoesExigidas: Permissao[],
+): Result<void, ReturnType<typeof appError>> {
+  if (naoAutenticado(ctx)) {
     return err(appError("UNAUTHORIZED", "Usuário não autenticado."));
   }
 
-  const perms: Permissao[] = ctx.permissoes ?? [];
-  const temAlguma: boolean = permissoes.some((p) => perms.includes(p));
+  const permissoes = ctx.permissoes ?? [];
+  const temAlguma = permissoesExigidas.some((p) => permissoes.includes(p));
 
   if (!temAlguma) {
+    // Para "alguma", faz sentido mostrar a lista combinada; vazio vira "".
     return err(
-      appError("FORBIDDEN", "Permissão insuficiente.", {
-        permissoesAceitas: permissoes,
+      appError("FORBIDDEN", "Permissões insuficientes.", {
+        permissaoExigida: permissoesExigidas.join("|"),
       }),
     );
   }
