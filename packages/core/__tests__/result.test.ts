@@ -1,16 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { ok, err, isOk, isErr } from "../result";
+import { ok, err } from "../src/result";
 
 describe("Result", () => {
-  it("ok deve criar sucesso", () => {
+  it("ok() cria resultado de sucesso", () => {
     const r = ok(123);
-    expect(isOk(r)).toBe(true);
-    expect(r.value).toBe(123);
+
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value).toBe(123);
+    }
   });
 
-  it("err deve criar falha", () => {
-    const r = err("erro");
-    expect(isErr(r)).toBe(true);
-    expect(r.error).toBe("erro");
+  it("err() cria resultado de erro", () => {
+    const r = err("fail");
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error).toBe("fail");
+    }
   });
 });

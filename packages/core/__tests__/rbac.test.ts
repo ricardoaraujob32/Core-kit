@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { exigirPermissao, exigirAlguma, exigirTodas } from "../rbac";
-import type { ContextoExecucao } from "../locatario";
+import { exigirPermissao, exigirAlguma, exigirTodas } from "../src/rbac";
+import type { ContextoExecucao } from "../src/locatario";
 
 describe("RBAC", () => {
   const ctxBase: ContextoExecucao = {

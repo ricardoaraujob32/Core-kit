@@ -3,29 +3,24 @@
  * para log, retorno HTTP, auditoria e suporte.
  */
 
+// errors.ts
 export type AppErrorCode =
-  | "VALIDATION"
   | "UNAUTHORIZED"
   | "FORBIDDEN"
+  | "INVALID"
   | "NOT_FOUND"
-  | "CONFLICT"
   | "INTERNAL";
 
-export type AppError = {
+export type AppError<T extends object = {}> = {
   code: AppErrorCode;
   message: string;
-  details?: Record<string, unknown>;
-  cause?: unknown;
+  details?: T;
 };
 
-/**
- * Constrói um AppError padronizado.
- */
-export function appError(
+export function appError<T extends object = {}>(
   code: AppErrorCode,
   message: string,
-  details?: Record<string, unknown>,
-  cause?: unknown,
-): AppError {
-  return { code, message, details, cause };
+  details?: T,
+): AppError<T> {
+  return { code, message, details };
 }
