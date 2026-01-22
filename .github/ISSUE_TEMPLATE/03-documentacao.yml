@@ -1,6 +1,6 @@
 name: Documentação
 description: Criar ou atualizar documentação técnica ou de processo
-labels: ["documentacao"]
+labels: ["documentação"]
 body:
   - type: textarea
     id: contexto
