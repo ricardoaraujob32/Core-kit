@@ -29,8 +29,12 @@ jobs:
       - name: Lint
         run: npm -ws --if-present run lint
 
+      - name: Build
+        run: npm -ws --if-present run build
+
       - name: Typecheck
         run: npm -ws --if-present run typecheck
+
 
       - name: Unit tests
         run: npm -ws --if-present run test
