@@ -1,0 +1,39 @@
+name: Refatoramento
+description: Melhorar código sem alterar comportamento externo
+labels: ["refatoramento"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema Atual
+      description: O que está ruim, confuso ou difícil de manter?
+    validations:
+      required: true
+
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo da Refatoração
+      description: O que deve melhorar após a refatoração?
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto Esperado
+      description: |
+        O que NÃO deve mudar?
+        Ex.: API pública, contratos, comportamento.
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de Aceite
+      value: |
+        - [ ] Nenhuma mudança de comportamento externo
+        - [ ] Testes continuam passando
+        - [ ] Código mais simples/legível
+        - [ ] Sem regressões

@@ -1,0 +1,40 @@
+name: Infraestrutura
+description: CI, automação, build, ambiente, tooling
+labels: ["infraestrutura"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Por que essa mudança de infra é necessária?
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo Técnico
+      description: |
+        O que será alterado?
+        Ex.: CI, scripts, workflows, configuração.
+    validations:
+      required: true
+
+  - type: textarea
+    id: riscos
+    attributes:
+      label: Riscos
+      description: |
+        Há risco de quebrar build, CI ou ambiente?
+    validations:
+      required: false
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de Aceite
+      value: |
+        - [ ] CI executa com sucesso
+        - [ ] Logs claros
+        - [ ] Sem impacto negativo no Core
+        - [ ] Documentação atualizada (se necessário)

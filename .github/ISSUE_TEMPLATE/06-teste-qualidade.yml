@@ -1,0 +1,39 @@
+name: Teste / Qualidade
+description: Criar ou melhorar testes, cobertura e confiabilidade
+labels: ["teste/qualidade"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: O que motivou esta tarefa de qualidade?
+    validations:
+      required: true
+
+  - type: textarea
+    id: tipo
+    attributes:
+      label: Tipo de Teste
+      description: |
+        Unitário, integração, contrato, regressão, CI?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alvo
+    attributes:
+      label: Alvo dos Testes
+      description: |
+        Arquivos, módulos ou comportamentos cobertos.
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de Aceite
+      value: |
+        - [ ] Testes falham antes da correção
+        - [ ] Testes passam após a implementação
+        - [ ] Casos de erro cobertos
+        - [ ] Serialização previsível validada

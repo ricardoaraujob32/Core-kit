@@ -1,0 +1,41 @@
+name: Documentação
+description: Criar ou atualizar documentação técnica ou de processo
+labels: ["documentacao"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Por que esta documentação é necessária?
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo
+      description: |
+        O que deve ser documentado?
+        Ex.: módulo, processo, arquitetura, decisão técnica.
+    validations:
+      required: true
+
+  - type: textarea
+    id: publico
+    attributes:
+      label: Público-alvo
+      description: |
+        Para quem é essa documentação?
+        Ex.: dev backend, dev frontend, gestor, cliente.
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de Aceite
+      value: |
+        - [ ] Conteúdo claro e técnico
+        - [ ] Termos padronizados
+        - [ ] Exemplos (quando aplicável)
+        - [ ] Revisado e consistente com o código
