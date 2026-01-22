@@ -9,7 +9,9 @@ export type AppErrorCode =
   | "FORBIDDEN"
   | "INVALID"
   | "NOT_FOUND"
-  | "INTERNAL";
+  | "INTERNAL_ERROR"
+  | "CONFLICT"
+  | "VALIDATION";
 
 export type AppError<T extends object = {}> = {
   code: AppErrorCode;
