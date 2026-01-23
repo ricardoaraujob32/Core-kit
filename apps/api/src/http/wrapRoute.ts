@@ -35,8 +35,13 @@ export function wrapRoute<TOut>(fn: RouteFn<TOut>) {
       const result = await fn(ctx, req);
 
       if (result.ok) {
-        return reply.status(200).send(result.value);
+        // padrão: ok(undefined) => 204 (sem body)
+        if (result.value === undefined) {
+          return reply.status(204).send();
+        }
+          return reply.status(200).send(result.value);
       }
+
 
       const status = mapAppErrorToHttpStatus(result.error);
       return reply.status(status).send(toHttpErrorBody(result.error));
