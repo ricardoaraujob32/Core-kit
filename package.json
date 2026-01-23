@@ -1,13 +1,30 @@
 {
   "name": "core-kit",
   "private": true,
+  "version": "0.1.0",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "lint": "echo \"lint: (placeholder)\"",
-    "typecheck": "echo \"typecheck: (placeholder)\"",
-    "test:unit": "echo \"test:unit: (placeholder)\""
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "npm -ws run typecheck",
+    "build": "npm -ws run build",
+    "test:unit": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^25.0.9",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^1.6.0"
   }
 }

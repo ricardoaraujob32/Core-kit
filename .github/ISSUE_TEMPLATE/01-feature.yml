@@ -1,0 +1,37 @@
+name: Funcionalidade
+description: Nova funcionalidade do Core Kit
+labels: ["funcionalidade"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Por que essa feature é necessária?
+    validations:
+      required: true
+
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: O que deve ser entregue?
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo
+      description: O que está dentro e fora da tarefa?
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de Aceite
+      description: Checklist objetivo de conclusão
+      value: |
+        - [ ] Código implementado
+        - [ ] Testes criados/atualizados
+        - [ ] CI passando

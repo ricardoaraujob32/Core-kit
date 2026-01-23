@@ -1,0 +1,15 @@
+name: Meta / Processo
+description: Organização, CI, Kanban, documentação
+labels: ["meta"]
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de Aceite

@@ -1,0 +1,23 @@
+name: Bug
+description: Erro ou comportamento inesperado
+labels: ["bug/erro/falha"]
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: O que está quebrado?
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir

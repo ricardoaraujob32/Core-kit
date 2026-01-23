@@ -1,0 +1,14 @@
+# Build outputs
+dist
+build
+coverage
+.next
+
+# Dependencies
+node_modules
+
+# Logs
+*.log
+
+# CI / GitHub metadata
+.github/**/*.md

@@ -1,34 +1,47 @@
-name: CI (minimal)
+name: ci-min
 
 on:
-  pull_request:
   push:
-    branches:
-      - develop
-      - main
+    branches: [main, develop]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  check:
+  quality:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
-      - name: Install dependencies
+      - name: Install dependencies (root)
         run: npm ci
 
+      # Formatação (se existir script nos workspaces)
+      - name: Format check
+        run: npm --workspaces --if-present run format:check
+
+      # Lint (idem)
       - name: Lint
-        run: npm run lint
+        run: npm --workspaces --if-present run lint
 
-      - name: Type check
-        run: npm run typecheck
+      # Typecheck (pega esses erros do TS)
+      - name: Typecheck
+        run: npm --workspaces --if-present run typecheck
 
+      # Build (se houver; se build roda tsc, ele também pega erro de tipos)
+      - name: Build
+        run: npm --workspaces --if-present run build
+
+      # Testes unitários
       - name: Unit tests
-        run: npm run test:unit
+        run: npm --workspaces --if-present run test
