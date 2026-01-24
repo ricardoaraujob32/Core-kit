@@ -1,13 +1,9 @@
-name: ci-min
+name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [develop, main]
   pull_request:
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   quality:
@@ -20,28 +16,28 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          node-version: 20
           cache: npm
 
       - name: Install dependencies (root)
         run: npm ci
 
-      # Formatação (se existir script nos workspaces)
+      # Opcional: se você tiver script format:check no root
       - name: Format check
-        run: npm --workspaces --if-present run format:check
+        run: npm run -s format:check
+        continue-on-error: false
 
-      # Lint (idem)
+      # Opcional: se você tiver script lint no root
       - name: Lint
-        run: npm --workspaces --if-present run lint
+        run: npm run -s lint
+        continue-on-error: false
 
-      # Typecheck (pega esses erros do TS)
-      - name: Typecheck
-        run: npm --workspaces --if-present run typecheck
+      # Roda em todos os workspaces que tiverem o script
+      - name: Typecheck (workspaces)
+        run: npm run -ws --if-present typecheck
 
-      # Build (se houver; se build roda tsc, ele também pega erro de tipos)
-      - name: Build
-        run: npm --workspaces --if-present run build
+      - name: Unit tests (workspaces)
+        run: npm run -ws --if-present test
 
-      # Testes unitários
-      - name: Unit tests
-        run: npm --workspaces --if-present run test
+      - name: Build (workspaces)
+        run: npm run -ws --if-present build
