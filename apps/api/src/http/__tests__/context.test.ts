@@ -44,10 +44,7 @@ describe("HTTP Context Builder", () => {
     });
     const ctx = buildContextFromRequest(req);
 
-    expect(ctx.permissoes).toEqual([
-      "usuarios:listar",
-      "usuarios:criar",
-    ]);
+    expect(ctx.permissoes).toEqual(["usuarios:listar", "usuarios:criar"]);
   });
 
   it("remove espaços e duplicadas nas permissões", () => {
@@ -56,10 +53,7 @@ describe("HTTP Context Builder", () => {
     });
     const ctx = buildContextFromRequest(req);
 
-    expect(ctx.permissoes).toEqual([
-      "usuarios:listar",
-      "usuarios:criar",
-    ]);
+    expect(ctx.permissoes).toEqual(["usuarios:listar", "usuarios:criar"]);
   });
 
   it("permissoes vazias resultam em undefined", () => {

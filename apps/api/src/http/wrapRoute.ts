@@ -70,4 +70,3 @@ export function wrapRoute<TOut>(fn: RouteFn<TOut>) {
     }
   };
 }
-

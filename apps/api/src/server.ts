@@ -4,7 +4,7 @@ import { registerHealthRoutes } from "./routes/health";
 import { registerExemploProtegidoRoutes } from "./routes/exemplo-protegido";
 
 /**
- * 
+ *
  * @returns Promise<FastifyInstance>
  */
 

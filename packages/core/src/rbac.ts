@@ -18,9 +18,7 @@ export function exigirPermissao(
 
   const permissoes = ctx.permissoes ?? [];
   if (!permissoes.includes(permissao)) {
-    return err(
-      appError("FORBIDDEN", "Permissões insuficientes.", { permissaoExigida: permissao }),
-    );
+    return err(appError("FORBIDDEN", "Permissões insuficientes.", { permissaoExigida: permissao }));
   }
 
   return ok(undefined);

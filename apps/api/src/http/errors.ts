@@ -2,7 +2,7 @@
 import type { AppError, AppErrorCode } from "@core-kit/core";
 
 /**
- * 
+ *
  */
 const FORBIDDEN_DEFAULT_MESSAGE = "Permissões insuficientes";
 

@@ -1,19 +1,20 @@
 ## 🔄 Fluxo Oficial
 
 Issue criada
-  ↓
+↓
 Branch: feature/123-rbac
-  ↓
+↓
 Commits pequenos e claros
-  ↓
+↓
 Pull Request
-  ↓
+↓
 CI:
-  - lint
-  - test
-  - typecheck
-  - build
+
+- lint
+- test
+- typecheck
+- build
   ↓
-Merge
+  Merge
   ↓
-Issue fechada automaticamente
+  Issue fechada automaticamente

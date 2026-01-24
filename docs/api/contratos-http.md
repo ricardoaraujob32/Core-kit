@@ -1,6 +1,7 @@
 # Contratos HTTP (Core Kit API)
 
 Este documento define o padrão de respostas HTTP do backend `apps/api`, baseado em:
+
 - Result (ok/err) do pacote `@core-kit/core`
 - RBAC (`exigirPermissao`, `exigirTodas`, `exigirAlguma`)
 - Wrapper HTTP (`wrapRoute`) para normalizar respostas e erros
@@ -11,6 +12,7 @@ Este documento define o padrão de respostas HTTP do backend `apps/api`, baseado
 Os endpoints podem depender de contexto para autorização e multi-tenancy.
 
 ### 1.1. Headers recomendados (DEV / integração interna)
+
 - `x-locatario-id`: identifica o locatário (tenant)
 - `x-usuario-id`: identifica o usuário
 - `x-permissoes`: lista de permissões (string separada por vírgula), ex: `usuarios:listar,usuarios:criar`
@@ -20,12 +22,15 @@ Os endpoints podem depender de contexto para autorização e multi-tenancy.
 ## 2. Padrão de resposta de sucesso
 
 ### 2.1. 200 OK (com body)
+
 Quando a rota retorna `ok({ ... })`, o wrapper responde com:
+
 - Status: `200`
 - Body: o valor retornado
 
 Exemplo:
-```json
+
+````json
 {
   "ok": true,
   "data": ["alice", "bob"]
@@ -46,3 +51,4 @@ Se você já tiver um doc de processo (parece que tem `docs/processo.md`), acres
   - sucesso
   - erro esperado (ex.: forbidden/validation)
 - lint/typecheck/test passam no CI
+````
