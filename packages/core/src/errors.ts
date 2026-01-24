@@ -79,12 +79,5 @@ export function isAppError(value: unknown): value is AppError {
 
   const v = value as Partial<AppError>;
 
-  return (
-    typeof v.code === "string" &&
-    typeof v.message === "string"
-  );
+  return typeof v.code === "string" && typeof v.message === "string";
 }
-
-
-
-
