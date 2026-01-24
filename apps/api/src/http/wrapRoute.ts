@@ -1,9 +1,9 @@
+// apps/api/src/http/wrapRoute.ts
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { AppError, ContextoExecucao, Result } from "@core-kit/core";
 import { appError } from "@core-kit/core";
-
 import { buildContextFromRequest } from "./context";
-import { mapAppErrorToHttpStatus, toHttpErrorBody } from "./errors";
+import { normalizeForbiddenMessage, stripUndefined, mapAppErrorToHttpStatus } from "./errors";
 
 function isAppError(e: unknown): e is AppError {
   if (!e || typeof e !== "object") return false;
@@ -13,7 +13,8 @@ function isAppError(e: unknown): e is AppError {
 
 /**
  * Função de rota “pura” (Abordagem A):
- * recebe ctx e req, devolve Result.
+ * - recebe ctx e req
+ * - devolve Result (sem depender de Fastify)
  */
 export type RouteFn<TOut> = (
   ctx: ContextoExecucao,
@@ -21,13 +22,14 @@ export type RouteFn<TOut> = (
 ) => Promise<Result<TOut, AppError>> | Result<TOut, AppError>;
 
 /**
- * Wrapper Fastify: converte Result -> HTTP.
- * - sucesso: 200 + body
- * - erro: status mapeado + { error: ... }
+ * Wrapper Fastify:
+ * - constrói/reusa ctx
+ * - converte Result -> HTTP (status + body)
+ * - normaliza mensagens/payload (ex.: FORBIDDEN + stripUndefined)
+ * - captura throw inesperado e converte para INTERNAL
  */
 export function wrapRoute<TOut>(fn: RouteFn<TOut>) {
   return async function handler(req: FastifyRequest, reply: FastifyReply) {
-    // Se já existe ctx (via hook), reaproveita. Senão, constrói.
     const ctx: ContextoExecucao =
       (req as unknown as { ctx?: ContextoExecucao }).ctx ?? buildContextFromRequest(req);
 
@@ -39,21 +41,33 @@ export function wrapRoute<TOut>(fn: RouteFn<TOut>) {
         if (result.value === undefined) {
           return reply.status(204).send();
         }
-          return reply.status(200).send(result.value);
+        // remove undefined para manter JSON previsível
+        return reply.status(200).send(stripUndefined(result.value));
       }
 
+      const err = normalizeForbiddenMessage(result.error);
+      const status = mapAppErrorToHttpStatus(err.code);
 
-      const status = mapAppErrorToHttpStatus(result.error);
-      return reply.status(status).send(toHttpErrorBody(result.error));
+      return reply.status(status).send(
+        stripUndefined({
+          error: err,
+        }),
+      );
     } catch (e) {
-      const err = isAppError(e)
-        ? e
-        : appError("INTERNAL_ERROR", "Erro interno.", {
-            reason: "unhandled_exception",
-          });
+      // Não vazar detalhes: unknown -> INTERNAL genérico
+      const err = normalizeForbiddenMessage(
+        isAppError(e) ? e : appError("INTERNAL_ERROR", "Erro interno."),
+      );
+      // const err = unexpectedToInternalError(e); // possível refatoração sugerida pelo ChatGPT
 
-      const status = mapAppErrorToHttpStatus(err);
-      return reply.status(status).send(toHttpErrorBody(err));
+      const status = mapAppErrorToHttpStatus(err.code);
+
+      return reply.status(status).send(
+        stripUndefined({
+          error: err,
+        }),
+      );
     }
   };
 }
+

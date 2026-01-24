@@ -3,7 +3,7 @@
  * para log, retorno HTTP, auditoria e suporte.
  */
 
-// errors.ts
+// packages/core/src/errors.ts
 export type AppErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"

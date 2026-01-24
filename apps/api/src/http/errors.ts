@@ -1,19 +1,19 @@
-import type { AppError } from "@core-kit/core";
-
-export type HttpErrorResponse = {
-  error: {
-    code: AppError["code"];
-    message: string;
-    details?: Record<string, unknown>;
-  };
-};
+// apps/api/src/http/errors.ts
+import type { AppError, AppErrorCode } from "@core-kit/core";
 
 /**
- * @param err Erro do Core Kit
- * @returns Status HTTP correspondente
+ * 
  */
-export function mapAppErrorToHttpStatus(err: AppError): number {
-  switch (err.code) {
+const FORBIDDEN_DEFAULT_MESSAGE = "Permissões insuficientes";
+
+/**
+ * Mapeia AppErrorCode (core) → HTTP Status
+ * NÃO inventa códigos novos.
+ */
+export function mapAppErrorToHttpStatus(code: AppErrorCode): number {
+  switch (code) {
+    case "VALIDATION":
+      return 400;
     case "UNAUTHORIZED":
       return 401;
     case "FORBIDDEN":
@@ -22,29 +22,43 @@ export function mapAppErrorToHttpStatus(err: AppError): number {
       return 404;
     case "CONFLICT":
       return 409;
-    case "VALIDATION":
-      return 400;
     default:
+      // fallback defensivo (nunca deveria acontecer)
       return 500;
   }
 }
 
 /**
- * @param err Erro do Core Kit
- * @returns Payload HTTP padronizado
+ * Remove undefined recursivamente
+ * Mantém JSON estável (cache, logs, testes).
  */
-export function toHttpErrorBody(err: AppError): HttpErrorResponse {
-  const body: HttpErrorResponse = {
-    error: {
-      code: err.code,
-      message: err.message,
-    },
+export function stripUndefined<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj)) as T;
+}
+
+/**
+ * Normaliza mensagem de FORBIDDEN
+ * sem alterar código nem estrutura.
+ */
+export function normalizeForbiddenMessage(err: AppError): AppError {
+  if (err.code !== "FORBIDDEN") return err;
+
+  if (err.message === FORBIDDEN_DEFAULT_MESSAGE) return err;
+
+  return {
+    ...err,
+    message: FORBIDDEN_DEFAULT_MESSAGE,
   };
+}
 
-  // Só inclui `details` se for útil (evita `details: undefined`)
-  if (err.details && typeof err.details === "object") {
-    body.error.details = err.details as Record<string, unknown>;
-  }
-
-  return body;
+/**
+ * Converte AppError → payload HTTP
+ * (contrato explícito de saída)
+ */
+export function toHttpErrorBody(err: AppError) {
+  return stripUndefined({
+    code: err.code,
+    message: err.message,
+    details: err.details,
+  });
 }
