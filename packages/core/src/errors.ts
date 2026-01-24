@@ -84,3 +84,7 @@ export function isAppError(value: unknown): value is AppError {
     typeof v.message === "string"
   );
 }
+
+
+
+
