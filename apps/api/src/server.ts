@@ -2,26 +2,20 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { buildContextFromRequest } from "./http/context";
 import { registerHealthRoutes } from "./routes/health";
 import { registerExemploProtegidoRoutes } from "./routes/exemplo-protegido";
-import { registerUsuariosRoutes } from "./routes/usuarios";
-import { createDeps } from "./di";
-
-/**
- *
- * @returns Promise<FastifyInstance>
- */
+import { registrarRotasUsuarios } from "./routes/usuarios";
+import { criarDependenciasAplicacao } from "./dependencyInjection";
 
 export async function buildServer(): Promise<FastifyInstance> {
-  const app: FastifyInstance = Fastify({ logger: true });
-  const deps = createDeps();
+  const aplicacao: FastifyInstance = Fastify({ logger: true });
+  const dependenciasAplicacao = criarDependenciasAplicacao();
 
-  // injeta ctx em toda request (DEV)
-  app.addHook("preHandler", async (req) => {
-    req.ctx = buildContextFromRequest(req);
+  aplicacao.addHook("preHandler", async (requisicao) => {
+    requisicao.ctx = buildContextFromRequest(requisicao);
   });
 
-  await registerHealthRoutes(app);
-  await registerExemploProtegidoRoutes(app);
-  await registerUsuariosRoutes(app, deps);
+  await registerHealthRoutes(aplicacao);
+  await registerExemploProtegidoRoutes(aplicacao);
+  await registrarRotasUsuarios(aplicacao, dependenciasAplicacao);
 
-  return app;
+  return aplicacao;
 }

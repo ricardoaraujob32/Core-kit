@@ -1,22 +1,35 @@
-// packages/core/src/usuarios/memoryRepo.ts
+/**
+ * Arquivo: packages/core/src/usuarios/memoryRepo.ts
+ * Finalidade: Implementação em memória de RepositorioUsuarios (para testes e desenvolvimento local).
+ * Observação: Mantém os mesmos nomes e assinaturas do contrato (interface) para não quebrar DI.
+ */
 
-import type { UsuariosRepo } from "./repo";
+import type { RepositorioUsuarios } from "./repositorioUsuarios";
+import type { LocatarioId } from "../locatario";
 import type { Usuario } from "./types";
 
-export function createUsuariosMemoryRepo(): UsuariosRepo {
-  const data: Usuario[] = [];
+type RegistroUsuario = {
+  locatarioId: LocatarioId;
+  usuario: Usuario;
+};
+
+export function criarRepositorioUsuariosEmMemoria(): RepositorioUsuarios {
+  const registros: RegistroUsuario[] = [];
 
   return {
-    async findByNome(nome) {
-      return data.find(u => u.nome === nome) ?? null;
+    async criarUsuario(locatarioId: LocatarioId, usuario: Usuario): Promise<void> {
+      registros.push({ locatarioId, usuario });
     },
 
-    async create(usuario) {
-      data.push(usuario);
+    async buscarUsuarioPorNome(locatarioId: LocatarioId, nome: string): Promise<Usuario | null> {
+      const encontrado = registros.find(
+        (r) => r.locatarioId === locatarioId && r.usuario.nome === nome,
+      );
+      return encontrado ? encontrado.usuario : null;
     },
 
-    async list() {
-      return [...data];
+    async listarUsuarios(locatarioId: LocatarioId): Promise<Usuario[]> {
+      return registros.filter((r) => r.locatarioId === locatarioId).map((r) => r.usuario);
     },
   };
 }

@@ -1,67 +1,55 @@
-// apps/api/src/routes/usuarios.ts
-import type { FastifyInstance } from "fastify";
+/**
+ * Arquivo: apps/api/src/routes/usuarios.ts
+ * Finalidade: Registrar rotas HTTP de Usuários no Fastify.
+ *
+ * Observações:
+ * - Adaptador fino: HTTP -> casos de uso do core.
+ * - Nesta fase, NÃO exigimos permissões (sem travar). Vamos endurecer depois.
+ */
 
-import {
-  criarUsuario,
-  listarUsuarios,
-  exigirPermissao,
-  ok,
-  err,
-  appError,
-} from "@core-kit/core";
-
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import { criarUsuario, listarUsuarios, err, appError, ok } from "@core-kit/core";
 import { wrapRoute } from "../http/wrapRoute";
-import type { Deps } from "../di";
+import type { DependenciasAplicacao } from "../dependencyInjection";
 
-type CriarUsuarioBody = {
+type CorpoRequisicaoCriarUsuario = {
   nome?: unknown;
 };
 
-export async function registerUsuariosRoutes(app: FastifyInstance, deps: Deps): Promise<void> {
-  /**
-   * GET /usuarios
-   * Permissão: "usuarios:listar"
-   */
-  app.get(
+export async function registrarRotasUsuarios(
+  servidorFastify: FastifyInstance,
+  dependenciasAplicacao: DependenciasAplicacao,
+): Promise<void> {
+  servidorFastify.get(
     "/usuarios",
-    wrapRoute(async (ctx) => {
-      const p = exigirPermissao(ctx, "usuarios:listar");
-      if (!p.ok) return p;
-
-      return listarUsuarios(ctx, { usuariosRepo: deps.usuariosRepo });
+    wrapRoute(async (contextoExecucao) => {
+      return listarUsuarios(contextoExecucao, {
+        repositorioUsuarios: dependenciasAplicacao.repositorioUsuarios,
+      });
     }),
   );
 
-  /**
-   * POST /usuarios
-   * body: { nome: string }
-   * Permissão: "usuarios:criar"
-   */
-  app.post(
+  servidorFastify.post(
     "/usuarios",
-    wrapRoute(async (ctx, req) => {
-      const p = exigirPermissao(ctx, "usuarios:criar");
-      if (!p.ok) return p;
+    wrapRoute(async (contextoExecucao, requisicao: FastifyRequest) => {
+      const corpoRequisicao = (requisicao.body ?? {}) as CorpoRequisicaoCriarUsuario;
 
-      const body = (req.body ?? {}) as CriarUsuarioBody;
-
-      if (typeof body.nome !== "string") {
+      if (typeof corpoRequisicao.nome !== "string") {
         return err(appError("VALIDATION", 'Campo "nome" deve ser string.'));
       }
 
-      // O core vai normalizar e validar o conteúdo (trim, tamanho etc)
       return criarUsuario(
-        ctx,
-        { usuariosRepo: deps.usuariosRepo, gerarId: deps.gerarId },
-        { nome: body.nome },
+        contextoExecucao,
+        {
+          repositorioUsuarios: dependenciasAplicacao.repositorioUsuarios,
+          gerarIdentificadorUsuario: dependenciasAplicacao.gerarIdentificadorUsuario,
+        },
+        { nome: corpoRequisicao.nome },
       );
     }),
   );
 
-  /**
-   * Dica (opcional): health de usuários p/ debug
-   */
-  app.get(
+  servidorFastify.get(
     "/usuarios/_ping",
     wrapRoute(async () => ok({ ok: true })),
   );

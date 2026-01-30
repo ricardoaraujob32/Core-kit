@@ -16,7 +16,7 @@ export type {
   StatusUsuario,
 } from "./usuarios/types";
 
-export type { UsuariosRepo } from "./usuarios/repo";
+export type { RepositorioUsuarios} from "./usuarios/repositorioUsuarios";
 
 export { createUsuariosMemoryRepo } from "./usuarios/memoryRepo";
 

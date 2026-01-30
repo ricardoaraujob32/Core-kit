@@ -1,7 +1,7 @@
 // packages/core/src/usuarios/index.ts
 
 export * from "./types";
-export * from "./repo";
+export * from "./repositorioUsuarios";
 export * from "./validators";
 export * from "./memoryRepo";
 

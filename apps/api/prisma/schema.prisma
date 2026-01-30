@@ -1,0 +1,29 @@
+/**
+ * Arquivo: apps/api/prisma/schema.prisma
+ * Finalidade: Definir o esquema do banco e gerar o Prisma Client.
+ *
+ * Observação:
+ * - Este é o início do esquema. Vamos evoluir com migrações.
+ * - Mantemos a API e o core desacoplados: o core não importa Prisma.
+ */
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id           String   @id
+  locatarioId  String
+  nome         String
+  status       String   @default("ATIVO")
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([locatarioId])
+  @@unique([locatarioId, nome])
+}
+
