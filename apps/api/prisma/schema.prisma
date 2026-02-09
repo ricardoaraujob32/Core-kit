@@ -1,29 +1,115 @@
-/**
- * Arquivo: apps/api/prisma/schema.prisma
- * Finalidade: Definir o esquema do banco e gerar o Prisma Client.
- *
- * Observação:
- * - Este é o início do esquema. Vamos evoluir com migrações.
- * - Mantemos a API e o core desacoplados: o core não importa Prisma.
- */
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["api", "audit", "jobs", "main"]
 }
 
 model Usuario {
-  id           String   @id
-  locatarioId  String
-  nome         String
-  status       String   @default("ATIVO")
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id            String?        @db.Uuid
+  email                   String
+  nome                    String
+  senha_hash              String
+  status                  status_usuario @default(ATIVO)
+  administrador           Boolean        @default(false)
+  ultimo_login_em         DateTime?      @db.Timestamptz(6)
+  criado_em               DateTime       @default(now()) @db.Timestamptz(6)
+  atualizado_em           DateTime       @default(now()) @db.Timestamptz(6)
+  excluido_em             DateTime?      @db.Timestamptz(6)
+  excluido_por_usuario_id String?        @db.Uuid
+  motivo_exclusao         String?
 
-  @@index([locatarioId])
-  @@unique([locatarioId, nome])
+  @@map("usuarios")
+  @@schema("main")
 }
 
+model locatarios {
+  id                      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome                    String
+  plano_id                String           @db.Uuid
+  excluido_em             DateTime?        @db.Timestamptz(6)
+  excluido_por_usuario_id String?          @db.Uuid
+  motivo_exclusao         String?
+  slug                    String           @unique
+  status                  status_locatario @default(ATIVO)
+  criado_em               DateTime         @default(now()) @db.Timestamptz(6)
+  atualizado_em           DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@schema("main")
+}
+
+model modulos {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo        String
+  nome          String
+  categoria     String
+  ativo         Boolean  @default(true)
+  criado_em     DateTime @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("main")
+}
+
+model planos {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo        String
+  nome          String
+  ativo         Boolean  @default(true)
+  criado_em     DateTime @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("main")
+}
+
+enum formato_exportacao {
+  CSV
+  XLSX
+  PDF
+
+  @@schema("main")
+}
+
+enum planos_locatario {
+  GRATUITO
+  BASICO
+  PRO
+  EMPRESARIAL
+
+  @@schema("main")
+}
+
+enum status_job {
+  PENDENTE
+  EXECUTANDO
+  SUCESSO
+  ERRO
+  CANCELADO
+
+  @@schema("main")
+}
+
+enum status_locatario {
+  ATIVO
+  SUSPENSO
+  EXCLUIDO
+
+  @@schema("main")
+}
+
+enum status_usuario {
+  ATIVO
+  BLOQUEADO
+
+  @@schema("main")
+}
+
+enum tipo_origem_importacao {
+  CSV
+  XLSX
+  GOOGLE_SHEETS
+
+  @@schema("main")
+}

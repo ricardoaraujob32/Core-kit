@@ -1,48 +1,42 @@
-/**
- * Arquivo: packages/core/src/usuarios/usecases/criarUsuario.ts
- * Finalidade: Caso de uso para criar um usuário no locatário atual.
- */
+// packages/core/src/usuarios/usecases/criarUsuario.ts
+import type { ContextoExecucao } from "../../contextoExecucao";
+import { err, ok, type Result } from "../../result";
+import { erroApp, type ErroApp } from "../../errors";
+import { exigirPermissao } from "../../autorizacao";
+import type { RepositorioUsuarios } from "../portasRepositorio";
+import type { AuditoriaWriter } from "../../auditoria/portaAuditoria";
+import { nomeValido, normalizarNome } from "../validadores";
 
-import type { Result } from "../../result";
-import { err, ok } from "../../result";
-import { appError, type AppError } from "../../errors";
-import type { ContextoExecucao } from "../../locatario";
-
-import type { RepositorioUsuarios } from "../repositorioUsuarios";
-import type { NovoUsuario, Usuario } from "../types";
-import { nomeValido, normalizeNome } from "../validators";
-
-export type DependenciasCriarUsuario = {
-  repositorioUsuarios: RepositorioUsuarios;
-  gerarIdentificadorUsuario: () => string;
+type Deps = {
+  usuariosRepo: RepositorioUsuarios;
+  auditoria: AuditoriaWriter;
 };
 
 export async function criarUsuario(
-  contextoExecucao: ContextoExecucao,
-  dependencias: DependenciasCriarUsuario,
-  entrada: NovoUsuario,
-): Promise<Result<Usuario, AppError>> {
-  const locatarioId = contextoExecucao.locatarioId;
-  if (!locatarioId) {
-    return err(appError("UNAUTHORIZED", "Locatário ausente no contexto."));
-  }
+  ctx: ContextoExecucao,
+  deps: Deps,
+  input: { nome: string }
+): Promise<Result<{ id: string }, ErroApp>> {
+  const auth = exigirPermissao(ctx, "USUARIOS_CRIAR");
+  if (!auth.ok) return auth;
 
-  const nome = normalizeNome(entrada.nome);
-  if (!nomeValido(nome)) {
-    return err(appError("VALIDATION", "Nome inválido."));
-  }
+  const nome = normalizarNome(input.nome);
+  if (!nomeValido(nome)) return err(erroApp("VALIDACAO", "Nome inválido"));
 
-  const usuarioExistente = await dependencias.repositorioUsuarios.buscarUsuarioPorNome(locatarioId, nome);
-  if (usuarioExistente) {
-    return err(appError("CONFLICT", "Usuário já existe."));
-  }
+  const existente = await deps.usuariosRepo.obterPorNome(ctx.locatarioId, nome);
+  if (existente) return err(erroApp("CONFLITO", "Já existe usuário com este nome"));
 
-  const usuario: Usuario = {
-    id: dependencias.gerarIdentificadorUsuario(),
-    nome,
-    status: "ATIVO",
-  };
+  const criado = await deps.usuariosRepo.criar({ locatarioId: ctx.locatarioId, nome });
 
-  await dependencias.repositorioUsuarios.criarUsuario(locatarioId, usuario);
-  return ok(usuario);
+  await deps.auditoria.registrar({
+    locatarioId: ctx.locatarioId,
+    usuarioId: ctx.usuarioId,
+    acao: "CRIAR",
+    entidade: "Usuario",
+    entidadeId: criado.id,
+    dados: { nome: criado.nome },
+    criadoEm: ctx.agora()
+  });
+
+  return ok({ id: criado.id });
 }

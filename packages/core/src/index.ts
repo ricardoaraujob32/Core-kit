@@ -14,12 +14,15 @@ export type {
   Usuario,
   NovoUsuario,
   StatusUsuario,
-} from "./usuarios/types";
+} from "./usuarios/tipos";
 
-export type { RepositorioUsuarios} from "./usuarios/repositorioUsuarios";
+export type { RepositorioUsuarios} from "./usuarios/portasRepositorio";
 
 export { createUsuariosMemoryRepo } from "./usuarios/memoryRepo";
 
 export { criarUsuario } from "./usuarios/usecases/criarUsuario";
 export { listarUsuarios } from "./usuarios/usecases/listarUsuarios";
+
+export type { Assinatura, StatusAssinatura, IdAssinatura, IdPlano, IdLocatario } from "./assinaturas/tipos";
+export type { RepositorioAssinaturas } from "./assinaturas/portasRepositorio";
 

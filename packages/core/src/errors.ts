@@ -57,6 +57,15 @@ export interface AppError {
  * Centraliza criação para manter consistência
  * e facilitar observabilidade.
  */
+
+export type CodigoErroApp =
+  | "NAO_AUTENTICADO"
+  | "NAO_AUTORIZADO"
+  | "VALIDACAO"
+  | "NAO_ENCONTRADO"
+  | "CONFLITO"
+  | "INFRA";
+
 export function appError(
   code: AppErrorCode,
   message: string,

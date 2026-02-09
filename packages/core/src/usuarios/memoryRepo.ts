@@ -4,9 +4,9 @@
  * Observação: Mantém os mesmos nomes e assinaturas do contrato (interface) para não quebrar DI.
  */
 
-import type { RepositorioUsuarios } from "./repositorioUsuarios";
+import type { RepositorioUsuarios } from "./portasRepositorio";
 import type { LocatarioId } from "../locatario";
-import type { Usuario } from "./types";
+import type { Usuario } from "./tipos";
 
 type RegistroUsuario = {
   locatarioId: LocatarioId;

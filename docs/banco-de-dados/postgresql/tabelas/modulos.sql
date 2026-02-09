@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS app.modulos (
+CREATE TABLE IF NOT EXISTS modulos (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   codigo      TEXT NOT NULL,
   nome        TEXT NOT NULL,

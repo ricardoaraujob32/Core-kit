@@ -6,12 +6,11 @@
  * - Este contrato é multi-locatário: todo acesso a usuário exige locatarioId.
  * - Implementações concretas (Prisma, memória, etc.) ficam fora do domínio.
  */
-
 import type { LocatarioId } from "../locatario";
-import type { Usuario } from "./types";
-
+import type { Usuario } from "./tipos";
 export interface RepositorioUsuarios {
-  criarUsuario(locatarioId: LocatarioId, usuario: Usuario): Promise<void>;
-  buscarUsuarioPorNome(locatarioId: LocatarioId, nome: string): Promise<Usuario | null>;
-  listarUsuarios(locatarioId: LocatarioId): Promise<Usuario[]>;
+    criarUsuario(locatarioId: LocatarioId, usuario: Usuario): Promise<void>;
+    buscarUsuarioPorNome(locatarioId: LocatarioId, nome: string): Promise<Usuario | null>;
+    listarUsuarios(locatarioId: LocatarioId): Promise<Usuario[]>;
 }
+//# sourceMappingURL=repositorioUsuarios.d.ts.map

@@ -1,6 +1,22 @@
 -- db/bootstrap/02_privileges.sql
 -- Finalidade: definir privilégios mínimos e default privileges (essencial para robustez).
 
+
+
+-- Exemplo: criar logins e associar às roles-modelo
+CREATE ROLE ck_app LOGIN PASSWORD '...';
+GRANT corekit_escrita TO ck_app;
+
+CREATE ROLE ck_migrate LOGIN PASSWORD '...';
+GRANT corekit_migrador TO ck_migrate;
+
+CREATE ROLE ck_ro LOGIN PASSWORD '...';
+GRANT corekit_leitura TO ck_ro;
+
+CREATE ROLE ck_job LOGIN PASSWORD '...';
+GRANT corekit_job TO ck_job;
+
+
 -- 1) Banco: remover privilégios amplos do PUBLIC (no banco atual)
 -- (Rodar conectado no banco do projeto)
 REVOKE ALL ON DATABASE current_database() FROM PUBLIC;

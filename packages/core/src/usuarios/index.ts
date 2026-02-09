@@ -1,8 +1,8 @@
 // packages/core/src/usuarios/index.ts
 
-export * from "./types";
-export * from "./repositorioUsuarios";
-export * from "./validators";
+export * from "./tipos";
+export * from "./portasRepositorio";
+export * from "./validadores";
 export * from "./memoryRepo";
 
 export * from "./usecases/criarUsuario";

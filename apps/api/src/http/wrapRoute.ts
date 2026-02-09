@@ -1,14 +1,33 @@
 // apps/api/src/http/wrapRoute.ts
+//
+// Finalidade:
+// - Implementar o Wrapper HTTP (Abordagem A) para rotas Fastify.
+// - Construir/reusar o Contexto de Execução do Core Kit.
+// - Converter Result<T, AppError> → resposta HTTP consistente.
+// - Normalizar erros (ex.: FORBIDDEN) e estabilizar JSON (stripUndefined).
+//
+// Contrato de resposta:
+// - Sucesso:
+//   - Se o handler retornar `ok(undefined)` → HTTP 204 (sem body).
+//   - Caso contrário → HTTP 200 + { data: <valor> }
+// - Erro:
+//   - HTTP status coerente com AppErrorCode + { error: { code, message, details? } }
+
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { AppError, ContextoExecucao, Result } from "@core-kit/core";
 import { appError } from "@core-kit/core";
 import { buildContextFromRequest } from "./context";
-import { normalizeForbiddenMessage, stripUndefined, mapAppErrorToHttpStatus } from "./errors";
+import {
+  mapAppErrorToHttpStatus,
+  normalizeForbiddenMessage,
+  stripUndefined,
+  toHttpErrorBody,
+} from "./errors";
 
-function isAppError(e: unknown): e is AppError {
-  if (!e || typeof e !== "object") return false;
-  const anyE = e as { code?: unknown; message?: unknown };
-  return typeof anyE.code === "string" && typeof anyE.message === "string";
+function isAppError(valor: unknown): valor is AppError {
+  if (!valor || typeof valor !== "object") return false;
+  const anyValor = valor as { code?: unknown; message?: unknown };
+  return typeof anyValor.code === "string" && typeof anyValor.message === "string";
 }
 
 /**
@@ -16,57 +35,52 @@ function isAppError(e: unknown): e is AppError {
  * - recebe ctx e req
  * - devolve Result (sem depender de Fastify)
  */
-export type RouteFn<TOut> = (
+export type RouteFn<TSaida> = (
   ctx: ContextoExecucao,
   req: FastifyRequest,
-) => Promise<Result<TOut, AppError>> | Result<TOut, AppError>;
+) => Promise<Result<TSaida, AppError>> | Result<TSaida, AppError>;
+
+type HttpSuccessBody<T> = { data: T };
+type HttpErrorBody = { error: ReturnType<typeof toHttpErrorBody> };
 
 /**
  * Wrapper Fastify:
  * - constrói/reusa ctx
  * - converte Result -> HTTP (status + body)
  * - normaliza mensagens/payload (ex.: FORBIDDEN + stripUndefined)
- * - captura throw inesperado e converte para INTERNAL
+ * - captura throw inesperado e converte para INTERNAL (genérico)
  */
-export function wrapRoute<TOut>(fn: RouteFn<TOut>) {
+export function wrapRoute<TSaida>(fn: RouteFn<TSaida>) {
   return async function handler(req: FastifyRequest, reply: FastifyReply) {
     const ctx: ContextoExecucao =
       (req as unknown as { ctx?: ContextoExecucao }).ctx ?? buildContextFromRequest(req);
 
     try {
-      const result = await fn(ctx, req);
+      const resultado = await fn(ctx, req);
 
-      if (result.ok) {
+      if (resultado.ok) {
         // padrão: ok(undefined) => 204 (sem body)
-        if (result.value === undefined) {
+        if (resultado.value === undefined) {
           return reply.status(204).send();
         }
-        // remove undefined para manter JSON previsível
-        return reply.status(200).send(stripUndefined(result.value));
+
+        const corpo: HttpSuccessBody<TSaida> = { data: resultado.value };
+        return reply.status(200).send(stripUndefined(corpo));
       }
 
-      const err = normalizeForbiddenMessage(result.error);
-      const status = mapAppErrorToHttpStatus(err.code);
+      const erroNormalizado = normalizeForbiddenMessage(resultado.error);
+      const status = mapAppErrorToHttpStatus(erroNormalizado.code);
 
-      return reply.status(status).send(
-        stripUndefined({
-          error: err,
-        }),
-      );
+      const corpo: HttpErrorBody = { error: toHttpErrorBody(erroNormalizado) };
+      return reply.status(status).send(stripUndefined(corpo));
     } catch (e) {
       // Não vazar detalhes: unknown -> INTERNAL genérico
-      const err = normalizeForbiddenMessage(
-        isAppError(e) ? e : appError("INTERNAL_ERROR", "Erro interno."),
-      );
-      // const err = unexpectedToInternalError(e); // possível refatoração sugerida pelo ChatGPT
+      const erroDominio = isAppError(e) ? e : appError("INTERNAL_ERROR", "Erro interno.");
+      const erroNormalizado = normalizeForbiddenMessage(erroDominio);
+      const status = mapAppErrorToHttpStatus(erroNormalizado.code);
 
-      const status = mapAppErrorToHttpStatus(err.code);
-
-      return reply.status(status).send(
-        stripUndefined({
-          error: err,
-        }),
-      );
+      const corpo: HttpErrorBody = { error: toHttpErrorBody(erroNormalizado) };
+      return reply.status(status).send(stripUndefined(corpo));
     }
   };
 }

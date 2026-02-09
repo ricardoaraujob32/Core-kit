@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { exigirPermissao, ok } from "@core-kit/core";
+import { ok } from "@core-kit/core";
 import { wrapRoute } from "../http/wrapRoute";
+import { exigirPermissao } from "../http/autorizacao";
 
 export async function registerExemploProtegidoRoutes(app: FastifyInstance): Promise<void> {
   /**

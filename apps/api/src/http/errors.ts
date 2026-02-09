@@ -1,17 +1,24 @@
 // apps/api/src/http/errors.ts
+//
+// Finalidade:
+// - Centralizar utilitários de HTTP relacionados a erros do Core Kit.
+// - Mapear códigos de erro do domínio (AppErrorCode) para status HTTP.
+// - Normalizar mensagens (ex.: FORBIDDEN) e padronizar payload de erro.
+//
+// Observações:
+// - Este arquivo NÃO deve conhecer Fastify/Express/etc.
+// - Não vaze detalhes sensíveis de erros inesperados para o cliente.
+
 import type { AppError, AppErrorCode } from "@core-kit/core";
 
-/**
- *
- */
-const FORBIDDEN_DEFAULT_MESSAGE = "Permissões insuficientes";
+const MENSAGEM_PADRAO_FORBIDDEN = "Permissões insuficientes";
 
 /**
- * Mapeia AppErrorCode (core) → HTTP Status
- * NÃO inventa códigos novos.
+ * Mapeia AppErrorCode (Core Kit) → HTTP status.
+ * Mantém um fallback defensivo (500) para códigos desconhecidos.
  */
-export function mapAppErrorToHttpStatus(code: AppErrorCode): number {
-  switch (code) {
+export function mapAppErrorToHttpStatus(codigo: AppErrorCode): number {
+  switch (codigo) {
     case "VALIDATION":
       return 400;
     case "UNAUTHORIZED":
@@ -23,42 +30,39 @@ export function mapAppErrorToHttpStatus(code: AppErrorCode): number {
     case "CONFLICT":
       return 409;
     default:
-      // fallback defensivo (nunca deveria acontecer)
       return 500;
   }
 }
 
 /**
- * Remove undefined recursivamente
+ * Remove `undefined` recursivamente.
  * Mantém JSON estável (cache, logs, testes).
  */
-export function stripUndefined<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj)) as T;
+export function stripUndefined<T>(objeto: T): T {
+  return JSON.parse(JSON.stringify(objeto)) as T;
 }
 
 /**
- * Normaliza mensagem de FORBIDDEN
- * sem alterar código nem estrutura.
+ * Normaliza mensagem de FORBIDDEN sem alterar código nem estrutura.
  */
-export function normalizeForbiddenMessage(err: AppError): AppError {
-  if (err.code !== "FORBIDDEN") return err;
+export function normalizeForbiddenMessage(erro: AppError): AppError {
+  if (erro.code !== "FORBIDDEN") return erro;
 
-  if (err.message === FORBIDDEN_DEFAULT_MESSAGE) return err;
+  if (erro.message === MENSAGEM_PADRAO_FORBIDDEN) return erro;
 
   return {
-    ...err,
-    message: FORBIDDEN_DEFAULT_MESSAGE,
+    ...erro,
+    message: MENSAGEM_PADRAO_FORBIDDEN,
   };
 }
 
 /**
- * Converte AppError → payload HTTP
- * (contrato explícito de saída)
+ * Converte AppError → payload HTTP (contrato explícito e estável).
  */
-export function toHttpErrorBody(err: AppError) {
+export function toHttpErrorBody(erro: AppError) {
   return stripUndefined({
-    code: err.code,
-    message: err.message,
-    details: err.details,
+    code: erro.code,
+    message: erro.message,
+    details: erro.details,
   });
 }

@@ -1,29 +1,17 @@
-/**
- * Arquivo: packages/core/src/usuarios/usecases/listarUsuarios.ts
- * Finalidade: Caso de uso para listar usuários do locatário atual.
- */
-
+// packages/core/src/usuarios/usecases/listarUsuarios.ts
+import type { ContextoExecucao } from "../../contextoExecucao";
+import { exigirPermissao } from "../../autorizacao";
 import type { Result } from "../../result";
-import { err, ok } from "../../result";
-import { appError, type AppError } from "../../errors";
-import type { ContextoExecucao } from "../../locatario";
-
-import type { RepositorioUsuarios } from "../repositorioUsuarios";
-import type { Usuario } from "../types";
-
-export type DependenciasListarUsuarios = {
-  repositorioUsuarios: RepositorioUsuarios;
-};
+import type { ErroApp } from "../../errors";
+import type { RepositorioUsuarios } from "../portasRepositorio";
 
 export async function listarUsuarios(
-  contextoExecucao: ContextoExecucao,
-  dependencias: DependenciasListarUsuarios,
-): Promise<Result<Usuario[], AppError>> {
-  const locatarioId = contextoExecucao.locatarioId;
-  if (!locatarioId) {
-    return err(appError("UNAUTHORIZED", "Locatário ausente no contexto."));
-  }
+  ctx: ContextoExecucao,
+  deps: { usuariosRepo: RepositorioUsuarios }
+): Promise<Result<{ itens: unknown[] }, ErroApp>> {
+  const auth = exigirPermissao(ctx, "USUARIOS_LER");
+  if (!auth.ok) return auth;
 
-  const usuarios = await dependencias.repositorioUsuarios.listarUsuarios(locatarioId);
-  return ok(usuarios);
+  const itens = await deps.usuariosRepo.listar(ctx.locatarioId);
+  return { ok: true, value: { itens } };
 }
