@@ -22,7 +22,7 @@ describe("RBAC", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.error).toEqual({
-        code: "FORBIDDEN",
+        code: "NAO_AUTORIZADO",
         message: "Permissões insuficientes.",
         details: { permissaoExigida: "usuarios:editar" },
         cause: undefined,
@@ -30,14 +30,14 @@ describe("RBAC", () => {
 
       // serializável de forma previsível
       expect(JSON.parse(JSON.stringify(r.error))).toEqual({
-        code: "FORBIDDEN",
+        code: "NAO_AUTORIZADO",
         message: "Permissões insuficientes.",
         details: { permissaoExigida: "usuarios:editar" },
       });
     }
   });
 
-  it("exigirPermissao() retorna UNAUTHORIZED quando ctx.permissoes está ausente", () => {
+  it("exigirPermissao() retorna NAO_AUTORIZADO quando ctx.permissoes está ausente", () => {
     const ctxSemPerm: ContextoExecucao = {
       locatarioId: "loc-1",
       usuarioId: "usr-1",
@@ -48,7 +48,7 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("UNAUTHORIZED");
+      expect(r.error.code).toBe("NAO_AUTENTICADO");
       expect(r.error.message).toBe("Usuário não autenticado.");
     }
   });
@@ -63,7 +63,7 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("FORBIDDEN");
+      expect(r.error.code).toBe("NAO_AUTORIZADO");
       expect(r.error.message).toBe("Permissões insuficientes.");
       expect(r.error.details).toEqual({ permissaoExigida: "usuarios:editar" });
     }
@@ -79,7 +79,7 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("FORBIDDEN");
+      expect(r.error.code).toBe("NAO_AUTORIZADO");
       expect(r.error.details).toEqual({
         permissaoExigida: "usuarios:editar|usuarios:remover",
       });
@@ -91,7 +91,7 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("FORBIDDEN");
+      expect(r.error.code).toBe("NAO_AUTORIZADO");
       expect(r.error.details).toEqual({ permissaoExigida: "" });
     }
   });

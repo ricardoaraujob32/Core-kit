@@ -1,0 +1,93 @@
+core/src/
+  result.ts
+  errors.ts
+  ids.ts
+  tempo.ts
+  contextoExecucao.ts
+  autorizacao.ts
+
+  locatarios/
+    tipos.ts
+    validadores.ts
+    portasRepositorio.ts
+    usecases/
+      criarLocatario.ts
+      atualizarPlanoLocatario.ts
+      excluirLogicamenteLocatario.ts
+      obterLocatario.ts
+
+  usuarios/
+    tipos.ts
+    validadores.ts
+    portasRepositorio.ts
+    usecases/
+      criarUsuario.ts
+      listarUsuarios.ts
+      excluirLogicamenteUsuario.ts
+      reativarUsuario.ts
+
+  planos/
+    tipos.ts
+    portasRepositorio.ts
+    usecases/
+      criarPlano.ts
+      definirLimitesPlano.ts
+
+  modulos/
+    tipos.ts
+    portasRepositorio.ts
+    usecases/
+      habilitarModuloParaPlano.ts
+      listarModulosPorPlano.ts
+
+  assinaturas/
+    tipos.ts
+    portasRepositorio.ts
+    usecases/
+      aplicarPlanoAoLocatario.ts
+      validarAcessoModulo.ts
+      validarLimiteUsuarios.ts
+      validarLimiteIdentidadeVisual.ts
+
+  auditoria/
+    tipos.ts
+    portaAuditoria.ts
+    usecases/
+      registrarEvento.ts
+
+  importacoes/
+    tipos.ts
+    portasRepositorio.ts
+    usecases/
+      criarImportacao.ts
+      registrarItemImportacao.ts
+      iniciarImportacao.ts
+      concluirImportacao.ts
+      falharImportacao.ts
+
+  exportacoes/
+    tipos.ts
+    portasRepositorio.ts
+    usecases/
+      criarExportacao.ts
+      iniciarExportacao.ts
+      concluirExportacao.ts
+      falharExportacao.ts
+
+  autenticacao/
+    tipos.ts
+    portasRepositorio.ts
+    usecases/
+      emitirTokens.ts
+      rotacionarTokenAtualizacao.ts
+      revogarTokenAtualizacao.ts
+
+  backups/
+    tipos.ts
+    portasRepositorio.ts
+    portasExecutores.ts
+    usecases/
+      configurarPoliticaBackup.ts
+      executarBackup.ts
+      registrarEvidenciaBackup.ts
+

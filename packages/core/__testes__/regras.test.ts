@@ -2,8 +2,8 @@
 // Finalidade: garantir o comportamento das regras de pagamento (status => permite uso).
 
 import { describe, expect, it } from "vitest";
-import { assinaturaPermiteUso, assinaturaEstaInadimplente } from "../regras";
-import type { Assinatura } from "../tipos";
+import { assinaturaPermiteUso, assinaturaEstaInadimplente } from "../src/assinaturas/regras";
+import type { Assinatura } from "../src/assinaturas/tipos";
 
 function criarAssinaturaParcial(parcial: Partial<Assinatura>): Assinatura {
   const agora = new Date("2026-01-01T00:00:00.000Z");

@@ -1,6 +1,6 @@
 import type { Result } from "../../result";
 import { ok, err } from "../../result";
-import { erroApp, type ErroApp } from "../../errors";
+import { erroApp, type ErroApp } from "../../erros";
 
 import type { IdLocatario } from "../tipos";
 import type { CodigoModulo } from "../../planos/tipos";

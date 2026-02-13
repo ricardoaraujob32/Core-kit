@@ -2,14 +2,14 @@
 // Finalidade: validar regras de acesso a módulos por plano + pagamento (assinatura).
 
 import { describe, expect, it } from "vitest";
-import { validarAcessoModulo } from "../../planos/usecases/validarAcessoModulo";
+import { validarAcessoModulo } from "../src/planos/usecases/validarAcessoModulo";
 
-import type { Assinatura } from "../tipos";
-import type { RepositorioAssinaturas } from "../portasRepositorio";
+import type { Assinatura } from "../src/assinaturas/tipos";
+import type { RepositorioAssinaturas } from "../src/assinaturas/portasRepositorio";
 
-import type { Plano } from "../../planos/tipos";
-import type { RepositorioModulosPlano, RepositorioPlanos } from "../../planos/portasRepositorio";
-import type { CodigoModulo } from "../../planos/tipos";
+import type { Plano } from "../src/planos/tipos";
+import type { RepositorioModulosPlano, RepositorioPlanos } from "../src/planos/portasRepositorio";
+import type { CodigoModulo } from "../src/planos/tipos";
 
 type Dependencias = Parameters<typeof validarAcessoModulo>[0];
 

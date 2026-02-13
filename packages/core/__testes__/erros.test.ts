@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { appError } from "../src/errors";
+import { erroApp } from "../src/erros";
 
 describe("errors", () => {
   it("appError() cria um erro padronizado sem details", () => {
-    const e = appError("UNAUTHORIZED", "Usuário não autenticado.");
+    const e = erroApp("UNAUTHORIZED", "Usuário não autenticado.");
 
     expect(e).toEqual({
       code: "UNAUTHORIZED",
@@ -20,7 +20,7 @@ describe("errors", () => {
   });
 
   it("appError() inclui details quando fornecido", () => {
-    const e = appError("FORBIDDEN", "Permissões insuficientes.", {
+    const e = erroApp("FORBIDDEN", "Permissões insuficientes.", {
       permissaoExigida: "ADMIN",
     });
 

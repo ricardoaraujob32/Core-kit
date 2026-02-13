@@ -4,7 +4,7 @@
  */
 
 export * from "./result";
-export * from "./errors";
+export * from "./erros";
 export * from "./locatario";
 export * from "./rbac";
 

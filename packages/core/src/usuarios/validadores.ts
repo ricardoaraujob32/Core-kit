@@ -1,4 +1,4 @@
-// packages/core/src/usuarios/validators.ts
+// packages/core/src/usuarios/validadores.ts
 
 export function nomeValido(nome: string): boolean {
   const n = normalizarNome(nome).trim();

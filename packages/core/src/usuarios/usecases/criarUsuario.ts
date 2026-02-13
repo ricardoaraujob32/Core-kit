@@ -1,7 +1,7 @@
 // packages/core/src/usuarios/usecases/criarUsuario.ts
 import type { ContextoExecucao } from "../../contextoExecucao";
 import { err, ok, type Result } from "../../result";
-import { erroApp, type ErroApp } from "../../errors";
+import { erroApp, type ErroApp } from "../../erros";
 import { exigirPermissao } from "../../autorizacao";
 import type { RepositorioUsuarios } from "../portasRepositorio";
 import type { AuditoriaWriter } from "../../auditoria/portaAuditoria";
