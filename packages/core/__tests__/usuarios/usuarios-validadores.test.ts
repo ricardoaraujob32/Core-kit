@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 // Ajuste conforme seu index.ts / módulo usuarios
-import { /* nomeValido, normalizeNome */ } from "../src/index";
+import { /* nomeValido, normalizeNome */ } from "../../src/index";
 
 describe("Usuários - validações", () => {
   it("nome deve ser inválido quando vazio", () => {

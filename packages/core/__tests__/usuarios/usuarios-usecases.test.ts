@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 
 // Ajuste conforme seu index.ts
-import { criarUsuario, listarUsuarios, ok, err } from "../src/index";
+import { criarUsuario, listarUsuarios, wrapOk, wrapErr } from "../../src/index";
 
 describe("Usuários - casos de uso", () => {
   it("criarUsuario deve falhar com dados inválidos", async () => {
     const repo = {
-      create: async () => ok({} as any),
-      findByNome: async () => ok(null),
+      create: async () => wrapOk({} as any),
+      findByNome: async () => wrapOk(null),
     } as any;
 
     const ctx = { locatarioId: "loc-1", usuarioId: "usr-1", permissoes: ["USUARIOS_ESCRITA"] } as any;
@@ -18,7 +18,7 @@ describe("Usuários - casos de uso", () => {
 
   it("listarUsuarios deve retornar lista (mesmo vazia)", async () => {
     const repo = {
-      list: async () => ok([]),
+      list: async () => wrapOk([]),
     } as any;
 
     const ctx = { locatarioId: "loc-1", usuarioId: "usr-1", permissoes: ["USUARIOS_LEITURA"] } as any;

@@ -1,29 +1,48 @@
-import type { Permissao, ContextoExecucao } from "./locatario";
-import { erroApp } from "./erros";
-import { err, ok, type Result } from "./result";
+// packages/core/src/rbac.ts
 
+import { ContextoExecucao } from "./contextoExecucao";
+import { Permissao } from "./autorizacao/index";
+import { erroApp } from "./erros";
+import { wrapErr, wrapOk, type Result } from "./result";
+
+/**
+ * `permissoes` ausente geralmente significa que o contexto não foi montado/validado
+ * (ex.: request sem autenticação). Nesse caso, tratamos como não autorizado.
+ * @param ctx 
+ * @returns 
+ */
 function naoAutenticado(ctx: ContextoExecucao): boolean {
-  // `permissoes` ausente geralmente significa que o contexto não foi montado/validado
-  // (ex.: request sem autenticação). Nesse caso, tratamos como UNAUTHORIZED.
   return !ctx.usuarioId || ctx.permissoes == null;
 }
 
+/**
+ * 
+ * @param ctx 
+ * @param permissao 
+ * @returns 
+ */
 export function exigirPermissao(ctx: ContextoExecucao, permissao: Permissao,): Result<void, ReturnType<typeof erroApp>> {
   if (naoAutenticado(ctx)) {
-    return err(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
+    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
   }
 
   const permissoes = ctx.permissoes ?? [];
   if (!permissoes.includes(permissao)) {
-    return err(erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", { permissaoExigida: permissao }));
+    return wrapErr(erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", { permissaoExigida: permissao }));
   }
 
-  return ok(undefined);
+  return wrapOk(undefined);
 }
 
+/**
+ * 
+ * @param ctx 
+ * @param permissoesExigidas 
+ * @returns 
+ */
 export function exigirTodas(ctx: ContextoExecucao, permissoesExigidas: Permissao[],): Result<void, ReturnType<typeof erroApp>> {
   if (naoAutenticado(ctx)) {
-    return err(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
+    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
   }
 
   const permissoes = ctx.permissoes ?? [];
@@ -31,17 +50,23 @@ export function exigirTodas(ctx: ContextoExecucao, permissoesExigidas: Permissao
 
   if (faltantes.length > 0) {
     // Mantém o payload de details estável e simples para uso em UI/logs
-    return err(
+    return wrapErr(
       erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", { permissaoExigida: faltantes[0] }),
     );
   }
 
-  return ok(undefined);
+  return wrapOk(undefined);
 }
 
+/**
+ * 
+ * @param ctx 
+ * @param permissoesExigidas 
+ * @returns 
+ */
 export function exigirAlguma(ctx: ContextoExecucao, permissoesExigidas: Permissao[],): Result<void, ReturnType<typeof erroApp>> {
   if (naoAutenticado(ctx)) {
-    return err(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
+    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
   }
 
   const permissoes = ctx.permissoes ?? [];
@@ -49,12 +74,11 @@ export function exigirAlguma(ctx: ContextoExecucao, permissoesExigidas: Permissa
 
   if (!temAlguma) {
     // Para "alguma", faz sentido mostrar a lista combinada; vazio vira "".
-    return err(
-      erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", {
-        permissaoExigida: permissoesExigidas.join("|"),
+    return wrapErr(
+      erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", {permissaoExigida: permissoesExigidas.join("|")
       }),
     );
   }
 
-  return ok(undefined);
+  return wrapOk(undefined);
 }

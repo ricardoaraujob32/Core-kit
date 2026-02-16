@@ -1,12 +1,13 @@
-import type { Assinatura, IdAssinatura, IdLocatario, IdPlano, StatusAssinatura } from "./tipos";
+import { LocatarioId } from "../locatario";
+import type { Assinatura, AssinaturaId, PlanoId, StatusAssinatura } from "./tipos";
 
 export type RepositorioAssinaturas = {
-  obterAtivaPorLocatario(locatarioId: IdLocatario): Promise<Assinatura | null>;
-  listarPorLocatario(locatarioId: IdLocatario): Promise<Assinatura[]>;
+  obterAtivaPorLocatario(locatarioId: LocatarioId): Promise<Assinatura | null>;
+  listarPorLocatario(locatarioId: LocatarioId): Promise<Assinatura[]>;
 
   criar(input: {
-    locatarioId: IdLocatario;
-    planoId: IdPlano;
+    locatarioId: LocatarioId;
+    planoId: PlanoId;
     status?: StatusAssinatura; // default ATIVA
     inicioEm?: Date;
     fimEm?: Date | null;
@@ -15,7 +16,7 @@ export type RepositorioAssinaturas = {
   }): Promise<Assinatura>;
 
   atualizarStatus(input: {
-    assinaturaId: IdAssinatura;
+    assinaturaId: AssinaturaId;
     status: StatusAssinatura;
     motivo?: string | null;
     fimEm?: Date | null;

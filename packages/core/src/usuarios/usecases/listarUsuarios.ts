@@ -1,6 +1,6 @@
 // packages/core/src/usuarios/usecases/listarUsuarios.ts
 import type { ContextoExecucao } from "../../contextoExecucao";
-import { exigirPermissao } from "../../autorizacao";
+import { exigirPermissao } from "../../autorizacao/index";
 import type { Result } from "../../result";
 import type { ErroApp } from "../../erros";
 import type { RepositorioUsuarios } from "../portasRepositorio";

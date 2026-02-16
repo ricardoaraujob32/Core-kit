@@ -1,13 +1,14 @@
-export type IdAssinatura = string;
-export type IdLocatario = string;
-export type IdPlano = string;
+import { LocatarioId } from "../locatario";
+
+export type AssinaturaId = string;
+export type PlanoId = string;
 
 export type StatusAssinatura = "ATIVA" | "SUSPENSA" | "CANCELADA" | "EXPIRADA";
 
 export type Assinatura = {
-  id: IdAssinatura;
-  locatarioId: IdLocatario;
-  planoId: IdPlano;
+  id: AssinaturaId;
+  locatarioId: LocatarioId;
+  planoId: PlanoId;
 
   status: StatusAssinatura;
 

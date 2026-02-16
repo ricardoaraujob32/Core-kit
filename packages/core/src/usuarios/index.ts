@@ -3,7 +3,7 @@
 export * from "./tipos";
 export * from "./portasRepositorio";
 export * from "./validadores";
-export * from "./memoryRepo";
+export * from "./repositorioMemoria";
 
 export * from "./usecases/criarUsuario";
 export * from "./usecases/listarUsuarios";

@@ -48,8 +48,8 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("NAO_AUTENTICADO");
-      expect(r.error.message).toBe("Usuário não autenticado.");
+      expect(r.error.codigo).toBe("NAO_AUTENTICADO");
+      expect(r.error.mensagem).toBe("Usuário não autenticado.");
     }
   });
 
@@ -63,9 +63,9 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("NAO_AUTORIZADO");
-      expect(r.error.message).toBe("Permissões insuficientes.");
-      expect(r.error.details).toEqual({ permissaoExigida: "usuarios:editar" });
+      expect(r.error.codigo).toBe("NAO_AUTORIZADO");
+      expect(r.error.mensagem).toBe("Permissões insuficientes.");
+      expect(r.error.detalhes).toEqual({ permissaoExigida: "usuarios:editar" });
     }
   });
 
@@ -79,8 +79,8 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("NAO_AUTORIZADO");
-      expect(r.error.details).toEqual({
+      expect(r.error.codigo).toBe("NAO_AUTORIZADO");
+      expect(r.error.detalhes).toEqual({
         permissaoExigida: "usuarios:editar|usuarios:remover",
       });
     }
@@ -91,8 +91,8 @@ describe("RBAC", () => {
 
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.code).toBe("NAO_AUTORIZADO");
-      expect(r.error.details).toEqual({ permissaoExigida: "" });
+      expect(r.error.codigo).toBe("NAO_AUTORIZADO");
+      expect(r.error.detalhes).toEqual({ permissaoExigida: "" });
     }
   });
 });

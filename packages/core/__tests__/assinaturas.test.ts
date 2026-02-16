@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ok } from "../src/index";
+import { wrapOk } from "../src/index";
 
 describe("Assinaturas/Plano do locatário - comportamento", () => {
   it("locatário sem assinatura ativa deve ficar bloqueado por padrão", () => {

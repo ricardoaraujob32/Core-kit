@@ -209,7 +209,31 @@ END $$;
 
 
 
+CREATE ROLE db_owner LOGIN PASSWORD '...';
+GRANT ALL PRIVILEGES ON SCHEMA main TO db_owner;
+
+CREATE ROLE app_user LOGIN PASSWORD '...';
+
+GRANT USAGE ON SCHEMA main TO app_user;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON ALL TABLES IN SCHEMA main
+TO app_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA main
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
 
 
+ALTER TABLE main.usuarios ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY usuarios_isolamento_locatario
+ON main.usuarios
+USING (locatario_id = current_setting('app.locatario_id')::uuid);
+
+
+SET LOCAL app.locatario_id = 'UUID_DO_LOCATARIO';
+
+await prisma.$executeRaw`
+  select set_config('app.locatario_id', ${locatarioId}, true)
+`;

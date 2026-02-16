@@ -57,7 +57,14 @@ importers:
 
   apps/web: {}
 
-  packages/core: {}
+  packages/core:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.1(@types/node@25.1.0)
 
 packages:
 

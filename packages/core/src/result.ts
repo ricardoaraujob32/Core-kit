@@ -111,27 +111,21 @@ export async function mapErrAsync<T, E, F>(r: Result<T, E>, fn: (error: E) => Pr
 /**
  * andThen (flatMap/bind): encadeia Result.
  * Se Ok -> aplica fn; se Err -> propaga Err.
- * @param r 
- * @param fn 
- * @returns 
+ * @param r o Result
+ * @param fn uma função que recebe T e retorna um Result de U e E.
+ * @returns um Result de U ou um Result de erro.
  */
-export function andThen<T, E, U>(
-  r: Result<T, E>,
-  fn: (value: T) => Result<U, E>
-): Result<U, E> {
+export function andThen<T, E, U>(r: Result<T, E>, fn: (value: T) => Result<U, E>): Result<U, E> {
   return r.ok ? fn(r.value) : r;
 }
 
 /**
- * 
- * @param r 
- * @param fn 
- * @returns 
+ * O mesmo que andThen, porém assíncrono.
+ * @param r o Result
+ * @param fn uma função que recebe T e retorna uma Promise de Result de U e E.
+ * @returns uma Promise de Result de U ou uma Promise de Result de erro.
  */
-export async function andThenAsync<T, E, U>(
-  r: Result<T, E>,
-  fn: (value: T) => Promise<Result<U, E>>
-): Promise<Result<U, E>> {
+export async function andThenAsync<T, E, U>(r: Result<T, E>, fn: (value: T) => Promise<Result<U, E>>): Promise<Result<U, E>> {
   return r.ok ? fn(r.value) : r;
 }
 
@@ -147,29 +141,29 @@ export function match<T, E, U>(r: Result<T, E>, handlers: { ok: (value: T) => U;
 
 /**
  * unwrapOr: devolve value (Ok) ou fallback (Err).
- * @param r 
- * @param fallback 
- * @returns 
+ * @param r o Result
+ * @param alternativo valor em caso de erro
+ * @returns o valor T dentro do Result ou o valor de erro predefinido.
  */
-export function unwrapOr<T, E>(r: Result<T, E>, fallback: T): T {
-  return r.ok ? r.value : fallback;
+export function unwrapOr<T, E>(r: Result<T, E>, alternativo: T): T {
+  return r.ok ? r.value : alternativo;
 }
 
 /**
- * 
- * @param r 
- * @param fallback 
- * @returns 
+ * o mesmo que unwrapOr, mas executa uma função de erro em vez de um valor
+ * @param r o Result
+ * @param fn função que executa em caso de erro
+ * @returns o valor T dentro do Result ou o valor T retornado pela função de erro
  */
-export function unwrapOrElse<T, E>(r: Result<T, E>, fallback: (e: E) => T): T {
-  return r.ok ? r.value : fallback(r.error);
+export function unwrapOrElse<T, E>(r: Result<T, E>, fn: (e: E) => T): T {
+  return r.ok ? r.value : fn(r.error);
 }
 
 /**
  * tap: executa efeito colateral em Ok e devolve o Result original.
- * @param r 
- * @param fn 
- * @returns 
+ * @param r o Result
+ * @param fn uma função que recebe T e não retorna valor
+ * @returns o Result original
  */
 export function tap<T, E>(r: Result<T, E>, fn: (value: T) => void): Result<T, E> {
   if (r.ok) fn(r.value);
@@ -178,16 +172,11 @@ export function tap<T, E>(r: Result<T, E>, fn: (value: T) => void): Result<T, E>
 
 /**
  * tapErr: executa efeito colateral em Err e devolve o Result original.
- * @param r 
- * @param fn 
- * @returns 
+ * @param r o Result
+ * @param fn uma função que recebe E e não retorna valor
+ * @returns o Result original
  */
 export function tapErr<T, E>(r: Result<T, E>, fn: (error: E) => void): Result<T, E> {
   if (!r.ok) fn(r.error);
   return r;
 }
-
-
-
-
-

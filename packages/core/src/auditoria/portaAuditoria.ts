@@ -1,9 +1,10 @@
 // packages/core/src/auditoria/portaAuditoria.ts
-import type { IdLocatario, IdUsuario } from "../contextoExecucao";
+import { LocatarioId } from "../locatario";
+import { UsuarioId } from "../usuarios";
 
 export type EventoAuditoria = {
-  locatarioId: IdLocatario;
-  usuarioId: IdUsuario | null;
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId | null;
   acao: string;
   entidade: string;
   entidadeId?: string | null;

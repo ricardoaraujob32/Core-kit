@@ -50,23 +50,23 @@ export interface ErroApp {
 }
 
 /**
- * Fábrica padrão de erros. Centraliza criação para manter consistência e facilitar observabilidade.
+ * Construtor padrão de erros. Use o wrapper padrão para garantir argumentos validados.
  * @param codigo codigo de erro padronizado.
  * @param mensagem se não fornecida, vai exibir mensagem padronizada a partir do código.
  * @param detalhes Detalhes estruturados para cliente/logs. Deve ser JSON-safe.
  * @param causa Causa original do erro (ex: exceção capturada). Nunca deve ser enviada diretamente ao cliente.
  * @returns um erro padronizado para ser usado em API ROP.
  */
-export function erroApp(codigo: CodigoErroApp, mensagem?: string | null, detalhes?: Record<string, unknown>, causa?: unknown,): ErroApp {
-  return {codigo: codigo, mensagem: normalizarMensagem(mensagem) || mapCodigoErroToMensagemErro(codigo), detalhes: detalhes, causa: causa,};
+export function erroApp(codigo: CodigoErroApp, mensagem: string, detalhes?: Record<string, unknown>, causa?: unknown,): ErroApp {
+  return {codigo: codigo, mensagem: mensagem, detalhes: detalhes, causa: causa,};
 }
 
 /**
- * Helper para mensagem de erro
+ * Helper para mensagem de erro. Normaliza mensagem vazia para "".
  * @param mensagem a mensagem
  * @returns mensagem normalizada; se vazia, retorna ""
  */
-function normalizarMensagem(mensagem?: string | null): string | undefined {  
+export function normalizarMensagem(mensagem?: string | null): string | undefined {  
   if (mensagem === null || mensagem === undefined) return "";
   const m = mensagem.trim();
   return m.length ? m : "";

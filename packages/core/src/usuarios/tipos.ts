@@ -1,19 +1,33 @@
-// packages/core/src/usuarios/types.ts
+// packages/core/src/usuarios/tipos.ts
 
-import type { IdUsuario, IdLocatario } from "../contextoExecucao";
+import { LocatarioId } from "../locatario";
 
+/**
+ * 
+ */
 export type StatusUsuario = "ATIVO" | "INATIVO" | "BLOQUEADO";
 
+/**
+ * 
+ */
+export type UsuarioId = string;
+
+/**
+ * 
+ */
 export type Usuario = {
-  id: IdUsuario;
-  locatarioId: IdLocatario;
+  id: UsuarioId;
+  locatarioId: LocatarioId;
   nome: string;
   status: StatusUsuario;
   criadoEm: Date;
   atualizadoEm: Date;
 };
 
+/**
+ * 
+ */
 export type NovoUsuario = {
-  locatarioId: IdLocatario;
+  locatarioId: LocatarioId;
   nome: string;
 }

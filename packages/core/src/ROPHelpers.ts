@@ -1,12 +1,12 @@
 // packages/core/src/ROPHelpers.ts
 
 import { Result, wrapErr, wrapOk } from "./result";
-import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp } from "./erros";
+import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp, normalizarMensagem } from "./erros";
 
 /**
- * Fábrica padrão de erros. Centraliza criação para manter consistência e facilitar observabilidade.
+ * Fábrica de erros padronizados para ROP. Normaliza argumentos e usa o construtor padrão.
  * @param params um objeto que encapsula os dados necessários, dos quais somente codigo é obrigatório.
- * - codigo: codigo de erro padronizado.
+ * - codigo: codigo de erro padronizado. Obrigatório.
  * - mensagem: se não fornecida, vai exibir mensagem padronizada a partir do código.
  * - detalhes: Detalhes estruturados para cliente/logs. Deve ser JSON-safe.
  * - causa: Causa original do erro (ex: exceção capturada). Nunca deve ser enviada diretamente ao cliente.
@@ -14,7 +14,7 @@ import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp
  */
 export function createErroApp<T = never>(params: {codigo: CodigoErroApp; mensagem?: string | null; detalhes?: Record<string, unknown>; causa?: unknown;}): Result<T, ErroApp> {
   const codigo = params.codigo;
-  const mensagem = params.mensagem ?? mapCodigoErroToMensagemErro(codigo);
+  const mensagem = normalizarMensagem(params.mensagem) || mapCodigoErroToMensagemErro(codigo);
   const detalhes = params.detalhes;
   const causa = params.causa;
 
