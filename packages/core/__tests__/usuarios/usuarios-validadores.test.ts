@@ -1,18 +1,19 @@
 import { describe, it, expect } from "vitest";
+import { nomeValido, normalizarNome } from "../../src/usuarios/validadores";
 
-// Ajuste conforme seu index.ts / módulo usuarios
-import { /* nomeValido, normalizeNome */ } from "../../src/index";
-
-describe("Usuários - validações", () => {
-  it("nome deve ser inválido quando vazio", () => {
-    // troque pela sua função real
-    const nomeValido = (s: string) => s.trim().length >= 2;
-    expect(nomeValido("")).toBe(false);
-    expect(nomeValido(" ")).toBe(false);
+describe("Usuários - validadores", () => {
+  it("normalizarNome deve padronizar espaços", () => {
+    expect(normalizarNome("  João   Silva ")).toBe("João Silva");
   });
 
-  it("normalize deve padronizar espaços e casing (se aplicável)", () => {
-    const normalizeNome = (s: string) => s.trim().replace(/\s+/g, " ");
-    expect(normalizeNome("  João   Silva ")).toBe("João Silva");
+  it("nomeValido deve rejeitar vazio e curto", () => {
+    expect(nomeValido("")).toBe(false);
+    expect(nomeValido("  ")).toBe(false);
+    expect(nomeValido("Jo")).toBe(false);
+  });
+
+  it("nomeValido deve aceitar nomes plausíveis", () => {
+    expect(nomeValido("Ana Maria")).toBe(true);
+    expect(nomeValido("João Silva")).toBe(true);
   });
 });

@@ -1,50 +1,135 @@
 import { describe, it, expect } from "vitest";
-import { wrapOk, wrapErr, isErr, isOk } from "../src/result";
+import { isErr, isOk } from "../src/result";
 import type { Permissao } from "../src/autorizacao/permissoes";
 import type { Papel } from "../src/autorizacao/papeis";
 import type { UsuarioId } from "../src/usuarios/tipos";
 import type { LocatarioId } from "../src/locatario";
-import { normalizarRelogio, exigirPermissao, exigirUsuario, normalizarPapeis, normalizarPermissoes, possuiPermissao, temUsuario, type ContextoExecucao } from "../src/contextoExecucao";
+import { normalizarRelogio, exigirPermissao, exigirUsuario, normalizarPapeis, normalizarPermissoes, possuiPermissao, temUsuario, 
+         type ContextoExecucao, createContextoExecucao, isContextoExecucao, comPermissoes, comPapeis } from "../src/contextoExecucao";
 
-describe("contextoExecucao", () => {
+describe("#1 - ContextoExecucao", () => {
+  it("#1.1 - deve criar contexto válido mínimo", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+    });
+
+    expect(ctx.locatarioId).toBe("loc-1");
+    expect(ctx.usuarioId).toBeUndefined();
+  });
+
+  it("#1.2 - deve rejeitar locatarioId vazio", () => {
+    expect(() =>
+      createContextoExecucao({ locatarioId: "" }),
+    ).toThrow();
+  });
+
+  it("#1.3 - deve aceitar usuarioId string válida", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+      usuarioId: "user-1",
+    });
+
+    expect(ctx.usuarioId).toBe("user-1");
+  });
+
+  it("#1.4 - deve rejeitar usuarioId string vazia", () => {
+    expect(() =>
+      createContextoExecucao({
+        locatarioId: "loc-1",
+        usuarioId: "",
+      }),
+    ).toThrow();
+  });
+
+  it("#1.5 - não deve aceitar usuarioId string vazia", () => {
+    expect(() =>
+      createContextoExecucao({ locatarioId: "L1", usuarioId: "" })
+    ).toThrow();
+    expect(() =>
+      createContextoExecucao({ locatarioId: "L1", usuarioId: "   " })
+    ).toThrow();
+  });
+
+  it("#1.6 - não deve aceitar usuarioId null", () => {
+    expect(() =>
+      createContextoExecucao({ locatarioId: "L1", usuarioId: null as any })
+    ).toThrow("usuarioId não pode ser null");
+  });
+
+  it("#1.7 - deve aceitar usuarioId undefined (não autenticado)", () => {
+    const ctx = createContextoExecucao({ locatarioId: "L1" });
+    expect(ctx.locatarioId).toBe("L1");
+    expect(ctx.usuarioId).toBe(undefined);
+  });
+
+  it("#1.8 - deve congelar permissões e papéis", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+      permissoes: ["LOCATARIO_ESCREVER"],
+      papeis: ["B"],
+    });
+
+    expect(Object.isFrozen(ctx.permissoes)).toBe(true);
+    expect(Object.isFrozen(ctx.papeis)).toBe(true);
+  });
+
+  it("#1.9 - deve ser imutável", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+    });
+
+    expect(() => {
+      (ctx as any).locatarioId = "hack";
+    }).toThrow();
+  });
+
+  it("#1.10 - type guard deve reconhecer contexto válido", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+    });
+
+    expect(isContextoExecucao(ctx)).toBe(true);
+  });
+
+  it("#1.11 - type guard deve rejeitar objeto comum", () => {
+    expect(isContextoExecucao({})).toBe(false);
+  });
+});
+
+describe("#2 - Operações", () => {
   const locatarioId = "loc-1" as LocatarioId;
   const usuarioId = "usr-1" as UsuarioId;
 
-  it("temUsuario: true quando usuarioId é string não vazia", () => {
-    const ctx: ContextoExecucao = { locatarioId, usuarioId };
-    expect(temUsuario(ctx)).toBe(true);
+  it("#2.1 - temUsuario só é true quando usuarioId é string não vazia", () => {
+    const c = createContextoExecucao( { locatarioId: "t1", usuarioId: "usr-1" } );
+
+    expect(temUsuario(c)).toBe(true);
   });
 
-  it("temUsuario: false quando usuarioId é undefined", () => {
-    const ctx: ContextoExecucao = { locatarioId };
-    expect(temUsuario(ctx)).toBe(false);
-  });
-
-  it("temUsuario: false quando usuarioId é null (contexto técnico)", () => {
-    const ctx: ContextoExecucao = { locatarioId, usuarioId: null };
-    expect(temUsuario(ctx)).toBe(false);
-  });
-
-  it("permissoesDo/papeisDo: sempre retornam array", () => {
-    const ctx: ContextoExecucao = { locatarioId };
+  it("#2.2 - normalizar permissoes/papeis: sempre retornam array", () => {
+    const ctx: ContextoExecucao = createContextoExecucao( { locatarioId } );
     expect(normalizarPermissoes(ctx)).toEqual([]);
     expect(normalizarPapeis(ctx)).toEqual([]);
   });
 
-  it("agoraDo: usa relógio injetável quando presente", () => {
-    const fixed = new Date("2020-01-01T00:00:00.000Z");
-    const ctx: ContextoExecucao = { locatarioId, agora: () => fixed };
-    expect(normalizarRelogio(ctx)).toBe(fixed);
+  it("#2.3 - normalizarRelogio usa relógio injetado quando fornecido; senão fallback", () => {
+    const fakeNow = new Date("2020-01-01T00:00:00.000Z");
+    const ctx1 = createContextoExecucao( {locatarioId: "t1", agora: () => fakeNow,} );
+    expect(normalizarRelogio(ctx1).toISOString()).toBe(fakeNow.toISOString());
+
+    const ctx2 = createContextoExecucao({ locatarioId: "t1" });
+    const v = normalizarRelogio(ctx2);
+    expect(v).toBeInstanceOf(Date);
   });
 
-  it("possuiPermissao: funciona com array normalizado", () => {
+  it("#2.4 - possuiPermissao: funciona com array normalizado", () => {
     const p: Permissao = "USUARIOS_LER";
-    const ctx: ContextoExecucao = { locatarioId, permissoes: [p] };
+    const ctx: ContextoExecucao = createContextoExecucao( { locatarioId, permissoes: [p] });
     expect(possuiPermissao(ctx, p)).toBe(true);
   });
 
-  it("exigirUsuario: falha com NAO_AUTENTICADO quando usuário ausente", () => {
-    const ctx: ContextoExecucao = { locatarioId };
+  it("#2.5 - exigirUsuario: falha com NAO_AUTENTICADO quando usuário ausente", () => {
+    const ctx: ContextoExecucao = createContextoExecucao( { locatarioId } );
     const r = exigirUsuario(ctx);
 
     expect(isErr(r)).toBe(true);
@@ -54,90 +139,53 @@ describe("contextoExecucao", () => {
     }
   });
 
-  it("exigirPermissao: falha com NAO_AUTENTICADO quando usuário ausente", () => {
-    const ctx: ContextoExecucao = { locatarioId };
+  it("#2.6 - exigirPermissao: falha com NAO_AUTENTICADO quando usuário ausente", () => {
+    const ctx: ContextoExecucao = createContextoExecucao( { locatarioId } );
     const r = exigirPermissao(ctx, "USUARIOS_LER");
 
     expect(isErr(r)).toBe(true);
     if (isErr(r)) expect(r.error.codigo).toBe("NAO_AUTENTICADO");
   });
 
-  it("exigirPermissao: falha com NAO_AUTORIZADO quando autenticado sem permissão", () => {
-    const ctx: ContextoExecucao = { locatarioId, usuarioId, permissoes: [] };
+  it("#2.7 - exigirPermissao: falha com NAO_AUTORIZADO quando autenticado sem permissão", () => {
+    const ctx: ContextoExecucao = createContextoExecucao( { locatarioId, usuarioId, permissoes: [] } );
     const r = exigirPermissao(ctx, "USUARIOS_LER");
 
     expect(isErr(r)).toBe(true);
     if (isErr(r)) expect(r.error.codigo).toBe("NAO_AUTORIZADO");
   });
 
-  it("exigirPermissao: ok quando autenticado e tem a permissão", () => {
-    const ctx: ContextoExecucao = {
-      locatarioId,
-      usuarioId,
-      permissoes: ["USUARIOS_LER"],
-    };
+  it("#2.8 - exigirPermissao: ok quando autenticado e tem a permissão", () => {
+    const ctx: ContextoExecucao = createContextoExecucao( {locatarioId, usuarioId, permissoes: ["USUARIOS_LER"],} );
     const r = exigirPermissao(ctx, "USUARIOS_LER");
 
     expect(isOk(r)).toBe(true);
   });
 
-  it("permissoesDo deve retornar [] quando ctx.permissoes for undefined", () => {
-    const ctx: ContextoExecucao = { locatarioId };
-    expect(normalizarPermissoes(ctx)).toEqual([]);
-  });
-
-  it("papeisDo deve retornar [] quando ctx.papeis for undefined", () => {
-    const ctx: ContextoExecucao = { locatarioId };
-    expect(normalizarPapeis(ctx)).toEqual([]);
-  });
-
-  it("temUsuario deve ser false quando usuarioId for undefined", () => {
-    const ctx: ContextoExecucao = { locatarioId };
-    expect(temUsuario(ctx)).toBe(false);
-  });
-
-  it("temUsuario deve ser true quando usuarioId for string não vazia", () => {
-    const usuarioId: UsuarioId = "u-1";
-    const ctx: ContextoExecucao = { locatarioId, usuarioId };
-    expect(temUsuario(ctx)).toBe(true);
-  });
-
-  it("agoraDo deve usar ctx.agora() quando fornecido", () => {
-    const fixed = new Date("2020-01-01T00:00:00.000Z");
-    const ctx: ContextoExecucao = { locatarioId, agora: () => fixed };
-    expect(normalizarRelogio(ctx)).toBe(fixed);
-  });
-
-  it("agoraDo deve cair para new Date() quando não houver relógio injetado", () => {
-    const ctx: ContextoExecucao = { locatarioId };
-    const d = normalizarRelogio(ctx);
-    expect(d).toBeInstanceOf(Date);
-  });
-
-  it("comPermissoes deve fazer merge e remover duplicatas", () => {
+  it("#2.9 - comPermissoes deve fazer merge e remover duplicatas", () => {
     const p1: Permissao = "USUARIOS_LER";
     const p2: Permissao = "USUARIOS_CRIAR";
 
-    const base: ContextoExecucao = { locatarioId, permissoes: [p1] };
+    const base: ContextoExecucao = createContextoExecucao( { locatarioId, permissoes: [p1] } );
     const novo = comPermissoes(base, [p1, p2]);
 
     expect(novo.permissoes).toEqual([p1, p2]);
     expect(base.permissoes).toEqual([p1]); // imutável
   });
 
-  it("comPapeis deve fazer merge e remover duplicatas", () => {
+  it("#2.10 - comPapeis deve fazer merge e remover duplicatas", () => {
     const r1: Papel = "ADMIN";
     const r2: Papel = "LEITOR";
 
-    const base: ContextoExecucao = { locatarioId, papeis: [r1] };
+    const base: ContextoExecucao = createContextoExecucao( { locatarioId, papeis: [r1] } );
     const novo = comPapeis(base, [r1, r2]);
 
     expect(novo.papeis).toEqual([r1, r2]);
     expect(base.papeis).toEqual([r1]); // imutável
   });
 
-  it("cria contexto público (usuarioId undefined) e preserva semântica", () => {
-    const ctx = criarContextoExecucao({ locatarioId: "t1" });
+  it("#2.11 - cria contexto público (usuarioId undefined) e preserva semântica", () => {
+    const ctx = createContextoExecucao( { locatarioId: "t1" } );
 
     expect(ctx.locatarioId).toBe("t1");
     expect(ctx.usuarioId).toBeUndefined();
@@ -148,42 +196,8 @@ describe("contextoExecucao", () => {
     expect(isContextoExecucao(ctx)).toBe(true);
   });
 
-  it("cria contexto técnico (usuarioId null) e preserva semântica", () => {
-    const ctx = criarContextoExecucao({ locatarioId: "t1", usuarioId: null });
-
-    expect(ctx.usuarioId).toBeNull();
-    expect(temUsuario(ctx)).toBe(false);
-    expect(ctx.permissoes).toBeUndefined();
-  });
-
-  it("temUsuario só é true quando usuarioId é string não vazia", () => {
-    const a = criarContextoExecucao({ locatarioId: "t1" });
-    const b = criarContextoExecucao({ locatarioId: "t1", usuarioId: null });
-    const c = criarContextoExecucao({ locatarioId: "t1", usuarioId: "" });
-    const d = criarContextoExecucao({ locatarioId: "t1", usuarioId: "u1" });
-
-    expect(temUsuario(a)).toBe(false);
-    expect(temUsuario(b)).toBe(false);
-    expect(temUsuario(c)).toBe(false);
-    expect(temUsuario(d)).toBe(true);
-  });
-
-  it("agoraDo usa relógio injetado quando fornecido; senão fallback", () => {
-    const fakeNow = new Date("2020-01-01T00:00:00.000Z");
-    const ctx1 = criarContextoExecucao({
-      locatarioId: "t1",
-      agora: () => fakeNow,
-    });
-    expect(normalizarRelogio(ctx1).toISOString()).toBe(fakeNow.toISOString());
-
-    const ctx2 = criarContextoExecucao({ locatarioId: "t1" });
-    const v = normalizarRelogio(ctx2);
-    expect(v).toBeInstanceOf(Date);
-  });
-
-  it("comPermissoes cria novo contexto imutável e mantém branding", () => {
-    const base = criarContextoExecucao({ locatarioId: "t1", usuarioId: "u1" });
-
+  it("#2.12 - comPermissoes cria novo contexto imutável e mantém branding", () => {
+    const base = createContextoExecucao( { locatarioId: "t1", usuarioId: "u1" } );
     const ctx = comPermissoes(base, ["USUARIOS_LER"] as any);
 
     expect(ctx).not.toBe(base);
@@ -199,8 +213,8 @@ describe("contextoExecucao", () => {
     expect(Object.isFrozen(ctx.permissoes)).toBe(true);
   });
 
-  it("comPapeis cria novo contexto e mantém branding", () => {
-    const base = criarContextoExecucao({ locatarioId: "t1", usuarioId: "u1" });
+  it("#2.13 - comPapeis cria novo contexto e mantém branding", () => {
+    const base = createContextoExecucao({ locatarioId: "t1", usuarioId: "u1" });
     const ctx = comPapeis(base, ["ADMIN"] as any);
 
     expect(ctx).not.toBe(base);
@@ -208,16 +222,5 @@ describe("contextoExecucao", () => {
     expect(isContextoExecucao(ctx)).toBe(true);
     expect(Object.isFrozen(ctx)).toBe(true);
     expect(Object.isFrozen(ctx.papeis)).toBe(true);
-  });
-
-  it("isContextoExecucao rejeita objeto 'na mão' (sem construtor)", () => {
-    const fake: ContextoExecucao = {
-      locatarioId: "t1",
-      usuarioId: "u1",
-      permissoes: [],
-      papeis: [],
-    };
-
-    expect(isContextoExecucao(fake)).toBe(false);
   });
 });

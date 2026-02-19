@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 // Ajuste conforme seu módulo real
-import { wrapOk, wrapErr } from "../src/index";
+import { wrapOk, wrapErr } from "../../src/index";
 
 describe("Planos - regras mínimas", () => {
   it("plano deve habilitar módulos essenciais sempre (locatário, autenticação, backup)", () => {

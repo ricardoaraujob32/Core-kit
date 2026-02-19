@@ -1,84 +1,82 @@
 // packages/core/src/rbac.ts
 
+// Finalidade: Autorização RBAC (borda do domínio) usando ContextoExecucao + Result (ROP).
+
 import { ContextoExecucao } from "./contextoExecucao";
 import { Permissao } from "./autorizacao/index";
-import { erroApp } from "./erros";
-import { wrapErr, wrapOk, type Result } from "./result";
+import { ErroApp, erroApp } from "./erros";
+import { isErr, wrapOk, type Result } from "./result";
+import { createErroApp } from "./ROPHelpers";
+
+/**
+ * // "permissoes ausente" => trata como NÃO AUTORIZADO (seus testes pedem isso)
+ * @param ctx 
+ * @returns 
+ */
+function semPermissoesResolvidas(ctx: ContextoExecucao): boolean {
+  return !Array.isArray(ctx.permissoes);
+}
+
+/**
+ * Valida se o contexto tem a permissão requerida
+ * @param ctx o contexto do locatário
+ * @param perm a permissão
+ * @returns um Result com o contexto validado se for sucesso; do contrário, um Result de erro
+ */
+export function possuiPermissao(ctx: ContextoExecucao, permissao: Permissao): Result<true, ErroApp> {
+  if (semPermissoesResolvidas(ctx)) {
+    return createErroApp( { codigo:"NAO_AUTORIZADO", mensagem:"Permissões não resolvidas no contexto." } );
+  }
+
+  if (!ctx.permissoes?.includes(permissao)) {
+    return createErroApp( { codigo:"NAO_AUTORIZADO", mensagem:"Permissão ausente." } );
+  }
+
+  return wrapOk(true);
+}
 
 /**
  * `permissoes` ausente geralmente significa que o contexto não foi montado/validado
  * (ex.: request sem autenticação). Nesse caso, tratamos como não autorizado.
- * @param ctx 
- * @returns 
+ * @param ctx o contexto do locatário
+ * @returns true se não está autenticado; do contrário, false
  */
 function naoAutenticado(ctx: ContextoExecucao): boolean {
-  return !ctx.usuarioId || ctx.permissoes == null;
+  return ctx.usuarioId === undefined;
 }
 
 /**
- * 
- * @param ctx 
- * @param permissao 
- * @returns 
+ * Verifica se o contexto tem todas as permissões mostradas
+ * @param ctx o contexto do locatário
+ * @param permissoesExigidas a lista de permissões
+ * @returns um Result vazio se for sucesso; do contrário, um Result de erro
  */
-export function exigirPermissao(ctx: ContextoExecucao, permissao: Permissao,): Result<void, ReturnType<typeof erroApp>> {
-  if (naoAutenticado(ctx)) {
-    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
+export function exigirTodas(ctx: ContextoExecucao, permissoes: readonly Permissao[],): Result<true, ReturnType<typeof erroApp>> {
+  if (naoAutenticado(ctx)) return createErroApp( {codigo:"NAO_AUTENTICADO"} );
+
+  for (const p of permissoes) {
+    const r = possuiPermissao(ctx, p);
+    if (isErr(r)) {
+      return createErroApp( {codigo:"NAO_AUTORIZADO"} );
+    }
   }
 
-  const permissoes = ctx.permissoes ?? [];
-  if (!permissoes.includes(permissao)) {
-    return wrapErr(erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", { permissaoExigida: permissao }));
-  }
-
-  return wrapOk(undefined);
+  return wrapOk(true);
 }
 
 /**
- * 
- * @param ctx 
- * @param permissoesExigidas 
- * @returns 
+ * Verfica se o contexto tem alguma permissão mostrada
+ * @param ctx o contexto do locatário
+ * @param permissoesExigidas a lista de permissões
+ * @returns um Result vazio se for sucesso; do contrário, um Result de erro
  */
-export function exigirTodas(ctx: ContextoExecucao, permissoesExigidas: Permissao[],): Result<void, ReturnType<typeof erroApp>> {
-  if (naoAutenticado(ctx)) {
-    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
+export function exigirAlguma(ctx: ContextoExecucao, permissoes: readonly Permissao[],): Result<true, ReturnType<typeof erroApp>> {
+  if (naoAutenticado(ctx)) return createErroApp( {codigo:"NAO_AUTENTICADO"} );
+
+  for (const p of permissoes) {
+    const r = possuiPermissao(ctx, p);
+    if (!isErr(r)) return wrapOk(true);
   }
 
-  const permissoes = ctx.permissoes ?? [];
-  const faltantes = permissoesExigidas.filter((p) => !permissoes.includes(p));
-
-  if (faltantes.length > 0) {
-    // Mantém o payload de details estável e simples para uso em UI/logs
-    return wrapErr(
-      erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", { permissaoExigida: faltantes[0] }),
-    );
-  }
-
-  return wrapOk(undefined);
-}
-
-/**
- * 
- * @param ctx 
- * @param permissoesExigidas 
- * @returns 
- */
-export function exigirAlguma(ctx: ContextoExecucao, permissoesExigidas: Permissao[],): Result<void, ReturnType<typeof erroApp>> {
-  if (naoAutenticado(ctx)) {
-    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
-  }
-
-  const permissoes = ctx.permissoes ?? [];
-  const temAlguma = permissoesExigidas.some((p) => permissoes.includes(p));
-
-  if (!temAlguma) {
-    // Para "alguma", faz sentido mostrar a lista combinada; vazio vira "".
-    return wrapErr(
-      erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", {permissaoExigida: permissoesExigidas.join("|")
-      }),
-    );
-  }
-
-  return wrapOk(undefined);
+  return createErroApp( {codigo:"NAO_AUTORIZADO"} );
 }

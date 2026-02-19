@@ -1,35 +1,54 @@
 /**
- * Arquivo: packages/core/src/usuarios/memoryRepo.ts
+ * Arquivo: packages/core/src/usuarios/repositorioMemoria.ts
  * Finalidade: Implementação em memória de RepositorioUsuarios (para testes e desenvolvimento local).
- * Observação: Mantém os mesmos nomes e assinaturas do contrato (interface) para não quebrar DI.
  */
 
 import type { RepositorioUsuarios } from "./portasRepositorio";
-import type { LocatarioId } from "../locatario";
-import type { Usuario } from "./tipos";
+import type { Usuario, NovoUsuario, UsuarioId } from "./tipos";
 
-type RegistroUsuario = {
-  locatarioId: LocatarioId;
-  usuario: Usuario;
-};
+type RegistroUsuario = Usuario;
 
 export function criarRepositorioUsuariosEmMemoria(): RepositorioUsuarios {
   const registros: RegistroUsuario[] = [];
+  let sequencia = 1;
+
+  function agora(): Date {
+    return new Date();
+  }
+
+  function novoId(): UsuarioId {
+    // simples e determinístico p/ testes
+    return `usr_${sequencia++}`;
+  }
 
   return {
-    async criarUsuario(locatarioId: LocatarioId, usuario: Usuario): Promise<void> {
-      registros.push({ locatarioId, usuario });
+    async obterPorId(locatarioId, id) {
+      const u = registros.find((r) => r.locatarioId === locatarioId && r.id === id);
+      return u ?? null;
     },
 
-    async buscarUsuarioPorNome(locatarioId: LocatarioId, nome: string): Promise<Usuario | null> {
-      const encontrado = registros.find(
-        (r) => r.locatarioId === locatarioId && r.usuario.nome === nome,
-      );
-      return encontrado ? encontrado.usuario : null;
+    async obterPorNome(locatarioId, nome) {
+      const u = registros.find((r) => r.locatarioId === locatarioId && r.nome === nome);
+      return u ?? null;
     },
 
-    async listarUsuarios(locatarioId: LocatarioId): Promise<Usuario[]> {
-      return registros.filter((r) => r.locatarioId === locatarioId).map((r) => r.usuario);
+    async listar(locatarioId) {
+      return registros.filter((r) => r.locatarioId === locatarioId);
+    },
+
+    async criar(dados: NovoUsuario) {
+      const now = agora();
+      const usuario: Usuario = {
+        id: novoId(),
+        locatarioId: dados.locatarioId,
+        nome: dados.nome,
+        status: "ATIVO",
+        criadoEm: now,
+        atualizadoEm: now,
+      };
+
+      registros.push(usuario);
+      return usuario;
     },
   };
 }

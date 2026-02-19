@@ -24,7 +24,7 @@ export type CodigoErroApp =
       case "NAO_AUTORIZADO":
         return "Permissões insuficientes.";
       case "INVALIDO":
-        return "Dados inválidos.";
+        return "Requisição inválida.";
       case "NAO_ENCONTRADO":
         return "Recurso não encontrado.";
       case "CONFLITO":
@@ -59,17 +59,6 @@ export interface ErroApp {
  */
 export function erroApp(codigo: CodigoErroApp, mensagem: string, detalhes?: Record<string, unknown>, causa?: unknown,): ErroApp {
   return {codigo: codigo, mensagem: mensagem, detalhes: detalhes, causa: causa,};
-}
-
-/**
- * Helper para mensagem de erro. Normaliza mensagem vazia para "".
- * @param mensagem a mensagem
- * @returns mensagem normalizada; se vazia, retorna ""
- */
-export function normalizarMensagem(mensagem?: string | null): string | undefined {  
-  if (mensagem === null || mensagem === undefined) return "";
-  const m = mensagem.trim();
-  return m.length ? m : "";
 }
 
 /**

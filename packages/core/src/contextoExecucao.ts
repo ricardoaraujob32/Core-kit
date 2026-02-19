@@ -4,9 +4,13 @@ import { Permissao, Papel } from "./autorizacao/index";
 import { LocatarioId } from "./locatario";
 import { UsuarioId } from "./usuarios/index";
 import { ErroApp } from "./erros";
-import { Result, wrapOk, wrapErr } from "./result";
+import { Result, wrapOk } from "./result";
 import { createErroApp } from "./ROPHelpers";
 
+/**
+ * Cria um símbolo único que marca o contexto.
+ * Impede falsificação de contexto e centraliza a criação numa fábrica.
+ */
 const CTX_BRAND = Symbol.for("@core-kit/ContextoExecucao");
 type ContextoExecucaoBrand = { readonly [CTX_BRAND]: true };
 
@@ -18,45 +22,46 @@ type ContextoExecucaoBrand = { readonly [CTX_BRAND]: true };
  */
 export type ContextoExecucao = {
   locatarioId: LocatarioId;
-  /**
-   * `null` = contexto técnico (job, migração, automação), sem usuário humano.
-   * `undefined` = contexto não autenticado (endpoint público, antes do login).
-   */
-  usuarioId?: UsuarioId | null;
-  papeis?: Papel[];
-  permissoes?: Permissao[];
-  /**
-   * Relógio injetável para testes. Se ausente, use `new Date()` na borda.
-   */
+  usuarioId: UsuarioId;
+  papeis?: readonly Papel[];
+  permissoes?: readonly Permissao[];
   agora?: () => Date;
 } & ContextoExecucaoBrand;
 
-
-
-
-
-
-export type CriarContextoExecucaoParams = Omit<ContextoExecucao, typeof CTX_BRAND>;
+/**
+ * Um tipo que representa os atributos necessários para a criação do contexto.
+ * Deve ser passado como argumento para a fábrica.
+ */
+export type CreateContextoExecucaoParams = Omit<ContextoExecucao, typeof CTX_BRAND>;
 
 /**
  * ÚNICO “construtor” oficial.
  * - Faz cópias defensivas de arrays (evita mutação externa)
  * - Congela o objeto (imutável)
  * - Aplica branding (isContextoExecucao)
- * @param params 
- * @returns 
+ * @param params os argumentos do contexto:
+ * - (obrigatório) locatarioId: identifica a quem pertence o contexto;
+ * - usuarioId?: 'null` = contexto técnico (job, migração, automação), sem usuário humano. `undefined` = contexto não autenticado (endpoint público, antes do login).
+ * - papeis?: papéis atribuídos ao usuário.
+ * - permissoes?: permissões atribuídas ao usuário.
+ * - agora?: Relógio injetável para testes. Se ausente, use `new Date()` na borda.
+ * @returns o contexto de execução para um locatário.
  */
-export function criarContextoExecucao(params: CriarContextoExecucaoParams): ContextoExecucao {
+export function createContextoExecucao(params: CreateContextoExecucaoParams): ContextoExecucao {
   const locatarioId = params.locatarioId;
   if (typeof locatarioId !== "string" || locatarioId.trim().length === 0) {
     throw new Error("ContextoExecucao inválido: locatarioId é obrigatório.");
   }
 
   const usuarioId = params.usuarioId;
-  if (usuarioId !== undefined && usuarioId !== null && (typeof usuarioId !== "string" || usuarioId.trim().length === 0)) {
-    throw new Error("ContextoExecucao inválido: usuarioId deve ser string não vazia, null ou undefined."); // mantém a semântica: "" não é usuário válido
+  if (usuarioId === null) {
+    throw new Error("ContextoExecucao inválido: usuarioId não pode ser null.");
   }
 
+  if (usuarioId !== undefined && (typeof usuarioId !== "string" || usuarioId.trim().length === 0)) {
+    throw new Error("ContextoExecucao inválido: usuarioId deve ser string não vazia, null ou undefined."); // mantém a semântica: "" não é usuário válido
+  }
+  
   const permissoes = params.permissoes ? Object.freeze([...params.permissoes]) : undefined;
   const papeis = params.papeis ? Object.freeze([...params.papeis]) : undefined;
 
@@ -67,39 +72,37 @@ export function criarContextoExecucao(params: CriarContextoExecucaoParams): Cont
   return Object.freeze(ctx) as ContextoExecucao;
 }
 
-/** Type-guard: garante que veio do construtor oficial. */
+/** 
+ * Type-guard: garante que veio do construtor oficial.
+ */
 export function isContextoExecucao(value: unknown): value is ContextoExecucao {
   if (!value || typeof value !== "object") return false;
-  return (value as any)[CTX_BRAND] === true;
+  return ( (value as any)[CTX_BRAND] === true && typeof (value as any).locatarioId === "string" && (value as any).locatarioId.length > 0);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Type-guard: indica se o contexto tem usuário autenticado.
- * @param ctx 
- * @returns 
+ * @param ctx o contexto do locatário
+ * @returns true se o contexto tem usuário; do contrário, false
  */
 export function temUsuario(ctx: ContextoExecucao,): ctx is ContextoExecucao & { usuarioId: UsuarioId } {
-  return typeof ctx.usuarioId === "string" && ctx.usuarioId.length > 0;
+  return typeof ctx.usuarioId === "string" && ctx.usuarioId.trim().length > 0;
+}
+
+/**
+ * Valida se o contexto tem usuário
+ * @param ctx o contexto do locatário
+ * @returns um Result com o contexto validado se for sucesso; do contrário, um Result de erro
+ */
+export function exigirUsuario(ctx: ContextoExecucao): Result<ContextoExecucao & { usuarioId: UsuarioId }, ErroApp> {
+  return !temUsuario(ctx)? createErroApp( {codigo: "NAO_AUTENTICADO"} ) : wrapOk(ctx);
 }
 
 /**
  * Normaliza permissões (sempre retorna array).
  * Útil para evitar `ctx.permissoes ?? []` espalhado.
- * @param ctx 
- * @returns 
+ * @param ctx o contexto do locatário
+ * @returns as permissões normalizadas
  */
 export function normalizarPermissoes(ctx: ContextoExecucao): Permissao[] {
   return Array.isArray(ctx.permissoes) ? ctx.permissoes : [];
@@ -107,136 +110,57 @@ export function normalizarPermissoes(ctx: ContextoExecucao): Permissao[] {
 
 /**
  * Normaliza papéis (sempre retorna array).
- * @param ctx 
- * @returns 
+ * @param ctx o contexto do locatário
+ * @returns os papéis normalizados
  */
 export function normalizarPapeis(ctx: ContextoExecucao): Papel[] {
   return Array.isArray(ctx.papeis) ? ctx.papeis : [];
 }
 
+/**
+ * Cria uma função que não recebe argumentos e retorna Date; retorna a existente se houver
+ * @param ctx o contexto do locatário
+ * @returns a função existente; se não existe, cria uma nova
+ */
 export function normalizarRelogio(ctx: ContextoExecucao): Date {
   return ctx.agora ? ctx.agora() : new Date();
 }
 
+/**
+ * Verifica se tem a permissão específica
+ * @param ctx o contexto do locatário
+ * @param perm a permissão
+ * @returns true se tiver a permissão; do contrário, false
+ */
 export function possuiPermissao(ctx: ContextoExecucao, perm: Permissao): boolean {
   return normalizarPermissoes(ctx).includes(perm);
 }
 
-export function exigirUsuario(ctx: ContextoExecucao): Result<ContextoExecucao & { usuarioId: UsuarioId }, ErroApp> {
-  return !temUsuario(ctx)? createErroApp( {codigo: "NAO_AUTENTICADO"} ) : wrapOk(ctx);
+/**
+ * Elimina dados duplicados de um vetor
+ * @param array o vetor
+ * @returns um vetor que garante dados sem duplicações
+ */
+function unique<T>(array: T[]): T[] {
+  return Array.from(new Set(array));
 }
 
-export function exigirPermissao(ctx: ContextoExecucao, perm: Permissao): Result<ContextoExecucao, ErroApp> {
-  if (!temUsuario(ctx)) {
-    return createErroApp( {codigo: "NAO_AUTENTICADO"} );
-  }
-
-  if (!possuiPermissao(ctx, perm)) {
-    return createErroApp( {codigo: "NAO_AUTORIZADO"} );
-  }
-
-  return wrapOk(ctx);
-}
-
-function unique<T>(arr: T[]): T[] {
-  return Array.from(new Set(arr));
-}
-
-/** Cria um novo contexto com permissões resolvidas (imutável). */
+/**
+ * Cria um novo contexto com permissões resolvidas (imutável). 
+ * @param ctx o contexto do locatário
+ * @param permissoes a lista de permissões
+ * @returns um contexto novo com as permissões acrescentadas
+ */
 export function comPermissoes(ctx: ContextoExecucao, permissoes: Permissao[]): ContextoExecucao {
-  return criarContextoExecucao({
-    locatarioId: ctx.locatarioId,
-    usuarioId: ctx.usuarioId,
-    papeis: ctx.papeis,
-    permissoes,
-    agora: ctx.agora,
-  });
+  return createContextoExecucao( {locatarioId: ctx.locatarioId, usuarioId: ctx.usuarioId, papeis: ctx.papeis, permissoes, agora: ctx.agora,} );
 }
 
-/** Cria um novo contexto com papéis resolvidos (imutável). */
+/**
+ * Cria um novo contexto com papéis resolvidos (imutável).
+ * @param ctx o contexto do locatário
+ * @param papeis a lista de papéis
+ * @returns um contexto novo com os papéis acrescentados
+ */
 export function comPapeis(ctx: ContextoExecucao, papeis: Papel[]): ContextoExecucao {
-  return criarContextoExecucao({
-    locatarioId: ctx.locatarioId,
-    usuarioId: ctx.usuarioId,
-    papeis,
-    permissoes: ctx.permissoes,
-    agora: ctx.agora,
-  });
-
-/**
- * `permissoes` ausente geralmente significa que o contexto não foi montado/validado
- * (ex.: request sem autenticação). Nesse caso, tratamos como não autorizado.
- * @param ctx 
- * @returns 
- */
-function naoAutenticado(ctx: ContextoExecucao): boolean {
-  return !ctx.usuarioId || ctx.permissoes == null;
-}
-
-/**
- * 
- * @param ctx 
- * @param permissao 
- * @returns 
- */
-export function exigirPermissao(ctx: ContextoExecucao, permissao: Permissao,): Result<void, ReturnType<typeof erroApp>> {
-  if (naoAutenticado(ctx)) {
-    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
-  }
-
-  const permissoes = ctx.permissoes ?? [];
-  if (!permissoes.includes(permissao)) {
-    return wrapErr(erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", { permissaoExigida: permissao }));
-  }
-
-  return wrapOk(undefined);
-}
-
-/**
- * 
- * @param ctx 
- * @param permissoesExigidas 
- * @returns 
- */
-export function exigirTodas(ctx: ContextoExecucao, permissoesExigidas: Permissao[],): Result<void, ReturnType<typeof erroApp>> {
-  if (naoAutenticado(ctx)) {
-    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
-  }
-
-  const permissoes = ctx.permissoes ?? [];
-  const faltantes = permissoesExigidas.filter((p) => !permissoes.includes(p));
-
-  if (faltantes.length > 0) {
-    // Mantém o payload de details estável e simples para uso em UI/logs
-    return wrapErr(
-      erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", { permissaoExigida: faltantes[0] }),
-    );
-  }
-
-  return wrapOk(undefined);
-}
-
-/**
- * 
- * @param ctx 
- * @param permissoesExigidas 
- * @returns 
- */
-export function exigirAlguma(ctx: ContextoExecucao, permissoesExigidas: Permissao[],): Result<void, ReturnType<typeof erroApp>> {
-  if (naoAutenticado(ctx)) {
-    return wrapErr(erroApp("NAO_AUTENTICADO", "Usuário não autenticado."));
-  }
-
-  const permissoes = ctx.permissoes ?? [];
-  const temAlguma = permissoesExigidas.some((p) => permissoes.includes(p));
-
-  if (!temAlguma) {
-    // Para "alguma", faz sentido mostrar a lista combinada; vazio vira "".
-    return wrapErr(
-      erroApp("NAO_AUTORIZADO", "Permissões insuficientes.", {permissaoExigida: permissoesExigidas.join("|")
-      }),
-    );
-  }
-
-  return wrapOk(undefined);
+  return createContextoExecucao( {locatarioId: ctx.locatarioId, usuarioId: ctx.usuarioId, papeis, permissoes: ctx.permissoes, agora: ctx.agora,} );
 }

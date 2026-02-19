@@ -1,3 +1,5 @@
+// packages/core/src/estoque/validadores.ts
+
 import { erroApp, type ErroApp } from "../erros";
 import type { NovoItem, NovoMovimentoEstoque } from "./tipos";
 
@@ -30,4 +32,27 @@ export function validarNovoMovimentoEstoque(m: NovoMovimentoEstoque): ErroApp | 
   if (m.tipo === "SAIDA" && m.delta >= 0) return erroApp("INVALIDO", "Saída exige delta negativo.");
 
   return null;
+}
+
+
+// Finalidade: Normalização e validações do domínio de Estoque.
+
+export function normalizarNomeItem(nome: string): string {
+  return String(nome ?? "").trim().replace(/\s+/g, " ");
+}
+
+export function nomeItemValido(nome: string): boolean {
+  const n = normalizarNomeItem(nome);
+  return n.length >= 3 && n.length <= 120;
+}
+
+/**
+ * MVP: inteiro positivo e com limite alto para evitar overflow/abuso.
+ */
+export function quantidadeValida(quantidade: number): boolean {
+  if (!Number.isFinite(quantidade)) return false;
+  if (!Number.isInteger(quantidade)) return false;
+  if (quantidade <= 0) return false;
+  if (quantidade >= 1_000_000_000) return false;
+  return true;
 }

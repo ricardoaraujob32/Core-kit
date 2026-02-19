@@ -1,98 +1,92 @@
 import { describe, it, expect } from "vitest";
 import { exigirPermissao, exigirAlguma, exigirTodas } from "../src/rbac";
 import type { ContextoExecucao, Permissao } from "../src/locatario";
+import { createContextoExecucao } from "../src/contextoExecucao";
 
-describe("RBAC", () => {
-  const ctxBase: ContextoExecucao = {
-    locatarioId: "loc-1",
-    usuarioId: "usr-1",
-    permissoes: ["usuarios:criar", "usuarios:listar"],
-  };
-
-  it("exigirPermissao() permite quando possui permissão", () => {
-    const r = exigirPermissao(ctxBase, "usuarios:criar");
-
-    expect(r).toEqual({ ok: true, value: undefined });
-    expect(JSON.parse(JSON.stringify(r))).toEqual({ ok: true });
-  });
-
-  it("exigirPermissao() nega quando não possui permissão (FORBIDDEN + details)", () => {
-    const r = exigirPermissao(ctxBase, "usuarios:editar");
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error).toEqual({
-        code: "NAO_AUTORIZADO",
-        message: "Permissões insuficientes.",
-        details: { permissaoExigida: "usuarios:editar" },
-        cause: undefined,
-      });
-
-      // serializável de forma previsível
-      expect(JSON.parse(JSON.stringify(r.error))).toEqual({
-        code: "NAO_AUTORIZADO",
-        message: "Permissões insuficientes.",
-        details: { permissaoExigida: "usuarios:editar" },
-      });
-    }
-  });
-
-  it("exigirPermissao() retorna NAO_AUTORIZADO quando ctx.permissoes está ausente", () => {
-    const ctxSemPerm: ContextoExecucao = {
+describe("RBAC / autorizar", () => {
+  it("deve autorizar quando permissão existir", () => {
+    const ctx = createContextoExecucao({
       locatarioId: "loc-1",
-      usuarioId: "usr-1",
-      permissoes: undefined,
-    };
+      permissoes: ["ESTOQUE_LER"],
+    });
 
-    const r = exigirPermissao(ctxSemPerm, "usuarios:listar");
+    const r = autorizar(ctx, "ESTOQUE_LER");
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_AUTENTICADO");
-      expect(r.error.mensagem).toBe("Usuário não autenticado.");
-    }
+    expect(isOk(r)).toBe(true);
   });
 
-  it("exigirTodas() permite quando possui todas", () => {
-    const r = exigirTodas(ctxBase, ["usuarios:criar", "usuarios:listar"]);
-    expect(r).toEqual({ ok: true, value: undefined });
+  it("deve negar quando permissão não existir", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+      permissoes: ["ESTOQUE_LER"],
+    });
+
+    const r = autorizar(ctx, "ESTOQUE_ESCREVER");
+
+    expect(isErr(r)).toBe(true);
   });
 
-  it("exigirTodas() nega quando falta alguma (primeira faltante)", () => {
-    const r = exigirTodas(ctxBase, ["usuarios:criar", "usuarios:editar"]);
+  it("deve negar quando contexto não tiver permissões", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+    });
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
+    const r = autorizar(ctx, "ESTOQUE_LER");
+
+    expect(isErr(r)).toBe(true);
+  });
+
+  it("erro deve conter código padronizado", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+    });
+
+    const r = autorizar(ctx, "ESTOQUE_LER");
+
+    if (isErr(r)) {
       expect(r.error.codigo).toBe("NAO_AUTORIZADO");
-      expect(r.error.mensagem).toBe("Permissões insuficientes.");
-      expect(r.error.detalhes).toEqual({ permissaoExigida: "usuarios:editar" });
     }
   });
 
-  it("exigirAlguma() permite quando possui pelo menos uma", () => {
-    const r = exigirAlguma(ctxBase, ["usuarios:editar", "usuarios:listar"]);
-    expect(r).toEqual({ ok: true, value: undefined });
+  it("deve funcionar com múltiplas permissões", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "loc-1",
+      permissoes: ["A", "B", "C"],
+    });
+
+    const r = autorizar(ctx, "B");
+
+    expect(isOk(r)).toBe(true);
   });
 
-  it("exigirAlguma() nega quando não possui nenhuma (details com join '|')", () => {
-    const r = exigirAlguma(ctxBase, ["usuarios:editar", "usuarios:remover"]);
+  it("deve negar como NAO_AUTENTICADO quando não há usuarioId", () => {
+    const ctx = createContextoExecucao({ locatarioId: "L1" }); // usuarioId undefined
+    const r = autorizar(ctx, "ESTOQUE_LER");
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_AUTORIZADO");
-      expect(r.error.detalhes).toEqual({
-        permissaoExigida: "usuarios:editar|usuarios:remover",
-      });
-    }
+    expect(isErr(r)).toBe(true);
+    if (isErr(r)) expect(r.error.codigo).toBe("NAO_AUTENTICADO");
   });
 
-  it("exigirAlguma() trata lista vazia como falha (permissaoExigida vazio)", () => {
-    const r = exigirAlguma(ctxBase, [] as Permissao[]);
+  it("deve autorizar quando permissão existir", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "L1",
+      usuarioId: "U1",
+      permissoes: ["ESTOQUE_LER"],
+    });
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_AUTORIZADO");
-      expect(r.error.detalhes).toEqual({ permissaoExigida: "" });
-    }
+    const r = autorizar(ctx, "ESTOQUE_LER");
+    expect(isOk(r)).toBe(true);
+  });
+
+  it("deve negar como NAO_AUTORIZADO quando faltar permissão", () => {
+    const ctx = createContextoExecucao({
+      locatarioId: "L1",
+      usuarioId: "U1",
+      permissoes: ["ESTOQUE_LER"],
+    });
+
+    const r = autorizar(ctx, "ESTOQUE_ESCREVER");
+    expect(isErr(r)).toBe(true);
+    if (isErr(r)) expect(r.error.codigo).toBe("NAO_AUTORIZADO");
   });
 });

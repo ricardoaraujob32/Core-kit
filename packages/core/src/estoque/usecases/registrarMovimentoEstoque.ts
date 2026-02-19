@@ -1,68 +1,62 @@
+// packages/core/src/estoque/usecases/registrarMovimentoEstoque.ts
+// Finalidade: Registrar movimento mínimo (ENTRADA/SAIDA/AJUSTE) no estoque padrão (automático) ou informado.
+
+import type { ContextoExecucao } from "../../contextoExecucao";
 import type { Result } from "../../result";
 import { wrapErr, wrapOk } from "../../result";
-import { erroApp, type ErroApp } from "../../erros";
-import type { RepositorioEstoque, RepositorioItens } from "../portas";
-import type { NovoMovimentoEstoque } from "../tipos";
-import { validarNovoMovimentoEstoque } from "../validadores";
+import type { ErroApp } from "../../erros";
+import { erroApp } from "../../erros";
+import { exigirPermissao } from "../../rbac";
 
-type ContextoEstoque = {
-  locatarioId: string;
-  usuarioId?: string | null;
-  permissoes: string[];
-};
-
-function exigirPermissaoEscrita(ctx: ContextoEstoque): ErroApp | null {
-  if (ctx.permissoes?.includes("ESTOQUE_ESCRITA")) return null;
-  return erroApp("NAO_AUTORIZADO", "Permissões insuficientes");
-}
+import type { RepositorioEstoque } from "../portasRepositorio";
+import type { EstoqueId, ItemCatalogoId, TipoMovimentoEstoque } from "../tipos";
+import { quantidadeValida } from "../validadores";
 
 export async function registrarMovimentoEstoque(
-  ctx: ContextoEstoque,
-  repositorioEstoque: RepositorioEstoque,
-  repositorioItens: RepositorioItens,
-  movimento: NovoMovimentoEstoque
-): Promise<Result<{ movimentoId: string }, ErroApp>> {
-  const perm = exigirPermissaoEscrita(ctx);
-  if (perm) return wrapErr(perm);
+  ctx: ContextoExecucao,
+  dependencias: { estoqueRepo: RepositorioEstoque },
+  input: { estoqueId?: EstoqueId; itemId: ItemCatalogoId; tipo: TipoMovimentoEstoque; quantidade: number; motivo?: string },
+): Promise<Result<{ id: string }, ErroApp>> {
+  const auth = exigirPermissao(ctx, "ESTOQUE_MOVIMENTAR");
+  if (!auth.ok) return auth;
 
-  const validacao = validarNovoMovimentoEstoque(movimento);
-  if (validacao) return wrapErr(validacao);
+  // (opção A) não aceitar usuário nulo: se não houver usuário, considera não autenticado
+  if (ctx.usuarioId === undefined) return wrapErr(erroApp("NAO_AUTENTICADO"));
 
-  const itemResult = await repositorioItens.buscarItemPorId(movimento.itemId);
-  if (!itemResult.ok) return wrapErr(itemResult.error);
+  if (!quantidadeValida(input.quantidade)) return wrapErr(erroApp("VALIDACAO", "Quantidade inválida"));
 
-  const item = itemResult.value;
-  if (!item) return wrapErr(erroApp("NAO_ENCONTRADO", "Item não encontrado."));
-  if (item.excluidoEm) return wrapErr(erroApp("INVALIDO", "Item excluído."));
-  if (!item.ativo) return wrapErr(erroApp("INVALIDO", "Item inativo."));
-  if (item.tipoItem !== "PRODUTO") return wrapErr(erroApp("INVALIDO", "Serviço não gera movimento de estoque."));
+  const item = await dependencias.estoqueRepo.obterItemPorId(ctx.locatarioId, input.itemId);
+  if (!item) return wrapErr(erroApp("NAO_ENCONTRADO", "Item não encontrado"));
 
-  const estoqueId =
-    movimento.estoqueId ??
-    (await repositorioEstoque.garantirEstoquePadrao()).ok
-      ? (await repositorioEstoque.garantirEstoquePadrao()).value.estoqueId
-      : null;
-
-  if (!estoqueId) {
-    // fallback seguro (se garantirEstoquePadrao falhar)
-    const r = await repositorioEstoque.garantirEstoquePadrao();
-    if (!r.ok) return wrapErr(r.error);
-    return repositorioEstoque.registrarMovimentoEAtualizarSaldo({
-      estoqueId: r.value.estoqueId,
-      itemId: movimento.itemId,
-      tipo: movimento.tipo,
-      delta: movimento.delta,
-      referencia: movimento.referencia ?? null,
-      observacao: movimento.observacao ?? null,
-    });
+  if (item.tipo === "SERVICO") {
+    return wrapErr(erroApp("VALIDACAO", "Serviços não possuem movimentação de estoque"));
   }
 
-  return repositorioEstoque.registrarMovimentoEAtualizarSaldo({
+  let estoqueId = input.estoqueId;
+  if (!estoqueId) {
+    const existente = await dependencias.estoqueRepo.obterEstoquePadrao(ctx.locatarioId);
+    const padrao = existente ?? (await dependencias.estoqueRepo.criarEstoquePadrao(ctx.locatarioId));
+    estoqueId = padrao.id;
+  }
+
+  // Regra MVP: saída não pode deixar saldo negativo
+  if (input.tipo === "SAIDA") {
+    const saldo = await dependencias.estoqueRepo.obterSaldoAtual(ctx.locatarioId, estoqueId, input.itemId);
+    if (saldo - input.quantidade < 0) {
+      return wrapErr(erroApp("VALIDACAO", "Saldo insuficiente"));
+    }
+  }
+
+  const mov = await dependencias.estoqueRepo.registrarMovimento({
+    locatarioId: ctx.locatarioId,
     estoqueId,
-    itemId: movimento.itemId,
-    tipo: movimento.tipo,
-    delta: movimento.delta,
-    referencia: movimento.referencia ?? null,
-    observacao: movimento.observacao ?? null,
+    itemId: input.itemId,
+    tipo: input.tipo,
+    quantidade: input.quantidade,
+    motivo: input.motivo,
+    usuarioId: ctx.usuarioId,
+    criadoEm: (ctx.agora ?? (() => new Date()))(),
   });
+
+  return wrapOk({ id: mov.id });
 }

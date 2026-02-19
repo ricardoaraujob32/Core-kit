@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 // Ajuste conforme seu módulo real
-import { wrapOk } from "../src/index";
+import { wrapOk } from "../../src/index";
 
 describe("Auditoria - eventos", () => {
   it("deve registrar metadados mínimos (locatário, usuário, ação, entidade)", () => {

@@ -1,22 +1,27 @@
-# Módulo: Usuários
+# Módulo: Usuários (core)
 
 ## Objetivo
-Concentrar regras de negócio e contratos (interfaces) relacionados a usuários do locatário.
+Centralizar o domínio de usuários do sistema (entidade, validações e casos de uso) de forma independente de infraestrutura.
 
-## Responsabilidades
-- Tipos de domínio: Usuario, NovoUsuario, IdUsuario (etc.)
-- Validações e normalizações (ex.: nome)
-- Casos de uso (usecases): criarUsuario, listarUsuarios, ...
-- Contratos de persistência (porta): RepositorioUsuarios
+## Arquivos
+- `tipos.ts`: tipos do domínio (Usuario, NovoUsuario, StatusUsuario, UsuarioId).
+- `validadores.ts`: normalização e validação de nome.
+- `portasRepositorio.ts`: contrato do repositório (porta).
+- `repositorioMemoria.ts`: adapter em memória (testes/dev).
+- `usecases/criarUsuario.ts`: cria usuário com validações e auditoria.
+- `usecases/listarUsuarios.ts`: lista usuários do locatário.
 
-## Contratos (Portas)
-- RepositorioUsuarios:
-  - create(...)
-  - findById(...)
-  - findByNome(...)
-  - list(...)
+## Regras do domínio
+- Nome é normalizado com `normalizarNome`.
+- Nome deve ter 3..120 caracteres após normalização.
+- Não permitir duplicidade de nome por locatário (checado no caso de uso).
+- Autorização:
+  - `USUARIOS_CRIAR` para criar
+  - `USUARIOS_LER` para listar
 
-## Invariantes sugeridas
-- Nome não vazio e com tamanho mínimo
-- Operações sempre vinculadas a `locatarioId`
-- Autorização via permissões no ContextoExecucao (RBAC)
+## Dependências (injeção)
+- `RepositorioUsuarios`: persistência (porta).
+- `AuditoriaWriter`: registro de ações (porta).
+
+## Result (ROP)
+Casos de uso retornam `Result<Sucesso, ErroApp>` e não lançam exceções de negócio.

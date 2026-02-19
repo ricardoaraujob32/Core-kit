@@ -1,0 +1,1 @@
+pnpm --filter core exec vitest run __tests__/<<nome>>.test.ts

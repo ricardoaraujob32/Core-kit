@@ -1,11 +1,11 @@
 // manual-test.ts
 import { criarUsuario } from "./usecases/criarUsuario";
 import { listarUsuarios } from "./usecases/listarUsuarios";
-import { createUsuariosMemoryRepo} from ".";
+import { criarRepositorioUsuariosEmMemoria} from "./repositorioMemoria";
 
 async function main() {
 const ctx = { locatarioId: "tenant-1" };
-const repo = createUsuariosMemoryRepo();
+const repo = criarRepositorioUsuariosEmMemoria();
 
 console.log("Criando Alice...");
   const a = await criarUsuario(ctx, { usuariosRepo: repo, gerarId: () => "u1" }, { nome: "Alice" });

@@ -1,7 +1,7 @@
 // packages/core/src/ROPHelpers.ts
 
 import { Result, wrapErr, wrapOk } from "./result";
-import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp, normalizarMensagem } from "./erros";
+import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp } from "./erros";
 
 /**
  * Fábrica de erros padronizados para ROP. Normaliza argumentos e usa o construtor padrão.
@@ -19,6 +19,17 @@ export function createErroApp<T = never>(params: {codigo: CodigoErroApp; mensage
   const causa = params.causa;
 
   return wrapErr(erroApp(codigo, mensagem, detalhes, causa));
+}
+
+/**
+ * Helper para mensagem de erro. Normaliza mensagem vazia para "".
+ * @param mensagem a mensagem
+ * @returns mensagem normalizada; se vazia, retorna ""
+ */
+export function normalizarMensagem(mensagem?: string | null): string | undefined {  
+  if (mensagem === null || mensagem === undefined) return "";
+  const m = mensagem.trim();
+  return m.length ? m : "";
 }
 
 /**
@@ -46,4 +57,3 @@ export async function fromThrowableAsync<T>(fn: () => Promise<T>,): Promise<Resu
     return isErroApp(e) ? wrapErr(e) : createErroApp({ codigo: "ERRO_INTERNO", causa: e });
   }
 }
-

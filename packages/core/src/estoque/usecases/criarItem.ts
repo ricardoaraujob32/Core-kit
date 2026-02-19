@@ -1,35 +1,31 @@
+// packages/core/src/estoque/usecases/criarItemCatalogo.ts
+// Finalidade: Criação de item de catálogo (PRODUTO/SERVICO) com validação e RBAC.
+
+import type { ContextoExecucao } from "../../contextoExecucao";
 import type { Result } from "../../result";
 import { wrapErr, wrapOk } from "../../result";
-import { erroApp, type ErroApp } from "../../erros";
-import type { NovoItem } from "../tipos";
-import type { RepositorioItens } from "../portas";
-import { validarNovoItem } from "../validadores";
+import type { ErroApp } from "../../erros";
+import { erroApp } from "../../erros";
+import { exigirPermissao } from "../../rbac";
 
-type ContextoEstoque = {
-  locatarioId: string;
-  permissoes: string[];
-};
-
-function exigirPermissaoEscrita(ctx: ContextoEstoque): ErroApp | null {
-  if (ctx.permissoes?.includes("ESTOQUE_ESCRITA")) return null;
-  return erroApp("NAO_AUTORIZADO", "Permissões insuficientes");
-}
+import type { RepositorioEstoque } from "../portasRepositorio";
+import type { TipoItem } from "../tipos";
+import { nomeItemValido, normalizarNomeItem } from "../validadores";
 
 export async function criarItem(
-  ctx: ContextoEstoque,
-  repositorioItens: RepositorioItens,
-  novoItem: NovoItem
+  ctx: ContextoExecucao,
+  dependencias: { estoqueRepo: RepositorioEstoque },
+  input: { tipo: TipoItem; nome: string },
 ): Promise<Result<{ id: string }, ErroApp>> {
-  const perm = exigirPermissaoEscrita(ctx);
-  if (perm) return wrapErr(perm);
+  const auth = exigirPermissao(ctx, "ESTOQUE_CRIAR_ITEM");
+  if (!auth.ok) return auth;
 
-  const validacao = validarNovoItem(novoItem);
-  if (validacao) return wrapErr(validacao);
+  const nome = normalizarNomeItem(input.nome);
+  if (!nomeItemValido(nome)) return wrapErr(erroApp("VALIDACAO", "Nome inválido"));
 
-  return repositorioItens.criarItem({
-    ...novoItem,
-    nome: novoItem.nome.trim(),
-    unidade: novoItem.unidade.trim(),
-    sku: novoItem.sku?.trim() ?? null,
-  });
+  const existente = await dependencias.estoqueRepo.obterItemPorNome(ctx.locatarioId, nome);
+  if (existente) return wrapErr(erroApp("CONFLITO", "Já existe item com este nome"));
+
+  const criado = await dependencias.estoqueRepo.criarItem({ locatarioId: ctx.locatarioId, tipo: input.tipo, nome });
+  return wrapOk({ id: criado.id });
 }

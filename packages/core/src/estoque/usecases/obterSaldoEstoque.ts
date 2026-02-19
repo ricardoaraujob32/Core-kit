@@ -1,7 +1,7 @@
 import type { Result } from "../../result";
 import { wrapErr } from "../../result";
 import { erroApp, type ErroApp } from "../../erros";
-import type { RepositorioEstoque } from "../portas";
+import type { RepositorioEstoque } from "../portasRepositorio";
 import type { EstoqueId, ItemId, SaldoEstoque } from "../tipos";
 
 type ContextoEstoque = {
