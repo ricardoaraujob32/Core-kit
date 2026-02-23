@@ -9,4 +9,5 @@ export type RepositorioClientes = {
   obterPorNome(locatarioId: LocatarioId, nome: string): Promise<Cliente | null>;
   listar(locatarioId: LocatarioId): Promise<Cliente[]>;
   criar(dados: NovoCliente): Promise<Cliente>;
+  salvar(cliente: Cliente): Promise<void>;
 };

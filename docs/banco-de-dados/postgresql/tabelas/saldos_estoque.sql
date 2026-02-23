@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS saldos_estoque (
   quantidade NUMERIC(18,3) NOT NULL DEFAULT 0,
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+-- saldo_atual, custo_medio, estoque_minimo
+  
+
   CONSTRAINT pk_saldos PRIMARY KEY (locatario_id, estoque_id, item_id),
   CONSTRAINT fk_saldos_estoque FOREIGN KEY (locatario_id, estoque_id)
     REFERENCES estoques(locatario_id, id) ON DELETE RESTRICT,

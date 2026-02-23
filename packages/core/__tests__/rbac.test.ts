@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { exigirPermissao, exigirAlguma, exigirTodas } from "../src/rbac";
-import type { ContextoExecucao, Permissao } from "../src/locatario";
-import { createContextoExecucao } from "../src/contextoExecucao";
+import { exigirAlguma, exigirTodas } from "../src/rbac";
+import { Permissao } from "../src/autorizacao/permissoes";
+import { createContextoExecucao, ContextoExecucao, possuiPermissao } from "../src/contextoExecucao";
+import { isErr, isOk } from "../src/result";
 
 describe("RBAC / autorizar", () => {
   it("deve autorizar quando permissão existir", () => {
@@ -10,7 +11,7 @@ describe("RBAC / autorizar", () => {
       permissoes: ["ESTOQUE_LER"],
     });
 
-    const r = autorizar(ctx, "ESTOQUE_LER");
+    const r = possuiPermissao(ctx, "ESTOQUE_LER");
 
     expect(isOk(r)).toBe(true);
   });
@@ -21,7 +22,7 @@ describe("RBAC / autorizar", () => {
       permissoes: ["ESTOQUE_LER"],
     });
 
-    const r = autorizar(ctx, "ESTOQUE_ESCREVER");
+    const r = possuiPermissao(ctx, "ESTOQUE_ESCREVER");
 
     expect(isErr(r)).toBe(true);
   });
@@ -41,7 +42,7 @@ describe("RBAC / autorizar", () => {
       locatarioId: "loc-1",
     });
 
-    const r = autorizar(ctx, "ESTOQUE_LER");
+    const r = possuiPermissao(ctx, "ESTOQUE_LER");
 
     if (isErr(r)) {
       expect(r.error.codigo).toBe("NAO_AUTORIZADO");
@@ -51,10 +52,10 @@ describe("RBAC / autorizar", () => {
   it("deve funcionar com múltiplas permissões", () => {
     const ctx = createContextoExecucao({
       locatarioId: "loc-1",
-      permissoes: ["A", "B", "C"],
+      permissoes: ["CLIENTES_LISTAR", "AUDITORIA_LER", "ESTOQUE_LER"],
     });
 
-    const r = autorizar(ctx, "B");
+    const r = possuiPermissao(ctx, "USUARIOS_CRIAR");
 
     expect(isOk(r)).toBe(true);
   });
@@ -74,7 +75,7 @@ describe("RBAC / autorizar", () => {
       permissoes: ["ESTOQUE_LER"],
     });
 
-    const r = autorizar(ctx, "ESTOQUE_LER");
+    const r = possuiPermissao(ctx, "ESTOQUE_LER");
     expect(isOk(r)).toBe(true);
   });
 
@@ -85,7 +86,7 @@ describe("RBAC / autorizar", () => {
       permissoes: ["ESTOQUE_LER"],
     });
 
-    const r = autorizar(ctx, "ESTOQUE_ESCREVER");
+    const r = possuiPermissao(ctx, "ESTOQUE_ESCREVER");
     expect(isErr(r)).toBe(true);
     if (isErr(r)) expect(r.error.codigo).toBe("NAO_AUTORIZADO");
   });

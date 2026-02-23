@@ -132,7 +132,7 @@ export function normalizarRelogio(ctx: ContextoExecucao): Date {
  * @param perm a permissão
  * @returns true se tiver a permissão; do contrário, false
  */
-export function possuiPermissao(ctx: ContextoExecucao, perm: Permissao): boolean {
+export function possuiPermissao22(ctx: ContextoExecucao, perm: Permissao): boolean {
   return normalizarPermissoes(ctx).includes(perm);
 }
 

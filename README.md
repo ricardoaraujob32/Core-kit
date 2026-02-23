@@ -53,3 +53,17 @@ Regras:
 - Permissões são declarativas
 - Falha sempre retorna erro explícito
 - Mensagem padrão: **"Permissões insuficientes"**
+
+# EXTRA: CHECKLIST “COPILOT-FRIENDLY” (para colar no README)
+
+- Pastas previsíveis: domain / ports / usecases / web / tests
+- Interfaces explícitas (ports) com contratos claros
+- Tipos/VOs bem nomeados (LocatarioId, UsuarioId, etc.)
+- Comentário de intenção no topo de cada usecase:
+  - objetivo
+  - permissões necessárias
+  - regras e edge cases
+  - erros esperados
+- Catálogo central de AppErrorCode
+- ContextoExecucao obrigatório em todas as operações
+- Testes Vitest descrevendo comportamento (TDD)

@@ -1,0 +1,359 @@
+flowchart LR
+  %% ======================
+  %% Kernel/Core files
+  %% ======================
+  Result["core/src/result.ts"]:::core
+  Errors["core/src/errors.ts"]:::core
+  Ids["core/src/ids.ts"]:::core
+  Tempo["core/src/tempo.ts"]:::core
+  Ctx["core/src/contextoExecucao.ts"]:::core
+  Authz["core/src/autorizacao.ts"]:::core
+
+  classDef core fill:#0b1220,stroke:#f59e0b,color:#e5e7eb;
+  classDef mod fill:#0f172a,stroke:#38bdf8,color:#e5e7eb;
+  classDef file fill:#111827,stroke:#94a3b8,color:#e5e7eb;
+
+  %% Kernel dependencies (genéricas)
+  Result --> Errors
+  Ctx --> Ids
+  Authz --> Ctx
+  Authz --> Errors
+
+  %% ======================
+  %% LOCATARIOS
+  %% ======================
+  subgraph LOC["locatarios/"]:::mod
+    L_Tipos["tipos.ts"]:::file
+    L_Val["validadores.ts"]:::file
+    L_Portas["portasRepositorio.ts"]:::file
+    L_UC_Criar["usecases/criarLocatario.ts"]:::file
+    L_UC_AtualizarPlano["usecases/atualizarPlanoLocatario.ts"]:::file
+    L_UC_Excluir["usecases/excluirLogicamenteLocatario.ts"]:::file
+    L_UC_Obter["usecases/obterLocatario.ts"]:::file
+  end
+
+  L_Val --> L_Tipos
+  L_Portas --> L_Tipos
+  L_UC_Criar --> L_Tipos
+  L_UC_Criar --> L_Val
+  L_UC_Criar --> L_Portas
+  L_UC_AtualizarPlano --> L_Tipos
+  L_UC_AtualizarPlano --> L_Val
+  L_UC_AtualizarPlano --> L_Portas
+  L_UC_Excluir --> L_Tipos
+  L_UC_Excluir --> L_Portas
+  L_UC_Obter --> L_Tipos
+  L_UC_Obter --> L_Portas
+
+  %% usecases -> kernel (padrão ROP/ctx)
+  L_UC_Criar --> Result
+  L_UC_Criar --> Errors
+  L_UC_Criar --> Ids
+  L_UC_Criar --> Ctx
+
+  L_UC_AtualizarPlano --> Result
+  L_UC_AtualizarPlano --> Errors
+  L_UC_AtualizarPlano --> Ctx
+
+  L_UC_Excluir --> Result
+  L_UC_Excluir --> Errors
+  L_UC_Excluir --> Ctx
+
+  L_UC_Obter --> Result
+  L_UC_Obter --> Errors
+  L_UC_Obter --> Ctx
+
+  %% ======================
+  %% USUARIOS
+  %% ======================
+  subgraph USR["usuarios/"]:::mod
+    U_Tipos["tipos.ts"]:::file
+    U_Val["validadores.ts"]:::file
+    U_Portas["portasRepositorio.ts"]:::file
+    U_UC_Criar["usecases/criarUsuario.ts"]:::file
+    U_UC_Listar["usecases/listarUsuarios.ts"]:::file
+    U_UC_Excluir["usecases/excluirLogicamenteUsuario.ts"]:::file
+    U_UC_Reativar["usecases/reativarUsuario.ts"]:::file
+  end
+
+  U_Val --> U_Tipos
+  U_Portas --> U_Tipos
+
+  U_UC_Criar --> U_Tipos
+  U_UC_Criar --> U_Val
+  U_UC_Criar --> U_Portas
+
+  U_UC_Listar --> U_Tipos
+  U_UC_Listar --> U_Portas
+
+  U_UC_Excluir --> U_Tipos
+  U_UC_Excluir --> U_Portas
+
+  U_UC_Reativar --> U_Tipos
+  U_UC_Reativar --> U_Portas
+
+  U_UC_Criar --> Result
+  U_UC_Criar --> Errors
+  U_UC_Criar --> Ids
+  U_UC_Criar --> Ctx
+
+  U_UC_Listar --> Result
+  U_UC_Listar --> Errors
+  U_UC_Listar --> Ctx
+
+  U_UC_Excluir --> Result
+  U_UC_Excluir --> Errors
+  U_UC_Excluir --> Ctx
+
+  U_UC_Reativar --> Result
+  U_UC_Reativar --> Errors
+  U_UC_Reativar --> Ctx
+
+  %% ======================
+  %% PLANOS
+  %% ======================
+  subgraph PLN["planos/"]:::mod
+    P_Tipos["tipos.ts"]:::file
+    P_Portas["portasRepositorio.ts"]:::file
+    P_UC_Criar["usecases/criarPlano.ts"]:::file
+    P_UC_Limites["usecases/definirLimitesPlano.ts"]:::file
+  end
+
+  P_Portas --> P_Tipos
+  P_UC_Criar --> P_Tipos
+  P_UC_Criar --> P_Portas
+  P_UC_Limites --> P_Tipos
+  P_UC_Limites --> P_Portas
+
+  P_UC_Criar --> Result
+  P_UC_Criar --> Errors
+  P_UC_Criar --> Ids
+  P_UC_Criar --> Ctx
+
+  P_UC_Limites --> Result
+  P_UC_Limites --> Errors
+  P_UC_Limites --> Ctx
+
+  %% ======================
+  %% MODULOS
+  %% ======================
+  subgraph MOD["modulos/"]:::mod
+    M_Tipos["tipos.ts"]:::file
+    M_Portas["portasRepositorio.ts"]:::file
+    M_UC_Habilitar["usecases/habilitarModuloParaPlano.ts"]:::file
+    M_UC_Listar["usecases/listarModulosPorPlano.ts"]:::file
+  end
+
+  M_Portas --> M_Tipos
+  M_UC_Habilitar --> M_Tipos
+  M_UC_Habilitar --> M_Portas
+  M_UC_Listar --> M_Tipos
+  M_UC_Listar --> M_Portas
+
+  M_UC_Habilitar --> Result
+  M_UC_Habilitar --> Errors
+  M_UC_Habilitar --> Ctx
+
+  M_UC_Listar --> Result
+  M_UC_Listar --> Errors
+  M_UC_Listar --> Ctx
+
+  %% ======================
+  %% ASSINATURAS
+  %% ======================
+  subgraph ASN["assinaturas/"]:::mod
+    A_Tipos["tipos.ts"]:::file
+    A_Portas["portasRepositorio.ts"]:::file
+    A_UC_Aplicar["usecases/aplicarPlanoAoLocatario.ts"]:::file
+    A_UC_ValModulo["usecases/validarAcessoModulo.ts"]:::file
+    A_UC_LimUsuarios["usecases/validarLimiteUsuarios.ts"]:::file
+    A_UC_LimIdentidade["usecases/validarLimiteIdentidadeVisual.ts"]:::file
+  end
+
+  A_Portas --> A_Tipos
+  A_UC_Aplicar --> A_Tipos
+  A_UC_Aplicar --> A_Portas
+
+  A_UC_ValModulo --> A_Tipos
+  A_UC_ValModulo --> A_Portas
+
+  A_UC_LimUsuarios --> A_Tipos
+  A_UC_LimUsuarios --> A_Portas
+
+  A_UC_LimIdentidade --> A_Tipos
+  A_UC_LimIdentidade --> A_Portas
+
+  %% assinaturas tende a depender de planos/modulos/locatarios
+  A_UC_Aplicar --> P_UC_Criar
+  A_UC_Aplicar --> L_UC_AtualizarPlano
+  A_UC_ValModulo --> M_UC_Listar
+
+  A_UC_Aplicar --> Result
+  A_UC_Aplicar --> Errors
+  A_UC_Aplicar --> Ctx
+
+  A_UC_ValModulo --> Result
+  A_UC_ValModulo --> Errors
+  A_UC_ValModulo --> Ctx
+
+  A_UC_LimUsuarios --> Result
+  A_UC_LimUsuarios --> Errors
+  A_UC_LimUsuarios --> Ctx
+
+  A_UC_LimIdentidade --> Result
+  A_UC_LimIdentidade --> Errors
+  A_UC_LimIdentidade --> Ctx
+
+  %% ======================
+  %% AUDITORIA
+  %% ======================
+  subgraph AUD["auditoria/"]:::mod
+    AU_Tipos["tipos.ts"]:::file
+    AU_Porta["portaAuditoria.ts"]:::file
+    AU_UC_Reg["usecases/registrarEvento.ts"]:::file
+  end
+
+  AU_Porta --> AU_Tipos
+  AU_UC_Reg --> AU_Tipos
+  AU_UC_Reg --> AU_Porta
+  AU_UC_Reg --> Tempo
+  AU_UC_Reg --> Ctx
+  AU_UC_Reg --> Result
+  AU_UC_Reg --> Errors
+
+  %% ======================
+  %% IMPORTACOES
+  %% ======================
+  subgraph IMP["importacoes/"]:::mod
+    I_Tipos["tipos.ts"]:::file
+    I_Portas["portasRepositorio.ts"]:::file
+    I_UC_Criar["usecases/criarImportacao.ts"]:::file
+    I_UC_Item["usecases/registrarItemImportacao.ts"]:::file
+    I_UC_Iniciar["usecases/iniciarImportacao.ts"]:::file
+    I_UC_Concluir["usecases/concluirImportacao.ts"]:::file
+    I_UC_Falhar["usecases/falharImportacao.ts"]:::file
+  end
+
+  I_Portas --> I_Tipos
+  I_UC_Criar --> I_Tipos
+  I_UC_Criar --> I_Portas
+  I_UC_Item --> I_Tipos
+  I_UC_Item --> I_Portas
+  I_UC_Iniciar --> I_Tipos
+  I_UC_Iniciar --> I_Portas
+  I_UC_Concluir --> I_Tipos
+  I_UC_Concluir --> I_Portas
+  I_UC_Falhar --> I_Tipos
+  I_UC_Falhar --> I_Portas
+
+  I_UC_Criar --> Result
+  I_UC_Criar --> Errors
+  I_UC_Criar --> Ctx
+  I_UC_Item --> Result
+  I_UC_Item --> Errors
+  I_UC_Item --> Ctx
+  I_UC_Iniciar --> Result
+  I_UC_Iniciar --> Errors
+  I_UC_Concluir --> Result
+  I_UC_Concluir --> Errors
+  I_UC_Falhar --> Result
+  I_UC_Falhar --> Errors
+  I_UC_Falhar --> Ctx
+
+  %% ======================
+  %% EXPORTACOES
+  %% ======================
+  subgraph EXP["exportacoes/"]:::mod
+    E_Tipos["tipos.ts"]:::file
+    E_Portas["portasRepositorio.ts"]:::file
+    E_UC_Criar["usecases/criarExportacao.ts"]:::file
+    E_UC_Iniciar["usecases/iniciarExportacao.ts"]:::file
+    E_UC_Concluir["usecases/concluirExportacao.ts"]:::file
+    E_UC_Falhar["usecases/falharExportacao.ts"]:::file
+  end
+
+  E_Portas --> E_Tipos
+  E_UC_Criar --> E_Tipos
+  E_UC_Criar --> E_Portas
+  E_UC_Iniciar --> E_Tipos
+  E_UC_Iniciar --> E_Portas
+  E_UC_Concluir --> E_Tipos
+  E_UC_Concluir --> E_Portas
+  E_UC_Falhar --> E_Tipos
+  E_UC_Falhar --> E_Portas
+
+  E_UC_Criar --> Result
+  E_UC_Criar --> Errors
+  E_UC_Criar --> Ctx
+  E_UC_Iniciar --> Result
+  E_UC_Concluir --> Result
+  E_UC_Falhar --> Result
+  E_UC_Falhar --> Errors
+  E_UC_Falhar --> Ctx
+
+  %% ======================
+  %% AUTENTICACAO
+  %% ======================
+  subgraph AUTH["autenticacao/"]:::mod
+    AT_Tipos["tipos.ts"]:::file
+    AT_Portas["portasRepositorio.ts"]:::file
+    AT_UC_Emitir["usecases/emitirTokens.ts"]:::file
+    AT_UC_Rotar["usecases/rotacionarTokenAtualizacao.ts"]:::file
+    AT_UC_Revogar["usecases/revogarTokenAtualizacao.ts"]:::file
+  end
+
+  AT_Portas --> AT_Tipos
+  AT_UC_Emitir --> AT_Tipos
+  AT_UC_Emitir --> AT_Portas
+  AT_UC_Rotar --> AT_Tipos
+  AT_UC_Rotar --> AT_Portas
+  AT_UC_Revogar --> AT_Tipos
+  AT_UC_Revogar --> AT_Portas
+
+  AT_UC_Emitir --> Result
+  AT_UC_Emitir --> Errors
+  AT_UC_Emitir --> Authz
+  AT_UC_Emitir --> Ctx
+
+  AT_UC_Rotar --> Result
+  AT_UC_Rotar --> Errors
+  AT_UC_Rotar --> Ctx
+
+  AT_UC_Revogar --> Result
+  AT_UC_Revogar --> Errors
+  AT_UC_Revogar --> Ctx
+
+  %% ======================
+  %% BACKUPS
+  %% ======================
+  subgraph BCK["backups/"]:::mod
+    B_Tipos["tipos.ts"]:::file
+    B_PortasRepo["portasRepositorio.ts"]:::file
+    B_PortasExec["portasExecutores.ts"]:::file
+    B_UC_Politica["usecases/configurarPoliticaBackup.ts"]:::file
+    B_UC_Exec["usecases/executarBackup.ts"]:::file
+    B_UC_Evid["usecases/registrarEvidenciaBackup.ts"]:::file
+  end
+
+  B_PortasRepo --> B_Tipos
+  B_PortasExec --> B_Tipos
+  B_UC_Politica --> B_Tipos
+  B_UC_Politica --> B_PortasRepo
+  B_UC_Exec --> B_Tipos
+  B_UC_Exec --> B_PortasRepo
+  B_UC_Exec --> B_PortasExec
+  B_UC_Evid --> B_Tipos
+  B_UC_Evid --> B_PortasRepo
+
+  B_UC_Politica --> Result
+  B_UC_Politica --> Errors
+  B_UC_Politica --> Ctx
+
+  B_UC_Exec --> Result
+  B_UC_Exec --> Errors
+  B_UC_Exec --> Tempo
+  B_UC_Exec --> Ctx
+
+  B_UC_Evid --> Result
+  B_UC_Evid --> Errors
+  B_UC_Evid --> Ctx

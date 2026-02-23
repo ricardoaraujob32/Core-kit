@@ -27,4 +27,22 @@ export type Permissao =
 
   // Estoque
   | "ESTOQUE_LER"
-  | "ESTOQUE_ESCREVER";
+  | "ESTOQUE_ESCREVER"
+
+  // Clientes
+  | "CLIENTES_CRIAR"
+  | "CLIENTES_LISTAR"
+  | "CLIENTES_ATUALIZAR"
+  | "CLIENTES_EXCLUIR"
+
+  // Fornecedores
+  | "FORNECEDORES_CRIAR"
+  | "FORNECEDORES_LISTAR"
+  | "FORNECEDORES_ATUALIZAR"
+  | "FORNECEDORES_EXCLUIR"
+
+  // Sessões
+  | "SESSAO_CRIAR"
+  | "SESSAO_RENOVAR"
+  | "SESSAO_REVOGAR"
+  | "SESSAO_LISTAR";

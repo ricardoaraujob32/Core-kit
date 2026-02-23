@@ -41,7 +41,14 @@ export function fromThrowable<T>(fn: () => T,): Result<T, ErroApp> {
   try {
     return wrapOk(fn());
   } catch (e) {
-    return isErroApp(e) ? wrapErr(e) : createErroApp({ codigo: "ERRO_INTERNO", causa: e });
+    // Opção B: se jogaram um Result Err, preserva.
+    if (isResultErrErroApp(e)) return e as Result<T, ErroApp>;
+
+    // Se jogaram um ErroApp direto, preserva.
+    if (isErroApp(e)) return wrapErr(e);
+
+    // Caso contrário, normaliza para erro interno.
+    return createErroApp({ codigo: "ERRO_INTERNO", causa: e });
   }
 }
 
@@ -54,6 +61,37 @@ export async function fromThrowableAsync<T>(fn: () => Promise<T>,): Promise<Resu
   try {
     return wrapOk(await fn());
   } catch (e) {
-    return isErroApp(e) ? wrapErr(e) : createErroApp({ codigo: "ERRO_INTERNO", causa: e });
+    // Opção B: se jogaram um Result Err, preserva.
+    if (isResultErrErroApp(e)) return e as Result<T, ErroApp>;
+
+    // Se jogaram um ErroApp direto, preserva.
+    if (isErroApp(e)) return wrapErr(e);
+
+    // Caso contrário, normaliza para erro interno.
+    return createErroApp({ codigo: "ERRO_INTERNO", causa: e });
   }
+}
+
+/**
+ * Verifica se é um Record de string e unknown
+ * @param v o valor
+ * @returns true se for, do contrário false
+ */
+function isObjectRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+/**
+ * Detecta se o valor é um Result Err cujo error é um ErroApp.
+ * (tolerância: protege contra throw(createErroApp(...)) ou throw(wrapErr(...)))
+ * @param v o valor
+ * @returns true se for, do contrário false
+ */
+function isResultErrErroApp(v: unknown): v is Result<unknown, ErroApp> {
+  if (!isObjectRecord(v)) return false;
+  if (v["ok"] !== false) return false;
+  if (!("error" in v)) return false;
+
+  const err = (v as Record<string, unknown>)["error"];
+  return isErroApp(err);
 }

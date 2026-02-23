@@ -1,8 +1,8 @@
 // packages/core/__tests__/ROPHelpers.test.ts
 
 import { describe, it, expect } from "vitest";
-import { isErroApp, mapCodigoErroToMensagemErro, type CodigoErroApp,} from "../src/erros";
-import { createErroApp, normalizarMensagem } from "../src/ROPHelpers"
+import { erroApp, isErroApp, mapCodigoErroToMensagemErro, type CodigoErroApp,} from "../src/erros";
+import { createErroApp, normalizarMensagem, fromThrowable, fromThrowableAsync } from "../src/ROPHelpers"
 
 describe("#1 - fábrica de erros e normalização de mensagens", () => {
   it("#1.1 - deve usar mensagem padrão quando não for passada mensagem customizada", () => {
@@ -59,8 +59,86 @@ describe("#1 - fábrica de erros e normalização de mensagens", () => {
   });
 });
 
-describe("", () => {
-  it("", () => {
+describe("#2 - fromThrowable / fromThrowableAsync", () => {
+  it("#2.1 - fromThrowable deve retornar Ok quando não há exceção", () => {
+    const r = fromThrowable(() => 123);
 
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value).toBe(123);
+  });
+
+  it("#2.2 - fromThrowable deve transformar exceção comum em ErroApp ERRO_INTERNO", () => {
+    const causa = new Error("boom");
+    const r = fromThrowable(() => {
+      throw causa;
+    });
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.codigo).toBe("ERRO_INTERNO");
+      expect(r.error.mensagem).toBe("Erro interno.");
+      expect(r.error.causa).toBe(causa);
+    }
+  });
+
+  it("#2.3 - fromThrowable deve preservar ErroApp lançado", () => {
+    const e = erroApp("CONFLITO", "Conflito de dados.");
+    const r = fromThrowable(() => {
+      throw e;
+    });
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe(e);
+  });
+
+  it("#2.4 - fromThrowable deve preservar Result Err lançado", () => {
+    const errResult = createErroApp({ codigo: "INVALIDO", mensagem: "Campo obrigatório.", detalhes: { campo: "nome" } });
+
+    const r = fromThrowable(() => {
+      throw errResult;
+    });
+
+    expect(r).toStrictEqual(errResult);
+  });
+
+  it("#2.5 - fromThrowableAsync deve retornar Ok quando não há exceção", async () => {
+    const r = await fromThrowableAsync(async () => 456);
+
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value).toBe(456);
+  });
+
+  it("#2.6 - fromThrowableAsync deve transformar exceção comum em ErroApp ERRO_INTERNO", async () => {
+    const causa = new Error("boom-async");
+    const r = await fromThrowableAsync(async () => {
+      throw causa;
+    });
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.codigo).toBe("ERRO_INTERNO");
+      expect(r.error.mensagem).toBe("Erro interno.");
+      expect(r.error.causa).toBe(causa);
+    }
+  });
+
+  it("#2.7 - fromThrowableAsync deve preservar ErroApp lançado", async () => {
+    const e = erroApp("CONFLITO", "Conflito de dados.");
+    const r = await fromThrowableAsync(async () => {
+      throw e;
+    });
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe(e);
+  });
+
+  it("#2.8 - fromThrowableAsync deve preservar Result Err lançado", async () => {
+    const errResult = createErroApp({ codigo: "INVALIDO", mensagem: "Campo obrigatório.", detalhes: { campo: "nome" } });
+
+    const r = await fromThrowableAsync(async () => {
+      throw errResult;
+    });
+
+    expect(r).toStrictEqual(errResult);
   });
 });

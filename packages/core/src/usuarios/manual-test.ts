@@ -8,15 +8,15 @@ const ctx = { locatarioId: "tenant-1" };
 const repo = criarRepositorioUsuariosEmMemoria();
 
 console.log("Criando Alice...");
-  const a = await criarUsuario(ctx, { usuariosRepo: repo, gerarId: () => "u1" }, { nome: "Alice" });
+  const a = await criarUsuario(ctx, { usuariosRepositorio: repo, gerarId: () => "u1" }, { nome: "Alice" });
   console.log(a);
 
   console.log("Criando Bob...");
-  const b = await criarUsuario(ctx, { usuariosRepo: repo, gerarId: () => "u2" }, { nome: "Bob" });
+  const b = await criarUsuario(ctx, { usuariosRepositorio: repo, gerarId: () => "u2" }, { nome: "Bob" });
   console.log(b);
 
   console.log("Tentando duplicar Alice...");
-  const dup = await criarUsuario(ctx, { usuariosRepo: repo, gerarId: () => "u3" }, { nome: "Alice" });
+  const dup = await criarUsuario(ctx, { usuariosRepositorio: repo, gerarId: () => "u3" }, { nome: "Alice" });
   console.log(dup);
 
   console.log("Listando...");

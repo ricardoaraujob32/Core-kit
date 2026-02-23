@@ -12,9 +12,12 @@ export type Cliente = {
   locatarioId: LocatarioId;
   nome: string;
   email?: string;
+  telefone?: string;
+  documento?: string // CPF/CNPJ
   status: StatusCliente;
   criadoEm: Date;
   atualizadoEm: Date;
+  deletadoEm?: Date;
 };
 
 export type NovoCliente = {
