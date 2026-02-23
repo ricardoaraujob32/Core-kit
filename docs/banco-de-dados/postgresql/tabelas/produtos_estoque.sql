@@ -25,10 +25,14 @@ CREATE TABLE IF NOT EXISTS movimentos_estoque (
 
   estoque_id UUID NOT NULL,
   item_id UUID NOT NULL,
+  produto_id UUID NOT NULL,
 
   tipo TEXT NOT NULL CHECK (tipo IN ('ENTRADA','SAIDA','AJUSTE')),
   delta NUMERIC(18,3) NOT NULL CHECK (delta <> 0),
   ocorrencia_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  cliente_id UUID NULL,
+  fornecedor_id UUID NULL,
 
   referencia TEXT NULL,
   observacao TEXT NULL,

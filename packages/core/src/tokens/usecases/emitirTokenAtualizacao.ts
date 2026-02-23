@@ -36,9 +36,7 @@ export type EmitirTokenAtualizacaoResultado = {
  * @param params 
  * @returns 
  */
-export async function emitirTokenAtualizacao(
-  params: EmitirTokenAtualizacaoParams,
-): Promise<Result<EmitirTokenAtualizacaoResultado, ErroApp>> {
+export async function emitirTokenAtualizacao(params: EmitirTokenAtualizacaoParams,): Promise<Result<EmitirTokenAtualizacaoResultado, ErroApp>> {
   if (!params.repo) return erroEntradaInvalida("repo é obrigatório.");
   if (!params.usuarioId) return erroEntradaInvalida("usuarioId é obrigatório.");
   if (typeof params.hashToken !== "string" || params.hashToken.trim().length === 0) {
