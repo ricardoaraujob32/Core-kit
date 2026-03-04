@@ -1,3 +1,5 @@
+// apps/api/src/server.ts
+
 import Fastify, { type FastifyInstance } from "fastify";
 import { buildContextFromRequest } from "./http/context";
 import { registerHealthRoutes } from "./routes/health";
@@ -16,6 +18,9 @@ export async function buildServer(): Promise<FastifyInstance> {
   await registerHealthRoutes(aplicacao);
   await registerExemploProtegidoRoutes(aplicacao);
   await registrarRotasUsuarios(aplicacao, dependenciasAplicacao);
+  await registrarRotasUsuarios(aplicacao);
+  await registrarRotasAdminLocatarios(aplicacao, dependenciasAplicacao.adminLocatarios);
+  await registrarRotasSuperAdminLocatarios(aplicacao);
 
   return aplicacao;
 }

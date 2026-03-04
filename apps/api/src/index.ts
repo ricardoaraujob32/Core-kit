@@ -1,3 +1,5 @@
+// apps/api/src/index.ts
+
 import { buildServer } from "./server";
 
 async function main(): Promise<void> {

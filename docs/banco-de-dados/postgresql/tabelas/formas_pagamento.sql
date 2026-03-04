@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS formas_pagamento (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  codigo TEXT NOT NULL UNIQUE CHECK (codigo ~ '^[A-Z0-9_]+$'),
+  nome TEXT NOT NULL,
+
+  tipo TEXT NOT NULL CHECK (tipo IN ('PIX','BOLETO','CARTAO','TRANSFERENCIA','CRIPTO','DINHEIRO','OUTRO')),
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

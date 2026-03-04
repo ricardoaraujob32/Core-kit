@@ -1,3 +1,5 @@
+// apps/api/src/infra/prisma/client.ts
+
 /**
  * Arquivo: apps/api/src/infra/prisma/client.ts
  * Finalidade: Centralizar a criação do PrismaClient.

@@ -41,6 +41,25 @@ export type Token = {
   enderecoIp: string | null;
 };
 
+export type TipoToken =
+  | "ACESSO"
+  | "REFRESH"
+  | "RECUPERACAO_SENHA"
+  | "CONFIRMACAO_EMAIL";
+
+export type TokenRow = {
+  token_id: string;
+  usuario_id: string;
+  locatario_id: string;
+  tipo: TipoToken;
+  hash_token: string;
+  emitido_em: Date;
+  expira_em: Date;
+  revogado_em: Date | null;
+  proximo_token_id: string | null;
+  proximo_usuario_id: string | null;
+};
+
 /**
  * 
  */

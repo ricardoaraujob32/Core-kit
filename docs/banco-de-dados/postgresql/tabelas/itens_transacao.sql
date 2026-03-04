@@ -1,21 +1,20 @@
 -- ITENS (produto/serviço)
 CREATE TABLE IF NOT EXISTS itens_transacao (
   locatario_id UUID NOT NULL,
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  item_transacao_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  transacao_id UUID NOT NULL,
+  produto_id UUID NOT NULL,
+  estoque_id UUID NOT NULL,
 
-  tipo_item TEXT NOT NULL CHECK (tipo_item IN ('PRODUTO','SERVICO')),
-  sku TEXT NULL,
-  nome TEXT NOT NULL,
-  unidade TEXT NOT NULL DEFAULT 'UN',
-  ativo BOOLEAN NOT NULL DEFAULT true,
+  valor NUMERIC(18,3) NOT NULL, 
 
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
   excluido_em TIMESTAMPTZ NULL,
   excluido_por UUID NULL,
-  excluido_motivo TEXT NULL,
-
-  CONSTRAINT pk_itens PRIMARY KEY (locatario_id, id),
-  CONSTRAINT uq_itens_nome UNIQUE (locatario_id, nome),
-  CONSTRAINT uq_itens_sku UNIQUE (locatario_id, sku)
+  excluido_motivo TEXT NULL
 );
+
+ALTER TABLE ADD CONSTRAINT pk_itens_transacao 
+PRIMARY KEY (locatario_id, item_transacao_id, transacao_id, produto_id, estoque_id);
+

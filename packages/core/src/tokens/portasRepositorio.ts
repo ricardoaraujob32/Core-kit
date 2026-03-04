@@ -15,3 +15,25 @@ export interface TokensRepositorio {
   obterPorId(tokenId: TokenId): Promise<Result<Token | null, ErroApp>>;
   listarPorUsuario(usuarioId: UsuarioId): Promise<Result<readonly Token[], ErroApp>>; //Opcional, mas útil:achar token ativo por usuário (para políticas de sessão)
 }
+
+import { TokenRow } from "./tipos";
+import { Result } from "../result";
+
+export interface TokensRepositorio {
+  inserir(row: TokenRow): Promise<Result<void>>;
+
+  buscarPorHash(hash: string): Promise<Result<TokenRow | null>>;
+
+  setProximo(params: {
+    tokenId: string;
+    usuarioId: string;
+    proximoTokenId: string;
+    proximoUsuarioId: string;
+  }): Promise<Result<void>>;
+
+  revogar(params: {
+    tokenId: string;
+    usuarioId: string;
+    quando: Date;
+  }): Promise<Result<void>>;
+}

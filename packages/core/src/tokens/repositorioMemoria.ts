@@ -43,3 +43,54 @@ export function criarRepositorioTokensMemoria(seed?: readonly Token[]): TokensRe
     },
   };
 }
+
+
+
+import { wrapOk } from "../result";
+
+export function criarTokensRepositorioMemoria() {
+  const rows: any[] = [];
+
+  return {
+    async inserir(row) {
+      rows.push(row);
+      return wrapOk(undefined);
+    },
+
+    async buscarPorHash(hash) {
+      return wrapOk(
+        rows.find((r) => r.hash_token === hash) ?? null,
+      );
+    },
+
+    async setProximo({
+      tokenId,
+      usuarioId,
+      proximoTokenId,
+      proximoUsuarioId,
+    }) {
+      const row = rows.find(
+        (r) => r.token_id === tokenId &&
+               r.usuario_id === usuarioId,
+      );
+
+      if (row) {
+        row.proximo_token_id = proximoTokenId;
+        row.proximo_usuario_id = proximoUsuarioId;
+      }
+
+      return wrapOk(undefined);
+    },
+
+    async revogar({ tokenId, usuarioId, quando }) {
+      const row = rows.find(
+        (r) => r.token_id === tokenId &&
+               r.usuario_id === usuarioId,
+      );
+
+      if (row) row.revogado_em = quando;
+
+      return wrapOk(undefined);
+    },
+  };
+}

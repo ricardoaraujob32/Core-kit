@@ -3,15 +3,14 @@ import type { ErroApp } from "../erros";
 import { wrapOk } from "../result";
 import { erroEntradaInvalida } from "./erros";
 import { normalizarSlug, normalizarTexto, emailValido } from "./validadores";
+import { UsuarioId } from "../usuarios";
 
 /**
  * IDs (por enquanto string; você pode evoluir para branded type depois).
- * Observação: você já tem packages/core/src/locatario.ts com LocatarioId = string.
- * Aqui estou “centralizando” no módulo locatarios.
+ * "Locatário" é a empresa/cliente dono do contexto.
  */
 export type LocatarioId = string;
 export type PlanoId = string;
-export type UsuarioId = string;
 
 export type LocatarioStatus = "ATIVO" | "INATIVO" | "SUSPENSO";
 

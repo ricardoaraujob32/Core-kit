@@ -1,0 +1,301 @@
+flowchart LR
+  %% =========================================================
+  %% CoreKit – Modelo físico + operações recomendadas (consolidado)
+  %% Escopo: multi-tenant (locatários), RBAC, auth/tokens, auditoria,
+  %% catálogo (planos/módulos/limites), assinaturas com módulos efetivos,
+  %% catálogo monetário global (superadmin) com BRL-only para locatários.
+  %%
+  %% Convenções:
+  %% - Cada subgraph = uma tabela
+  %% - Nó [TAB] = tabela
+  %% - Nós (UC: ...) = operações recomendadas (usecases)
+  %% - Relações entre tabelas aparecem como setas entre [TAB]s
+  %% =========================================================
+
+  classDef tab fill:#0f172a,stroke:#38bdf8,color:#e5e7eb;
+  classDef uc fill:#111827,stroke:#94a3b8,color:#e5e7eb;
+  classDef note fill:#0b1220,stroke:#f59e0b,color:#e5e7eb;
+  classDef risk fill:#0b1220,stroke:#fb7185,color:#e5e7eb;
+
+  %% =======================
+  %% Cross-cutting: Auth/Security/Audit policies
+  %% =======================
+  subgraph POL["Políticas (Auth/Security/Auditoria)"]
+    P1["Token types:\n- Access (curto)\n- Refresh (persistido/hash)\n- (futuro) reset/verificação/convite"]:::note
+    P2["TTL típico:\n- Access: 5–15 min (ex.: 10)\n- Refresh: 7–14 dias\n- Superadmin: refresh menor (ex.: 3–7 dias)"]:::note
+    P3["Validar emissor (JWT):\n- assinatura + algoritmo permitido\n- iss + aud obrigatórios\n- exp/iat/sub\n- (recomendado) jti + checagem de revogação/rotação"]:::note
+    P4["Rotas e escopo:\n- /superadmin: identidade global (sem locatário)\n- /admin: exige locatário no contexto\n- NUNCA confiar em locatario_id vindo do body/query como fonte de verdade"]:::risk
+    P5["Auditoria superadmin:\n- permitir auditoria com locatario_id NULL (escopo global)\n- registrar target_locatario_id em metadados quando afetar um locatário"]:::note
+    P6["BRL-only para locatários:\n- regras de app + CHECK no BD onde fizer sentido\n- catálogo multi-moeda é exclusivo superadmin"]:::note
+  end
+
+  %% =======================
+  %% Locatários
+  %% =======================
+  subgraph L1["locatarios"]
+    LT["[locatarios]"]:::tab
+    LT1["UC: criarLocatario"]:::uc
+    LT2["UC: atualizarDadosLocatario"]:::uc
+    LT3["UC: suspenderLocatario (superadmin)"]:::uc
+    LT4["UC: reativarLocatario (superadmin)"]:::uc
+    LT5["UC: excluirLogicamenteLocatario (superadmin)"]:::uc
+    LT6["UC: obterLocatario / listarLocatarios"]:::uc
+    LT --> LT1
+    LT --> LT2
+    LT --> LT3
+    LT --> LT4
+    LT --> LT5
+    LT --> LT6
+  end
+
+  subgraph L2["configuracoes_locatario"]
+    CL["[configuracoes_locatario]"]:::tab
+    CL1["UC: criarConfiguracao"]:::uc
+    CL2["UC: ativarConfiguracao (1 ativa/locatário)"]:::uc
+    CL3["UC: atualizarConfiguracaoAtiva (ou versionar)"]:::uc
+    CL4["UC: listarHistoricoConfiguracoes"]:::uc
+    CL --> CL1
+    CL --> CL2
+    CL --> CL3
+    CL --> CL4
+  end
+
+  LT -->|1:N| CL
+
+  %% =======================
+  %% Usuários / Auth
+  %% =======================
+  subgraph U1["usuarios"]
+    US["[usuarios]"]:::tab
+    US1["UC: criarUsuario (tenant)"]:::uc
+    US2["UC: listarUsuarios (tenant)"]:::uc
+    US3["UC: excluirLogicamenteUsuario"]:::uc
+    US4["UC: reativarUsuario / desbloquear"]:::uc
+    US5["UC: autenticar (login)"]:::uc
+    US --> US1
+    US --> US2
+    US --> US3
+    US --> US4
+    US --> US5
+  end
+
+  subgraph T1["tokens (refresh/sessões)"]
+    TK["[tokens]"]:::tab
+    TK1["UC: emitirTokens (access+refresh)"]:::uc
+    TK2["UC: rotacionarRefreshToken"]:::uc
+    TK3["UC: revogarRefreshToken"]:::uc
+    TK4["UC: revogarTodasSessoesDoUsuario (opcional)"]:::uc
+    TK --> TK1
+    TK --> TK2
+    TK --> TK3
+    TK --> TK4
+  end
+
+  LT -->|1:N (tenant users)| US
+  US -->|1:N| TK
+  POL --> TK
+
+  %% =======================
+  %% Auditoria
+  %% =======================
+  subgraph A1["auditoria"]
+    AU["[auditoria]"]:::tab
+    AU1["UC: registrarEvento (tenant)"]:::uc
+    AU2["UC: registrarEventoGlobal (superadmin, locatario_id NULL)"]:::uc
+    AU3["UC: consultarAuditoria (por tenant / por alvo)"]:::uc
+    AU --> AU1
+    AU --> AU2
+    AU --> AU3
+  end
+
+  US -->|executor_id| AU
+  LT -->|tenant_id (quando aplicável)| AU
+  POL --> AU
+
+  %% =======================
+  %% RBAC
+  %% =======================
+  subgraph R1["papeis"]
+    PR["[papeis]"]:::tab
+    PR1["UC: criarPapel (seed/superadmin)"]:::uc
+    PR2["UC: listarPapeis"]:::uc
+    PR3["UC: editarPapel (nome/descricao)"]:::uc
+    PR --> PR1
+    PR --> PR2
+    PR --> PR3
+  end
+
+  subgraph R2["permissoes"]
+    PE["[permissoes]"]:::tab
+    PE1["UC: criarPermissao (seed)"]:::uc
+    PE2["UC: listarPermissoes"]:::uc
+    PE --> PE1
+    PE --> PE2
+  end
+
+  subgraph R3["papel_permissoes"]
+    PP["[papel_permissoes]"]:::tab
+    PP1["UC: vincularPermissaoAoPapel (grant)"]:::uc
+    PP2["UC: removerPermissaoDoPapel (revoke)"]:::uc
+    PP3["UC: listarPermissoesDoPapel"]:::uc
+    PP --> PP1
+    PP --> PP2
+    PP --> PP3
+  end
+
+  subgraph R4["usuarios_papeis"]
+    UP["[usuarios_papeis]"]:::tab
+    UP1["UC: atribuirPapelGlobal (SUPERADMIN)"]:::uc
+    UP2["UC: removerPapelGlobal"]:::uc
+    UP3["UC: atribuirPapelPorLocatario"]:::uc
+    UP4["UC: removerPapelPorLocatario"]:::uc
+    UP5["UC: listarPapeisDoUsuario (global+tenant)"]:::uc
+    UP --> UP1
+    UP --> UP2
+    UP --> UP3
+    UP --> UP4
+    UP --> UP5
+  end
+
+  PR --> PP
+  PE --> PP
+  US --> UP
+  PR --> UP
+  LT -->|escopo tenant (quando aplicável)| UP
+
+  %% =======================
+  %% Catálogo: Planos/Módulos/Limites
+  %% =======================
+  subgraph C1["planos (catálogo)"]
+    PL["[planos]"]:::tab
+    PL1["UC: criarPlano (catálogo)"]:::uc
+    PL2["UC: editarPlano / desativarPlano"]:::uc
+    PL3["UC: listarPlanosAtivos (catálogo)"]:::uc
+    PL --> PL1
+    PL --> PL2
+    PL --> PL3
+  end
+
+  subgraph C2["modulos (catálogo)"]
+    MO["[modulos]"]:::tab
+    MO1["UC: criarModulo (seed/catálogo)"]:::uc
+    MO2["UC: editarModulo / desativarModulo"]:::uc
+    MO3["UC: listarModulos (por categoria)"]:::uc
+    MO --> MO1
+    MO --> MO2
+    MO --> MO3
+  end
+
+  subgraph C3["modulos_sugeridos_plano (bundle sugerido)"]
+    MSP["[modulos_sugeridos_plano]"]:::tab
+    MSP1["UC: sugerirModuloNoPlano"]:::uc
+    MSP2["UC: removerSugestaoModuloDoPlano"]:::uc
+    MSP3["UC: listarSugestoesDoPlano"]:::uc
+    MSP --> MSP1
+    MSP --> MSP2
+    MSP --> MSP3
+  end
+
+  subgraph C4["limites_plano (base)"]
+    LP["[limites_plano]"]:::tab
+    LP1["UC: definirLimiteBaseDoPlano (upsert)"]:::uc
+    LP2["UC: removerLimiteBaseDoPlano"]:::uc
+    LP3["UC: listarLimitesDoPlano"]:::uc
+    LP --> LP1
+    LP --> LP2
+    LP --> LP3
+  end
+
+  PL --> MSP
+  MO --> MSP
+  PL --> LP
+
+  %% =======================
+  %% Assinaturas: contrato + módulos efetivos
+  %% =======================
+  subgraph S1["assinaturas (contrato)"]
+    AS["[assinaturas]"]:::tab
+    AS1["UC: criarAssinatura (aplicar plano ao locatário)"]:::uc
+    AS2["UC: trocarPlano (criar nova assinatura)"]:::uc
+    AS3["UC: suspenderAssinatura / reativar"]:::uc
+    AS4["UC: cancelarAssinatura / expirar"]:::uc
+    AS5["UC: obterAssinaturaAtiva / historico"]:::uc
+    AS --> AS1
+    AS --> AS2
+    AS --> AS3
+    AS --> AS4
+    AS --> AS5
+  end
+
+  subgraph S2["assinatura_modulos (fonte de verdade do acesso)"]
+    AM["[assinatura_modulos]"]:::tab
+    AM1["UC: popularModulosDoPlanoNaAssinatura (origem=PLANO_SUGERIDO)"]:::uc
+    AM2["UC: habilitarModuloAddon (origem=ADDON)"]:::uc
+    AM3["UC: concederCortesia (origem=CORTESIA, vigência)"]:::uc
+    AM4["UC: suspenderModuloEspecifico / reativar"]:::uc
+    AM5["UC: removerModuloDaAssinatura"]:::uc
+    AM6["UC: validarAcessoModulo (tenant)"]:::uc
+    AM --> AM1
+    AM --> AM2
+    AM --> AM3
+    AM --> AM4
+    AM --> AM5
+    AM --> AM6
+  end
+
+  subgraph S3["limites_assinatura (override)"]
+    LA["[limites_assinatura]"]:::tab
+    LA1["UC: definirOverrideLimite (ex.: +usuarios)"]:::uc
+    LA2["UC: removerOverrideLimite"]:::uc
+    LA3["UC: resolverLimitesEfetivos (override > base do plano)"]:::uc
+    LA --> LA1
+    LA --> LA2
+    LA --> LA3
+  end
+
+  LT --> AS
+  PL --> AS
+  AS --> AM
+  MO --> AM
+  AS --> LA
+  POL --> AS
+  POL --> AM
+
+  %% =======================
+  %% Catálogo monetário (superadmin) – opção 1: locatários BRL-only
+  %% =======================
+  subgraph M0["Catálogo monetário (global / superadmin)"]
+    CU["[moedas]"]:::tab
+    PM["[formas_pagamento]"]:::tab
+    RN["[redes_cripto]"]:::tab
+    AC["[ativos_cripto]"]:::tab
+    WA["[carteiras_cripto]"]:::tab
+    PRP["[precos_plano]"]:::tab
+    PRM["[precos_modulo] (opcional)"]:::tab
+
+    CU1["UC: cadastrarMoeda (FIAT/CRIPTO)"]:::uc
+    PM1["UC: cadastrarFormaPagamento (PIX/BOLETO/CRIPTO...)"]:::uc
+    RN1["UC: cadastrarRedeCripto"]:::uc
+    AC1["UC: cadastrarAtivoCripto (moeda+rede+contrato)"]:::uc
+    WA1["UC: cadastrarCarteiraRecebimento (endereco/memo)"]:::uc
+    PRP1["UC: definirPrecoPlanoPorMoedaECiclo (catálogo)"]:::uc
+    PRM1["UC: definirPrecoModuloPorMoedaECiclo (catálogo opcional)"]:::uc
+
+    CU --> CU1
+    PM --> PM1
+    RN --> RN1
+    AC --> AC1
+    WA --> WA1
+    PRP --> PRP1
+    PRM --> PRM1
+
+    CU --> AC
+    RN --> AC
+    AC --> WA
+    PL --> PRP
+    CU --> PRP
+    MO --> PRM
+    CU --> PRM
+  end
+
+  POL --> M0

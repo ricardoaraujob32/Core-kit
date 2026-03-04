@@ -1,3 +1,5 @@
+//packages/core/tsconfig.json
+
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {

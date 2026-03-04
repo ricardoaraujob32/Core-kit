@@ -19,6 +19,7 @@ Decisões já tomadas:
 - Versionamento/Gerenciamento: GitHub;
 - CI/CD: GitHub Actions;
 - Planejamento: GitHub Projects;
+- IA: ChapGPT/Github Copilot;
 - Navegador: FireFox;
 
 - 3. Metodologias e Arquitetura:

@@ -2,11 +2,13 @@
 
 // Finalidade: Autorização RBAC (borda do domínio) usando ContextoExecucao + Result (ROP).
 
-import { ContextoExecucao, normalizarPermissoes } from "./contextoExecucao";
-import { Permissao } from "./autorizacao/index";
+import { ContextoExecucao, createContextoExecucao } from "./contextoExecucao";
+import { Permissao } from "./permissoes";
 import { ErroApp, erroApp } from "./erros";
 import { isErr, wrapOk, type Result } from "./result";
 import { createErroApp } from "./ROPHelpers";
+import { UsuarioId } from "./usuarios";
+import { Papel } from "./papeis";
 
 /**
  * Autoriza a execução com base no ContextoExecucao.
@@ -100,4 +102,79 @@ export function exigirAlguma(ctx: ContextoExecucao, permissoes: readonly Permiss
   }
 
   return createErroApp( {codigo:"NAO_AUTORIZADO"} );
+}
+
+/**
+ * Type-guard: indica se o contexto tem usuário autenticado.
+ * @param ctx o contexto do locatário
+ * @returns true se o contexto tem usuário; do contrário, false
+ */
+export function temUsuario(ctx: ContextoExecucao,): ctx is ContextoExecucao & { usuarioId: UsuarioId } {
+  return typeof ctx.usuarioId === "string" && ctx.usuarioId.trim().length > 0;
+}
+
+/**
+ * Valida se o contexto tem usuário
+ * @param ctx o contexto do locatário
+ * @returns um Result com o contexto validado se for sucesso; do contrário, um Result de erro
+ */
+export function exigirUsuario(ctx: ContextoExecucao): Result<ContextoExecucao & { usuarioId: UsuarioId }, ErroApp> {
+  return !temUsuario(ctx)? createErroApp( {codigo: "NAO_AUTENTICADO"} ) : wrapOk(ctx);
+}
+
+/**
+ * Normaliza permissões (sempre retorna array).
+ * Útil para evitar `ctx.permissoes ?? []` espalhado.
+ * @param ctx o contexto do locatário
+ * @returns as permissões normalizadas
+ */
+export function normalizarPermissoes(ctx: ContextoExecucao): Permissao[] {
+  return Array.isArray(ctx.permissoes) ? ctx.permissoes : [];
+}
+
+/**
+ * Normaliza papéis (sempre retorna array).
+ * @param ctx o contexto do locatário
+ * @returns os papéis normalizados
+ */
+export function normalizarPapeis(ctx: ContextoExecucao): Papel[] {
+  return Array.isArray(ctx.papeis) ? ctx.papeis : [];
+}
+
+/**
+ * Cria uma função que não recebe argumentos e retorna Date; retorna a existente se houver
+ * @param ctx o contexto do locatário
+ * @returns a função existente; se não existe, cria uma nova
+ */
+export function normalizarRelogio(ctx: ContextoExecucao): Date {
+  return ctx.agora ? ctx.agora() : new Date();
+}
+
+/**
+ * Elimina dados duplicados de um vetor
+ * @param array o vetor
+ * @returns um vetor que garante dados sem duplicações
+ */
+function unique<T>(array: T[]): T[] {
+  return Array.from(new Set(array));
+}
+
+/**
+ * Cria um novo contexto com permissões resolvidas (imutável). 
+ * @param ctx o contexto do locatário
+ * @param permissoes a lista de permissões
+ * @returns um contexto novo com as permissões acrescentadas
+ */
+export function comPermissoes(ctx: ContextoExecucao, permissoes: Permissao[]): ContextoExecucao {
+  return createContextoExecucao( {locatarioId: ctx.locatarioId, usuarioId: ctx.usuarioId, papeis: ctx.papeis, permissoes, agora: ctx.agora,} );
+}
+
+/**
+ * Cria um novo contexto com papéis resolvidos (imutável).
+ * @param ctx o contexto do locatário
+ * @param papeis a lista de papéis
+ * @returns um contexto novo com os papéis acrescentados
+ */
+export function comPapeis(ctx: ContextoExecucao, papeis: Papel[]): ContextoExecucao {
+  return createContextoExecucao( {locatarioId: ctx.locatarioId, usuarioId: ctx.usuarioId, papeis, permissoes: ctx.permissoes, agora: ctx.agora,} );
 }
