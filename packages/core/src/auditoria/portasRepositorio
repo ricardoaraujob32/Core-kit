@@ -1,0 +1,14 @@
+import {Result} from "../result";
+import {ErroApp} from "../erros"
+import {AuditoriaEvento} from "./tipos"
+
+export interface AuditoriaRepositorio {
+  registrarEvento(evt: AuditoriaEvento): Promise<Result<void, ErroApp>>;
+
+  listarEventos(params: {
+    locatarioId: string;
+    de?: Date;
+    ate?: Date;
+    limite?: number;
+  }): Promise<Result<AuditoriaEvento[], ErroApp>>;
+}

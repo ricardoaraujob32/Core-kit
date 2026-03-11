@@ -1,39 +1,47 @@
-// packages/core/src/tokens/portasRepositorio.ts
-
-import type { Result } from "../result";
-import type { ErroApp } from "../erros";
-import type { Token, TokenId } from "./tipos";
+import { ErroApp } from "../erros";
+import { LocatarioId } from "../locatarios/tipos";
+import { Result } from "../result";
 import { UsuarioId } from "../usuarios";
+import { TokenId, TokenPersistido } from "./tipos";
 
 /**
- * Porta (interface) para persistência de tokens.
- * Usecases dependem disso; implementação pode ser Postgres, memória, etc.
+ * 
  */
 export interface TokensRepositorio {
-  inserir(token: Token): Promise<Result<void, ErroApp>>;
-  atualizar(token: Token): Promise<Result<void, ErroApp>>;
-  obterPorId(tokenId: TokenId): Promise<Result<Token | null, ErroApp>>;
-  listarPorUsuario(usuarioId: UsuarioId): Promise<Result<readonly Token[], ErroApp>>; //Opcional, mas útil:achar token ativo por usuário (para políticas de sessão)
-}
+  inserir(token: TokenPersistido): Promise<Result<void, ErroApp>>;
 
-import { TokenRow } from "./tipos";
-import { Result } from "../result";
+  buscarPorHash(params: {locatarioId: LocatarioId; hashToken: string;}): Promise<Result<TokenPersistido | null, ErroApp>>;
 
-export interface TokensRepositorio {
-  inserir(row: TokenRow): Promise<Result<void>>;
-
-  buscarPorHash(hash: string): Promise<Result<TokenRow | null>>;
-
-  setProximo(params: {
-    tokenId: string;
-    usuarioId: string;
-    proximoTokenId: string;
-    proximoUsuarioId: string;
-  }): Promise<Result<void>>;
+  buscarPorId(params: {locatarioId: LocatarioId; tokenId: TokenId;}): Promise<Result<TokenPersistido | null, ErroApp>>;
 
   revogar(params: {
-    tokenId: string;
-    usuarioId: string;
-    quando: Date;
-  }): Promise<Result<void>>;
+    locatarioId: LocatarioId;
+    tokenId: TokenId;
+    revogadoPor: string;
+    revogadoEm: Date;
+    motivo?: string;
+  }): Promise<Result<void, ErroApp>>;
+
+  encadearRotacao?(params: {
+    locatarioId: LocatarioId;
+    tokenAntigoId: TokenId;
+    tokenAntigoUsuarioId: UsuarioId;
+    tokenNovoId: TokenId;
+    tokenNovoUsuarioId: UsuarioId;
+  }): Promise<Result<void, ErroApp>>;
+}
+
+/**
+ * 
+ */
+export interface CriptoTokensPorta {
+  gerarTokenSeguro(): Promise<Result<string, ErroApp>>;
+  hashToken(tokenBruto: string): Promise<Result<string, ErroApp>>;
+}
+
+/**
+ * 
+ */
+export interface IdPorta {
+  gerarId(): string;
 }

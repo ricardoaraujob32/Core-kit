@@ -1,43 +1,44 @@
-// packages/core/src/tokens/usecases/revogarToken.ts
-
-import type { Result } from "../../result";
 import { wrapOk } from "../../result";
-import type { ErroApp } from "../../erros";
+import type { ResultadoRevogarToken, RevogarTokenInput,} from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
-import type { TokenId } from "../tipos";
-import { erroEntradaInvalida, erroTokenNaoEncontrado, erroTokenJaRevogado } from "../erros";
+import { validarAgora, validarLocatarioId, validarUsuarioId,} from "../validadores";
 
-/**
- * 
- */
-export type RevogarTokenParams = {
-  repo: TokensRepositorio;
-  tokenId: TokenId;
-  agora: () => Date;
-};
+export function criarRevogarToken(deps: {tokensRepo: TokensRepositorio;}) {
+  return async function revogarToken(input: RevogarTokenInput): ResultadoRevogarToken {
+    const loc = validarLocatarioId(input.locatarioId);
+    if (!loc.ok) return loc;
 
-/**
- * 
- * @param params 
- * @returns 
- */
-export async function revogarToken(params: RevogarTokenParams): Promise<Result<void, ErroApp>> {
-  if (!params.repo) return erroEntradaInvalida("repo é obrigatório.");
-  if (!params.tokenId) return erroEntradaInvalida("tokenId é obrigatório.");
+    const user = validarUsuarioId(input.usuarioId);
+    if (!user.ok) return user;
 
-  const rToken = await params.repo.obterPorId(params.tokenId);
-  if (!rToken.ok) return rToken;
+    const agora = validarAgora(input.agora);
+    if (!agora.ok) return agora;
 
-  const token = rToken.value;
-  if (!token) return erroTokenNaoEncontrado(params.tokenId);
+    const tokenId =
+      typeof input.tokenId === "string" && input.tokenId.trim().length > 0
+        ? input.tokenId.trim()
+        : null;
 
-  if (token.revogadoEm) return erroTokenJaRevogado();
+    if (!tokenId) {
+      return {
+        ok: false,
+        error: {
+          codigo: "INVALIDO",
+          mensagem: "tokenId inválido.",
+          detalhes: { campo: "tokenId" },
+        },
+      };
+    }
 
-  const agora = params.agora();
-  const atualizado = { ...token, revogadoEm: agora };
+    const res = await deps.tokensRepo.revogar({
+      locatarioId: loc.value,
+      tokenId,
+      revogadoPor: user.value,
+      revogadoEm: agora.value,
+      motivo: input.motivo,
+    });
+    if (!res.ok) return res;
 
-  const rUp = await params.repo.atualizar(atualizado);
-  if (!rUp.ok) return rUp;
-
-  return wrapOk(undefined);
+    return wrapOk<void>(undefined);
+  };
 }

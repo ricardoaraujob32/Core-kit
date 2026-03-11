@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildServer } from "../../server";
+import { criarServidor } from "../../server";
 
 describe("rotas /superadmin/locatarios", () => {
   it("nega acesso sem permissao de superadmin", async () => {
-    const app = await buildServer();
+    const app = await criarServidor();
 
     const res = await app.inject({
       method: "POST",
@@ -18,7 +18,7 @@ describe("rotas /superadmin/locatarios", () => {
   });
 
   it("permite acesso com superadmin:acesso", async () => {
-    const app = await buildServer();
+    const app = await criarServidor();
 
     const res = await app.inject({
       method: "POST",

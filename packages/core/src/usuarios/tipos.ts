@@ -1,33 +1,56 @@
 // packages/core/src/usuarios/tipos.ts
 
-import { LocatarioId } from "../locatario";
-
-/**
- * 
- */
-export type StatusUsuario = "ATIVO" | "INATIVO" | "BLOQUEADO";
+import { ErroApp } from "../erros";
+import { Result } from "../result";
 
 /**
  * 
  */
 export type UsuarioId = string;
+export type UsuarioStatus = "ATIVO" | "INATIVO" | "BLOQUEADO";
 
-/**
- * 
- */
 export type Usuario = {
-  id: UsuarioId;
-  locatarioId: LocatarioId;
-  nome: string;
-  status: StatusUsuario;
+  usuarioId: UsuarioId;
+  locatarioId: string | null; // null = plataforma (superadmin)
+  email: string;
+  senhaHash: string;
+  status: UsuarioStatus;
   criadoEm: Date;
-  atualizadoEm: Date;
+  ultimoLoginEm?: Date | null;
 };
 
-/**
- * 
- */
-export type NovoUsuario = {
-  locatarioId: LocatarioId;
-  nome: string;
-}
+export type CriarUsuarioInput = {
+  locatarioId: string;
+  email: string;
+  senhaHash: string; // já vem do auth/cripto
+  status?: UsuarioStatus; // default ATIVO
+};
+
+export type CriarUsuarioOutput = {
+  usuarioId: UsuarioId;
+};
+
+export type ObterUsuarioInput = {
+  locatarioId: string;
+  usuarioId: UsuarioId;
+};
+
+export type ListarUsuariosInput = {
+  locatarioId: string;
+  limite?: number;
+  cursor?: string; // opcional
+};
+
+export type ListarUsuariosOutput = {
+  itens: Usuario[];
+};
+
+export type ResultadoCriarUsuario = Promise<
+  Result<CriarUsuarioOutput, ErroApp>
+>;
+
+export type ResultadoObterUsuario = Promise<Result<Usuario, ErroApp>>;
+
+export type ResultadoListarUsuarios = Promise<
+  Result<ListarUsuariosOutput, ErroApp>
+>;

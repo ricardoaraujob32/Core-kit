@@ -1,5 +1,5 @@
 // packages/core/src/auditoria/portaAuditoria.ts
-import { LocatarioId } from "../locatario";
+import { LocatarioId } from "../locatarios";
 import { UsuarioId } from "../usuarios";
 
 export type EventoAuditoria = {

@@ -1,71 +1,115 @@
-// packages/core/__tests__/tokens/tokens.revogarToken.test.ts
-
 import { describe, it, expect } from "vitest";
-import { criarRepositorioTokensMemoria, criarToken, revogarToken, type TokenId } from "../../src/tokens";
-import { UsuarioId } from "../../src/usuarios";
+import { criarRevogarToken } from "../../src/tokens/usecases/revogarToken";
+import { criarTokensRepositorioMemoria } from "../../src/tokens/repositorioMemoria";
 
-const asTokenId = (v: string) => v as unknown as TokenId;
-const asUsuarioId = (v: string) => v as unknown as UsuarioId;
+describe("tokens - revogarToken", () => {
+  it("revoga token com sucesso", async () => {
+    const repo = criarTokensRepositorioMemoria([
+      {
+        tokenId: "token-1",
+        locatarioId: "tenant-1",
+        usuarioId: "user-1",
+        tipo: "REFRESH",
+        hashToken: "hash:refresh-bruto-1",
+        expiraEm: new Date("2026-03-07T12:00:00.000Z"),
+        revogadoEm: null,
+        criadoEm: new Date("2026-03-06T12:00:00.000Z"),
+        proximoTokenId: null,
+        proximoUsuarioId: null,
+      },
+    ]);
 
-describe("tokens/usecases/revogarToken", () => {
-  it("deve revogar token ativo", async () => {
-    const emitido = new Date("2026-01-01T00:00:00.000Z");
-    const expira = new Date("2026-01-02T00:00:00.000Z");
-    const agora = new Date("2026-01-01T10:00:00.000Z");
-
-    const t = criarToken({
-      id: asTokenId("t1"),
-      usuarioId: asUsuarioId("u1"),
-      locatarioId: null,
-      hashToken: "hash",
-      emitidoEm: emitido,
-      expiraEm: expira,
+    const revogarToken = criarRevogarToken({
+      tokensRepo: repo,
     });
 
-    expect(t.ok).toBe(true);
-    if (!t.ok) return;
+    const r = await revogarToken({
+      locatarioId: "tenant-1",
+      tokenId: "token-1",
+      usuarioId: "user-99",
+      agora: new Date("2026-03-06T13:00:00.000Z"),
+      motivo: "logout",
+    });
 
-    const repo = criarRepositorioTokensMemoria([t.value]);
-
-    const r = await revogarToken({ repo, tokenId: asTokenId("t1"), agora: () => agora });
     expect(r.ok).toBe(true);
 
-    const r2 = await repo.obterPorId(asTokenId("t1"));
-    expect(r2.ok).toBe(true);
-    if (r2.ok) {
-      expect(r2.value?.revogadoEm?.toISOString()).toBe(agora.toISOString());
+    const dump = repo.dump();
+    expect(dump[0].revogadoEm?.toISOString()).toBe(
+      "2026-03-06T13:00:00.000Z"
+    );
+  });
+
+  it("é idempotente quando token não existe", async () => {
+    const repo = criarTokensRepositorioMemoria();
+
+    const revogarToken = criarRevogarToken({
+      tokensRepo: repo,
+    });
+
+    const r = await revogarToken({
+      locatarioId: "tenant-1",
+      tokenId: "nao-existe",
+      usuarioId: "user-99",
+      agora: new Date(),
+    });
+
+    expect(r.ok).toBe(true);
+  });
+
+  it("retorna Err(INVALIDO) quando tokenId é vazio", async () => {
+    const repo = criarTokensRepositorioMemoria();
+
+    const revogarToken = criarRevogarToken({
+      tokensRepo: repo,
+    });
+
+    const r = await revogarToken({
+      locatarioId: "tenant-1",
+      tokenId: "",
+      usuarioId: "user-99",
+      agora: new Date(),
+    });
+
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.codigo).toBe("INVALIDO");
     }
   });
 
-  it("deve retornar NAO_ENCONTRADO se token não existe", async () => {
-    const repo = criarRepositorioTokensMemoria();
-
-    const r = await revogarToken({ repo, tokenId: asTokenId("x"), agora: () => new Date() });
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error.codigo).toBe("NAO_ENCONTRADO");
-  });
-
-  it("deve retornar CONFLITO se token já revogado", async () => {
-    const emitido = new Date("2026-01-01T00:00:00.000Z");
-    const expira = new Date("2026-01-02T00:00:00.000Z");
-
-    const t = criarToken({
-      id: asTokenId("t1"),
-      usuarioId: asUsuarioId("u1"),
-      locatarioId: null,
-      hashToken: "hash",
-      emitidoEm: emitido,
-      expiraEm: expira,
-      revogadoEm: new Date("2026-01-01T05:00:00.000Z"),
+  it("propaga erro do repositório", async () => {
+    const revogarToken = criarRevogarToken({
+      tokensRepo: {
+        async inserir() {
+          throw new Error("não usado");
+        },
+        async buscarPorHash() {
+          throw new Error("não usado");
+        },
+        async buscarPorId() {
+          throw new Error("não usado");
+        },
+        async revogar() {
+          return {
+            ok: false as const,
+            error: {
+              codigo: "ERRO_INTERNO",
+              mensagem: "Falha ao revogar",
+            },
+          };
+        },
+      },
     });
 
-    expect(t.ok).toBe(true);
-    if (!t.ok) return;
+    const r = await revogarToken({
+      locatarioId: "tenant-1",
+      tokenId: "token-1",
+      usuarioId: "user-99",
+      agora: new Date(),
+    });
 
-    const repo = criarRepositorioTokensMemoria([t.value]);
-
-    const r = await revogarToken({ repo, tokenId: asTokenId("t1"), agora: () => new Date() });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error.codigo).toBe("CONFLITO");
+    if (!r.ok) {
+      expect(r.error.codigo).toBe("ERRO_INTERNO");
+    }
   });
 });

@@ -1,43 +1,59 @@
-// packages/core/src/usuarios/usecases/criarUsuario.ts
-// Finalidade: Caso de uso de criação de usuário (somente domínio + ROP).
+import { wrapOk } from "../../result";
+import type {
+  CriarUsuarioInput,
+  CriarUsuarioOutput,
+  ResultadoCriarUsuario,
+  UsuarioStatus,
+} from "../tipos";
+import type { UsuariosRepositorio } from "../portasRepositorio";
+import {
+  validarEmail,
+  validarLocatarioId,
+  validarSenhaHash,
+} from "../validadores";
+import { emailJaEmUso, usuarioInvalido } from "../erros";
 
-import type { ContextoExecucao } from "../../contextoExecucao";
-import { wrapOk, type Result } from "../../result";
-import { type ErroApp } from "../../erros";
-import { possuiPermissao } from "../../rbac";
-import type { RepositorioUsuarios } from "../portasRepositorio";
-import type { AuditoriaWriter } from "../../auditoria/portaAuditoria";
-import { nomeValido, normalizarNome } from "../validadores";
-import { createErroApp } from "../../ROPHelpers";
+export function criarCriarUsuario(deps: {
+  usuariosRepo: UsuariosRepositorio;
+}) {
+  return async function criarUsuario(
+    input: CriarUsuarioInput
+  ): ResultadoCriarUsuario {
+    const loc = validarLocatarioId(input.locatarioId);
+    if (!loc.ok) return loc;
 
-type Dependencias = {
-  usuariosRepositorio: RepositorioUsuarios;
-  auditoria: AuditoriaWriter;
-};
+    const email = validarEmail(input.email);
+    if (!email.ok) return email;
 
-export async function criarUsuario(ctx: ContextoExecucao, dependencias: Dependencias, input: { nome: string },): Promise<Result<{ id: string }, ErroApp>> {
-  const auth = possuiPermissao(ctx, "USUARIOS_CRIAR");
-  if (!auth.ok) return auth;
+    const senhaHash = validarSenhaHash(input.senhaHash);
+    if (!senhaHash.ok) return senhaHash;
 
-  const nome = normalizarNome(input.nome);
-  if (!nomeValido(nome)) return createErroApp( {codigo:"INVALIDO", mensagem:"Nome inválido"} );
+    const status: UsuarioStatus = input.status ?? "ATIVO";
 
-  const existente = await dependencias.usuariosRepositorio.obterPorNome(ctx.locatarioId, nome);
-  if (existente) return createErroApp( {codigo:"CONFLITO", mensagem:"Já existe usuário com este nome"} );
+    if (!["ATIVO", "INATIVO", "BLOQUEADO"].includes(status)) {
+      return usuarioInvalido({ campo: "status", valor: input.status });
+    }
 
-  const criado = await dependencias.usuariosRepositorio.criar({ locatarioId: ctx.locatarioId, nome });
+    const existenteRes = await deps.usuariosRepo.buscarPorEmail({
+      locatarioId: loc.value,
+      email: email.value,
+    });
+    if (!existenteRes.ok) return existenteRes;
 
-  const agora = (ctx.agora ?? (() => new Date()))();
+    if (existenteRes.value) {
+      return emailJaEmUso(email.value);
+    }
 
-  await dependencias.auditoria.registrar({
-    locatarioId: ctx.locatarioId,
-    usuarioId: ctx.usuarioId,
-    acao: "CRIAR",
-    entidade: "Usuario",
-    entidadeId: criado.id,
-    dados: { nome: criado.nome },
-    criadoEm: agora,
-  });
+    const criarRes = await deps.usuariosRepo.criar({
+      locatarioId: loc.value,
+      email: email.value,
+      senhaHash: senhaHash.value,
+      status,
+    });
+    if (!criarRes.ok) return criarRes;
 
-  return wrapOk({ id: criado.id });
+    return wrapOk<CriarUsuarioOutput>({
+      usuarioId: criarRes.value.usuarioId,
+    });
+  };
 }

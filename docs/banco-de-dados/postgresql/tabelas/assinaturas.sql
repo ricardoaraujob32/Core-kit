@@ -36,8 +36,6 @@ CREATE TABLE assinaturas (
   proximo_vencimento_em TIMESTAMPTZ NULL,
   ultimo_pagamento_em   TIMESTAMPTZ NULL,
 
-  provedor_pagamento    TEXT NULL,          -- ex: 'stripe', 'mercadopago', 'manual'
-  ref_externa           TEXT NULL,          -- id no provedor (customer/subscription/etc)
   falha_pagamento_em    TIMESTAMPTZ NULL,
 
   criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -50,9 +48,3 @@ CREATE UNIQUE INDEX ux_assinatura_ativa_por_locatario
 ON assinaturas(locatario_id)
 WHERE status = 'ATIVA' AND excluido_em IS NULL;
 
-CREATE TABLE plano_locatario (
-  locatario_id  UUID PRIMARY KEY REFERENCES principal.locatarios(id) ON DELETE CASCADE,
-  plano_id      UUID NOT NULL REFERENCES principal.planos(id),
-  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
-  atualizado_por UUID NULL REFERENCES principal.usuarios(id) ON DELETE SET NULL
-);

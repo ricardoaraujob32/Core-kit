@@ -1,86 +1,92 @@
-// apps/api/src/http/wrapRoute.ts
-//
-// Finalidade:
-// - Implementar o Wrapper HTTP (Abordagem A) para rotas Fastify.
-// - Construir/reusar o Contexto de Execução do Core Kit.
-// - Converter Result<T, AppError> → resposta HTTP consistente.
-// - Normalizar erros (ex.: FORBIDDEN) e estabilizar JSON (stripUndefined).
-//
-// Contrato de resposta:
-// - Sucesso:
-//   - Se o handler retornar `ok(undefined)` → HTTP 204 (sem body).
-//   - Caso contrário → HTTP 200 + { data: <valor> }
-// - Erro:
-//   - HTTP status coerente com AppErrorCode + { error: { code, message, details? } }
-
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { AppError, ContextoExecucao, Result } from "@core-kit/core";
-import { appError } from "@core-kit/core";
-import { buildContextFromRequest } from "./context";
-import {
-  mapAppErrorToHttpStatus,
-  normalizeForbiddenMessage,
-  stripUndefined,
-  toHttpErrorBody,
-} from "./errors";
+import type { ContextoExecucao } from "@core-kit/core";
+import { sendHttpError } from "./erros";
+import type { BuildContextResult } from "./context";
+import { aplicarGuardsHttp, type GuardOptions } from "./routeGuards";
 
-function isAppError(valor: unknown): valor is AppError {
-  if (!valor || typeof valor !== "object") return false;
-  const anyValor = valor as { code?: unknown; message?: unknown };
-  return typeof anyValor.code === "string" && typeof anyValor.message === "string";
-}
+type HandlerResult<T> =
+  | { ok: true; value: T }
+  | {
+      ok: false;
+      error: {
+        codigo: string;
+        mensagem: string;
+        detalhes?: Record<string, unknown>;
+      };
+    };
 
-/**
- * Função de rota “pura” (Abordagem A):
- * - recebe ctx e req
- * - devolve Result (sem depender de Fastify)
- */
-export type RouteFn<TSaida> = (
-  ctx: ContextoExecucao,
+type BuildContextFromRequest = (
   req: FastifyRequest,
-) => Promise<Result<TSaida, AppError>> | Result<TSaida, AppError>;
+) => Promise<BuildContextResult>;
 
-type HttpSuccessBody<T> = { data: T };
-type HttpErrorBody = { error: ReturnType<typeof toHttpErrorBody> };
+type RouteHandler<TBody, TResult> = (args: {
+  req: FastifyRequest<{ Body: TBody }>;
+  reply: FastifyReply;
+  ctx: ContextoExecucao;
+}) => Promise<HandlerResult<TResult>> | HandlerResult<TResult>;
 
-/**
- * Wrapper Fastify:
- * - constrói/reusa ctx
- * - converte Result -> HTTP (status + body)
- * - normaliza mensagens/payload (ex.: FORBIDDEN + stripUndefined)
- * - captura throw inesperado e converte para INTERNAL (genérico)
- */
-export function wrapRoute<TSaida>(fn: RouteFn<TSaida>) {
-  return async function handler(req: FastifyRequest, reply: FastifyReply) {
-    const ctx: ContextoExecucao =
-      (req as unknown as { ctx?: ContextoExecucao }).ctx ?? buildContextFromRequest(req);
+export function createWrapRoute(deps: {
+  buildContextFromRequest: BuildContextFromRequest;
+}) {
+  function wrapRoute<TBody = unknown, TResult = unknown>(
+    handler: RouteHandler<TBody, TResult>,
+  ): (
+    req: FastifyRequest<{ Body: TBody }>,
+    reply: FastifyReply,
+  ) => Promise<unknown>;
 
-    try {
-      const resultado = await fn(ctx, req);
+  function wrapRoute<TBody = unknown, TResult = unknown>(
+    guards: GuardOptions,
+    handler: RouteHandler<TBody, TResult>,
+  ): (
+    req: FastifyRequest<{ Body: TBody }>,
+    reply: FastifyReply,
+  ) => Promise<unknown>;
 
-      if (resultado.ok) {
-        // padrão: ok(undefined) => 204 (sem body)
-        if (resultado.value === undefined) {
-          return reply.status(204).send();
-        }
+  function wrapRoute<TBody = unknown, TResult = unknown>(
+    arg1: GuardOptions | RouteHandler<TBody, TResult>,
+    arg2?: RouteHandler<TBody, TResult>,
+  ) {
+    const guards = typeof arg1 === "function" ? undefined : arg1;
+    const handler = typeof arg1 === "function" ? arg1 : arg2;
 
-        const corpo: HttpSuccessBody<TSaida> = { data: resultado.value };
-        return reply.status(200).send(stripUndefined(corpo));
+    if (!handler) {
+      throw new Error("wrapRoute inválido: handler é obrigatório.");
+    }
+
+    return async function wrapped(
+      req: FastifyRequest<{ Body: TBody }>,
+      reply: FastifyReply,
+    ) {
+      const ctxRes = await deps.buildContextFromRequest(req);
+
+      if (!ctxRes.ok) {
+        return sendHttpError(reply, ctxRes.error);
       }
 
-      const erroNormalizado = normalizeForbiddenMessage(resultado.error);
-      const status = mapAppErrorToHttpStatus(erroNormalizado.code);
+      const guardRes = aplicarGuardsHttp(ctxRes.value, guards);
 
-      const corpo: HttpErrorBody = { error: toHttpErrorBody(erroNormalizado) };
-      return reply.status(status).send(stripUndefined(corpo));
-    } catch (e) {
-      // Não vazar detalhes: unknown -> INTERNAL genérico
-      const erroDominio = isAppError(e) ? e : appError("INTERNAL_ERROR", "Erro interno.");
-      const erroNormalizado = normalizeForbiddenMessage(erroDominio);
-      const status = mapAppErrorToHttpStatus(erroNormalizado.code);
+      if (!guardRes.ok) {
+        return sendHttpError(reply, guardRes.error);
+      }
 
-      const corpo: HttpErrorBody = { error: toHttpErrorBody(erroNormalizado) };
-      return reply.status(status).send(stripUndefined(corpo));
-    }
-  };
+      const result = await handler({
+        req,
+        reply,
+        ctx: ctxRes.value,
+      });
+
+      if (!result.ok) {
+        return sendHttpError(reply, result.error);
+      }
+
+      if (result.value === undefined) {
+        return reply.status(204).send();
+      }
+
+      return reply.status(200).send(result.value);
+    };
+  }
+
+  return wrapRoute;
 }

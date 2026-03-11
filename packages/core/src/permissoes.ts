@@ -7,42 +7,29 @@
  * - Mudanças aqui são mudanças de domínio.
  */
 
-export type Permissao =
-  // Locatário
-  | "LOCATARIO_LER"
-  | "LOCATARIO_ESCREVER"
+export const Permissoes = {
+  // ===== Plataforma (SUPERADMIN / modo plataforma)
+  PLATAFORMA_LOCATARIO_CRIAR: "plataforma.locatario.criar",
+  PLATAFORMA_LOCATARIO_LISTAR: "plataforma.locatario.listar",
+  PLATAFORMA_USUARIO_CRIAR: "plataforma.usuario.criar",
+  PLATAFORMA_USUARIO_LISTAR: "plataforma.usuario.listar",
 
-  // Usuários
-  | "USUARIOS_LER"
-  | "USUARIOS_CRIAR"
-  | "USUARIOS_EDITAR"
-  | "USUARIOS_REMOVER"
+  // ===== Tenant (ADMIN/GERENTE/OPERADOR)
+  TENANT_USUARIO_CRIAR: "tenant.usuario.criar",
+  TENANT_USUARIO_LISTAR: "tenant.usuario.listar",
+  TENANT_USUARIO_ATUALIZAR: "tenant.usuario.atualizar",
+  TENANT_USUARIO_ATRIBUIR_PAPEIS: "tenant.usuario.atribuirPapeis",
 
-  // Auditoria
-  | "AUDITORIA_LER"
+  TENANT_RBAC_PAPEL_CRIAR: "tenant.rbac.papel.criar",
+  TENANT_RBAC_PAPEL_LISTAR: "tenant.rbac.papel.listar",
+  TENANT_RBAC_PERMISSAO_ATRIBUIR: "tenant.rbac.permissao.atribuir",
+  TENANT_RBAC_PERMISSAO_LISTAR: "tenant.rbac.permissao.listar",
 
-  // Importação / Exportação
-  | "IMPORTACAO_EXECUTAR"
-  | "EXPORTACAO_EXECUTAR"
+  TENANT_AUDITORIA_LER: "tenant.auditoria.ler",
 
-  // Estoque
-  | "ESTOQUE_LER"
-  | "ESTOQUE_ESCREVER"
+  // ===== Sessão/Auth
+  AUTH_SESSAO_VALIDAR: "auth.sessao.validar",
+  AUTH_SESSAO_REVOGAR: "auth.sessao.revogar",
+} as const;
 
-  // Clientes
-  | "CLIENTES_CRIAR"
-  | "CLIENTES_LISTAR"
-  | "CLIENTES_ATUALIZAR"
-  | "CLIENTES_EXCLUIR"
-
-  // Fornecedores
-  | "FORNECEDORES_CRIAR"
-  | "FORNECEDORES_LISTAR"
-  | "FORNECEDORES_ATUALIZAR"
-  | "FORNECEDORES_EXCLUIR"
-
-  // Sessões
-  | "SESSAO_CRIAR"
-  | "SESSAO_RENOVAR"
-  | "SESSAO_REVOGAR"
-  | "SESSAO_LISTAR";
+export type Permissao = (typeof Permissoes)[keyof typeof Permissoes];

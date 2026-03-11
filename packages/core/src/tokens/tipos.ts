@@ -1,148 +1,64 @@
-// packages/core/src/tokens/tipos.ts
-
-import { wrapOk, type Result } from "../result";
-import type { ErroApp } from "../erros";
-import { createErroApp } from "../ROPHelpers";
-import { LocatarioId } from "../locatario";
+import { ErroApp } from "../erros";
+import { LocatarioId } from "../locatarios/tipos";
+import { Result } from "../result";
 import { UsuarioId } from "../usuarios";
 
-/**
- * Tokens de atualização (refresh tokens) para autenticação.
- * Importante: o token em claro NUNCA é persistido. Somente hash_token.
- *
- * Baseado em tokens.sql:
- * - id (UUID)
- * - usuario_id (UUID)
- * - locatario_id (UUID | null)
- * - hash_token (TEXT)
- * - emitido_em, expira_em, revogado_em
- * - proximo_token_id (UUID | null)
- * - agente_usuario, endereco_ip
- */
+export type TokenId = string;
 
-/**
- * 
- */
-export type TokenId = string & { readonly __brand: "TokenId" };
+export type TokenTipo = "REFRESH" | "RECUPERACAO_SENHA" | "CONFIRMACAO_EMAIL";
 
-/**
- * 
- */
-export type Token = {
-  id: TokenId;
+export type TokenPersistido = {
+  tokenId: TokenId;
+  locatarioId: LocatarioId;
   usuarioId: UsuarioId;
-  locatarioId: LocatarioId | null;
+  tipo: TokenTipo;
   hashToken: string;
-  emitidoEm: Date;
   expiraEm: Date;
   revogadoEm: Date | null;
-  proximoTokenId: TokenId | null; //id do novo token gerado por rotação. Se preenchido, em geral o token atual deve ser considerado encerrado/substituído.
-  agenteUsuario: string | null;
-  enderecoIp: string | null;
+  criadoEm: Date;
+  proximoTokenId?: TokenId | null;       // opcional (rotação)
+  proximoUsuarioId?: UsuarioId | null;      // opcional (rotação)
 };
 
-export type TipoToken =
-  | "ACESSO"
-  | "REFRESH"
-  | "RECUPERACAO_SENHA"
-  | "CONFIRMACAO_EMAIL";
-
-export type TokenRow = {
-  token_id: string;
-  usuario_id: string;
-  locatario_id: string;
-  tipo: TipoToken;
-  hash_token: string;
-  emitido_em: Date;
-  expira_em: Date;
-  revogado_em: Date | null;
-  proximo_token_id: string | null;
-  proximo_usuario_id: string | null;
-};
-
-/**
- * 
- */
-export type CriarTokenParams = {
-  id: TokenId;
+export type CriarRefreshInput = {
+  locatarioId: LocatarioId;
   usuarioId: UsuarioId;
-  locatarioId?: LocatarioId | null;
-  hashToken: string;
-  emitidoEm: Date;
-  expiraEm: Date;
-  revogadoEm?: Date | null;
-  proximoTokenId?: TokenId | null;
-  agenteUsuario?: string | null;
-  enderecoIp?: string | null;
+  agora: Date;
+  ttlMs: number; // 14 dias (decisão)
 };
 
-/**
- * 
- * @param params 
- * @returns 
- */
-export function criarToken(params: CriarTokenParams): Result<Token, ErroApp> {
-  if (!params.id || typeof params.id !== "string") {
-    return createErroApp({ codigo: "INVALIDO", mensagem: "TokenId inválido." });
-  }
-  if (!params.usuarioId || typeof params.usuarioId !== "string") {
-    return createErroApp({ codigo: "INVALIDO", mensagem: "UsuarioId inválido." });
-  }
-  if (params.locatarioId !== null && params.locatarioId !== undefined && typeof params.locatarioId !== "string") {
-    return createErroApp({ codigo: "INVALIDO", mensagem: "LocatarioId inválido." });
-  }
-  if (typeof params.hashToken !== "string" || params.hashToken.trim().length === 0) {
-    return createErroApp({ codigo: "INVALIDO", mensagem: "hashToken é obrigatório." });
-  }
-  if (!(params.emitidoEm instanceof Date) || Number.isNaN(params.emitidoEm.getTime())) {
-    return createErroApp({ codigo: "INVALIDO", mensagem: "emitidoEm inválido." });
-  }
-  if (!(params.expiraEm instanceof Date) || Number.isNaN(params.expiraEm.getTime())) {
-    return createErroApp({ codigo: "INVALIDO", mensagem: "expiraEm inválido." });
-  }
-  if (params.expiraEm.getTime() <= params.emitidoEm.getTime()) {
-    return createErroApp({ codigo: "INVALIDO", mensagem: "expiraEm deve ser maior que emitidoEm." });
-  }
+export type RefreshCriado = {
+  tokenBruto: string;   // retorna para o caller (somente uma vez)
+  tokenId: TokenId;
+  expiraEm: Date;
+};
 
-  return wrapOk( {
-      id: params.id,
-      usuarioId: params.usuarioId,
-      locatarioId: params.locatarioId ?? null,
-      hashToken: params.hashToken,
-      emitidoEm: params.emitidoEm,
-      expiraEm: params.expiraEm,
-      revogadoEm: params.revogadoEm ?? null,
-      proximoTokenId: params.proximoTokenId ?? null,
-      agenteUsuario: params.agenteUsuario ?? null,
-      enderecoIp: params.enderecoIp ?? null,
-    } );
-}
+export type ValidarRefreshInput = {
+  locatarioId: LocatarioId;
+  tokenBruto: string;
+  agora: Date;
+};
 
-/**
- * 
- * @param token 
- * @param agora 
- * @returns 
- */
-export function tokenEstaExpirado(token: Token, agora: Date): boolean {
-  return token.expiraEm.getTime() <= agora.getTime();
-}
+export type RefreshValido = {
+  tokenId: TokenId;
+  usuarioId: UsuarioId;
+  expiraEm: Date;
+};
 
-/**
- * 
- * @param token 
- * @returns 
- */
-export function tokenEstaRevogado(token: Token): boolean {
-  return token.revogadoEm !== null;
-}
+export type RevogarTokenInput = {
+  locatarioId: LocatarioId;
+  tokenId: TokenId;
+  usuarioId: UsuarioId; // quem está revogando (para auditoria)
+  agora: Date;
+  motivo?: string;
+};
 
-/**
- * 
- * @param token 
- * @param agora 
- * @returns 
- */
-export function tokenEstaAtivo(token: Token, agora: Date): boolean {
-  return !tokenEstaRevogado(token) && !tokenEstaExpirado(token, agora);
-}
+export type ResultadoCriarRefresh = Promise<
+  Result<RefreshCriado, ErroApp>
+>;
+
+export type ResultadoValidarRefresh = Promise<
+  Result<RefreshValido, ErroApp>
+>;
+
+export type ResultadoRevogarToken = Promise<Result<void, ErroApp>>;

@@ -1,4 +1,4 @@
 // packages/core/src/infra/portaTransacao.ts
-export type Transacao = {
+export type TransacaoBD = {
   executar<T>(fn: () => Promise<T>): Promise<T>;
 };

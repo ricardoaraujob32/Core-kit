@@ -1,96 +1,115 @@
-// packages/core/src/tokens/repositorioMemoria.ts
-
-import type { Result } from "../result";
+// import { wrapOk } from "../result";
+import { LocatarioId } from "../locatarios/tipos";
 import { wrapOk } from "../result";
-import type { ErroApp } from "../erros";
-import type { Token, TokenId } from "./tipos";
+import { UsuarioId } from "../usuarios";
 import type { TokensRepositorio } from "./portasRepositorio";
-import type { UsuarioId } from "../usuarios";
+import type { TokenId, TokenPersistido } from "./tipos";
 
-/**
- *  Repositório em memória (útil para testes locais e smoke tests).
- * Não faz I/O e não aplica locks.
- * @param seed 
- * @returns 
- */
-export function criarRepositorioTokensMemoria(seed?: readonly Token[]): TokensRepositorio {
-  const byId = new Map<string, Token>();
-  if (seed) for (const t of seed) byId.set(t.id as unknown as string, t);
-
-  return {
-    async inserir(token: Token): Promise<Result<void, ErroApp>> {
-      byId.set(token.id as unknown as string, token);
-      return wrapOk(undefined);
-    },
-
-    async atualizar(token: Token): Promise<Result<void, ErroApp>> {
-      byId.set(token.id as unknown as string, token);
-      return wrapOk(undefined);
-    },
-
-    async obterPorId(tokenId: TokenId): Promise<Result<Token | null, ErroApp>> {
-      const t = byId.get(tokenId as unknown as string) ?? null;
-      return wrapOk(t);
-    },
-
-    async listarPorUsuario(usuarioId: UsuarioId): Promise<Result<readonly Token[], ErroApp>> {
-      const uid = usuarioId as unknown as string;
-      const all: Token[] = [];
-      for (const t of byId.values()) {
-        if ((t.usuarioId as unknown as string) === uid) all.push(t);
-      }
-      return wrapOk(all);
-    },
-  };
+function keyById(locatarioId: LocatarioId, tokenId: TokenId) {
+  return `${locatarioId}:${tokenId}`;
 }
 
+function keyByHash(locatarioId: LocatarioId, hashToken: string) {
+  return `${locatarioId}:${hashToken}`;
+}
 
+export function criarTokensRepositorioMemoria(seed?: TokenPersistido[]): 
+TokensRepositorio & {
+  seed(token: TokenPersistido): void;
+  dump(): TokenPersistido[];
+} {
+  const byId = new Map<string, TokenPersistido>();
+  const byHash = new Map<string, TokenPersistido>();
 
-import { wrapOk } from "../result";
-
-export function criarTokensRepositorioMemoria() {
-  const rows: any[] = [];
-
-  return {
-    async inserir(row) {
-      rows.push(row);
-      return wrapOk(undefined);
+  const api = {
+    seed(token: TokenPersistido) {
+      const clone = { ...token };
+      byId.set(keyById(token.locatarioId, token.tokenId), clone);
+      byHash.set(keyByHash(token.locatarioId, token.hashToken), clone);
     },
 
-    async buscarPorHash(hash) {
-      return wrapOk(
-        rows.find((r) => r.hash_token === hash) ?? null,
-      );
+    dump() {
+      return [...byId.values()].map((t) => ({ ...t }));
     },
 
-    async setProximo({
-      tokenId,
-      usuarioId,
-      proximoTokenId,
-      proximoUsuarioId,
+    async inserir(token: TokenPersistido) {
+      api.seed(token);
+      return wrapOk<void>(undefined);
+    },
+
+    async buscarPorHash(params: { locatarioId: LocatarioId; hashToken: string }) {
+      const found =
+        byHash.get(keyByHash(params.locatarioId, params.hashToken)) ?? null;
+      return wrapOk(found ? { ...found } : null);
+    },
+
+    async buscarPorId(params: { locatarioId: LocatarioId; tokenId: TokenId }) {
+      const found =
+        byId.get(keyById(params.locatarioId, params.tokenId)) ?? null;
+      return wrapOk(found ? { ...found } : null);
+    },
+
+    async revogar(params: {
+      locatarioId: LocatarioId;
+      tokenId: TokenId;
+      revogadoPor: UsuarioId;
+      revogadoEm: Date;
+      motivo?: string;
     }) {
-      const row = rows.find(
-        (r) => r.token_id === tokenId &&
-               r.usuario_id === usuarioId,
-      );
+      const idKey = keyById(params.locatarioId, params.tokenId);
+      const token = byId.get(idKey);
 
-      if (row) {
-        row.proximo_token_id = proximoTokenId;
-        row.proximo_usuario_id = proximoUsuarioId;
+      if (!token) {
+        return wrapOk<void>(undefined);
       }
 
-      return wrapOk(undefined);
-    },
+      const atualizado: TokenPersistido = {
+        ...token,
+        revogadoEm: params.revogadoEm,
+      };
 
-    async revogar({ tokenId, usuarioId, quando }) {
-      const row = rows.find(
-        (r) => r.token_id === tokenId &&
-               r.usuario_id === usuarioId,
+      byId.set(idKey, atualizado);
+      byHash.set(
+        keyByHash(params.locatarioId, atualizado.hashToken),
+        atualizado
       );
 
-      if (row) row.revogado_em = quando;
+      return wrapOk<void>(undefined);
+    },
 
-      return wrapOk(undefined);
+    async encadearRotacao(params: {
+      locatarioId: LocatarioId;
+      tokenAntigoId: TokenId;
+      tokenAntigoUsuarioId: UsuarioId;
+      tokenNovoId: TokenId;
+      tokenNovoUsuarioId: UsuarioId;
+    }) {
+      const idKey = keyById(params.locatarioId, params.tokenAntigoId);
+      const token = byId.get(idKey);
+
+      if (!token) {
+        return wrapOk<void>(undefined);
+      }
+
+      const atualizado: TokenPersistido = {
+        ...token,
+        proximoTokenId: params.tokenNovoId,
+        proximoUsuarioId: params.tokenNovoUsuarioId,
+      };
+
+      byId.set(idKey, atualizado);
+      byHash.set(
+        keyByHash(params.locatarioId, atualizado.hashToken),
+        atualizado
+      );
+
+      return wrapOk<void>(undefined);
     },
   };
+
+  for (const item of seed ?? []) {
+    api.seed(item);
+  }
+
+  return api;
 }

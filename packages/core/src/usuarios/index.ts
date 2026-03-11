@@ -1,9 +1,46 @@
 // packages/core/src/usuarios/index.ts
 
-export * from "./tipos";
-export * from "./portasRepositorio";
-export * from "./validadores";
-export * from "./repositorioMemoria";
+// Tipos
+export type {
+  UsuarioId,
+  UsuarioStatus,
+  Usuario,
+  CriarUsuarioInput,
+  CriarUsuarioOutput,
+  ObterUsuarioInput,
+  ListarUsuariosInput,
+  ListarUsuariosOutput,
+  ResultadoCriarUsuario,
+  ResultadoObterUsuario,
+  ResultadoListarUsuarios,
+} from "./tipos";
 
-export * from "./usecases/criarUsuario";
-export * from "./usecases/listarUsuarios";
+// Erros
+export {
+  emailInvalido,
+  senhaHashInvalida,
+  usuarioInvalido,
+  usuarioNaoEncontrado,
+  emailJaEmUso,
+} from "./erros";
+
+// Validadores
+export {
+  validarLocatarioId,
+  validarUsuarioId,
+  validarEmail,
+  validarSenhaHash,
+  validarLimite,
+} from "./validadores";
+
+// Repositório
+export type { UsuariosRepositorio } from "./portasRepositorio";
+export {
+  criarUsuariosRepositorioMemoria,
+  criarUsuarioSeed,
+} from "./repositorioMemoria";
+
+// Casos de uso
+export { criarCriarUsuario } from "./usecases/criarUsuario";
+export { criarObterUsuario } from "./usecases/obterUsuario";
+export { criarListarUsuarios } from "./usecases/listarUsuarios";

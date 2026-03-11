@@ -1,28 +1,40 @@
-import type { Result } from "../../result";
-import type { ErroApp } from "../../erros";
-import { createErroApp } from "../../ROPHelpers";
-import type { Locatario, LocatarioId } from "../tipos";
-import type { PortasRepositorioLocatarios } from "../portasRepositorio";
+import type {
+  ObterLocatarioInput,
+  ResultadoObterLocatario,
+} from "../tipos";
+import type { LocatariosRepositorio } from "../portasRepositorio";
+import { validarLocatarioId } from "../validadores";
+import {
+  locatarioEncerrado,
+  locatarioNaoEncontrado,
+  locatarioSuspenso,
+} from "../erros";
 
-export async function obterLocatario(
-  deps: { repo: PortasRepositorioLocatarios },
-  query: { id?: LocatarioId; slug?: string },
-): Promise<Result<Locatario, ErroApp>> {
-  if (!query.id && !query.slug) {
-    return createErroApp({
-      codigo: "INVALIDO",
-      mensagem: "Informe id ou slug.",
-      detalhes: { campo: "id|slug" },
+export function criarObterLocatario(deps: {
+  locRepo: LocatariosRepositorio;
+}) {
+  return async function obterLocatario(
+    input: ObterLocatarioInput
+  ): ResultadoObterLocatario {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+
+    const res = await deps.locRepo.buscarPorId({
+      locatarioId: locatarioId.value,
     });
-  }
+    if (!res.ok) return res;
 
-  const r = query.id
-    ? await deps.repo.obterPorId(query.id)
-    : await deps.repo.obterPorSlug(query.slug as string);
+    const loc = res.value;
+    if (!loc) return locatarioNaoEncontrado(locatarioId.value);
 
-  if (!r.ok) return r as Result<any, ErroApp>;
-  if (!r.value) {
-    return createErroApp({ codigo: "NAO_ENCONTRADO", mensagem: "Locatário não encontrado." });
-  }
-  return { ok: true, value: r.value };
+    if (loc.status === "SUSPENSO") {
+      return locatarioSuspenso(loc.locatarioId);
+    }
+
+    if (loc.status === "ENCERRADO") {
+      return locatarioEncerrado(loc.locatarioId);
+    }
+
+    return { ok: true, value: loc };
+  };
 }

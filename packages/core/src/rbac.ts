@@ -9,6 +9,7 @@ import { isErr, wrapOk, type Result } from "./result";
 import { createErroApp } from "./ROPHelpers";
 import { UsuarioId } from "./usuarios";
 import { Papel } from "./papeis";
+import { ModuloCodigo } from "./modulos";
 
 /**
  * Autoriza a execução com base no ContextoExecucao.
@@ -148,6 +149,30 @@ export function normalizarPapeis(ctx: ContextoExecucao): Papel[] {
  */
 export function normalizarRelogio(ctx: ContextoExecucao): Date {
   return ctx.agora ? ctx.agora() : new Date();
+}
+
+/**
+ * Normaliza módulos habilitados.
+ */
+export function normalizarModulosHabilitados(ctx: ContextoExecucao): ModuloCodigo[] {
+  return Array.isArray(ctx.modulosHabilitados) ? [...ctx.modulosHabilitados] : [];
+}
+
+/**
+ * Cria um novo contexto com módulos resolvidos (imutável).
+ */
+export function comModulosHabilitados(
+  ctx: ContextoExecucao,
+  modulosHabilitados: ModuloCodigo[],
+): ContextoExecucao {
+  return createContextoExecucao({
+    locatarioId: ctx.locatarioId,
+    usuarioId: ctx.usuarioId,
+    papeis: ctx.papeis,
+    permissoes: ctx.permissoes,
+    modulosHabilitados,
+    agora: ctx.agora,
+  });
 }
 
 /**

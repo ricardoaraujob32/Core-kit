@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS modulos (
   nome        TEXT NOT NULL, -- Nome amigável
   categoria   TEXT NOT NULL CHECK (categoria IN ('NUCLEO', 'OPERACIONAL', 'DADOS', 'IA', 'INTEGRACAO', 'RELATORIO')), 
   ativo       BOOLEAN NOT NULL DEFAULT TRUE,
+  gratuito    BOOLEAN NOT NULL DEFAULT FALSE,
+  ordem_exibicao INTEGER NOT NULL DEFAULT 0,
   criado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),  
 );

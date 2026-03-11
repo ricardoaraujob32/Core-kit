@@ -1,51 +1,129 @@
-import type { ContextoExecucao, Permissao } from "@core-kit/core";
 import type { FastifyRequest } from "fastify";
+import type {
+  ModulosHabilitadosService,
+  Papel,
+  Permissao,
+} from "@core-kit/core";
+import {
+  comModulosHabilitados,
+  createContextoExecucao,
+  isErr,
+} from "@core-kit/core";
 
-const HEADER_LOCATARIO_ID = "x-locatario-id";
-const HEADER_USUARIO_ID = "x-usuario-id";
-const HEADER_PERMISSOES = "x-permissoes";
+type HeaderValue = string | string[] | undefined;
 
-function headerToString(value: unknown): string | undefined {
+type BuildContextDeps = {
+  modulosHabilitadosService: ModulosHabilitadosService;
+};
+
+type BuildContextOk = {
+  ok: true;
+  value: ReturnType<typeof createContextoExecucao>;
+};
+
+type BuildContextErr = {
+  ok: false;
+  error: {
+    codigo: string;
+    mensagem: string;
+    detalhes?: Record<string, unknown>;
+  };
+};
+
+export type BuildContextResult = BuildContextOk | BuildContextErr;
+
+function headerToString(value: HeaderValue): string | undefined {
+  if (Array.isArray(value)) return value[0];
   if (typeof value === "string") return value;
-  if (Array.isArray(value)) {
-    const first = value[0];
-    return typeof first === "string" ? first : undefined;
-  }
   return undefined;
 }
 
-function readHeader(req: FastifyRequest, name: string): string | undefined {
-  return headerToString(req.headers[name])?.trim() || undefined;
-}
-
-function parsePermissoesCsv(raw: string | undefined): Permissao[] | undefined {
+function parseCsvHeader(value: HeaderValue): string[] | undefined {
+  const raw = headerToString(value);
   if (!raw) return undefined;
 
-  const items = raw
+  const values = raw
     .split(",")
-    .map((p) => p.trim())
+    .map((item) => item.trim())
     .filter(Boolean);
 
-  if (items.length === 0) return undefined;
-
-  // remove duplicadas mantendo ordem
-  const unique = Array.from(new Set(items));
-  return unique as Permissao[];
+  return values.length > 0 ? values : undefined;
 }
 
-/**
- * Cabeçalhos temporários (somente DEV) para simular autenticação/autorização:
- * - x-locatario-id
- * - x-usuario-id
- * - x-permissoes: "usuarios:criar,usuarios:listar"
- *
- * @param req Requisição Fastify
- * @returns Contexto de execução do Core Kit
- */
-export function buildContextFromRequest(req: FastifyRequest): ContextoExecucao {
-  const locatarioId = readHeader(req, HEADER_LOCATARIO_ID) || "locatario-dev";
-  const usuarioId = readHeader(req, HEADER_USUARIO_ID);
-  const permissoes = parsePermissoesCsv(readHeader(req, HEADER_PERMISSOES));
+function parsePapeisHeader(value: HeaderValue): readonly Papel[] | undefined {
+  const values = parseCsvHeader(value);
+  return values as readonly Papel[] | undefined;
+}
 
-  return { locatarioId, usuarioId, permissoes };
+function parsePermissoesHeader(
+  value: HeaderValue,
+): readonly Permissao[] | undefined {
+  const values = parseCsvHeader(value);
+  return values as readonly Permissao[] | undefined;
+}
+
+export function createBuildContextFromRequest(deps: BuildContextDeps) {
+  return async function buildContextFromRequest(
+    req: FastifyRequest,
+  ): Promise<BuildContextResult> {
+    const locatarioId = headerToString(req.headers["x-locatario-id"]);
+    const usuarioId = headerToString(req.headers["x-usuario-id"]);
+    const papeis = parsePapeisHeader(req.headers["x-papeis"]);
+    const permissoes = parsePermissoesHeader(req.headers["x-permissoes"]);
+
+    if (!locatarioId) {
+      return {
+        ok: false,
+        error: {
+          codigo: "INVALIDO",
+          mensagem: "Cabeçalho x-locatario-id é obrigatório.",
+          detalhes: { header: "x-locatario-id" },
+        },
+      };
+    }
+
+    try {
+      const ctxBase = createContextoExecucao({
+        locatarioId,
+        usuarioId,
+        papeis,
+        permissoes,
+      });
+
+      const modulosResult =
+        await deps.modulosHabilitadosService.listarModulosHabilitados({
+          locatarioId,
+        });
+
+      if (isErr(modulosResult)) {
+        return {
+          ok: false,
+          error: {
+            codigo: modulosResult.error.codigo,
+            mensagem: modulosResult.error.mensagem,
+            detalhes: modulosResult.error.detalhes,
+          },
+        };
+      }
+
+      const ctx = comModulosHabilitados(
+        ctxBase,
+        modulosResult.value.modulos.map((m) => m.codigo),
+      );
+
+      return {
+        ok: true,
+        value: ctx,
+      };
+    } catch (causa) {
+      return {
+        ok: false,
+        error: {
+          codigo: "INVALIDO",
+          mensagem: "ContextoExecucao inválido.",
+          detalhes: { locatarioId, usuarioId, causa },
+        },
+      };
+    }
+  };
 }

@@ -1,17 +1,33 @@
-// packages/core/src/usuarios/usecases/listarUsuarios.ts
-// Finalidade: Caso de uso de listagem de usuários (somente domínio + ROP).
+import { wrapOk } from "../../result";
+import type {
+  ListarUsuariosInput,
+  ListarUsuariosOutput,
+  ResultadoListarUsuarios,
+} from "../tipos";
+import type { UsuariosRepositorio } from "../portasRepositorio";
+import { validarLimite, validarLocatarioId } from "../validadores";
 
-import type { ContextoExecucao } from "../../contextoExecucao";
-import type { Result } from "../../result";
-import type { ErroApp } from "../../erros";
-import { exigirPermissao } from "../../rbac";
-import type { RepositorioUsuarios } from "../portasRepositorio";
-import type { Usuario } from "../tipos";
+export function criarListarUsuarios(deps: {
+  usuariosRepo: UsuariosRepositorio;
+}) {
+  return async function listarUsuarios(
+    input: ListarUsuariosInput
+  ): ResultadoListarUsuarios {
+    const loc = validarLocatarioId(input.locatarioId);
+    if (!loc.ok) return loc;
 
-export async function listarUsuarios(ctx: ContextoExecucao, dependencias: { usuariosRepo: RepositorioUsuarios },): Promise<Result<{ itens: Usuario[] }, ErroApp>> {
-  const auth = exigirPermissao(ctx, "USUARIOS_LER");
-  if (!auth.ok) return auth;
+    const limite = validarLimite(input.limite);
+    if (!limite.ok) return limite;
 
-  const itens = await dependencias.usuariosRepo.listar(ctx.locatarioId);
-  return { ok: true, value: { itens } };
+    const res = await deps.usuariosRepo.listar({
+      locatarioId: loc.value,
+      limite: limite.value,
+      cursor: input.cursor,
+    });
+    if (!res.ok) return res;
+
+    return wrapOk<ListarUsuariosOutput>({
+      itens: res.value,
+    });
+  };
 }

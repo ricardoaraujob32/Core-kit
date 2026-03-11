@@ -1,95 +1,36 @@
-export function normalizarTexto(v: string): string {
-  return v.trim();
-}
+import type { Result } from "../result";
+import type { ErroApp } from "../erros";
+import { wrapOk } from "../result";
+import { locatarioInvalido } from "./erros";
 
-// slug simples, previsível, “bom o bastante” pro MVP.
-// (não resolve colisões; isso é do repositório/usecase)
-export function normalizarSlug(v: string): string {
-  const s = v
-    .trim()
-    .toLowerCase()
-    .normalize("NFD") // remove acentos via regex abaixo
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-+/g, "-");
-
-  return s;
-}
-
-export function emailValido(v: string): boolean {
-  // alinhado com o CHECK do SQL (case-insensitive)
-  return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i.test(v.trim());
-}
-
-
-function isBlank(s: unknown): boolean {
-  return typeof s !== "string" || s.trim().length === 0;
-}
-
-export function validarSlugLocatario(slug: string): Result<string, ErroApp> {
-  // slug: min 3, max 63 (compatível com subdomínios na prática)
-  // permitido: a-z 0-9 e hífen, sem hífen no começo/fim
-  if (isBlank(slug)) {
-    return createErroApp({ codigo: "INVALIDO", detalhes: { campo: "slug", motivo: "obrigatorio" } });
+export function validarNomeLocatario(
+  nome: string
+): Result<string, ErroApp> {
+  if (typeof nome !== "string") {
+    return locatarioInvalido({ campo: "nome" });
   }
 
-  const s = slug.trim();
-  const okLen = s.length >= 3 && s.length <= 63;
-  const okPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s);
+  const nomeTrim = nome.trim();
 
-  if (!okLen || !okPattern) {
-    return createErroApp({
-      codigo: "INVALIDO",
-      mensagem: "Slug inválido.",
-      detalhes: { campo: "slug", motivo: "formato", esperado: "a-z0-9 e hífen, sem espaços/maiúsculas" },
-    });
+  if (nomeTrim.length < 2) {
+    return locatarioInvalido({ campo: "nome", valor: nome });
   }
 
-  return { ok: true, value: s };
+  return wrapOk(nomeTrim);
 }
 
-export function validarCriarLocatarioInput(input: {
-  nome: string;
-  planoId: string;
-  slug: string;
-}): Result<{ nome: string; planoId: string; slug: string }, ErroApp> {
-  if (isBlank(input.nome)) {
-    return createErroApp({
-      codigo: "INVALIDO",
-      mensagem: "Nome é obrigatório.",
-      detalhes: { campo: "nome" },
-    });
-  }
-  if (isBlank(input.planoId)) {
-    return createErroApp({
-      codigo: "INVALIDO",
-      mensagem: "Plano é obrigatório.",
-      detalhes: { campo: "planoId" },
-    });
+export function validarLocatarioId(
+  locatarioId: string
+): Result<string, ErroApp> {
+  if (typeof locatarioId !== "string") {
+    return locatarioInvalido({ campo: "locatarioId" });
   }
 
-  const slugR = validarSlugLocatario(input.slug);
-  if (!slugR.ok) return slugR;
+  const idTrim = locatarioId.trim();
 
-  return {
-    ok: true,
-    value: {
-      nome: input.nome.trim(),
-      planoId: input.planoId.trim(),
-      slug: slugR.value,
-    },
-  };
-}
-
-export function validarModoTema(modoTema: ModoTema): Result<ModoTema, ErroApp> {
-  const allowed: ModoTema[] = ["CLARO", "ESCURO", "SISTEMA"];
-  if (!allowed.includes(modoTema)) {
-    return createErroApp({
-      codigo: "INVALIDO",
-      mensagem: "Modo de tema inválido.",
-      detalhes: { campo: "modoTema", allowed },
-    });
+  if (idTrim.length === 0) {
+    return locatarioInvalido({ campo: "locatarioId", valor: locatarioId });
   }
-  return { ok: true, value: modoTema };
+
+  return wrapOk(idTrim);
 }

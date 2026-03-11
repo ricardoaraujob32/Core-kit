@@ -1,14 +1,9 @@
 // apps/api/src/index.ts
 
-import { buildServer } from "./server";
+import { iniciarServidor } from "./server";
 
 async function main(): Promise<void> {
-  const app = await buildServer();
-
-  const port: number = Number(process.env.PORT ?? 3000);
-  const host: string = String(process.env.HOST ?? "0.0.0.0");
-
-  await app.listen({ port, host });
+  await iniciarServidor();
 }
 
 main().catch((e: unknown) => {

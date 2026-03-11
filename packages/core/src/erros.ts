@@ -10,7 +10,8 @@ export type CodigoErroApp =
   | "INVALIDO"
   | "NAO_ENCONTRADO"
   | "ERRO_INTERNO"
-  | "CONFLITO";
+  | "CONFLITO"
+  | "SESSAO_INVALIDA";
 
 /**
  * Retorna mensagens padronizadas de erro
@@ -31,6 +32,8 @@ export type CodigoErroApp =
         return "Conflito de dados.";
       case "ERRO_INTERNO":
         return "Erro interno.";
+      case "SESSAO_INVALIDA":
+        return "Sessão inválida.";
       default:
         return "Desconhecido"; // Nunca deveria chamar
     }

@@ -1,9 +1,10 @@
 // packages/core/src/contextoExecucao.ts
 
-import { LocatarioId } from "./locatarios";
+import { LocatarioId } from "./locatarios/tipos";
 import { UsuarioId } from "./usuarios/index";
 import { Permissao } from "./permissoes";
 import { Papel } from "./papeis";
+import { ModuloCodigo } from "./modulos";
 
 /**
  * Cria um símbolo único que marca o contexto.
@@ -23,6 +24,7 @@ export type ContextoExecucao = {
   usuarioId: UsuarioId;
   papeis?: readonly Papel[];
   permissoes?: readonly Permissao[];
+  modulosHabilitados?: readonly ModuloCodigo[];
   agora?: () => Date;
 } & ContextoExecucaoBrand;
 
@@ -62,9 +64,19 @@ export function createContextoExecucao(params: CreateContextoExecucaoParams): Co
   
   const permissoes = params.permissoes ? Object.freeze([...params.permissoes]) : undefined;
   const papeis = params.papeis ? Object.freeze([...params.papeis]) : undefined;
+  const modulosHabilitados = params.modulosHabilitados
+    ? Object.freeze(
+        params.modulosHabilitados.map((m) => {
+          if (typeof m !== "string" || m.trim().length === 0) {
+            throw new Error("ContextoExecucao inválido: módulo habilitado deve ser string não vazia.");
+          }
+          return m.trim().toUpperCase() as ModuloCodigo;
+        }),
+      )
+    : undefined;
 
   const ctx: Omit<ContextoExecucao, typeof CTX_BRAND> & ContextoExecucaoBrand = {
-    locatarioId, usuarioId, permissoes, papeis, agora: params.agora, [CTX_BRAND]: true,
+    locatarioId, usuarioId, permissoes, papeis, modulosHabilitados, agora: params.agora, [CTX_BRAND]: true,
   };
 
   return Object.freeze(ctx) as ContextoExecucao;
