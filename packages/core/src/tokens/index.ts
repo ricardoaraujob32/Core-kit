@@ -1,48 +1,42 @@
 // packages/core/src/tokens/index.ts
 
-// Tipos
 export type {
   TokenId,
   TokenTipo,
   TokenPersistido,
-  CriarRefreshInput,
-  RefreshCriado,
-  ValidarRefreshInput,
-  RefreshValido,
+  EmitirTokenInput,
+  EmitirTokenOutput,
+  ObterTokenPorHashInput,
   RevogarTokenInput,
-  ResultadoCriarRefresh,
-  ResultadoValidarRefresh,
-  ResultadoRevogarToken,
+  RotacionarTokenInput,
+  ListarTokensDoUsuarioInput,
+  ListarTokensDoUsuarioOutput,
 } from "./tipos";
 
-// Erros
 export {
-  entradaInvalida,
-  tokenNaoAutenticado,
-  conflitoRotacao,
+  tokenInvalido,
+  tokenNaoEncontrado,
+  tokenRevogado,
+  tokenExpirado,
+  hashTokenJaExiste,
 } from "./erros";
 
-// Validadores
 export {
-  validarLocatarioId,
-  validarUsuarioId,
-  validarTokenBruto,
-  validarTtl,
-  validarAgora,
+  validarTokenId,
+  validarHashToken,
+  validarTokenTipo,
+  validarExpiraEm,
 } from "./validadores";
 
-// Repositório
-export type {
-  TokensRepositorio,
-  CriptoTokensPorta,
-  IdPorta,
-} from "./portasRepositorio";
+export type { TokensRepositorio } from "./portasRepositorio";
 
 export {
   criarTokensRepositorioMemoria,
+  criarTokenSeed,
 } from "./repositorioMemoria";
 
-// Casos de uso
-export { criarRevogarToken } from "./usecases/revogarToken";
-export { criarCriarRefreshToken } from "./usecases/criarRefreshToken";
-export { criarValidarRefreshToken } from "./usecases/validarRefreshToken";
+export { createEmitirToken } from "./usecases/emitirToken";
+export { createObterTokenPorHash } from "./usecases/obterTokenPorHash";
+export { createListarTokensDoUsuario } from "./usecases/listarTokensDoUsuario";
+export { createRevogarToken } from "./usecases/revogarToken";
+export { createRotacionarToken } from "./usecases/rotacionarToken";

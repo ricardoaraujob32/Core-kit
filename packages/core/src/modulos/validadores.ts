@@ -3,36 +3,36 @@ import { wrapOk } from "../result";
 import type { ErroApp } from "../erros";
 import { erroLocatarioIdInvalido, erroModuloCodigoInvalido} from "./erros";
 import type { ListarModulosHabilitadosInput, ModuloEstaHabilitadoInput} from "./tipos";
-
-function textoNaoVazio(valor: unknown): valor is string {
-  return typeof valor === "string" && valor.trim().length > 0;
-}
+import { validarIdGenerico, validarTextoObrigatorio } from "../utils";
 
 export function validarListarModulosHabilitadosInput(
   input: ListarModulosHabilitadosInput,
 ): Result<ListarModulosHabilitadosInput, ErroApp> {
-  if (!textoNaoVazio(input.locatarioId)) {
+  const locatarioId = validarIdGenerico(input.locatarioId, "locatarioId");
+  if (!locatarioId.ok) {
     return erroLocatarioIdInvalido(input.locatarioId);
   }
 
   return wrapOk({
-    locatarioId: input.locatarioId.trim(),
+    locatarioId: locatarioId.value,
   });
 }
 
 export function validarModuloEstaHabilitadoInput(
   input: ModuloEstaHabilitadoInput,
 ): Result<ModuloEstaHabilitadoInput, ErroApp> {
-  if (!textoNaoVazio(input.locatarioId)) {
+  const locatarioId = validarIdGenerico(input.locatarioId, "locatarioId");
+  if (!locatarioId.ok) {
     return erroLocatarioIdInvalido(input.locatarioId);
   }
 
-  if (!textoNaoVazio(input.codigo)) {
+  const codigo = validarTextoObrigatorio(input.codigo, "codigo", 1);
+  if (!codigo.ok) {
     return erroModuloCodigoInvalido(input.codigo);
   }
 
   return wrapOk({
-    locatarioId: input.locatarioId.trim(),
-    codigo: input.codigo.trim().toUpperCase(),
+    locatarioId: locatarioId.value,
+    codigo: codigo.value.toUpperCase(),
   });
 }

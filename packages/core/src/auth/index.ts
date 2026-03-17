@@ -1,62 +1,41 @@
-// packages/core/src/auth/index.ts
-
-// Tipos
 export type {
   EmitirSessaoInput,
   Sessao,
-  JwtPayload,
-  SessaoEmitida,
+  JwtPayloadAuth,
   ValidarSessaoInput,
   SessaoValidada,
-  ResolverPermissoesInput,
-  ContextoAutorizado,
   RotacionarRefreshInput,
-  SessaoRotacionada,
   ResolverContextoAutorizadoInput,
-  ResultadoSessao,
-  ResultadoValidarSessao,
-  ResultadoContextoAutorizado,
+  ContextoAutorizado,
 } from "./tipos";
 
-// Erros
 export {
   credenciaisInvalidas,
   tokenInvalidoOuExpirado,
-  usuarioInativoOuBloqueado,
-  locatarioInvalidoOuInativo,
-  entradaInvalida,
-  erroNaoAutenticado,
-  erroSessaoInvalida,
-  sessaoInvalida,
   usuarioNaoPodeAutenticar,
+  locatarioNaoPodeAutenticar,
+  authEntradaInvalida,
+  sessaoInvalida,
 } from "./erros";
 
-// Validadores
 export {
-  validarEmail,
+  validarEmailAuth,
   validarSenha,
-  validarLocatarioId,
+  validarLocatarioIdAuth,
   validarTokenNaoVazio,
 } from "./validadores";
 
-// Repositório
 export type {
-  UsuariosRepositorioAuth,
-  TokensRepositorio,
-  RbacRepositorio,
-  CriptoPorta,
-  JwtPorta,
-  LocatariosRepositorioAuth,
-  TokensServicePorta,
-  RbacServicePorta,
-  CriptoAuthPorta,
-  Relogio,
+  UsuarioAuth,
+  UsuariosAuthPorta,
+  LocatariosAuthPorta,
+  HashAuthPorta,
+  JwtAuthPorta,
+  TokensAuthPorta,
+  RbacAuthPorta,
   EventosSegurancaPorta,
-  IdPorta,
-  RelogioPorta,
-} from "./portasRepositorio";
+} from "./portasServico";
 
-// Casos de uso
 export { criarEmitirSessao } from "./usecases/emitirSessao";
 export { criarValidarSessao } from "./usecases/validarSessao";
 export { criarRotacionarRefresh } from "./usecases/rotacionarRefresh";

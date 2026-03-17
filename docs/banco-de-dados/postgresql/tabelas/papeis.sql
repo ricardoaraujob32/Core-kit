@@ -30,23 +30,23 @@ CREATE TABLE IF NOT EXISTS papeis (
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'SUPERADMIN') THEN
-    INSERT INTO papeis (id, nome, descricao, criado_em, atualizado_em)
-    VALUES (gen_random_uuid(), 'SUPERADMIN', 'Acesso total à plataforma (singleton).', now(), now());
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'SUPERADMIN', 'Administrador do complexo', 'Acesso total à plataforma (singleton).', now(), now());
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'ADMIN') THEN
-    INSERT INTO papeis (id, nome, descricao, criado_em, atualizado_em)
-    VALUES (gen_random_uuid(), 'ADMIN', 'Administrador do locatário (no máximo 1 por locatário).', now(), now());
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'ADMIN', 'Administrador do locatário', 'Administrador do locatário (no máximo 1 por locatário).', now(), now());
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'GERENTE') THEN
-    INSERT INTO papeis (id, nome, descricao, criado_em, atualizado_em)
-    VALUES (gen_random_uuid(), 'GERENTE', 'Gerente do locatário.', now(), now());
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'GERENTE', 'Gerente', 'Gerente do locatário.', now(), now());
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'OPERADOR') THEN
-    INSERT INTO papeis (id, nome, descricao, criado_em, atualizado_em)
-    VALUES (gen_random_uuid(), 'OPERADOR', 'Operador do locatário.', now(), now());
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'OPERADOR', 'Operador', 'Operador do locatário.', now(), now());
   END IF;
 END;
 $$;

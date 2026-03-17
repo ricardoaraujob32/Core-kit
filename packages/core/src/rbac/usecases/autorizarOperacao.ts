@@ -1,12 +1,13 @@
-import type { ResultadoAutorizarOperacao, AutorizarOperacaoInput } from "../tipos";
-import { wrapOk } from "../../result";
+import { wrapOk } from "../../kernel/result";
+import type {
+  AutorizarOperacaoInput,
+  ResultadoAutorizarOperacao,
+} from "../tipos";
 import { naoAutorizado } from "../erros";
+import { exigirUsuario, normalizarPermissoes } from "../helpers";
 import { validarPermissao } from "../validadores";
-import { exigirUsuario, normalizarPermissoes } from "../../rbac";
 
-export function autorizarOperacao(
-  input: AutorizarOperacaoInput
-): ResultadoAutorizarOperacao {
+export function autorizarOperacao(input: AutorizarOperacaoInput): ResultadoAutorizarOperacao {
   const permissaoValida = validarPermissao(input.permissao);
   if (!permissaoValida.ok) return permissaoValida;
 

@@ -1,44 +1,35 @@
-import { wrapOk } from "../../result";
-import type { ResultadoRevogarToken, RevogarTokenInput,} from "../tipos";
+// packages/core/src/tokens/usecases/revogarToken.ts
+
+import type { RelogioPorta } from "../../utils";
+import type { RevogarTokenInput, ResultadoRevogarToken } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
-import { validarAgora, validarLocatarioId, validarUsuarioId,} from "../validadores";
+import { validarTokenId } from "../validadores";
+import { tokenNaoEncontrado, tokenRevogado } from "../erros";
 
-export function criarRevogarToken(deps: {tokensRepo: TokensRepositorio;}) {
-  return async function revogarToken(input: RevogarTokenInput): ResultadoRevogarToken {
-    const loc = validarLocatarioId(input.locatarioId);
-    if (!loc.ok) return loc;
+export function createRevogarToken(deps: {
+  tokensRepo: TokensRepositorio;
+  relogio: RelogioPorta;
+}) {
+  return async function revogarToken(input: RevogarTokenInput): Promise<ResultadoRevogarToken> {
+    const tokenId = validarTokenId(input.tokenId);
+    if (!tokenId.ok) return tokenId;
 
-    const user = validarUsuarioId(input.usuarioId);
-    if (!user.ok) return user;
+    const atual = await deps.tokensRepo.buscarPorId({
+      tokenId: tokenId.value,
+    });
+    if (!atual.ok) return atual;
 
-    const agora = validarAgora(input.agora);
-    if (!agora.ok) return agora;
-
-    const tokenId =
-      typeof input.tokenId === "string" && input.tokenId.trim().length > 0
-        ? input.tokenId.trim()
-        : null;
-
-    if (!tokenId) {
-      return {
-        ok: false,
-        error: {
-          codigo: "INVALIDO",
-          mensagem: "tokenId inválido.",
-          detalhes: { campo: "tokenId" },
-        },
-      };
+    if (!atual.value) {
+      return tokenNaoEncontrado(tokenId.value);
     }
 
-    const res = await deps.tokensRepo.revogar({
-      locatarioId: loc.value,
-      tokenId,
-      revogadoPor: user.value,
-      revogadoEm: agora.value,
-      motivo: input.motivo,
-    });
-    if (!res.ok) return res;
+    if (atual.value.revogadoEm) {
+      return tokenRevogado(tokenId.value);
+    }
 
-    return wrapOk<void>(undefined);
+    return deps.tokensRepo.atualizar({
+      ...atual.value,
+      revogadoEm: deps.relogio.agora(),
+    });
   };
 }

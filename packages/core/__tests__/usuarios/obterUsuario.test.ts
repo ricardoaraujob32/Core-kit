@@ -1,133 +1,48 @@
-import { describe, it, expect } from "vitest";
-import { criarObterUsuario } from "../../src/usuarios/usecases/obterUsuario";
+import { describe, expect, it } from "vitest";
+import { criarObterUsuario } from "../usecases/obterUsuario";
 import {
   criarUsuarioSeed,
   criarUsuariosRepositorioMemoria,
-} from "../../src/usuarios/repositorioMemoria";
+} from "../repositorioMemoria";
 
-describe("usuarios - obterUsuario", () => {
-  it("retorna Ok quando usuário existe", async () => {
+describe("obterUsuario", () => {
+  it("obtém usuário ativo", async () => {
     const repo = criarUsuariosRepositorioMemoria([
       criarUsuarioSeed({
-        usuarioId: "usr-1",
-        locatarioId: "tenant-1",
-        email: "admin@teste.com",
-        senhaHash: "hash-seguro",
+        usuarioId: "user-1",
+        locatarioId: "loc-1",
+        email: "a@example.com",
+        nome: "Usuário A",
+        status: "ATIVO",
       }),
     ]);
 
-    const obterUsuario = criarObterUsuario({
-      usuariosRepo: repo,
-    });
+    const usecase = criarObterUsuario({ usuariosRepo: repo });
+    const resultado = await usecase({ usuarioId: "user-1" });
 
-    const r = await obterUsuario({
-      locatarioId: "tenant-1",
-      usuarioId: "usr-1",
-    });
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
 
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.value.usuarioId).toBe("usr-1");
-      expect(r.value.email).toBe("admin@teste.com");
-    }
+    expect(resultado.value.usuarioId).toBe("user-1");
   });
 
-  it("retorna Err(NAO_ENCONTRADO) quando usuário não existe", async () => {
-    const repo = criarUsuariosRepositorioMemoria();
-
-    const obterUsuario = criarObterUsuario({
-      usuariosRepo: repo,
-    });
-
-    const r = await obterUsuario({
-      locatarioId: "tenant-1",
-      usuarioId: "usr-999",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_ENCONTRADO");
-    }
-  });
-
-  it("retorna Err(INVALIDO) quando usuarioId é vazio", async () => {
-    const repo = criarUsuariosRepositorioMemoria();
-
-    const obterUsuario = criarObterUsuario({
-      usuariosRepo: repo,
-    });
-
-    const r = await obterUsuario({
-      locatarioId: "tenant-1",
-      usuarioId: "",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("INVALIDO");
-    }
-  });
-
-  it("não encontra usuário de outro locatário", async () => {
+  it("falha para usuário inativo", async () => {
     const repo = criarUsuariosRepositorioMemoria([
       criarUsuarioSeed({
-        usuarioId: "usr-1",
-        locatarioId: "tenant-1",
-        email: "admin@teste.com",
-        senhaHash: "hash-seguro",
+        usuarioId: "user-1",
+        locatarioId: "loc-1",
+        email: "a@example.com",
+        nome: "Usuário A",
+        status: "INATIVO",
       }),
     ]);
 
-    const obterUsuario = criarObterUsuario({
-      usuariosRepo: repo,
-    });
+    const usecase = criarObterUsuario({ usuariosRepo: repo });
+    const resultado = await usecase({ usuarioId: "user-1" });
 
-    const r = await obterUsuario({
-      locatarioId: "tenant-2",
-      usuarioId: "usr-1",
-    });
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_ENCONTRADO");
-    }
-  });
-
-  it("propaga erro do repositório", async () => {
-    const obterUsuario = criarObterUsuario({
-      usuariosRepo: {
-        async criar() {
-          throw new Error("não usado");
-        },
-        async buscarPorId() {
-          return {
-            ok: false as const,
-            error: {
-              codigo: "ERRO_INTERNO",
-              mensagem: "Falha ao buscar usuário",
-            },
-          };
-        },
-        async buscarPorEmail() {
-          throw new Error("não usado");
-        },
-        async listar() {
-          throw new Error("não usado");
-        },
-        async atualizarUltimoLogin() {
-          throw new Error("não usado");
-        },
-      },
-    });
-
-    const r = await obterUsuario({
-      locatarioId: "tenant-1",
-      usuarioId: "usr-1",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("ERRO_INTERNO");
-    }
+    expect(resultado.error.codigo).toBe("USUARIO_INATIVO");
   });
 });

@@ -1,109 +1,91 @@
-// import { wrapOk } from "../result";
-import { LocatarioId } from "../locatarios/tipos";
+// packages/core/src/tokens/repositorioMemoria.ts
+
+import { LocatarioId } from "../locatarios";
 import { wrapOk } from "../result";
 import { UsuarioId } from "../usuarios";
 import type { TokensRepositorio } from "./portasRepositorio";
-import type { TokenId, TokenPersistido } from "./tipos";
+import type { TokenPersistido, TokenId, TokenTipo } from "./tipos";
 
-function keyById(locatarioId: LocatarioId, tokenId: TokenId) {
-  return `${locatarioId}:${tokenId}`;
-}
-
-function keyByHash(locatarioId: LocatarioId, hashToken: string) {
-  return `${locatarioId}:${hashToken}`;
-}
-
-export function criarTokensRepositorioMemoria(seed?: TokenPersistido[]): 
-TokensRepositorio & {
+export function criarTokensRepositorioMemoria(
+  seed?: TokenPersistido[],
+): TokensRepositorio & {
   seed(token: TokenPersistido): void;
   dump(): TokenPersistido[];
 } {
   const byId = new Map<string, TokenPersistido>();
-  const byHash = new Map<string, TokenPersistido>();
 
   const api = {
     seed(token: TokenPersistido) {
-      const clone = { ...token };
-      byId.set(keyById(token.locatarioId, token.tokenId), clone);
-      byHash.set(keyByHash(token.locatarioId, token.hashToken), clone);
+      byId.set(token.tokenId, { ...token });
     },
 
     dump() {
-      return [...byId.values()].map((t) => ({ ...t }));
+      return [...byId.values()].map((item) => ({ ...item }));
     },
 
-    async inserir(token: TokenPersistido) {
-      api.seed(token);
-      return wrapOk<void>(undefined);
-    },
-
-    async buscarPorHash(params: { locatarioId: LocatarioId; hashToken: string }) {
-      const found =
-        byHash.get(keyByHash(params.locatarioId, params.hashToken)) ?? null;
-      return wrapOk(found ? { ...found } : null);
-    },
-
-    async buscarPorId(params: { locatarioId: LocatarioId; tokenId: TokenId }) {
-      const found =
-        byId.get(keyById(params.locatarioId, params.tokenId)) ?? null;
-      return wrapOk(found ? { ...found } : null);
-    },
-
-    async revogar(params: {
-      locatarioId: LocatarioId;
+    async criar(params: {
       tokenId: TokenId;
-      revogadoPor: UsuarioId;
-      revogadoEm: Date;
-      motivo?: string;
+      usuarioId: UsuarioId;
+      locatarioId: LocatarioId;
+      hashToken: string;
+      tipo: TokenTipo;
+      emitidoEm: Date;
+      expiraEm: Date;
+      revogadoEm: Date | null;
+      proximoTokenId: TokenId | null;
+      agenteUsuario: string | null;
+      enderecoIp: string | null;
     }) {
-      const idKey = keyById(params.locatarioId, params.tokenId);
-      const token = byId.get(idKey);
-
-      if (!token) {
-        return wrapOk<void>(undefined);
-      }
-
-      const atualizado: TokenPersistido = {
-        ...token,
+      const novo: TokenPersistido = {
+        tokenId: params.tokenId,
+        usuarioId: params.usuarioId,
+        locatarioId: params.locatarioId,
+        hashToken: params.hashToken,
+        tipo: params.tipo,
+        emitidoEm: params.emitidoEm,
+        expiraEm: params.expiraEm,
         revogadoEm: params.revogadoEm,
+        proximoTokenId: params.proximoTokenId,
+        agenteUsuario: params.agenteUsuario,
+        enderecoIp: params.enderecoIp,
       };
 
-      byId.set(idKey, atualizado);
-      byHash.set(
-        keyByHash(params.locatarioId, atualizado.hashToken),
-        atualizado
-      );
-
-      return wrapOk<void>(undefined);
+      byId.set(params.tokenId, novo);
+      return wrapOk({ tokenId: params.tokenId });
     },
 
-    async encadearRotacao(params: {
+    async atualizar(token: TokenPersistido) {
+      byId.set(token.tokenId, { ...token });
+      return wrapOk({ ...token });
+    },
+
+    async buscarPorId(params: { tokenId: TokenId }) {
+      const found = byId.get(params.tokenId) ?? null;
+      return wrapOk(found ? { ...found } : null);
+    },
+
+    async buscarPorHash(params: { hashToken: string }) {
+      const found =
+        [...byId.values()].find((item) => item.hashToken === params.hashToken) ??
+        null;
+
+      return wrapOk(found ? { ...found } : null);
+    },
+
+    async listarPorUsuario(params: {
+      usuarioId: UsuarioId;
       locatarioId: LocatarioId;
-      tokenAntigoId: TokenId;
-      tokenAntigoUsuarioId: UsuarioId;
-      tokenNovoId: TokenId;
-      tokenNovoUsuarioId: UsuarioId;
     }) {
-      const idKey = keyById(params.locatarioId, params.tokenAntigoId);
-      const token = byId.get(idKey);
+      const itens = [...byId.values()]
+        .filter(
+          (item) =>
+            item.usuarioId === params.usuarioId &&
+            item.locatarioId === params.locatarioId,
+        )
+        .map((item) => ({ ...item }))
+        .sort((a, b) => b.emitidoEm.getTime() - a.emitidoEm.getTime());
 
-      if (!token) {
-        return wrapOk<void>(undefined);
-      }
-
-      const atualizado: TokenPersistido = {
-        ...token,
-        proximoTokenId: params.tokenNovoId,
-        proximoUsuarioId: params.tokenNovoUsuarioId,
-      };
-
-      byId.set(idKey, atualizado);
-      byHash.set(
-        keyByHash(params.locatarioId, atualizado.hashToken),
-        atualizado
-      );
-
-      return wrapOk<void>(undefined);
+      return wrapOk(itens);
     },
   };
 
@@ -112,4 +94,32 @@ TokensRepositorio & {
   }
 
   return api;
+}
+
+export function criarTokenSeed(params: {
+  tokenId: TokenId;
+  usuarioId: UsuarioId;
+  locatarioId: LocatarioId;
+  hashToken: string;
+  tipo?: TokenTipo;
+  emitidoEm?: Date;
+  expiraEm?: Date;
+  revogadoEm?: Date | null;
+  proximoTokenId?: TokenId | null;
+  agenteUsuario?: string | null;
+  enderecoIp?: string | null;
+}): TokenPersistido {
+  return {
+    tokenId: params.tokenId,
+    usuarioId: params.usuarioId,
+    locatarioId: params.locatarioId,
+    hashToken: params.hashToken,
+    tipo: params.tipo ?? "ACESSO",
+    emitidoEm: params.emitidoEm ?? new Date("2026-01-01T00:00:00.000Z"),
+    expiraEm: params.expiraEm ?? new Date("2026-12-31T00:00:00.000Z"),
+    revogadoEm: params.revogadoEm ?? null,
+    proximoTokenId: params.proximoTokenId ?? null,
+    agenteUsuario: params.agenteUsuario ?? null,
+    enderecoIp: params.enderecoIp ?? null,
+  };
 }

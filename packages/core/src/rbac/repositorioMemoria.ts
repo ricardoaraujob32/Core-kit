@@ -1,4 +1,5 @@
-// import { wrapOk } from "../result";
+// packages/core/src/rbac/repositorioMemoria.ts
+
 import { wrapOk } from "../result";
 import type { RbacRepositorio } from "./portasRepositorio";
 import type { Papel, Permissao } from "./tipos";
@@ -13,7 +14,7 @@ export function criarRbacRepositorioMemoria(
     usuarioId: string;
     papeis?: Papel[];
     permissoes?: Permissao[];
-  }>
+  }>,
 ): RbacRepositorio & {
   seed(params: {
     locatarioId: string;
@@ -80,7 +81,7 @@ export function criarRbacRepositorioMemoria(
       countPermissoes += 1;
       return wrapOk([
         ...(permissoesPorUsuario.get(
-          chave(params.locatarioId, params.usuarioId)
+          chave(params.locatarioId, params.usuarioId),
         ) ?? []),
       ]);
     },

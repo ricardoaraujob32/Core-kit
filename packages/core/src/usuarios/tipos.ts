@@ -1,56 +1,87 @@
 // packages/core/src/usuarios/tipos.ts
 
-import { ErroApp } from "../erros";
-import { Result } from "../result";
+import type { ErroApp } from "../erros";
+import { LocatarioId } from "../locatarios";
+import type { Result } from "../result";
 
-/**
- * 
- */
 export type UsuarioId = string;
-export type UsuarioStatus = "ATIVO" | "INATIVO" | "BLOQUEADO";
 
-export type Usuario = {
+export type StatusUsuario =
+  | "ATIVO"
+  | "INATIVO"
+  | "SUSPENSO"
+  | "ENCERRADO";
+
+export interface Usuario {
   usuarioId: UsuarioId;
-  locatarioId: string | null; // null = plataforma (superadmin)
+  locatarioId: LocatarioId | null;
   email: string;
+  nome: string;
   senhaHash: string;
-  status: UsuarioStatus;
+  status: StatusUsuario;
+  ultimoLoginEm: Date | null;
   criadoEm: Date;
-  ultimoLoginEm?: Date | null;
-};
+  atualizadoEm: Date;
+  excluidoEm: Date | null;
+}
 
-export type CriarUsuarioInput = {
-  locatarioId: string;
+export interface CriarUsuarioInput {
+  locatarioId: LocatarioId;
   email: string;
-  senhaHash: string; // já vem do auth/cripto
-  status?: UsuarioStatus; // default ATIVO
-};
+  nome: string;
+  senhaHash: string;
+}
 
-export type CriarUsuarioOutput = {
+export interface CriarUsuarioOutput {
   usuarioId: UsuarioId;
-};
+}
 
-export type ObterUsuarioInput = {
-  locatarioId: string;
+export interface ObterUsuarioInput {
   usuarioId: UsuarioId;
-};
+}
 
-export type ListarUsuariosInput = {
-  locatarioId: string;
-  limite?: number;
-  cursor?: string; // opcional
-};
+export interface AtualizarUsuarioInput {
+  usuarioId: UsuarioId;
+  nome?: string;
+  email?: string;
+}
 
-export type ListarUsuariosOutput = {
+export interface InativarUsuarioInput {
+  usuarioId: UsuarioId;
+}
+
+export interface ReativarUsuarioInput {
+  usuarioId: UsuarioId;
+}
+
+export interface ListarUsuariosPorLocatarioInput {
+  locatarioId: LocatarioId;
+}
+
+export interface ListarUsuariosPorLocatarioOutput {
   itens: Usuario[];
-};
+}
 
 export type ResultadoCriarUsuario = Promise<
   Result<CriarUsuarioOutput, ErroApp>
 >;
 
-export type ResultadoObterUsuario = Promise<Result<Usuario, ErroApp>>;
+export type ResultadoObterUsuario = Promise<
+  Result<Usuario, ErroApp>
+>;
 
-export type ResultadoListarUsuarios = Promise<
-  Result<ListarUsuariosOutput, ErroApp>
+export type ResultadoAtualizarUsuario = Promise<
+  Result<Usuario, ErroApp>
+>;
+
+export type ResultadoInativarUsuario = Promise<
+  Result<Usuario, ErroApp>
+>;
+
+export type ResultadoReativarUsuario = Promise<
+  Result<Usuario, ErroApp>
+>;
+
+export type ResultadoListarUsuariosPorLocatario = Promise<
+  Result<ListarUsuariosPorLocatarioOutput, ErroApp>
 >;

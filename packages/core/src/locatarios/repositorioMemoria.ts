@@ -1,11 +1,15 @@
-// import { wrapOk } from "../result";
+// packages/core/src/locatarios/repositorioMemoria.ts
+
 import { wrapOk } from "../result";
 import type { LocatariosRepositorio } from "./portasRepositorio";
-import type { Locatario, LocatarioStatus } from "./tipos";
+import type { Locatario, LocatarioId, LocatarioStatus } from "./tipos";
 
-export function criarLocatariosRepositorioMemoria(
-  seed?: Locatario[]
-): LocatariosRepositorio & {
+/**
+ * 
+ * @param seed 
+ * @returns 
+ */
+export function criarLocatariosRepositorioMemoria(seed?: Locatario[]): LocatariosRepositorio & {
   seed(locatario: Locatario): void;
   dump(): Locatario[];
 } {
@@ -20,21 +24,25 @@ export function criarLocatariosRepositorioMemoria(
       return [...byId.values()].map((item) => ({ ...item }));
     },
 
-    async criar(params: { nome: string }) {
-      const locatarioId = `loc-${byId.size + 1}`;
+    async criar(params: {
+      locatarioId: LocatarioId;
+      nome: string;
+      status: "ATIVO";
+      criadoEm: Date;
+    }) {
       const novo: Locatario = {
-        locatarioId,
+        locatarioId: params.locatarioId,
         nome: params.nome,
-        status: "ATIVO",
-        criadoEm: new Date("2026-01-01T00:00:00.000Z"),
+        status: params.status,
+        criadoEm: params.criadoEm,
       };
 
-      byId.set(locatarioId, novo);
+      byId.set(params.locatarioId, novo);
 
-      return wrapOk({ locatarioId });
+      return wrapOk({ locatarioId: params.locatarioId });
     },
 
-    async buscarPorId(params: { locatarioId: string }) {
+    async buscarPorId(params: { locatarioId: LocatarioId }) {
       const found = byId.get(params.locatarioId) ?? null;
       return wrapOk(found ? { ...found } : null);
     },
@@ -55,8 +63,13 @@ export function criarLocatariosRepositorioMemoria(
   return api;
 }
 
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
 export function criarLocatarioSeed(params: {
-  locatarioId: string;
+  locatarioId: LocatarioId;
   nome: string;
   status?: LocatarioStatus;
   criadoEm?: Date;

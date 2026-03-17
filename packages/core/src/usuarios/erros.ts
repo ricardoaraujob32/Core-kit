@@ -1,42 +1,54 @@
-import type { ErroApp } from "../erros";
-import { wrapErr } from "../result";
+// packages/core/src/usuarios/erros.ts
 
-export function emailInvalido(email: string) {
-  return wrapErr<ErroApp>({
-    codigo: "INVALIDO",
-    mensagem: "Email inválido.",
-    detalhes: { email },
-  });
-}
-
-export function senhaHashInvalida() {
-  return wrapErr<ErroApp>({
-    codigo: "INVALIDO",
-    mensagem: "Senha hash inválida.",
-    detalhes: { campo: "senhaHash" },
-  });
-}
+import { LocatarioId } from "../locatarios";
+import { createErroApp } from "../ROPHelpers";
+import { UsuarioId } from "./tipos";
 
 export function usuarioInvalido(detalhes?: Record<string, unknown>) {
-  return wrapErr<ErroApp>({
-    codigo: "INVALIDO",
+  return createErroApp({
+    codigo: "USUARIO_INVALIDO",
     mensagem: "Dados do usuário inválidos.",
     detalhes,
   });
 }
 
-export function usuarioNaoEncontrado(usuarioId: string) {
-  return wrapErr<ErroApp>({
-    codigo: "NAO_ENCONTRADO",
+export function usuarioNaoEncontrado(usuarioId: UsuarioId) {
+  return createErroApp({
+    codigo: "USUARIO_NAO_ENCONTRADO",
     mensagem: "Usuário não encontrado.",
     detalhes: { usuarioId },
   });
 }
 
-export function emailJaEmUso(email: string) {
-  return wrapErr<ErroApp>({
-    codigo: "CONFLITO",
-    mensagem: "Já existe usuário com este email no locatário.",
-    detalhes: { email },
+export function usuarioInativo(usuarioId: UsuarioId) {
+  return createErroApp({
+    codigo: "USUARIO_INATIVO",
+    mensagem: "Usuário inativo.",
+    detalhes: { usuarioId },
+  });
+}
+
+export function usuarioSuspenso(usuarioId: UsuarioId) {
+  return createErroApp({
+    codigo: "USUARIO_SUSPENSO",
+    mensagem: "Usuário suspenso.",
+    detalhes: { usuarioId },
+  });
+}
+
+export function usuarioEncerrado(usuarioId: UsuarioId) {
+  return createErroApp({
+    codigo: "USUARIO_ENCERRADO",
+    mensagem: "Usuário encerrado.",
+    detalhes: { usuarioId },
+  });
+}
+
+export function emailUsuarioJaExiste(email: string, locatarioId: LocatarioId | null,
+) {
+  return createErroApp({
+    codigo: "USUARIO_EMAIL_JA_EXISTE",
+    mensagem: "Já existe usuário com este e-mail no escopo informado.",
+    detalhes: { email, locatarioId },
   });
 }

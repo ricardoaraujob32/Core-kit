@@ -1,58 +1,44 @@
-import type { Result } from "../result";
+// packages/core/src/usuarios/validadores.ts
+
 import type { ErroApp } from "../erros";
-import { wrapOk } from "../result";
-import { emailInvalido, senhaHashInvalida, usuarioInvalido } from "./erros";
+import type { Result } from "../result";
+import { usuarioInvalido } from "./erros";
+import { UsuarioId } from "./tipos";
+import { validarEmail, validarIdGenerico, validarTextoObrigatorio } from "../utils";
 
-export function validarLocatarioId(
-  locatarioId: string
-): Result<string, ErroApp> {
-  if (typeof locatarioId !== "string" || locatarioId.trim().length === 0) {
-    return usuarioInvalido({ campo: "locatarioId", valor: locatarioId });
-  }
-
-  return wrapOk(locatarioId.trim());
+function mapearErro(resultado: Result<string, ErroApp>, campo: string, valor?: unknown): Result<string, ErroApp> {
+  if (resultado.ok) return resultado;
+  return usuarioInvalido({ campo, valor });
 }
 
-export function validarUsuarioId(
-  usuarioId: string
-): Result<string, ErroApp> {
-  if (typeof usuarioId !== "string" || usuarioId.trim().length === 0) {
-    return usuarioInvalido({ campo: "usuarioId", valor: usuarioId });
-  }
-
-  return wrapOk(usuarioId.trim());
+export function validarUsuarioId(usuarioId: UsuarioId): Result<string, ErroApp> {
+  return mapearErro(
+    validarIdGenerico(usuarioId, "usuarioId"),
+    "usuarioId",
+    usuarioId,
+  );
 }
 
-export function validarEmail(email: string): Result<string, ErroApp> {
-  if (typeof email !== "string") {
-    return emailInvalido(String(email));
-  }
-
-  const emailNorm = email.trim().toLowerCase();
-
-  if (emailNorm.length < 5 || !emailNorm.includes("@")) {
-    return emailInvalido(email);
-  }
-
-  return wrapOk(emailNorm);
+export function validarNomeUsuario(nome: string): Result<string, ErroApp> {
+  return mapearErro(
+    validarTextoObrigatorio(nome, "nome", 2),
+    "nome",
+    nome,
+  );
 }
 
-export function validarSenhaHash(
-  senhaHash: string
-): Result<string, ErroApp> {
-  if (typeof senhaHash !== "string" || senhaHash.trim().length === 0) {
-    return senhaHashInvalida();
-  }
-
-  return wrapOk(senhaHash.trim());
+export function validarEmailUsuario(email: string): Result<string, ErroApp> {
+  return mapearErro(
+    validarEmail(email, "email"),
+    "email",
+    email,
+  );
 }
 
-export function validarLimite(limite?: number): Result<number, ErroApp> {
-  if (limite === undefined) return wrapOk(50);
-
-  if (!Number.isInteger(limite) || limite <= 0) {
-    return usuarioInvalido({ campo: "limite", valor: limite });
-  }
-
-  return wrapOk(limite);
+export function validarSenhaHash(senhaHash: string): Result<string, ErroApp> {
+  return mapearErro(
+    validarTextoObrigatorio(senhaHash, "senhaHash", 20),
+    "senhaHash",
+    senhaHash,
+  );
 }

@@ -4,72 +4,381 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["api", "audit", "jobs", "main"]
+  schemas  = ["api", "audit", "core", "jobs"]
 }
 
-model Usuario {
-  id                      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  locatario_id            String?        @db.Uuid
-  email                   String
-  nome                    String
-  senha_hash              String
-  status                  status_usuario @default(ATIVO)
-  administrador           Boolean        @default(false)
-  ultimo_login_em         DateTime?      @db.Timestamptz(6)
-  criado_em               DateTime       @default(now()) @db.Timestamptz(6)
-  atualizado_em           DateTime       @default(now()) @db.Timestamptz(6)
-  excluido_em             DateTime?      @db.Timestamptz(6)
-  excluido_por_usuario_id String?        @db.Uuid
-  motivo_exclusao         String?
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model auditoria_locatario {
+  auditoria_id   String     @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id   String     @db.Uuid
+  usuario_id     String     @db.Uuid
+  evento         String
+  sucesso        Boolean
+  erro_codigo    String?
+  erro_mensagem  String?
+  entidade_nome  String?
+  entidade_tipo  String?
+  entidade_id    String?
+  origem         String?
+  requisicao_id  String?
+  endereco_ip    String?    @db.Inet
+  agente_usuario String?
+  agente_tipo    String?
+  metadados      Json       @default("{}")
+  criado_em      DateTime   @default(now()) @db.Timestamptz(6)
+  locatarios     locatarios @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "auditoria_locatario_locatarios_fk")
+  usuarios       usuarios   @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "auditoria_locatario_usuarios_fk")
 
-  @@map("usuarios")
-  @@schema("main")
+  @@id([auditoria_id, locatario_id, usuario_id], map: "auditoria_locatario_pk")
+  @@schema("audit")
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model auditoria_plataforma {
+  auditoria_id      String      @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id        String      @db.Uuid
+  locatario_alvo_id String?     @db.Uuid
+  evento            String
+  sucesso           Boolean
+  erro_codigo       String?
+  erro_mensagem     String?
+  entidade_nome     String?
+  entidade_tipo     String?
+  entidade_id       String?
+  origem            String?
+  requisicao_id     String?
+  endereco_ip       String?     @db.Inet
+  agente_usuario    String?
+  agente_tipo       String?
+  metadados         Json        @default("{}")
+  criado_em         DateTime    @default(now()) @db.Timestamptz(6)
+  locatarios        locatarios? @relation(fields: [locatario_alvo_id], references: [locatario_id], map: "auditoria_plataforma_locatarios_fk")
+  usuarios          usuarios    @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "auditoria_plataforma_usuarios_fk")
+
+  @@id([auditoria_id, usuario_id], map: "auditoria_plataforma_pk")
+  @@schema("audit")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model assinaturas {
+  assinatura_id         String               @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id          String               @db.Uuid
+  plano_id              String               @db.Uuid
+  status                String               @default("ATIVA")
+  inicio_em             DateTime             @default(now()) @db.Timestamptz(6)
+  fim_em                DateTime?            @db.Timestamptz(6)
+  renovacao_em          DateTime?            @db.Timestamptz(6)
+  motivo                String?
+  moeda                 String               @default("BRL")
+  valor_centavos        Int                  @default(0)
+  ciclo                 String               @default("MENSAL")
+  proximo_vencimento_em DateTime?            @db.Timestamptz(6)
+  ultimo_pagamento_em   DateTime?            @db.Timestamptz(6)
+  falha_pagamento_em    DateTime?            @db.Timestamptz(6)
+  criado_em             DateTime             @default(now()) @db.Timestamptz(6)
+  atualizado_em         DateTime             @default(now()) @db.Timestamptz(6)
+  excluido_em           DateTime?            @db.Timestamptz(6)
+  locatarios            locatarios           @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "assinaturas_locatarios_fk")
+  planos                planos               @relation(fields: [plano_id], references: [id], onDelete: Cascade, map: "assinaturas_planos_fk")
+  modulos_assinatura    modulos_assinatura[]
+
+  @@id([assinatura_id, locatario_id], map: "assinaturas_pk")
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model configuracoes_locatario {
+  locatario_id      String     @db.Uuid
+  configuracao_id   String     @db.Uuid
+  modo_tema         String     @default("SISTEMA")
+  identidade_visual String     @unique
+  cor_primaria      String?
+  cor_secundaria    String?
+  cor_terciaria     String?
+  url_logo          String?
+  ativa             Boolean    @default(false)
+  criado_em         DateTime   @default(now()) @db.Timestamptz(6)
+  atualizado_em     DateTime   @default(now()) @db.Timestamptz(6)
+  locatarios        locatarios @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "configuracoes_locatario_locatarios_fk")
+
+  @@id([locatario_id, configuracao_id], map: "configuracoes_locatario_pk")
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model locatarios {
-  id                      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nome                    String
-  plano_id                String           @db.Uuid
-  excluido_em             DateTime?        @db.Timestamptz(6)
-  excluido_por_usuario_id String?          @db.Uuid
+  slug                    String
+  documento               String?
+  email                   String
+  fuso_horario            String                    @default("America/Sao_Paulo")
+  status                  status_locatario          @default(ATIVO)
+  excluido_em             DateTime?                 @db.Timestamptz(6)
   motivo_exclusao         String?
-  slug                    String           @unique
-  status                  status_locatario @default(ATIVO)
-  criado_em               DateTime         @default(now()) @db.Timestamptz(6)
-  atualizado_em           DateTime         @default(now()) @db.Timestamptz(6)
+  suspenso_em             DateTime?                 @db.Timestamptz(6)
+  motivo_suspensao        String?
+  reativado_em            DateTime?                 @db.Timestamptz(6)
+  motivo_reativacao       String?
+  criado_em               DateTime                  @default(now()) @db.Timestamptz(6)
+  atualizado_em           DateTime                  @default(now()) @db.Timestamptz(6)
+  auditoria_locatario     auditoria_locatario[]
+  auditoria_plataforma    auditoria_plataforma[]
+  assinaturas             assinaturas[]
+  configuracoes_locatario configuracoes_locatario[]
+  tokens                  tokens[]
+  usuarios                usuarios[]
+  usuarios_papeis         usuarios_papeis[]
+  exportacoes             exportacoes[]
+  importacoes             importacoes[]
 
-  @@schema("main")
+  @@schema("core")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model modulos {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  codigo        String
-  nome          String
-  categoria     String
-  ativo         Boolean  @default(true)
-  criado_em     DateTime @default(now()) @db.Timestamptz(6)
-  atualizado_em DateTime @default(now()) @db.Timestamptz(6)
+  modulo_id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo             String               @unique
+  nome               String
+  categoria          String
+  ativo              Boolean              @default(true)
+  gratuito           Boolean              @default(false)
+  ordem_exibicao     Int                  @default(0)
+  criado_em          DateTime             @default(now()) @db.Timestamptz(6)
+  atualizado_em      DateTime             @default(now()) @db.Timestamptz(6)
+  modulos_assinatura modulos_assinatura[]
 
-  @@schema("main")
+  @@schema("core")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model modulos_assinatura {
+  locatario_id  String      @db.Uuid
+  modulo_id     String      @db.Uuid
+  habilitado    Boolean     @default(true)
+  origem        String      @default("PLANO")
+  criado_em     DateTime    @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime    @default(now()) @db.Timestamptz(6)
+  assinatura_id String      @db.Uuid
+  assinaturas   assinaturas @relation(fields: [assinatura_id, locatario_id], references: [assinatura_id, locatario_id], onDelete: Cascade, map: "modulos_assinatura_assinaturas_fk")
+  modulos       modulos     @relation(fields: [modulo_id], references: [modulo_id], onDelete: Cascade, map: "modulos_assinatura_modulos_fk")
+
+  @@id([locatario_id, assinatura_id, modulo_id], map: "modulos_assinatura_pk")
+  @@schema("core")
+}
+
+model papeis {
+  papel_id            String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo              String                @unique
+  nome                String
+  descricao           String?
+  criado_em           DateTime              @default(now()) @db.Timestamptz(6)
+  atualizado_em       DateTime              @default(now()) @db.Timestamptz(6)
+  papel_permissoes    papel_permissoes[]
+  usuarios_papeis     usuarios_papeis[]
+  usuarios_plataforma usuarios_plataforma[]
+
+  @@schema("core")
+}
+
+model papel_permissoes {
+  papel_id      String     @db.Uuid
+  permissao_id  String     @db.Uuid
+  criado_em     DateTime   @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime   @default(now()) @db.Timestamptz(6)
+  papeis        papeis     @relation(fields: [papel_id], references: [papel_id], onDelete: Cascade, map: "fk_papel_permissoes_papeis")
+  permissoes    permissoes @relation(fields: [permissao_id], references: [permissao_id], onDelete: Cascade, map: "fk_papel_permissoes_permissoes")
+
+  @@id([papel_id, permissao_id], map: "pk_papel_permissoes")
+  @@schema("core")
+}
+
+model permissoes {
+  permissao_id     String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo           String             @unique
+  nome             String
+  descricao        String?
+  criado_em        DateTime           @default(now()) @db.Timestamptz(6)
+  atualizado_em    DateTime           @default(now()) @db.Timestamptz(6)
+  papel_permissoes papel_permissoes[]
+
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model planos {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  codigo        String
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo        String        @unique
   nome          String
-  ativo         Boolean  @default(true)
-  criado_em     DateTime @default(now()) @db.Timestamptz(6)
-  atualizado_em DateTime @default(now()) @db.Timestamptz(6)
+  ativo         Boolean       @default(true)
+  criado_em     DateTime      @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime      @default(now()) @db.Timestamptz(6)
+  assinaturas   assinaturas[]
 
-  @@schema("main")
+  @@schema("core")
 }
 
-enum formato_exportacao {
-  CSV
-  XLSX
-  PDF
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tokens {
+  token_id           String      @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id         String      @db.Uuid
+  locatario_id       String?     @db.Uuid
+  hash_token         String      @unique
+  tipo               tipo_token
+  emitido_em         DateTime    @default(now()) @db.Timestamptz(6)
+  expira_em          DateTime    @db.Timestamptz(6)
+  revogado_em        DateTime?   @db.Timestamptz(6)
+  proximo_token_id   String?     @db.Uuid
+  proximo_usuario_id String?     @db.Uuid
+  agente_usuario     String?
+  endereco_ip        String?     @db.Inet
+  tokens             tokens?     @relation("tokensTotokens", fields: [proximo_token_id, proximo_usuario_id], references: [token_id, usuario_id], map: "fk_proximo_token_id")
+  other_tokens       tokens[]    @relation("tokensTotokens")
+  usuarios           usuarios    @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "fk_tokens_usuarios")
+  locatarios         locatarios? @relation(fields: [locatario_id], references: [locatario_id], map: "tokens_locatarios_fk")
 
-  @@schema("main")
+  @@id([token_id, usuario_id], map: "pk_token")
+  @@schema("core")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios {
+  usuario_id                                                  String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id                                                String?                @db.Uuid
+  email                                                       String
+  nome                                                        String
+  senha_hash                                                  String
+  status                                                      status_usuario         @default(ATIVO)
+  ultimo_login_em                                             DateTime?              @db.Timestamptz(6)
+  criado_em                                                   DateTime               @default(now()) @db.Timestamptz(6)
+  criado_por_usuario_id                                       String?                @db.Uuid
+  atualizado_em                                               DateTime               @default(now()) @db.Timestamptz(6)
+  atualizado_por_usuario_id                                   String?                @db.Uuid
+  excluido_em                                                 DateTime?              @db.Timestamptz(6)
+  excluido_por_usuario_id                                     String?                @db.Uuid
+  motivo_exclusao                                             String?
+  auditoria_locatario                                         auditoria_locatario[]
+  auditoria_plataforma                                        auditoria_plataforma[]
+  tokens                                                      tokens[]
+  usuarios_usuarios_atualizado_por_usuario_idTousuarios       usuarios?              @relation("usuarios_atualizado_por_usuario_idTousuarios", fields: [atualizado_por_usuario_id], references: [usuario_id], map: "fk_usuarios_atualizado_por_usuario")
+  other_usuarios_usuarios_atualizado_por_usuario_idTousuarios usuarios[]             @relation("usuarios_atualizado_por_usuario_idTousuarios")
+  usuarios_usuarios_criado_por_usuario_idTousuarios           usuarios?              @relation("usuarios_criado_por_usuario_idTousuarios", fields: [criado_por_usuario_id], references: [usuario_id], map: "fk_usuarios_criado_por_usuario")
+  other_usuarios_usuarios_criado_por_usuario_idTousuarios     usuarios[]             @relation("usuarios_criado_por_usuario_idTousuarios")
+  usuarios_usuarios_excluido_por_usuario_idTousuarios         usuarios?              @relation("usuarios_excluido_por_usuario_idTousuarios", fields: [excluido_por_usuario_id], references: [usuario_id], map: "fk_usuarios_excluido_por_usuario")
+  other_usuarios_usuarios_excluido_por_usuario_idTousuarios   usuarios[]             @relation("usuarios_excluido_por_usuario_idTousuarios")
+  locatarios                                                  locatarios?            @relation(fields: [locatario_id], references: [locatario_id], map: "fk_usuarios_locatarios")
+  usuarios_papeis                                             usuarios_papeis[]
+  usuarios_plataforma                                         usuarios_plataforma[]
+  exportacoes                                                 exportacoes[]
+  importacoes                                                 importacoes[]
+
+  @@schema("core")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios_papeis {
+  usuario_id    String     @db.Uuid
+  locatario_id  String     @db.Uuid
+  papel_id      String     @db.Uuid
+  criado_em     DateTime   @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime   @default(now()) @db.Timestamptz(6)
+  locatarios    locatarios @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "usuarios_papeis_locatarios_fk")
+  papeis        papeis     @relation(fields: [papel_id], references: [papel_id], onDelete: Cascade, map: "usuarios_papeis_papeis_fk")
+  usuarios      usuarios   @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "usuarios_papeis_usuarios_fk")
+
+  @@id([usuario_id, locatario_id, papel_id], map: "usuarios_papeis_pk")
+  @@schema("core")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuarios_plataforma {
+  usuario_id    String   @db.Uuid
+  papel_id      String   @db.Uuid
+  criado_em     DateTime @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime @default(now()) @db.Timestamptz(6)
+  papeis        papeis   @relation(fields: [papel_id], references: [papel_id], onDelete: Cascade, map: "usuarios_plataforma_papeis_fk")
+  usuarios      usuarios @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "usuarios_plataforma_usuarios_fk")
+
+  @@id([usuario_id, papel_id], map: "pk_usuarios_plataforma")
+  @@schema("core")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exportacoes {
+  exportacao_id         String             @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id          String             @db.Uuid
+  criado_por_usuario_id String?            @db.Uuid
+  formato               formato_exportacao
+  status                status_job         @default(PENDENTE)
+  parametros            Json               @default("{}")
+  referencia_resultado  String?
+  mensagem_erro         String?
+  criado_em             DateTime           @default(now()) @db.Timestamptz(6)
+  atualizado_em         DateTime           @default(now()) @db.Timestamptz(6)
+  locatarios            locatarios         @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "exportacoes_locatarios_fk")
+  usuarios              usuarios?          @relation(fields: [criado_por_usuario_id], references: [usuario_id], onDelete: Cascade, map: "exportacoes_usuarios_fk")
+
+  @@id([exportacao_id, locatario_id], map: "exportacoes_pk")
+  @@schema("jobs")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model importacoes {
+  importacao_id         String                 @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id          String                 @db.Uuid
+  criado_por_usuario_id String?                @db.Uuid
+  tipo_origem           tipo_origem_importacao
+  referencia_origem     String?
+  status                status_job             @default(PENDENTE)
+  mapeamento_colunas    Json                   @default("{}")
+  estatisticas          Json                   @default("{}")
+  mensagem_erro         String?
+  iniciado_em           DateTime?              @db.Timestamptz(6)
+  finalizado_em         DateTime?              @db.Timestamptz(6)
+  criado_em             DateTime               @default(now()) @db.Timestamptz(6)
+  atualizado_em         DateTime               @default(now()) @db.Timestamptz(6)
+  locatarios            locatarios             @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "importacoes_locatarios_fk")
+  usuarios              usuarios?              @relation(fields: [criado_por_usuario_id], references: [usuario_id], onDelete: Cascade, map: "importacoes_usuarios_fk")
+  itens_importacao      itens_importacao[]
+
+  @@id([importacao_id, locatario_id], map: "importacoes_pk")
+  @@schema("jobs")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model itens_importacao {
+  item_id       String      @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  importacao_id String      @db.Uuid
+  locatario_id  String      @db.Uuid
+  numero_linha  Int
+  dados_brutos  Json
+  status        status_job  @default(PENDENTE)
+  detalhe_erro  String?
+  criado_em     DateTime    @default(now()) @db.Timestamptz(6)
+  importacoes   importacoes @relation(fields: [importacao_id, locatario_id], references: [importacao_id, locatario_id], onDelete: Cascade, map: "itens_importacao_importacoes_fk")
+
+  @@id([item_id, importacao_id, locatario_id], map: "itens_importacao_pk")
+  @@schema("jobs")
+}
+
+enum ciclo_cobranca {
+  MENSAL
+  ANUAL
+
+  @@schema("core")
+}
+
+enum origem_modulo_assinatura {
+  PLANO_SUGERIDO
+  ADDON
+  CORTESIA
+  MANUAL_SUPERADMIN
+
+  @@schema("core")
 }
 
 enum planos_locatario {
@@ -78,7 +387,56 @@ enum planos_locatario {
   PRO
   EMPRESARIAL
 
-  @@schema("main")
+  @@schema("core")
+}
+
+enum status_assinatura {
+  ATIVA
+  SUSPENSA
+  CANCELADA
+  EXPIRADA
+
+  @@schema("core")
+}
+
+enum status_locatario {
+  ATIVO
+  SUSPENSO
+  EXCLUIDO
+
+  @@schema("core")
+}
+
+enum status_modulo_assinatura {
+  ATIVO
+  SUSPENSO
+  REMOVIDO
+
+  @@schema("core")
+}
+
+enum status_usuario {
+  ATIVO
+  BLOQUEADO
+
+  @@schema("core")
+}
+
+enum tipo_token {
+  ACESSO
+  REFRESH
+  RECUPERACAO_SENHA
+  CONFIRMACAO_EMAIL
+
+  @@schema("core")
+}
+
+enum formato_exportacao {
+  CSV
+  XLSX
+  PDF
+
+  @@schema("jobs")
 }
 
 enum status_job {
@@ -88,22 +446,7 @@ enum status_job {
   ERRO
   CANCELADO
 
-  @@schema("main")
-}
-
-enum status_locatario {
-  ATIVO
-  SUSPENSO
-  EXCLUIDO
-
-  @@schema("main")
-}
-
-enum status_usuario {
-  ATIVO
-  BLOQUEADO
-
-  @@schema("main")
+  @@schema("jobs")
 }
 
 enum tipo_origem_importacao {
@@ -111,5 +454,5 @@ enum tipo_origem_importacao {
   XLSX
   GOOGLE_SHEETS
 
-  @@schema("main")
+  @@schema("jobs")
 }

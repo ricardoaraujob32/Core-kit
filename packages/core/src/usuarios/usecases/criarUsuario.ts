@@ -1,59 +1,59 @@
 import { wrapOk } from "../../result";
-import type {
-  CriarUsuarioInput,
-  CriarUsuarioOutput,
-  ResultadoCriarUsuario,
-  UsuarioStatus,
-} from "../tipos";
+import type { CriarUsuarioInput, CriarUsuarioOutput, ResultadoCriarUsuario } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import {
-  validarEmail,
-  validarLocatarioId,
-  validarSenhaHash,
-} from "../validadores";
-import { emailJaEmUso, usuarioInvalido } from "../erros";
+import type { IdPorta, RelogioPorta } from "../../utils";
+import { validarEmailUsuario, validarNomeUsuario, validarSenhaHash } from "../validadores";
+import { emailUsuarioJaExiste } from "../erros";
+import { validarLocatarioId } from "../../locatarios";
 
-export function criarCriarUsuario(deps: {
+export function createCriarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
+  idPorta: IdPorta;
+  relogio: RelogioPorta;
 }) {
   return async function criarUsuario(
-    input: CriarUsuarioInput
+    input: CriarUsuarioInput,
   ): ResultadoCriarUsuario {
-    const loc = validarLocatarioId(input.locatarioId);
-    if (!loc.ok) return loc;
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
 
-    const email = validarEmail(input.email);
+    const email = validarEmailUsuario(input.email);
     if (!email.ok) return email;
+
+    const nome = validarNomeUsuario(input.nome);
+    if (!nome.ok) return nome;
 
     const senhaHash = validarSenhaHash(input.senhaHash);
     if (!senhaHash.ok) return senhaHash;
 
-    const status: UsuarioStatus = input.status ?? "ATIVO";
-
-    if (!["ATIVO", "INATIVO", "BLOQUEADO"].includes(status)) {
-      return usuarioInvalido({ campo: "status", valor: input.status });
-    }
-
-    const existenteRes = await deps.usuariosRepo.buscarPorEmail({
-      locatarioId: loc.value,
-      email: email.value,
+    const existente = await deps.usuariosRepo.buscarPorEmailNoLocatario({
+      locatarioId: locatarioId.value,
+      emailNormalizado: email.value,
     });
-    if (!existenteRes.ok) return existenteRes;
-
-    if (existenteRes.value) {
-      return emailJaEmUso(email.value);
+    if (!existente.ok) return existente;
+    if (existente.value) {
+      return emailUsuarioJaExiste(email.value, locatarioId.value);
     }
 
-    const criarRes = await deps.usuariosRepo.criar({
-      locatarioId: loc.value,
+    const usuarioId = deps.idPorta.gerarId();
+    const agora = deps.relogio.agora();
+
+    const criado = await deps.usuariosRepo.criar({
+      usuarioId,
+      locatarioId: locatarioId.value,
       email: email.value,
+      nome: nome.value,
       senhaHash: senhaHash.value,
-      status,
+      status: "ATIVO",
+      ultimoLoginEm: null,
+      criadoEm: agora,
+      atualizadoEm: agora,
+      excluidoEm: null,
     });
-    if (!criarRes.ok) return criarRes;
+    if (!criado.ok) return criado;
 
     return wrapOk<CriarUsuarioOutput>({
-      usuarioId: criarRes.value.usuarioId,
+      usuarioId: criado.value.usuarioId,
     });
   };
 }

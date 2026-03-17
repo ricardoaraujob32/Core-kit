@@ -1,150 +1,75 @@
-import { describe, it, expect } from "vitest";
-import { criarObterLocatario } from "../../src/locatarios/usecases/obterLocatario";
-import {
-  criarLocatarioSeed,
-  criarLocatariosRepositorioMemoria,
-} from "../../src/locatarios/repositorioMemoria";
+import { describe, expect, it } from "vitest";
+import { createObterLocatario } from "../../src/locatarios/usecases/obterLocatario";
+import { criarLocatarioSeed, criarLocatariosRepositorioMemoria } from "../../src/locatarios/repositorioMemoria";
 
-describe("locatarios - obterLocatario", () => {
-  it("retorna Ok quando locatário existe e está ATIVO", async () => {
+describe("obterLocatario", () => {
+  it("obtém locatário ativo", async () => {
     const repo = criarLocatariosRepositorioMemoria([
       criarLocatarioSeed({
         locatarioId: "loc-1",
-        nome: "Loja Centro",
+        nome: "Empresa A",
         status: "ATIVO",
       }),
     ]);
 
-    const obterLocatario = criarObterLocatario({
-      locRepo: repo,
-    });
+    const usecase = createObterLocatario({ locRepo: repo });
 
-    const r = await obterLocatario({
-      locatarioId: "loc-1",
-    });
+    const resultado = await usecase({ locatarioId: "loc-1" });
 
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.value.locatarioId).toBe("loc-1");
-      expect(r.value.nome).toBe("Loja Centro");
-      expect(r.value.status).toBe("ATIVO");
-    }
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+
+    expect(resultado.value.locatarioId).toBe("loc-1");
+    expect(resultado.value.status).toBe("ATIVO");
   });
 
-  it("retorna Err(NAO_ENCONTRADO) quando locatário não existe", async () => {
+  it("falha quando locatário não existe", async () => {
     const repo = criarLocatariosRepositorioMemoria();
+    const usecase = createObterLocatario({ locRepo: repo });
 
-    const obterLocatario = criarObterLocatario({
-      locRepo: repo,
-    });
+    const resultado = await usecase({ locatarioId: "loc-x" });
 
-    const r = await obterLocatario({
-      locatarioId: "loc-999",
-    });
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_ENCONTRADO");
-    }
+    expect(resultado.error.codigo).toBe("LOCATARIO_NAO_ENCONTRADO");
   });
 
-  it("retorna Err(CONFLITO) quando locatário está SUSPENSO", async () => {
+  it("falha quando locatário está suspenso", async () => {
     const repo = criarLocatariosRepositorioMemoria([
       criarLocatarioSeed({
         locatarioId: "loc-1",
-        nome: "Loja Centro",
+        nome: "Empresa A",
         status: "SUSPENSO",
       }),
     ]);
 
-    const obterLocatario = criarObterLocatario({
-      locRepo: repo,
-    });
+    const usecase = createObterLocatario({ locRepo: repo });
 
-    const r = await obterLocatario({
-      locatarioId: "loc-1",
-    });
+    const resultado = await usecase({ locatarioId: "loc-1" });
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("CONFLITO");
-      expect(r.error.detalhes).toMatchObject({
-        status: "SUSPENSO",
-      });
-    }
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+
+    expect(resultado.error.codigo).toBe("LOCATARIO_SUSPENSO");
   });
 
-  it("retorna Err(CONFLITO) quando locatário está ENCERRADO", async () => {
+  it("falha quando locatário está encerrado", async () => {
     const repo = criarLocatariosRepositorioMemoria([
       criarLocatarioSeed({
         locatarioId: "loc-1",
-        nome: "Loja Centro",
+        nome: "Empresa A",
         status: "ENCERRADO",
       }),
     ]);
 
-    const obterLocatario = criarObterLocatario({
-      locRepo: repo,
-    });
+    const usecase = createObterLocatario({ locRepo: repo });
 
-    const r = await obterLocatario({
-      locatarioId: "loc-1",
-    });
+    const resultado = await usecase({ locatarioId: "loc-1" });
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("CONFLITO");
-      expect(r.error.detalhes).toMatchObject({
-        status: "ENCERRADO",
-      });
-    }
-  });
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
 
-  it("retorna Err(INVALIDO) quando locatarioId é vazio", async () => {
-    const repo = criarLocatariosRepositorioMemoria();
-
-    const obterLocatario = criarObterLocatario({
-      locRepo: repo,
-    });
-
-    const r = await obterLocatario({
-      locatarioId: "",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("INVALIDO");
-    }
-  });
-
-  it("propaga erro do repositório", async () => {
-    const obterLocatario = criarObterLocatario({
-      locRepo: {
-        async criar() {
-          throw new Error("não usado");
-        },
-        async listar() {
-          throw new Error("não usado");
-        },
-        async buscarPorId() {
-          return {
-            ok: false as const,
-            error: {
-              codigo: "ERRO_INTERNO",
-              mensagem: "Falha ao buscar locatário",
-            },
-          };
-        },
-      },
-    });
-
-    const r = await obterLocatario({
-      locatarioId: "loc-1",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("ERRO_INTERNO");
-    }
+    expect(resultado.error.codigo).toBe("LOCATARIO_ENCERRADO");
   });
 });

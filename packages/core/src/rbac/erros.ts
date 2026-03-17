@@ -1,17 +1,27 @@
-import type { ErroApp } from "../erros";
-import { wrapErr } from "../result";
+// packages/core/src/rbac/erros.ts
 
-export function permissaoInvalida(permissao: string) {
-  return wrapErr<ErroApp>({
-    codigo: "INVALIDO",
+import { createErroApp } from "../ROPHelpers";
+import { Permissao } from "./tipos";
+
+export function permissaoInvalida(permissao: Permissao) {
+  return createErroApp({
+    codigo: "RBAC_PERMISSAO_INVALIDA",
     mensagem: "Permissão inválida.",
     detalhes: { permissao },
   });
 }
 
-export function naoAutorizado(permissao: string) {
-  return wrapErr<ErroApp>({
-    codigo: "NAO_AUTORIZADO",
+export function naoAutenticado() {
+  return createErroApp({
+    codigo: "RBAC_NAO_AUTENTICADO",
+    mensagem: "Usuário não autenticado.",
+    detalhes: {},
+  });
+}
+
+export function naoAutorizado(permissao: Permissao) {
+  return createErroApp({
+    codigo: "RBAC_NAO_AUTORIZADO",
     mensagem: "Usuário não possui a permissão necessária.",
     detalhes: { permissao },
   });

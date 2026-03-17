@@ -1,76 +1,59 @@
 // packages/core/src/auth/tipos.ts
 
-import { ContextoExecucao } from "../contextoExecucao";
-import { ErroApp } from "../erros";
-import { LocatarioId } from "../locatarios/tipos";
-import { Result } from "../result";
-import { UsuarioId } from "../usuarios";
+import type { ErroApp } from "../kernel/erros";
+import type { Result } from "../kernel/result";
+import type { LocatarioId } from "../locatarios";
+import type { UsuarioId } from "../usuarios";
+import type { ContextoExecucaoRbac } from "../rbac";
 
-export type EmitirSessaoInput = {
+export interface EmitirSessaoInput {
   locatarioId: LocatarioId;
   email: string;
   senha: string;
-  // opcional: "agora" vem do ContextoExecucao; nesta fase pode vir por injeção
-};
+}
 
-export type Sessao = {
+export interface Sessao {
   accessToken: string;
   refreshToken: string;
   accessExpiraEm: Date;
   refreshExpiraEm: Date;
-};
-
-export type JwtPayload = {
-  sub: string
-  loc: string
-  session: string
-  iat: number
-  exp: number
-  iss: string
 }
 
-export type SessaoEmitida = {
-  accessToken: string;
-  refreshToken: string; // token bruto (somente retorno)
-  accessExpiraEm: Date;
-  refreshExpiraEm: Date;
-};
+export interface JwtPayloadAuth {
+  sub: UsuarioId;
+  loc: LocatarioId;
+  session: string;
+  iat: number;
+  exp: number;
+  iss: string;
+}
 
-export type ValidarSessaoInput = {
+export interface ValidarSessaoInput {
   accessToken: string;
-};
+}
 
-export type SessaoValidada = {
+export interface SessaoValidada {
   locatarioId: LocatarioId;
   usuarioId: UsuarioId;
   sessionId: string;
   expiraEm: Date;
-};
+}
 
-export type ResolverPermissoesInput = {
-  ctx: ContextoExecucao; // exige usuarioId presente
-};
-
-export type ContextoAutorizado = ContextoExecucao; // enriquecido via comPermissoes/comPapeis
-
-export type RotacionarRefreshInput = {
+export interface RotacionarRefreshInput {
   locatarioId: LocatarioId;
-  refreshToken: string; // bruto
-};
-
-export type SessaoRotacionada = {
-  accessToken: string;
-  accessExpiraEm: Date;
   refreshToken: string;
-  refreshExpiraEm: Date;
-};
+}
 
-export type ResolverContextoAutorizadoInput = {
+export interface ResolverContextoAutorizadoInput {
   sessao: SessaoValidada;
-};
+}
 
-export type ResultadoSessao = Promise<Result<Sessao, ErroApp>>;
+export type ContextoAutorizado = ContextoExecucaoRbac;
+
+export type ResultadoEmitirSessao = Promise<Result<Sessao, ErroApp>>;
+
 export type ResultadoValidarSessao = Result<SessaoValidada, ErroApp>;
-export type ResultadoContextoAutorizado = Promise<
-  Result<ContextoExecucao, ErroApp>
->;
+
+export type ResultadoRotacionarRefresh = Promise<Result<Sessao, ErroApp>>;
+
+export type ResultadoResolverContextoAutorizado = Promise< Result<ContextoAutorizado, ErroApp> >;

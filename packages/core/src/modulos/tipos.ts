@@ -1,6 +1,9 @@
+// packages/core/src/modulos/tipos.ts
+
 import { LocatarioId } from "../locatarios";
 
 export type ModuloCodigo = string;
+export type ModuloId = string;
 
 export type OrigemModuloHabilitado = "SISTEMA" | "PLANO" | "MANUAL";
 

@@ -1,22 +1,23 @@
-import { err, ok } from "../result"
-import { erroSessaoInvalida } from "../erros"
-
-import { wrapOk } from "../../result";
-import type { ResultadoValidarSessao, SessaoValidada, ValidarSessaoInput } from "../tipos";
-import type { JwtPorta } from "../portasRepositorio";
+import { wrapOk } from "../../kernel/result";
+import type {
+  ResultadoValidarSessao,
+  SessaoValidada,
+  ValidarSessaoInput,
+} from "../tipos";
+import type { JwtAuthPorta } from "../portasServico";
 import { validarTokenNaoVazio } from "../validadores";
 import { sessaoInvalida } from "../erros";
 
 export function criarValidarSessao(deps: {
-  jwt: JwtPorta;
+  jwtPorta: JwtAuthPorta;
 }) {
   return function validarSessao(
-    input: ValidarSessaoInput
+    input: ValidarSessaoInput,
   ): ResultadoValidarSessao {
-    const token = validarTokenNaoVazio(input.token);
+    const token = validarTokenNaoVazio(input.accessToken);
     if (!token.ok) return token;
 
-    const payloadRes = deps.jwt.validarAccessToken(input.token);
+    const payloadRes = deps.jwtPorta.validarAccessToken(token.value);
     if (!payloadRes.ok) return sessaoInvalida();
 
     const payload = payloadRes.value;

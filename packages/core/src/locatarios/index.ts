@@ -1,6 +1,3 @@
-// packages/core/src/locatarios/index.ts
-
-// Tipos
 export type {
   LocatarioId,
   LocatarioStatus,
@@ -14,7 +11,6 @@ export type {
   ResultadoListarLocatarios,
 } from "./tipos";
 
-// Erros
 export {
   locatarioInvalido,
   locatarioNaoEncontrado,
@@ -22,24 +18,18 @@ export {
   locatarioEncerrado,
 } from "./erros";
 
-// Validadores
 export {
   validarNomeLocatario,
   validarLocatarioId,
 } from "./validadores";
 
-// Repositório
-export type {
-  LocatariosRepositorio,
-  IdPorta,
-  RelogioPorta,
-} from "./portasRepositorio";
+export type { LocatariosRepositorio } from "./portasRepositorio";
+
 export {
   criarLocatariosRepositorioMemoria,
   criarLocatarioSeed,
 } from "./repositorioMemoria";
 
-// Casos de uso
-export { criarCriarLocatario } from "./usecases/criarLocatario";
-export { criarObterLocatario } from "./usecases/obterLocatario";
-export { criarListarLocatarios } from "./usecases/listarLocatarios";
+export { createCriarLocatario } from "./usecases/criarLocatario";
+export { createObterLocatario } from "./usecases/obterLocatario";
+export { createListarLocatarios } from "./usecases/listarLocatarios";

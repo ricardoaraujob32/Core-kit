@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS importacoes (
-  id                    UUID DEFAULT gen_random_uuid(),
+  importacao_id         UUID DEFAULT gen_random_uuid(),
   locatario_id          UUID NOT NULL,
   criado_por_usuario_id UUID NULL,
   tipo_origem           tipo_origem_importacao NOT NULL,

@@ -1,75 +1,73 @@
-import { wrapOk } from "../../result";
-import type { EmitirSessaoInput, ResultadoSessao, Sessao } from "../tipos";
+import { wrapOk } from "../../kernel/result";
 import type {
-  CriptoAuthPorta,
+  EmitirSessaoInput,
+  ResultadoEmitirSessao,
+  Sessao,
+} from "../tipos";
+import type {
   EventosSegurancaPorta,
+  HashAuthPorta,
   IdPorta,
-  JwtPorta,
-  LocatariosRepositorioAuth,
+  JwtAuthPorta,
+  LocatariosAuthPorta,
   RelogioPorta,
-  TokensServicePorta,
-  UsuariosRepositorioAuth,
-} from "../portasRepositorio";
+  TokensAuthPorta,
+  UsuariosAuthPorta,
+} from "../portasServico";
 import {
-  validarEmail,
-  validarLocatarioId,
+  validarEmailAuth,
+  validarLocatarioIdAuth,
   validarSenha,
 } from "../validadores";
 import {
   credenciaisInvalidas,
+  locatarioNaoPodeAutenticar,
   usuarioNaoPodeAutenticar,
 } from "../erros";
 
 export function criarEmitirSessao(deps: {
-  usuariosRepo: UsuariosRepositorioAuth;
-  locatariosRepo?: LocatariosRepositorioAuth;
-  tokens: TokensServicePorta;
-  cripto: CriptoAuthPorta;
-  jwt: JwtPorta;
+  usuariosPorta: UsuariosAuthPorta;
+  locatariosPorta?: LocatariosAuthPorta;
+  tokensPorta: TokensAuthPorta;
+  hashPorta: HashAuthPorta;
+  jwtPorta: JwtAuthPorta;
   relogio: RelogioPorta;
-  ids: IdPorta;
+  idPorta: IdPorta;
   eventos?: EventosSegurancaPorta;
   ttlAccessSegundos?: number;
   ttlRefreshMs?: number;
   issuer?: string;
 }) {
   return async function emitirSessao(
-    input: EmitirSessaoInput
-  ): ResultadoSessao {
-    const loc = validarLocatarioId(input.locatarioId);
-    if (!loc.ok) return Promise.resolve(loc);
+    input: EmitirSessaoInput,
+  ): ResultadoEmitirSessao {
+    const locatarioId = validarLocatarioIdAuth(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
 
-    const email = validarEmail(input.email);
-    if (!email.ok) return Promise.resolve(email);
+    const email = validarEmailAuth(input.email);
+    if (!email.ok) return email;
 
     const senha = validarSenha(input.senha);
-    if (!senha.ok) return Promise.resolve(senha);
+    if (!senha.ok) return senha;
 
     const agora = deps.relogio.agora();
 
-    if (deps.locatariosRepo) {
-      const locRes = await deps.locatariosRepo.buscarPorId({
-        locatarioId: input.locatarioId,
+    if (deps.locatariosPorta) {
+      const locRes = await deps.locatariosPorta.buscarPorId({
+        locatarioId: locatarioId.value,
       });
       if (!locRes.ok) return locRes;
 
       const locatario = locRes.value;
       if (!locatario) return credenciaisInvalidas();
       if (locatario.status !== "ATIVO") {
-        return {
-          ok: false,
-          error: {
-            codigo: "CONFLITO",
-            mensagem: "Locatário indisponível para autenticação.",
-            detalhes: { locatarioId: input.locatarioId, status: locatario.status },
-          },
-        };
+        return locatarioNaoPodeAutenticar(locatario.status);
       }
     }
 
-    const usuarioRes = await deps.usuariosRepo.buscarPorEmail({
-      locatarioId: input.locatarioId,
-      email: input.email,
+    const usuarioRes = await deps.usuariosPorta.buscarPorEmail({
+      locatarioId: locatarioId.value,
+      email: email.value,
     });
     if (!usuarioRes.ok) return usuarioRes;
 
@@ -78,8 +76,8 @@ export function criarEmitirSessao(deps: {
       await deps.eventos?.registrarEvento?.({
         tipo: "auth.login.falha",
         usuarioId: null,
-        locatarioId: input.locatarioId,
-        detalhes: { motivo: "usuario_nao_encontrado", email: input.email },
+        locatarioId: locatarioId.value,
+        detalhes: { motivo: "usuario_nao_encontrado", email: email.value },
         quando: agora,
       });
       return credenciaisInvalidas();
@@ -89,35 +87,35 @@ export function criarEmitirSessao(deps: {
       await deps.eventos?.registrarEvento?.({
         tipo: "auth.login.falha",
         usuarioId: usuario.usuarioId,
-        locatarioId: input.locatarioId,
+        locatarioId: locatarioId.value,
         detalhes: { motivo: "status_invalido", status: usuario.status },
         quando: agora,
       });
       return usuarioNaoPodeAutenticar(usuario.status);
     }
 
-    const senhaOkRes = await deps.cripto.compararSenha(
-      input.senha,
-      usuario.senhaHash
+    const senhaOk = await deps.hashPorta.compararSenha(
+      senha.value,
+      usuario.senhaHash,
     );
-    if (!senhaOkRes.ok) return senhaOkRes;
+    if (!senhaOk.ok) return senhaOk;
 
-    if (!senhaOkRes.value) {
+    if (!senhaOk.value) {
       await deps.eventos?.registrarEvento?.({
         tipo: "auth.login.falha",
         usuarioId: usuario.usuarioId,
-        locatarioId: input.locatarioId,
+        locatarioId: locatarioId.value,
         detalhes: { motivo: "senha_incorreta" },
         quando: agora,
       });
       return credenciaisInvalidas();
     }
 
-    const sessionId = deps.ids.gerarId();
+    const sessionId = deps.idPorta.gerarId();
 
-    const accessRes = await deps.jwt.emitirAccessToken({
+    const accessRes = await deps.jwtPorta.emitirAccessToken({
       usuarioId: usuario.usuarioId,
-      locatarioId: input.locatarioId,
+      locatarioId: locatarioId.value,
       sessionId,
       agora,
       ttlSegundos: deps.ttlAccessSegundos ?? 600,
@@ -125,28 +123,26 @@ export function criarEmitirSessao(deps: {
     });
     if (!accessRes.ok) return accessRes;
 
-    const refreshRes = await deps.tokens.criarRefresh({
-      locatarioId: input.locatarioId,
+    const refreshRes = await deps.tokensPorta.criarRefresh({
+      locatarioId: locatarioId.value,
       usuarioId: usuario.usuarioId,
       agora,
       ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
     });
     if (!refreshRes.ok) return refreshRes;
 
-    const ultimoLoginRes = await deps.usuariosRepo.atualizarUltimoLogin({
-      locatarioId: input.locatarioId,
+    const ultimoLogin = await deps.usuariosPorta.atualizarUltimoLogin({
       usuarioId: usuario.usuarioId,
       quando: agora,
     });
-
-    if (!ultimoLoginRes.ok) {
-      // best-effort: não bloqueia login
+    if (!ultimoLogin.ok) {
+      // best effort
     }
 
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.login.sucesso",
       usuarioId: usuario.usuarioId,
-      locatarioId: input.locatarioId,
+      locatarioId: locatarioId.value,
       detalhes: { sessionId },
       quando: agora,
     });

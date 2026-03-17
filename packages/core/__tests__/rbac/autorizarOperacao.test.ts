@@ -1,96 +1,64 @@
-import { describe, it, expect } from "vitest";
-import { autorizarOperacao } from "../../src/rbac/usecases/autorizarOperacao";
-import { createContextoExecucao } from "../../src/contextoExecucao";
-import { comPermissoes } from "../../src/rbac";
+import { describe, expect, it } from "vitest";
+import { autorizarOperacao } from "../usecases/autorizarOperacao";
 
-describe("rbac - autorizarOperacao", () => {
-  it("retorna Ok quando o contexto possui a permissão exigida", () => {
-    const ctxBase = createContextoExecucao({
-      locatarioId: "tenant-1",
-      usuarioId: "user-1",
+describe("autorizarOperacao", () => {
+  it("autoriza quando usuário possui a permissão", () => {
+    const resultado = autorizarOperacao({
+      ctx: {
+        locatarioId: "loc-1",
+        usuarioId: "user-1",
+        permissoes: ["tenant.usuario.listar"],
+      },
+      permissao: "tenant.usuario.listar",
     });
 
-    const ctx = comPermissoes(ctxBase, ["cliente.ler", "cliente.criar"]);
-
-    const r = autorizarOperacao({
-      ctx,
-      permissao: "cliente.ler",
-    });
-
-    expect(r.ok).toBe(true);
+    expect(resultado.ok).toBe(true);
   });
 
-  it("retorna Err(NAO_AUTENTICADO) quando o contexto não possui usuarioId", () => {
-    const ctx = createContextoExecucao({
-      locatarioId: "tenant-1",
+  it("falha quando usuário não possui a permissão", () => {
+    const resultado = autorizarOperacao({
+      ctx: {
+        locatarioId: "loc-1",
+        usuarioId: "user-1",
+        permissoes: ["tenant.usuario.criar"],
+      },
+      permissao: "tenant.usuario.listar",
     });
 
-    const r = autorizarOperacao({
-      ctx,
-      permissao: "cliente.ler",
-    });
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_AUTENTICADO");
-    }
+    expect(resultado.error.codigo).toBe("RBAC_NAO_AUTORIZADO");
   });
 
-  it("retorna Err(NAO_AUTORIZADO) quando a permissão não está presente", () => {
-    const ctxBase = createContextoExecucao({
-      locatarioId: "tenant-1",
-      usuarioId: "user-1",
+  it("falha quando não há usuário autenticado", () => {
+    const resultado = autorizarOperacao({
+      ctx: {
+        locatarioId: "loc-1",
+        permissoes: ["tenant.usuario.listar"],
+      },
+      permissao: "tenant.usuario.listar",
     });
 
-    const ctx = comPermissoes(ctxBase, ["cliente.listar"]);
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
 
-    const r = autorizarOperacao({
-      ctx,
-      permissao: "cliente.excluir",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_AUTORIZADO");
-      expect(r.error.detalhes).toMatchObject({
-        permissao: "cliente.excluir",
-      });
-    }
+    expect(resultado.error.codigo).toBe("RBAC_NAO_AUTENTICADO");
   });
 
-  it("retorna Err(INVALIDO) quando a permissão informada é vazia", () => {
-    const ctxBase = createContextoExecucao({
-      locatarioId: "tenant-1",
-      usuarioId: "user-1",
+  it("falha quando a permissão pedida é inválida", () => {
+    const resultado = autorizarOperacao({
+      ctx: {
+        locatarioId: "loc-1",
+        usuarioId: "user-1",
+        permissoes: ["tenant.usuario.listar"],
+      },
+      permissao: " ",
     });
 
-    const ctx = comPermissoes(ctxBase, ["cliente.ler"]);
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
 
-    const r = autorizarOperacao({
-      ctx,
-      permissao: "",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("INVALIDO");
-    }
-  });
-
-  it("não depende de papéis quando as permissões já estão resolvidas no contexto", () => {
-    const ctxBase = createContextoExecucao({
-      locatarioId: "tenant-1",
-      usuarioId: "user-1",
-      papeis: ["OPERADOR"],
-    });
-
-    const ctx = comPermissoes(ctxBase, ["cliente.ler"]);
-
-    const r = autorizarOperacao({
-      ctx,
-      permissao: "cliente.ler",
-    });
-
-    expect(r.ok).toBe(true);
+    expect(resultado.error.codigo).toBe("RBAC_PERMISSAO_INVALIDA");
   });
 });

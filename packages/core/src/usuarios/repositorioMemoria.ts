@@ -1,110 +1,94 @@
-// import { wrapOk } from "../result";
-import { wrapOk } from "../result";
+import { wrapOk } from "../kernel/result";
 import type { UsuariosRepositorio } from "./portasRepositorio";
-import type { Usuario, UsuarioStatus } from "./tipos";
-
-function keyById(locatarioId: string, usuarioId: string) {
-  return `${locatarioId}:${usuarioId}`;
-}
-
-function keyByEmail(locatarioId: string, email: string) {
-  return `${locatarioId}:${email.toLowerCase()}`;
-}
+import type {
+  Usuario,
+  UsuarioId,
+  LocatarioId,
+  StatusUsuario,
+} from "./tipos";
 
 export function criarUsuariosRepositorioMemoria(
-  seed?: Usuario[]
+  seed?: Usuario[],
 ): UsuariosRepositorio & {
   seed(usuario: Usuario): void;
   dump(): Usuario[];
 } {
   const byId = new Map<string, Usuario>();
-  const byEmail = new Map<string, Usuario>();
 
   const api = {
     seed(usuario: Usuario) {
-      const clone = { ...usuario };
-      byId.set(keyById(usuario.locatarioId ?? "", usuario.usuarioId), clone);
-      byEmail.set(
-        keyByEmail(usuario.locatarioId ?? "", usuario.email),
-        clone
-      );
+      byId.set(usuario.usuarioId, { ...usuario });
     },
 
     dump() {
-      return [...byId.values()]
-        .map((u) => ({ ...u }))
-        .sort((a, b) => a.criadoEm.getTime() - b.criadoEm.getTime());
+      return [...byId.values()].map((item) => ({ ...item }));
     },
 
     async criar(params: {
-      locatarioId: string;
+      usuarioId: UsuarioId;
+      locatarioId: LocatarioId;
       email: string;
+      nome: string;
       senhaHash: string;
-      status: UsuarioStatus;
+      status: "ATIVO";
+      ultimoLoginEm: Date | null;
+      criadoEm: Date;
+      atualizadoEm: Date;
+      excluidoEm: Date | null;
     }) {
-      const usuarioId = `usr-${byId.size + 1}`;
       const novo: Usuario = {
-        usuarioId,
+        usuarioId: params.usuarioId,
         locatarioId: params.locatarioId,
         email: params.email,
+        nome: params.nome,
         senhaHash: params.senhaHash,
         status: params.status,
-        criadoEm: new Date("2026-01-01T00:00:00.000Z"),
-        ultimoLoginEm: null,
+        ultimoLoginEm: params.ultimoLoginEm,
+        criadoEm: params.criadoEm,
+        atualizadoEm: params.atualizadoEm,
+        excluidoEm: params.excluidoEm,
       };
 
-      api.seed(novo);
-
-      return wrapOk({ usuarioId });
+      byId.set(params.usuarioId, novo);
+      return wrapOk({ usuarioId: params.usuarioId });
     },
 
-    async buscarPorId(params: { locatarioId: string; usuarioId: string }) {
-      const found =
-        byId.get(keyById(params.locatarioId, params.usuarioId)) ?? null;
+    async atualizar(usuario: Usuario) {
+      byId.set(usuario.usuarioId, { ...usuario });
+      return wrapOk({ ...usuario });
+    },
+
+    async buscarPorId(params: { usuarioId: UsuarioId }) {
+      const found = byId.get(params.usuarioId) ?? null;
       return wrapOk(found ? { ...found } : null);
     },
 
-    async buscarPorEmail(params: { locatarioId: string; email: string }) {
-      const found =
-        byEmail.get(keyByEmail(params.locatarioId, params.email)) ?? null;
-      return wrapOk(found ? { ...found } : null);
-    },
-
-    async listar(params: {
-      locatarioId: string;
-      limite: number;
-      cursor?: string;
+    async buscarPorEmailNoLocatario(params: {
+      locatarioId: LocatarioId | null;
+      emailNormalizado: string;
     }) {
+      const found =
+        [...byId.values()].find(
+          (item) =>
+            item.locatarioId === params.locatarioId &&
+            item.excluidoEm === null &&
+            item.email.toLowerCase() === params.emailNormalizado,
+        ) ?? null;
+
+      return wrapOk(found ? { ...found } : null);
+    },
+
+    async listarPorLocatario(params: { locatarioId: LocatarioId }) {
       const itens = [...byId.values()]
-        .filter((u) => u.locatarioId === params.locatarioId)
-        .sort((a, b) => a.criadoEm.getTime() - b.criadoEm.getTime())
-        .slice(0, params.limite)
-        .map((u) => ({ ...u }));
+        .filter(
+          (item) =>
+            item.locatarioId === params.locatarioId &&
+            item.excluidoEm === null,
+        )
+        .map((item) => ({ ...item }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
 
       return wrapOk(itens);
-    },
-
-    async atualizarUltimoLogin(params: {
-      locatarioId: string;
-      usuarioId: string;
-      quando: Date;
-    }) {
-      const key = keyById(params.locatarioId, params.usuarioId);
-      const found = byId.get(key);
-
-      if (!found) {
-        return wrapOk<void>(undefined);
-      }
-
-      const atualizado: Usuario = {
-        ...found,
-        ultimoLoginEm: params.quando,
-      };
-
-      byId.set(key, atualizado);
-      byEmail.set(keyByEmail(params.locatarioId, atualizado.email), atualizado);
-
-      return wrapOk<void>(undefined);
     },
   };
 
@@ -116,21 +100,27 @@ export function criarUsuariosRepositorioMemoria(
 }
 
 export function criarUsuarioSeed(params: {
-  usuarioId: string;
-  locatarioId: string;
+  usuarioId: UsuarioId;
+  locatarioId: LocatarioId | null;
   email: string;
-  senhaHash: string;
-  status?: UsuarioStatus;
-  criadoEm?: Date;
+  nome: string;
+  senhaHash?: string;
+  status?: StatusUsuario;
   ultimoLoginEm?: Date | null;
+  criadoEm?: Date;
+  atualizadoEm?: Date;
+  excluidoEm?: Date | null;
 }): Usuario {
   return {
     usuarioId: params.usuarioId,
     locatarioId: params.locatarioId,
     email: params.email.toLowerCase(),
-    senhaHash: params.senhaHash,
+    nome: params.nome,
+    senhaHash: params.senhaHash ?? "hash_super_seguro_mock_1234567890",
     status: params.status ?? "ATIVO",
-    criadoEm: params.criadoEm ?? new Date("2026-01-01T00:00:00.000Z"),
     ultimoLoginEm: params.ultimoLoginEm ?? null,
+    criadoEm: params.criadoEm ?? new Date("2026-01-01T00:00:00.000Z"),
+    atualizadoEm: params.atualizadoEm ?? new Date("2026-01-01T00:00:00.000Z"),
+    excluidoEm: params.excluidoEm ?? null,
   };
 }

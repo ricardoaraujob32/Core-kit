@@ -1,46 +1,43 @@
-// packages/core/src/usuarios/index.ts
-
-// Tipos
 export type {
   UsuarioId,
-  UsuarioStatus,
+  StatusUsuario,
   Usuario,
   CriarUsuarioInput,
   CriarUsuarioOutput,
   ObterUsuarioInput,
-  ListarUsuariosInput,
-  ListarUsuariosOutput,
-  ResultadoCriarUsuario,
-  ResultadoObterUsuario,
-  ResultadoListarUsuarios,
+  AtualizarUsuarioInput,
+  InativarUsuarioInput,
+  ReativarUsuarioInput,
+  ListarUsuariosPorLocatarioInput,
+  ListarUsuariosPorLocatarioOutput,
 } from "./tipos";
 
-// Erros
 export {
-  emailInvalido,
-  senhaHashInvalida,
   usuarioInvalido,
   usuarioNaoEncontrado,
-  emailJaEmUso,
+  usuarioInativo,
+  usuarioSuspenso,
+  usuarioEncerrado,
+  emailUsuarioJaExiste,
 } from "./erros";
 
-// Validadores
 export {
-  validarLocatarioId,
   validarUsuarioId,
-  validarEmail,
+  validarNomeUsuario,
+  validarEmailUsuario,
   validarSenhaHash,
-  validarLimite,
 } from "./validadores";
 
-// Repositório
 export type { UsuariosRepositorio } from "./portasRepositorio";
+
 export {
   criarUsuariosRepositorioMemoria,
   criarUsuarioSeed,
 } from "./repositorioMemoria";
 
-// Casos de uso
-export { criarCriarUsuario } from "./usecases/criarUsuario";
-export { criarObterUsuario } from "./usecases/obterUsuario";
-export { criarListarUsuarios } from "./usecases/listarUsuarios";
+export { createCriarUsuario } from "./usecases/criarUsuario";
+export { createObterUsuario } from "./usecases/obterUsuario";
+export { createListarUsuariosPorLocatario } from "./usecases/listarUsuariosPorLocatario";
+export { createAtualizarUsuario } from "./usecases/atualizarUsuario";
+export { createInativarUsuario } from "./usecases/inativarUsuario";
+export { createReativarUsuario } from "./usecases/reativarUsuario";

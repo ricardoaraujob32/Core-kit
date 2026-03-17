@@ -1,3 +1,5 @@
+// packages/core/src/rbac/portasRepositorio.ts
+
 import { ErroApp } from "../erros";
 import { Result } from "../result";
 

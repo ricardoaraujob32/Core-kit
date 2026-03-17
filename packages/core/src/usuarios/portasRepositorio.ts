@@ -1,30 +1,40 @@
 import { ErroApp } from "../erros";
+import { LocatarioId } from "../locatarios";
 import { Result } from "../result";
-import { Usuario, UsuarioStatus } from "./tipos";
+import { Usuario, UsuarioId } from "./tipos";
 
 export interface UsuariosRepositorio {
   criar(params: {
-    locatarioId: string;
+    usuarioId: UsuarioId;
+    locatarioId: LocatarioId;
     email: string;
+    nome: string;
     senhaHash: string;
-    status: UsuarioStatus;
-  }): Promise<Result<{ usuarioId: string }, ErroApp>>;
+    status: "ATIVO";
+    ultimoLoginEm: Date | null;
+    criadoEm: Date;
+    atualizadoEm: Date;
+    excluidoEm: Date | null;
+  }): Promise<Result<{ usuarioId: UsuarioId }, ErroApp>>;
 
   buscarPorId(params: {
-    locatarioId: string;
-    usuarioId: string;
+    locatarioId: LocatarioId;
+    usuarioId: UsuarioId;
   }): Promise<Result<Usuario | null, ErroApp>>;
 
-  buscarPorEmail(params: {
-    locatarioId: string;
-    email: string;
+  buscarPorEmailNoLocatario(params: {
+    locatarioId: LocatarioId | null;
+    emailNormalizado: string;
   }): Promise<Result<Usuario | null, ErroApp>>;
 
-  listar(params: {
-    locatarioId: string;
+
+   listarPorLocatario(params: {
+    locatarioId: LocatarioId;
     limite: number;
     cursor?: string;
   }): Promise<Result<Usuario[], ErroApp>>;
+
+  atualizar(usuario: Usuario): Promise<Result<Usuario, ErroApp>>;
 
   atualizarUltimoLogin(params: {
     locatarioId: string;
@@ -32,3 +42,13 @@ export interface UsuariosRepositorio {
     quando: Date;
   }): Promise<Result<void, ErroApp>>;
 }
+
+
+
+
+  
+
+
+  
+
+  

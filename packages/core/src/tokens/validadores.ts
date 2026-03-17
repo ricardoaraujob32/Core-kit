@@ -1,46 +1,67 @@
-// import type { Result } from "../result";
-import type { ErroApp } from "../erros";
-import { LocatarioId } from "../locatarios/tipos";
+// packages/core/src/tokens/validadores.ts
+
+import { ErroApp } from "../erros";
 import { Result, wrapOk } from "../result";
-import { UsuarioId } from "../usuarios";
-import { entradaInvalida } from "./erros";
+import { validarData, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio } from "../utils";
+import { entradaInvalida, tokenInvalido } from "./erros";
+import { TokenId, TokenTipo } from "./tipos";
 
-export function validarLocatarioId(locatarioId: LocatarioId): Result<string, ErroApp> {
-  if (typeof locatarioId !== "string" || locatarioId.trim().length === 0) {
-    return entradaInvalida({ campo: "locatarioId" });
-  }
-
-  return wrapOk(locatarioId.trim());
+function mapearErroToken(resultado: Result<string | Date, ErroApp>, campo: string, valor?: unknown): any {
+  if (resultado.ok) return resultado;
+  return tokenInvalido({ campo, valor });
 }
 
-export function validarUsuarioId(usuarioId: UsuarioId): Result<string, ErroApp> {
-  if (typeof usuarioId !== "string" || usuarioId.trim().length === 0) {
-    return entradaInvalida({ campo: "usuarioId" });
-  }
+function mapearErroEntrada(resultado: Result<string | Date | number, ErroApp>, campo: string, valor?: unknown): any {
+  if (resultado.ok) return resultado;
+  return entradaInvalida({ campo, valor });
+}
 
-  return wrapOk(usuarioId.trim());
+export function validarTokenId(tokenId: TokenId): Result<string, ErroApp> {
+  return mapearErroToken(
+    validarIdGenerico(tokenId, "tokenId"),
+    "tokenId",
+    tokenId,
+  );
 }
 
 export function validarTokenBruto(tokenBruto: string): Result<string, ErroApp> {
-  if (typeof tokenBruto !== "string" || tokenBruto.trim().length === 0) {
-    return entradaInvalida({ campo: "tokenBruto" });
-  }
-
-  return wrapOk(tokenBruto.trim());
+  return mapearErroEntrada(
+    validarTextoObrigatorio(tokenBruto, "tokenBruto", 1),
+    "tokenBruto",
+    tokenBruto,
+  );
 }
 
 export function validarTtl(ttlMs: number): Result<number, ErroApp> {
-  if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
-    return entradaInvalida({ campo: "ttlMs", valor: ttlMs });
-  }
-
-  return wrapOk(ttlMs);
+  const res = validarNumeroPositivo(ttlMs, "ttlMs");
+  if (res.ok) return res;
+  return entradaInvalida({ campo: "ttlMs", valor: ttlMs });
 }
 
 export function validarAgora(agora: Date): Result<Date, ErroApp> {
-  if (!(agora instanceof Date) || Number.isNaN(agora.getTime())) {
-    return entradaInvalida({ campo: "agora" });
+  const res = validarData(agora, "agora");
+  if (res.ok) return res;
+  return entradaInvalida({ campo: "agora" });
+}
+
+export function validarHashToken(hashToken: string): Result<string, ErroApp> {
+  return mapearErroToken(
+    validarTextoObrigatorio(hashToken, "hashToken", 16),
+    "hashToken",
+    hashToken,
+  );
+}
+
+export function validarTokenTipo(tipo: TokenTipo): Result<TokenTipo, ErroApp> {
+  if (!["ACESSO", "REFRESH", "API", "RESET_SENHA"].includes(tipo)) {
+    return tokenInvalido({ campo: "tipo" });
   }
 
-  return wrapOk(agora);
+  return wrapOk(tipo);
+}
+
+export function validarExpiraEm(expiraEm: Date): Result<Date, ErroApp> {
+  const res = validarData(expiraEm, "expiraEm");
+  if (res.ok) return res;
+  return tokenInvalido({ campo: "expiraEm" });
 }

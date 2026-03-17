@@ -1,14 +1,30 @@
-import {Result} from "../result";
-import {ErroApp} from "../erros"
-import {AuditoriaEvento} from "./tipos"
+import type { ErroApp } from "../kernel/erros";
+import type { Result } from "../kernel/result";
+import type {
+  EventoAuditoriaLocatario,
+  EventoAuditoriaPlataforma,
+  ListarAuditoriaLocatarioInput,
+  ListarAuditoriaPlataformaInput,
+  RegistrarEventoLocatarioInput,
+  RegistrarEventoPlataformaInput,
+} from "./tipos";
 
-export interface AuditoriaRepositorio {
-  registrarEvento(evt: AuditoriaEvento): Promise<Result<void, ErroApp>>;
+export interface AuditoriaLocatarioRepositorio {
+  registrarEvento(
+    input: RegistrarEventoLocatarioInput,
+  ): Promise<Result<EventoAuditoriaLocatario, ErroApp>>;
 
-  listarEventos(params: {
-    locatarioId: string;
-    de?: Date;
-    ate?: Date;
-    limite?: number;
-  }): Promise<Result<AuditoriaEvento[], ErroApp>>;
+  listarEventos(
+    filtro: ListarAuditoriaLocatarioInput,
+  ): Promise<Result<EventoAuditoriaLocatario[], ErroApp>>;
+}
+
+export interface AuditoriaPlataformaRepositorio {
+  registrarEvento(
+    input: RegistrarEventoPlataformaInput,
+  ): Promise<Result<EventoAuditoriaPlataforma, ErroApp>>;
+
+  listarEventos(
+    filtro: ListarAuditoriaPlataformaInput,
+  ): Promise<Result<EventoAuditoriaPlataforma[], ErroApp>>;
 }

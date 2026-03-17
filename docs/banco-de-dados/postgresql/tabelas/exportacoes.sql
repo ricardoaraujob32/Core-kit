@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS exportacoes (
-  id                    UUID DEFAULT gen_random_uuid(),
+  exportacao_id         UUID DEFAULT gen_random_uuid(),
   locatario_id          UUID NOT NULL,
   criado_por_usuario_id UUID NULL,
   formato               formato_exportacao NOT NULL,

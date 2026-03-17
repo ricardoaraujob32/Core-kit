@@ -9,6 +9,21 @@
  * - Em testes, podemos trocar por outra estratégia.
  */
 
+// apps/api/src/infra/prisma/client.ts
+
 import { PrismaClient } from "@prisma/client";
 
-export const clientePrisma = new PrismaClient();
+declare global {
+  // evita recriar cliente em hot reload
+  var __clientePrisma__: PrismaClient | undefined;
+}
+
+export const clientePrisma =
+  global.__clientePrisma__ ??
+  new PrismaClient({
+    log: ["error", "warn"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  global.__clientePrisma__ = clientePrisma;
+}

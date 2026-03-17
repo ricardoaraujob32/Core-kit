@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS planos (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   codigo        TEXT NOT NULL UNIQUE CHECK (codigo ~ '^[A-Z0-9_]+$'),
   nome          TEXT NOT NULL, -- Nome comercial do plano
-  ciclo
-  descricao_marketing
+  -- ciclo
+  -- descricao_marketing
   ativo         BOOLEAN NOT NULL DEFAULT TRUE, -- Controle administrativo
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()

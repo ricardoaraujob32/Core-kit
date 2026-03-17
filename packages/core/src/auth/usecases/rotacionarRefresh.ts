@@ -1,51 +1,54 @@
-import { wrapOk } from "../../result";
+import { wrapOk } from "../../kernel/result";
 import type {
-  ResultadoSessao,
+  ResultadoRotacionarRefresh,
   RotacionarRefreshInput,
   Sessao,
 } from "../tipos";
 import type {
   EventosSegurancaPorta,
   IdPorta,
-  JwtPorta,
+  JwtAuthPorta,
   RelogioPorta,
-  TokensServicePorta,
-} from "../portasRepositorio";
-import { validarLocatarioId, validarTokenNaoVazio } from "../validadores";
+  TokensAuthPorta,
+} from "../portasServico";
+import {
+  validarLocatarioIdAuth,
+  validarTokenNaoVazio,
+} from "../validadores";
 
 export function criarRotacionarRefresh(deps: {
-  tokens: TokensServicePorta;
-  jwt: JwtPorta;
+  tokensPorta: TokensAuthPorta;
+  jwtPorta: JwtAuthPorta;
   relogio: RelogioPorta;
-  ids: IdPorta;
+  idPorta: IdPorta;
   eventos?: EventosSegurancaPorta;
   ttlAccessSegundos?: number;
   ttlRefreshMs?: number;
   issuer?: string;
 }) {
   return async function rotacionarRefresh(
-    input: RotacionarRefreshInput
-  ): ResultadoSessao {
-    const loc = validarLocatarioId(input.locatarioId);
-    if (!loc.ok) return Promise.resolve(loc);
+    input: RotacionarRefreshInput,
+  ): ResultadoRotacionarRefresh {
+    const locatarioId = validarLocatarioIdAuth(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
 
     const refresh = validarTokenNaoVazio(input.refreshToken);
-    if (!refresh.ok) return Promise.resolve(refresh);
+    if (!refresh.ok) return refresh;
 
     const agora = deps.relogio.agora();
 
-    const refreshValidoRes = await deps.tokens.validarRefresh({
-      locatarioId: input.locatarioId,
-      tokenBruto: input.refreshToken,
+    const refreshValido = await deps.tokensPorta.validarRefresh({
+      locatarioId: locatarioId.value,
+      tokenBruto: refresh.value,
       agora,
     });
-    if (!refreshValidoRes.ok) return refreshValidoRes;
+    if (!refreshValido.ok) return refreshValido;
 
-    const sessionId = deps.ids.gerarId();
+    const sessionId = deps.idPorta.gerarId();
 
-    const accessRes = await deps.jwt.emitirAccessToken({
-      usuarioId: refreshValidoRes.value.usuarioId,
-      locatarioId: input.locatarioId,
+    const accessRes = await deps.jwtPorta.emitirAccessToken({
+      usuarioId: refreshValido.value.usuarioId,
+      locatarioId: locatarioId.value,
       sessionId,
       agora,
       ttlSegundos: deps.ttlAccessSegundos ?? 600,
@@ -53,29 +56,26 @@ export function criarRotacionarRefresh(deps: {
     });
     if (!accessRes.ok) return accessRes;
 
-    const novoRefreshRes = await deps.tokens.criarRefresh({
-      locatarioId: input.locatarioId,
-      usuarioId: refreshValidoRes.value.usuarioId,
+    const novoRefresh = await deps.tokensPorta.criarRefresh({
+      locatarioId: locatarioId.value,
+      usuarioId: refreshValido.value.usuarioId,
       agora,
       ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
     });
-    if (!novoRefreshRes.ok) return novoRefreshRes;
+    if (!novoRefresh.ok) return novoRefresh;
 
-    const revogarRes = await deps.tokens.revogar({
-      locatarioId: input.locatarioId,
-      tokenId: refreshValidoRes.value.tokenId,
-      usuarioId: refreshValidoRes.value.usuarioId,
+    const revogar = await deps.tokensPorta.revogar({
+      tokenId: refreshValido.value.tokenId,
       agora,
-      motivo: "rotacao_refresh",
     });
-    if (!revogarRes.ok) return revogarRes;
+    if (!revogar.ok) return revogar;
 
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.refresh",
-      usuarioId: refreshValidoRes.value.usuarioId,
-      locatarioId: input.locatarioId,
+      usuarioId: refreshValido.value.usuarioId,
+      locatarioId: locatarioId.value,
       detalhes: {
-        tokenIdAntigo: refreshValidoRes.value.tokenId,
+        tokenIdAntigo: refreshValido.value.tokenId,
         sessionId,
       },
       quando: agora,
@@ -83,9 +83,9 @@ export function criarRotacionarRefresh(deps: {
 
     const sessao: Sessao = {
       accessToken: accessRes.value.token,
-      refreshToken: novoRefreshRes.value.tokenBruto,
+      refreshToken: novoRefresh.value.tokenBruto,
       accessExpiraEm: new Date(accessRes.value.payload.exp * 1000),
-      refreshExpiraEm: novoRefreshRes.value.expiraEm,
+      refreshExpiraEm: novoRefresh.value.expiraEm,
     };
 
     return wrapOk(sessao);

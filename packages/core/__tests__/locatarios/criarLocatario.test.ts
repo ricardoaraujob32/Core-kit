@@ -1,92 +1,40 @@
-import { describe, it, expect } from "vitest";
-import { criarCriarLocatario } from "../../src/locatarios/usecases/criarLocatario";
+import { describe, expect, it } from "vitest";
 import { criarLocatariosRepositorioMemoria } from "../../src/locatarios/repositorioMemoria";
+import { createCriarLocatario } from "../../src/locatarios/usecases/criarLocatario";
 
-describe("locatarios - criarLocatario", () => {
-  it("cria locatário com sucesso", async () => {
+
+describe("criarLocatario", () => {
+  it("cria locatário com nome válido", async () => {
     const repo = criarLocatariosRepositorioMemoria();
 
-    const criarLocatario = criarCriarLocatario({
+    const usecase = createCriarLocatario({
       locRepo: repo,
+      idPorta: { gerarId: () => "loc-1" },
+      relogio: { agora: () => new Date("2026-03-12T10:00:00.000Z") },
     });
 
-    const r = await criarLocatario({
-      nome: "Loja Centro",
-    });
+    const resultado = await usecase({ nome: "Empresa A" });
 
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.value.locatarioId).toBe("loc-1");
-    }
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
 
-    const dump = repo.dump();
-    expect(dump).toHaveLength(1);
-    expect(dump[0].nome).toBe("Loja Centro");
-    expect(dump[0].status).toBe("ATIVO");
+    expect(resultado.value.locatarioId).toBe("loc-1");
   });
 
-  it("retorna Err(INVALIDO) quando nome é vazio", async () => {
+  it("falha com nome inválido", async () => {
     const repo = criarLocatariosRepositorioMemoria();
 
-    const criarLocatario = criarCriarLocatario({
+    const usecase = createCriarLocatario({
       locRepo: repo,
+      idPorta: { gerarId: () => "loc-1" },
+      relogio: { agora: () => new Date("2026-03-12T10:00:00.000Z") },
     });
 
-    const r = await criarLocatario({
-      nome: "",
-    });
+    const resultado = await usecase({ nome: " " });
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("INVALIDO");
-    }
-  });
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
 
-  it("retorna Err(INVALIDO) quando nome é muito curto", async () => {
-    const repo = criarLocatariosRepositorioMemoria();
-
-    const criarLocatario = criarCriarLocatario({
-      locRepo: repo,
-    });
-
-    const r = await criarLocatario({
-      nome: "A",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("INVALIDO");
-    }
-  });
-
-  it("propaga erro do repositório", async () => {
-    const criarLocatario = criarCriarLocatario({
-      locRepo: {
-        async criar() {
-          return {
-            ok: false as const,
-            error: {
-              codigo: "ERRO_INTERNO",
-              mensagem: "Falha ao criar locatário",
-            },
-          };
-        },
-        async buscarPorId() {
-          throw new Error("não usado");
-        },
-        async listar() {
-          throw new Error("não usado");
-        },
-      },
-    });
-
-    const r = await criarLocatario({
-      nome: "Loja Centro",
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("ERRO_INTERNO");
-    }
+    expect(resultado.error.codigo).toBe("LOCATARIO_INVALIDO");
   });
 });

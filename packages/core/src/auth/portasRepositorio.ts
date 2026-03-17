@@ -5,7 +5,6 @@ import { ErroApp } from "../erros";
 import { LocatarioId } from "../locatarios/tipos";
 import { Result } from "../result";
 import { ResolverPermissoesOutput } from "../rbac/tipos";
-import { TokenId } from "../tokens";
 import { UsuarioId } from "../usuarios";
 
 export type UsuarioAuth = {
@@ -20,33 +19,6 @@ export interface UsuariosRepositorioAuth {
   buscarPorEmail(params: { locatarioId: LocatarioId; email: string }): Promise<Result<UsuarioAuth | null, ErroApp>>;
   atualizarUltimoLogin(params: { usuarioId: UsuarioId; quando: Date }): Promise<Result<void, ErroApp>>;
 }
-
-
-export type TokenPersistido = {
-  tokenId: TokenId;
-  usuarioId: UsuarioId;
-  locatarioId: LocatarioId;
-  tipo: "REFRESH" | "RECUPERACAO_SENHA" | "CONFIRMACAO_EMAIL";
-  hashToken: string;
-  expiraEm: Date;
-  revogadoEm: Date | null;
-};
-
-export interface TokensRepositorio {
-  inserir(token: TokenPersistido): Promise<Result<void, ErroApp>>;
-  buscarPorHash(hashToken: string): Promise<Result<TokenPersistido | null, ErroApp>>;
-  revogar(params: { tokenId: TokenId; usuarioId: UsuarioId; quando: Date; motivo?: string }): Promise<Result<void, ErroApp>>;
-
-  // opcional (se implementar rotação já):
-  encadearRotacao(params: {
-    tokenAntigoId: TokenId;
-    tokenAntigoUsuarioId: UsuarioId;
-    tokenNovoId: TokenId;
-    tokenNovoUsuarioId: UsuarioId;
-  }): Promise<Result<void, ErroApp>>;
-}
-
-
 
 export interface RbacRepositorio {
   listarPapeisDoUsuario(params: { usuarioId: UsuarioId; locatarioId: LocatarioId }): Promise<Result<string[], ErroApp>>;
@@ -79,19 +51,6 @@ export interface UsuariosRepositorioAuth {
 
 export interface LocatariosRepositorioAuth {
   buscarPorId(params: { locatarioId: LocatarioId }): Promise<Result<{ locatarioId: LocatarioId; status: "ATIVO" | "SUSPENSO" | "ENCERRADO" } | null, ErroApp>>;
-}
-
-export interface TokensServicePorta {
-  criarRefresh(params: { locatarioId: LocatarioId; usuarioId: UsuarioId; agora: Date; ttlMs: number })
-    : Promise<Result<{ tokenBruto: string; tokenId: TokenId; expiraEm: Date }, ErroApp>>;
-
-  validarRefresh(params: { locatarioId: LocatarioId; tokenBruto: string; agora: Date })
-    : Promise<Result<{ tokenId: TokenId; usuarioId: UsuarioId; expiraEm: Date }, ErroApp>>;
-
-  revogar(params: { locatarioId: LocatarioId; tokenId: TokenId; usuarioId: UsuarioId; agora: Date; motivo?: string })
-    : Promise<Result<void, ErroApp>>;
-
-  // opcional: encadearRotacao...
 }
 
 export interface RbacServicePorta {

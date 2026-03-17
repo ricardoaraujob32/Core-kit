@@ -1,46 +1,40 @@
 // packages/core/src/locatarios/tipos.ts
 
-import { ErroApp } from "../erros";
-import { Result } from "../result";
+import type { ErroApp } from "../erros";
+import type { Result } from "../result";
 
-/**
- * IDs (por enquanto string; você pode evoluir para branded type depois).
- * "Locatário" é a empresa/cliente dono do contexto.
- */
 export type LocatarioId = string;
 
-export type LocatarioStatus = "ATIVO" | "SUSPENSO" | "ENCERRADO";
+export type LocatarioStatus =
+  | "ATIVO"
+  | "SUSPENSO"
+  | "ENCERRADO";
 
-export type Locatario = {
+export interface Locatario {
   locatarioId: LocatarioId;
   nome: string;
   status: LocatarioStatus;
   criadoEm: Date;
-};
+}
 
-export type CriarLocatarioInput = {
+export interface CriarLocatarioInput {
   nome: string;
-  // ctx: ContextoExecucao (modo plataforma) — opcional nesta fase se o handler já garantir
-};
+}
 
-export type CriarLocatarioOutput = {
+export interface CriarLocatarioOutput {
   locatarioId: LocatarioId;
-};
+}
 
-export type ListarLocatariosOutput = {
+export interface ListarLocatariosOutput {
   itens: Locatario[];
-};
+}
 
-export type ObterLocatarioInput = {
+export interface ObterLocatarioInput {
   locatarioId: LocatarioId;
-};
+}
 
-export type ResultadoObterLocatario = Promise<Result<Locatario, ErroApp>>;
+export type ResultadoCriarLocatario = Promise< Result<CriarLocatarioOutput, ErroApp> >;
 
-export type ResultadoCriarLocatario = Promise<
-  Result<CriarLocatarioOutput, ErroApp>
->;
+export type ResultadoListarLocatarios = Promise< Result<ListarLocatariosOutput, ErroApp> >;
 
-export type ResultadoListarLocatarios = Promise<
-  Result<ListarLocatariosOutput, ErroApp>
->;
+export type ResultadoObterLocatario = Promise< Result<Locatario, ErroApp> >;

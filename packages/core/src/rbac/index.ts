@@ -1,33 +1,34 @@
 // packages/core/src/rbac/index.ts
 
-// Tipos
 export type {
+  Papel,
+  Permissao,
+  ContextoExecucaoRbac,
   ResolverPermissoesInput,
   ResolverPermissoesOutput,
   AutorizarOperacaoInput,
-  ResultadoResolverPermissoes,
-  ResultadoAutorizarOperacao,
 } from "./tipos";
 
-// Erros
 export {
   permissaoInvalida,
+  naoAutenticado,
   naoAutorizado,
 } from "./erros";
 
-// Validadores
-export {
-  validarPermissao,
-} from "./validadores";
+export { validarPermissao } from "./validadores";
 
-// Repositório
-export type {
-  RbacRepositorio,
-} from "./portasRepositorio";
-export {
-  criarRbacRepositorioMemoria,
-} from "./repositorioMemoria";
+export type { RbacRepositorio } from "./portasRepositorio";
 
-// Casos de uso
+export { criarRbacRepositorioMemoria } from "./repositorioMemoria";
+
+export {
+  temUsuario,
+  exigirUsuario,
+  normalizarPermissoes,
+  normalizarPapeis,
+  comPermissoes,
+  comPapeis,
+} from "./helpers";
+
+export { createResolverPermissoes } from "./usecases/resolverPermissoes";
 export { autorizarOperacao } from "./usecases/autorizarOperacao";
-export { resolverPermissoes } from "./usecases/resolverPermissoes";

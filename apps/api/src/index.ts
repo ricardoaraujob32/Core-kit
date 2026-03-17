@@ -1,14 +1,14 @@
 // apps/api/src/index.ts
 
-import { iniciarServidor } from "./server";
+import type { FastifyPluginAsync } from "fastify";
+import { healthRoutes } from "./health.routes";
+import { authRoutes } from "./auth.routes";
+import { locatariosRoutes } from "./locatarios.routes";
+import { usuariosRoutes } from "./usuarios.routes";
 
-async function main(): Promise<void> {
-  await iniciarServidor();
-}
-
-main().catch((e: unknown) => {
-  // fallback simples para garantir saída clara em erro de boot
-  // (mais tarde a gente padroniza com logger)
-  console.error(e);
-  process.exit(1);
-});
+export const routes: FastifyPluginAsync = async (app) => {
+  await app.register(healthRoutes, { prefix: "/api" });
+  await app.register(authRoutes, { prefix: "/api" });
+  await app.register(locatariosRoutes, { prefix: "/api" });
+  await app.register(usuariosRoutes, { prefix: "/api" });
+};

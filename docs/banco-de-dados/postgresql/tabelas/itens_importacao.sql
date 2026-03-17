@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS itens_importacao (
-  id               UUID DEFAULT gen_random_uuid(),
+  item_id          UUID DEFAULT gen_random_uuid(),
   importacao_id    UUID NOT NULL,
   locatario_id     UUID NOT NULL,
   numero_linha     INTEGER NOT NULL,

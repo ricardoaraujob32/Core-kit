@@ -1,23 +1,27 @@
-import { wrapOk } from "../../result";
+import { wrapOk } from "../../kernel/result";
+import type {
+  Papel,
+  Permissao,
+  ResolverPermissoesInput,
+  ResolverPermissoesOutput,
+  ResultadoResolverPermissoes,
+} from "../tipos";
 import type { RbacRepositorio } from "../portasRepositorio";
-import type { ResolverPermissoesInput, ResolverPermissoesOutput, ResultadoResolverPermissoes } from "../tipos";
-import { Permissao } from "../../permissoes";
-import { Papel } from "../../papeis";
-import { comPapeis, comPermissoes, exigirUsuario } from "../../rbac";
+import {
+  comPapeis,
+  comPermissoes,
+  exigirUsuario,
+} from "../helpers";
 
 type CacheEntry = {
   permissoes: Permissao[];
   papeis: Papel[];
 };
 
-export function resolverPermissoes(deps: {
-  rbacRepo: RbacRepositorio;
-}) {
+export function createResolverPermissoes(deps: { rbacRepo: RbacRepositorio }) {
   const cache = new WeakMap<object, CacheEntry>();
 
-  return async function resolverPermissoes(
-    input: ResolverPermissoesInput
-  ): ResultadoResolverPermissoes {
+  return async function resolverPermissoes(input: ResolverPermissoesInput): ResultadoResolverPermissoes {
     const ctxAutenticado = exigirUsuario(input.ctx);
     if (!ctxAutenticado.ok) return ctxAutenticado;
 

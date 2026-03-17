@@ -1,36 +1,28 @@
+// packages/core/src/locatarios/validadores.ts
+
 import type { Result } from "../result";
 import type { ErroApp } from "../erros";
-import { wrapOk } from "../result";
 import { locatarioInvalido } from "./erros";
+import { LocatarioId } from "./tipos";
+import { validarIdGenerico, validarTextoObrigatorio } from "../utils";
 
-export function validarNomeLocatario(
-  nome: string
-): Result<string, ErroApp> {
-  if (typeof nome !== "string") {
-    return locatarioInvalido({ campo: "nome" });
-  }
-
-  const nomeTrim = nome.trim();
-
-  if (nomeTrim.length < 2) {
-    return locatarioInvalido({ campo: "nome", valor: nome });
-  }
-
-  return wrapOk(nomeTrim);
+function mapearErro(resultado: Result<string, ErroApp>, campo: string, valor?: unknown): Result<string, ErroApp> {
+  if (resultado.ok) return resultado;
+  return locatarioInvalido({ campo, valor });
 }
 
-export function validarLocatarioId(
-  locatarioId: string
-): Result<string, ErroApp> {
-  if (typeof locatarioId !== "string") {
-    return locatarioInvalido({ campo: "locatarioId" });
-  }
+export function validarNomeLocatario(nome: string): Result<string, ErroApp> {
+  return mapearErro(
+    validarTextoObrigatorio(nome, "nome", 2),
+    "nome",
+    nome,
+  );
+}
 
-  const idTrim = locatarioId.trim();
-
-  if (idTrim.length === 0) {
-    return locatarioInvalido({ campo: "locatarioId", valor: locatarioId });
-  }
-
-  return wrapOk(idTrim);
+export function validarLocatarioId(locatarioId: LocatarioId): Result<string, ErroApp> {
+  return mapearErro(
+    validarIdGenerico(locatarioId, "locatarioId"),
+    "locatarioId",
+    locatarioId,
+  );
 }

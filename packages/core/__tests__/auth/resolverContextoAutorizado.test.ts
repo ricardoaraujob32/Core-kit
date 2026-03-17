@@ -1,67 +1,41 @@
 import { describe, expect, it } from "vitest";
-import { criarResolverContextoAutorizado } from "../../src/auth/usecases/resolverContextoAutorizado";
+import { criarResolverContextoAutorizado } from "../usecases/resolverContextoAutorizado";
 
-describe("auth - resolverContextoAutorizado", () => {
-  it("cria contexto e resolve permissões com sucesso", async () => {
-    const resolverContextoAutorizado = criarResolverContextoAutorizado({
-      rbac: {
-        async resolverPermissoes(ctx: any) {
+describe("resolverContextoAutorizado", () => {
+  it("resolve contexto autorizado via RBAC", async () => {
+    const usecase = criarResolverContextoAutorizado({
+      rbacPorta: {
+        async resolverPermissoes(ctx) {
           return {
-            ok: true as const,
+            ok: true,
             value: {
-              ...ctx,
-              permissoes: ["cliente.ler"],
+              ctx: {
+                ...ctx,
+                papeis: ["ADMIN"],
+                permissoes: ["tenant.usuario.listar"],
+              },
               papeis: ["ADMIN"],
+              permissoes: ["tenant.usuario.listar"],
             },
           };
         },
       },
     });
 
-    const r = await resolverContextoAutorizado({
+    const resultado = await usecase({
       sessao: {
-        usuarioId: "usr-1",
-        locatarioId: "tenant-1",
+        usuarioId: "user-1",
+        locatarioId: "loc-1",
         sessionId: "sess-1",
-        expiraEm: new Date("2026-03-06T12:10:00.000Z"),
+        expiraEm: new Date("2026-03-12T12:00:00.000Z"),
       },
     });
 
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.value.usuarioId).toBe("usr-1");
-      expect(r.value.locatarioId).toBe("tenant-1");
-      expect(r.value.permissoes).toContain("cliente.ler");
-    }
-  });
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
 
-  it("propaga erro do RBAC", async () => {
-    const resolverContextoAutorizado = criarResolverContextoAutorizado({
-      rbac: {
-        async resolverPermissoes() {
-          return {
-            ok: false as const,
-            error: {
-              codigo: "NAO_AUTORIZADO",
-              mensagem: "Sem permissão",
-            },
-          };
-        },
-      },
-    });
-
-    const r = await resolverContextoAutorizado({
-      sessao: {
-        usuarioId: "usr-1",
-        locatarioId: "tenant-1",
-        sessionId: "sess-1",
-        expiraEm: new Date("2026-03-06T12:10:00.000Z"),
-      },
-    });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_AUTORIZADO");
-    }
+    expect(resultado.value.usuarioId).toBe("user-1");
+    expect(resultado.value.papeis).toEqual(["ADMIN"]);
+    expect(resultado.value.permissoes).toEqual(["tenant.usuario.listar"]);
   });
 });

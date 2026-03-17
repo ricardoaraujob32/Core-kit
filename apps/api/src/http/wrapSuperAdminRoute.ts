@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ContextoExecucao } from "@core-kit/core";
-import { sendHttpError } from "./erros";
+import { sendHttpError } from "./serializarErroApp";
 import type { BuildContextResult } from "./context";
 import { aplicarGuardsHttp, type GuardOptions } from "./routeGuards";
 

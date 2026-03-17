@@ -1,16 +1,25 @@
-# Módulo: Auditoria
+# Módulo Auditoria
 
 ## Objetivo
-Padronizar eventos de auditoria (quem fez o quê, quando, onde, em qual entidade).
 
-## O que armazenar
-- locatarioId
-- usuarioId (pode ser null para rotinas automatizadas)
-- ação (CRIAR, ATUALIZAR, REMOVER, LOGIN, etc.)
-- entidade + entidadeId
-- antes/depois (quando aplicável)
-- metadados: ip, userAgent, correlação (requestId), etc.
+Responsável pelo registro e consulta de eventos de auditoria do locatário e da plataforma.
 
-## Como é populada (visão hexagonal)
-- O core define o formato do evento (domínio).
-- Adaptadores (API/infra) decidem como persistir (ex.: tabela audit.* ou fila).
+## Escopo
+
+- registrar evento de auditoria do locatário
+- listar auditoria do locatário
+- registrar evento de auditoria da plataforma
+- listar auditoria da plataforma
+
+## Regras
+
+- `auditoria_locatario` é tenant-scoped
+- `auditoria_plataforma` é platform-only
+- auditoria é append-only
+- o Core nunca atualiza nem remove eventos
+- ações críticas devem gerar auditoria
+
+## Observações
+
+A coerência final de contexto e RLS é garantida no banco.
+O Core modela intenção, payload e consulta.

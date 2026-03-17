@@ -1,20 +1,19 @@
-import type {
-  ObterLocatarioInput,
-  ResultadoObterLocatario,
-} from "../tipos";
+// packages/core/src/locatarios/usecases/obterLocatario.ts
+
+import type {ObterLocatarioInput, ResultadoObterLocatario} from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { validarLocatarioId } from "../validadores";
-import {
-  locatarioEncerrado,
-  locatarioNaoEncontrado,
-  locatarioSuspenso,
-} from "../erros";
+import {locatarioEncerrado, locatarioNaoEncontrado, locatarioSuspenso} from "../erros";
+import { wrapOk } from "../../result";
 
-export function criarObterLocatario(deps: {
-  locRepo: LocatariosRepositorio;
-}) {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createObterLocatario(deps: {locRepo: LocatariosRepositorio} ) {
   return async function obterLocatario(
-    input: ObterLocatarioInput
+    input: ObterLocatarioInput,
   ): ResultadoObterLocatario {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
@@ -35,6 +34,6 @@ export function criarObterLocatario(deps: {
       return locatarioEncerrado(loc.locatarioId);
     }
 
-    return { ok: true, value: loc };
+    return wrapOk(loc);
   };
 }

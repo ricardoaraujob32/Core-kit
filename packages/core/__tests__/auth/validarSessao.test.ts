@@ -1,66 +1,65 @@
 import { describe, expect, it } from "vitest";
-import { criarValidarSessao } from "../../src/auth/usecases/validarSessao";
+import { criarValidarSessao } from "../usecases/validarSessao";
 
-describe("auth - validarSessao", () => {
-  it("retorna Ok quando token é válido", () => {
-    const validarSessao = criarValidarSessao({
-      jwt: {
+describe("validarSessao", () => {
+  it("valida access token", () => {
+    const usecase = criarValidarSessao({
+      jwtPorta: {
         async emitirAccessToken() {
           throw new Error("não usado");
         },
         validarAccessToken() {
           return {
-            ok: true as const,
+            ok: true,
             value: {
-              sub: "usr-1",
-              loc: "tenant-1",
+              sub: "user-1",
+              loc: "loc-1",
               session: "sess-1",
-              iat: 1700000000,
-              exp: 1700000600,
-              iss: "mini-saas-auth",
+              exp: 1770000000,
             },
           };
         },
       },
     });
 
-    const r = validarSessao({
-      token: "jwt-token-valido",
+    const resultado = usecase({
+      accessToken: "jwt-token",
     });
 
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.value.usuarioId).toBe("usr-1");
-      expect(r.value.locatarioId).toBe("tenant-1");
-      expect(r.value.sessionId).toBe("sess-1");
-    }
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+
+    expect(resultado.value.usuarioId).toBe("user-1");
+    expect(resultado.value.locatarioId).toBe("loc-1");
+    expect(resultado.value.sessionId).toBe("sess-1");
   });
 
-  it("retorna Err(NAO_AUTENTICADO) quando token é inválido", () => {
-    const validarSessao = criarValidarSessao({
-      jwt: {
+  it("falha com token inválido", () => {
+    const usecase = criarValidarSessao({
+      jwtPorta: {
         async emitirAccessToken() {
           throw new Error("não usado");
         },
         validarAccessToken() {
           return {
-            ok: false as const,
+            ok: false,
             error: {
-              codigo: "NAO_AUTENTICADO",
-              mensagem: "Token inválido",
+              codigo: "JWT_INVALIDO",
+              mensagem: "jwt inválido",
+              detalhes: {},
             },
           };
         },
       },
     });
 
-    const r = validarSessao({
-      token: "jwt-token-invalido",
+    const resultado = usecase({
+      accessToken: "jwt-invalido",
     });
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.error.codigo).toBe("NAO_AUTENTICADO");
-    }
+    expect(resultado.ok).toBe(false);
+    if (resultado.ok) return;
+
+    expect(resultado.error.codigo).toBe("AUTH_SESSAO_INVALIDA");
   });
 });

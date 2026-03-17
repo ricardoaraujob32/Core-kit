@@ -1,33 +1,40 @@
-import type {
-  ObterUsuarioInput,
-  ResultadoObterUsuario,
-} from "../tipos";
+import { wrapOk } from "../../result";
+import type { ObterUsuarioInput, ResultadoObterUsuario } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import { validarLocatarioId, validarUsuarioId } from "../validadores";
-import { usuarioNaoEncontrado } from "../erros";
+import { validarUsuarioId } from "../validadores";
+import { usuarioEncerrado, usuarioInativo, usuarioNaoEncontrado, usuarioSuspenso } from "../erros";
 
-export function criarObterUsuario(deps: {
+export function createObterUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
 }) {
   return async function obterUsuario(
-    input: ObterUsuarioInput
+    input: ObterUsuarioInput,
   ): ResultadoObterUsuario {
-    const loc = validarLocatarioId(input.locatarioId);
-    if (!loc.ok) return loc;
-
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 
     const res = await deps.usuariosRepo.buscarPorId({
-      locatarioId: loc.value,
       usuarioId: usuarioId.value,
     });
     if (!res.ok) return res;
 
-    if (!res.value) {
+    const usuario = res.value;
+    if (!usuario || usuario.excluidoEm) {
       return usuarioNaoEncontrado(usuarioId.value);
     }
 
-    return { ok: true, value: res.value };
+    if (usuario.status === "INATIVO") {
+      return usuarioInativo(usuario.usuarioId);
+    }
+
+    if (usuario.status === "SUSPENSO") {
+      return usuarioSuspenso(usuario.usuarioId);
+    }
+
+    if (usuario.status === "ENCERRADO") {
+      return usuarioEncerrado(usuario.usuarioId);
+    }
+
+    return wrapOk(usuario);
   };
 }
