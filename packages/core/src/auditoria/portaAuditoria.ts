@@ -1,7 +1,11 @@
 // packages/core/src/auditoria/portaAuditoria.ts
+
 import { LocatarioId } from "../locatarios";
 import { UsuarioId } from "../usuarios";
 
+/**
+ * 
+ */
 export type EventoAuditoria = {
   locatarioId: LocatarioId;
   usuarioId: UsuarioId | null;
@@ -12,6 +16,9 @@ export type EventoAuditoria = {
   criadoEm: Date;
 };
 
+/**
+ * 
+ */
 export type AuditoriaWriter = {
   registrar(evento: EventoAuditoria): Promise<void>;
 };

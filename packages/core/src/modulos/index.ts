@@ -3,6 +3,7 @@
 // Tipos
 export type {
   ModuloCodigo,
+  ModuloId,
   OrigemModuloHabilitado,
   ModuloHabilitado,
   ListarModulosHabilitadosInput,
@@ -40,5 +41,5 @@ export type {
   CriarModulosHabilitadosServiceDeps,
 } from "./usecases/modulosHabilitadosService";
 export {
-  criarModulosHabilitadosService,
+  createFnListarModulosHabilitados as criarModulosHabilitadosService,
 } from "./usecases/modulosHabilitadosService";

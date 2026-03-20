@@ -1,7 +1,21 @@
+// packages/core/src/exportacoes/tipos.ts
+
+import { LocatarioId } from "../locatarios";
+import { UsuarioId } from "../usuarios";
+
+/**
+ * 
+ */
 export type ExportacaoId = string;
 
+/**
+ * 
+ */
 export type FormatoExportacao = "CSV" | "XLSX" | "JSON" | "PDF";
 
+/**
+ * 
+ */
 export type StatusJob =
   | "PENDENTE"
   | "EM_EXECUCAO"
@@ -9,6 +23,9 @@ export type StatusJob =
   | "FALHOU"
   | "CANCELADO";
 
+/**
+ * 
+ */
 export interface Exportacao {
   exportacaoId: ExportacaoId;
   locatarioId: LocatarioId;
@@ -22,6 +39,9 @@ export interface Exportacao {
   atualizadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface SolicitarExportacaoInput {
   locatarioId: LocatarioId;
   criadoPorUsuarioId?: UsuarioId | null;
@@ -29,33 +49,54 @@ export interface SolicitarExportacaoInput {
   parametros?: Record<string, unknown>;
 }
 
+/**
+ * 
+ */
 export interface SolicitarExportacaoOutput {
   exportacao: Exportacao;
 }
 
+/**
+ * 
+ */
 export interface ListarExportacoesLocatarioInput {
   locatarioId: LocatarioId;
 }
 
+/**
+ * 
+ */
 export interface ListarExportacoesLocatarioOutput {
   locatarioId: LocatarioId;
   exportacoes: Exportacao[];
 }
 
+/**
+ * 
+ */
 export interface MarcarExportacaoEmExecucaoInput {
   exportacaoId: ExportacaoId;
 }
 
+/**
+ * 
+ */
 export interface MarcarExportacaoConcluidaInput {
   exportacaoId: ExportacaoId;
   referenciaResultado: string;
 }
 
+/**
+ * 
+ */
 export interface MarcarExportacaoComFalhaInput {
   exportacaoId: ExportacaoId;
   mensagemErro: string;
 }
 
+/**
+ * 
+ */
 export interface RegistrarExportacaoParams {
   exportacaoId?: ExportacaoId;
   locatarioId: LocatarioId;

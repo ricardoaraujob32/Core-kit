@@ -1,7 +1,6 @@
 // packages/core/src/locatarios/portasRepositorio.ts
 
-import type { Result } from "../result";
-import type { ErroApp } from "../erros";
+import type { ErroApp, Result } from "../kernel";
 import type { Locatario, LocatarioId } from "./tipos";
 
 /**

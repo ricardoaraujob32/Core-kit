@@ -1,3 +1,7 @@
+import { wrapOk } from "@core-kit/core";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { createErroApp } from "packages/core/src/ROPHelpers";
+
 function mapUsuario(row: {
   locatario_id: string;
   usuario_id: string;

@@ -1,15 +1,21 @@
 // packages/core/src/modulos/repositorioMemoria.ts
 
-import type { Result } from "../result";
-import { wrapOk } from "../result";
-import type { ErroApp } from "../erros";
-import { erroRepositorioModulos } from "./erros";
-import type { ModulosHabilitadosRepositorio } from "./portasRepositorio";
-import type { ModuloHabilitado } from "./tipos";
+import { ErroApp, Result, wrapOk } from "../kernel";
 import { LocatarioId } from "../locatarios";
+import { erroRepositorioModulos } from "./erros";
+import { ModulosHabilitadosRepositorio } from "./portasRepositorio";
+import { ModuloHabilitado } from "./tipos";
 
+/**
+ * 
+ */
 export type EstadoModulosHabilitadosMemoria = Record<LocatarioId, ModuloHabilitado[]>;
 
+/**
+ * 
+ * @param estadoInicial 
+ * @returns 
+ */
 export function criarModulosHabilitadosRepositorioMemoria(
   estadoInicial?: EstadoModulosHabilitadosMemoria,
 ): ModulosHabilitadosRepositorio {

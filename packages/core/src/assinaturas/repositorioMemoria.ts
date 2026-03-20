@@ -1,28 +1,16 @@
-import { randomUUID } from "node:crypto";
-import { wrapOk } from "../kernel/ROPHelpers";
-import type { Result } from "../kernel/result";
-import type { ErroApp } from "../kernel/erros";
-import type {
-  Assinatura,
-  AssinaturaId,
-  AssinaturasRepositorio as IAssinaturasRepositorio,
-  AssinaturasModulosRepositorio as IAssinaturasModulosRepositorio,
-  ListarModulosGratisResult,
-  ModuloHabilitadoAssinatura,
-  ModuloId,
-  PlanoId,
-  RegistrarAssinaturaParams,
-  RegistrarModuloAssinaturaParams,
-  ValidarModuloExistenteResult,
-  ValidarPlanoAtivoResult,
-} from "./tipos";
-import type {
-  AssinaturasRepositorio,
-  AssinaturasModulosRepositorio,
-  ModulosConsultaRepositorio,
-  PlanosConsultaRepositorio,
-} from "./portasRepositorio";
+// packages/core/src/assinaturas/repositorioMemoria.ts
 
+import { randomUUID } from "node:crypto";
+import { ErroApp, Result, wrapOk } from "../kernel";
+import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio,
+  PlanosConsultaRepositorio } from "./portasRepositorio";
+import { Assinatura, AssinaturaId, ListarModulosGratisResult, ModuloHabilitadoAssinatura, PlanoId, RegistrarAssinaturaParams,
+  RegistrarModuloAssinaturaParams, ValidarModuloExistenteResult, ValidarPlanoAtivoResult } from "./tipos";
+import { ModuloId } from "../modulos";
+
+/**
+ * 
+ */
 export class AssinaturasRepositorioMemoria implements AssinaturasRepositorio {
   private readonly itens = new Map<AssinaturaId, Assinatura>();
 
@@ -63,6 +51,9 @@ export class AssinaturasRepositorioMemoria implements AssinaturasRepositorio {
   }
 }
 
+/**
+ * 
+ */
 export class AssinaturasModulosRepositorioMemoria implements AssinaturasModulosRepositorio {
   private readonly itens = new Map<string, ModuloHabilitadoAssinatura>();
 
@@ -119,6 +110,9 @@ export class AssinaturasModulosRepositorioMemoria implements AssinaturasModulosR
   }
 }
 
+/**
+ * 
+ */
 export class PlanosConsultaRepositorioMemoria implements PlanosConsultaRepositorio {
   private readonly planos = new Map<PlanoId, ValidarPlanoAtivoResult>();
 
@@ -131,6 +125,9 @@ export class PlanosConsultaRepositorioMemoria implements PlanosConsultaRepositor
   }
 }
 
+/**
+ * 
+ */
 export class ModulosConsultaRepositorioMemoria implements ModulosConsultaRepositorio {
   private readonly modulos = new Map<ModuloId, ValidarModuloExistenteResult>();
   private readonly modulosGratis = new Set<ModuloId>();

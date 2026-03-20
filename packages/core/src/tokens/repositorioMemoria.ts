@@ -1,11 +1,16 @@
 // packages/core/src/tokens/repositorioMemoria.ts
 
 import { LocatarioId } from "../locatarios";
-import { wrapOk } from "../result";
+import { wrapOk } from "../kernel";
 import { UsuarioId } from "../usuarios";
 import type { TokensRepositorio } from "./portasRepositorio";
 import type { TokenPersistido, TokenId, TokenTipo } from "./tipos";
 
+/**
+ * 
+ * @param seed 
+ * @returns 
+ */
 export function criarTokensRepositorioMemoria(
   seed?: TokenPersistido[],
 ): TokensRepositorio & {
@@ -96,6 +101,11 @@ export function criarTokensRepositorioMemoria(
   return api;
 }
 
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
 export function criarTokenSeed(params: {
   tokenId: TokenId;
   usuarioId: UsuarioId;

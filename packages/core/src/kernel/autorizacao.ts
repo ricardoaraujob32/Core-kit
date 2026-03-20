@@ -2,10 +2,10 @@ import { createContextoExecucao, type ContextoExecucao } from "./contextoExecuca
 import type { ErroApp } from "./erros";
 import type { Result } from "./result";
 import { wrapOk } from "./result";
-import { UsuarioId } from "./usuarios";
-import { ModuloCodigo } from "./modulos";
+import { UsuarioId } from "../usuarios";
+import { ModuloCodigo } from "../modulos";
 import { createErroApp } from "./ROPHelpers";
-import { Papel, Permissao } from "./rbac";
+import { Papel, Permissao } from "../rbac";
 
 export function temUsuario(ctx: ContextoExecucao): ctx is ContextoExecucao & { usuarioId: UsuarioId } {
   return typeof ctx.usuarioId === "string" && ctx.usuarioId.trim().length > 0;

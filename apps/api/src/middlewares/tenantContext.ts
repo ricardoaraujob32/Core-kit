@@ -1,22 +1,20 @@
+// apps/api/src/middlewares/tenantContext.ts
+
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { clientePrisma } from "../infra/prisma/client";
 import { aplicarContextoLocatario } from "../infra/prisma/tenantContext";
+import { sendHttpError } from "./serializarErroApp";
 
 export async function tenantContextGuard(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const locatarioId =
-    request.usuario?.locatarioId ??
-    request.headers["x-locatario-id"]?.toString() ??
-    null;
+  const locatarioId = request.usuario?.locatarioId ?? null;
 
   if (!locatarioId) {
-    return reply.status(400).send({
-      erro: {
-        codigo: "LOCATARIO_OBRIGATORIO",
-        mensagem: "Locatário não informado.",
-      },
+    return sendHttpError(reply, {
+      codigo: "LOCATARIO_OBRIGATORIO",
+      mensagem: "Locatário não informado no contexto autenticado.",
     });
   }
 

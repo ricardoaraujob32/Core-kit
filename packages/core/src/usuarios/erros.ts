@@ -1,7 +1,7 @@
 // packages/core/src/usuarios/erros.ts
 
 import { LocatarioId } from "../locatarios";
-import { createErroApp } from "../ROPHelpers";
+import { createErroApp } from "../kernel";
 import { UsuarioId } from "./tipos";
 
 export function usuarioInvalido(detalhes?: Record<string, unknown>) {

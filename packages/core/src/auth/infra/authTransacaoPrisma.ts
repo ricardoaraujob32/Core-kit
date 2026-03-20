@@ -1,3 +1,13 @@
+// 
+
+import { criarPermissoesRepositorioPrisma } from "../../rbac/infra/permissoesRepositorioPrisma";
+import { criarTokensRepositorioPrisma } from "../../tokens/infra/tokensRepositorioPrisma";
+
+/**
+ * 
+ * @param prisma 
+ * @returns 
+ */
 export function criarAuthInfraPrisma(prisma: PrismaClient) {
   return {
     async emTransacao<T>(

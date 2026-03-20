@@ -3,15 +3,15 @@
 import type { CriarLocatarioInput, CriarLocatarioOutput, ResultadoCriarLocatario } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { validarNomeLocatario } from "../validadores";
-import { wrapOk } from "../../result";
-import { IdPorta, RelogioPorta } from "../../utils";
+import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
+
 
 /**
  * 
  * @param deps 
  * @returns 
  */
-export function createCriarLocatario(deps: {
+export function createFnCriarLocatario(deps: {
   locRepo: LocatariosRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;

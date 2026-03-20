@@ -1,55 +1,46 @@
-import { wrapOk } from "../../kernel/ROPHelpers";
-import type { ErroApp } from "../../kernel/erros";
-import type { Result } from "../../kernel/result";
-import {
-  erroBackupNaoDisponivelParaRestauracao,
-  erroBackupNaoEncontrado,
-  erroBackupNaoPertenceAoLocatario,
-  erroJaExisteBackupEmAberto,
-  erroJaExisteRestauracaoEmAberto,
-} from "../erros";
-import type {
-  BackupLocatario,
-  ListarBackupsLocatarioInput,
-  ListarBackupsLocatarioOutput,
-  RestauracaoLocatario,
-  SolicitarBackupLocatarioInput,
-  SolicitarBackupLocatarioOutput,
-  SolicitarRestauracaoLocatarioInput,
-  SolicitarRestauracaoLocatarioOutput,
-} from "../tipos";
-import {
-  validarListarBackupsLocatarioInput,
-  validarSolicitarBackupLocatarioInput,
-  validarSolicitarRestauracaoLocatarioInput,
-} from "../validadores";
+// packages/core/src/backups/usecases/backupsLocatarioService.ts
 
-import type { PortaTransacao } from "../../exportacoes/portasRepositorio";
-import type {
-  Exportacao,
-  ExportacoesRepositorio,
-} from "../../exportacoes";
-import type {
-  Importacao,
-  ImportacoesRepositorio,
-} from "../../importacoes";
+import { Exportacao, ExportacoesRepositorio } from "../../exportacoes";
+import { Importacao, ImportacoesRepositorio } from "../../importacoes";
+import { ErroApp, IdPorta, PortaTransacao, RelogioPorta, Result, wrapOk } from "../../kernel";
+import { erroBackupNaoDisponivelParaRestauracao, erroBackupNaoEncontrado, erroBackupNaoPertenceAoLocatario, erroJaExisteBackupEmAberto, erroJaExisteRestauracaoEmAberto } from "../erros";
+import { BackupLocatario, ListarBackupsLocatarioInput, ListarBackupsLocatarioOutput, RestauracaoLocatario, SolicitarBackupLocatarioInput, SolicitarBackupLocatarioOutput, SolicitarRestauracaoLocatarioInput, SolicitarRestauracaoLocatarioOutput } from "../tipos";
+import { validarListarBackupsLocatarioInput, validarSolicitarBackupLocatarioInput, validarSolicitarRestauracaoLocatarioInput } from "../validadores";
 
+/**
+ * 
+ */
 export interface CriarBackupsLocatarioServiceDeps {
   exportacoesRepositorio: ExportacoesRepositorio;
   importacoesRepositorio: ImportacoesRepositorio;
   transacao?: PortaTransacao;
-  agora?: () => Date;
-  gerarId?: () => string;
+  agora?: RelogioPorta;
+  gerarId?: IdPorta;
 }
 
+/**
+ * 
+ * @param exportacao 
+ * @returns 
+ */
 function ehBackupLocatario(exportacao: Exportacao): boolean {
   return exportacao.parametros?.tipo === "BACKUP_LOCATARIO";
 }
 
+/**
+ * 
+ * @param importacao 
+ * @returns 
+ */
 function ehRestauracaoLocatario(importacao: Importacao): boolean {
   return importacao.mapeamentoColunas?.tipo === "RESTAURACAO_LOCATARIO";
 }
 
+/**
+ * 
+ * @param exportacao 
+ * @returns 
+ */
 function mapBackup(exportacao: Exportacao): BackupLocatario {
   return {
     backupId: exportacao.exportacaoId,
@@ -65,6 +56,11 @@ function mapBackup(exportacao: Exportacao): BackupLocatario {
   };
 }
 
+/**
+ * 
+ * @param importacao 
+ * @returns 
+ */
 function mapRestauracao(importacao: Importacao): RestauracaoLocatario {
   return {
     restauracaoId: importacao.importacaoId,
@@ -83,9 +79,12 @@ function mapRestauracao(importacao: Importacao): RestauracaoLocatario {
   };
 }
 
-export function criarBackupsLocatarioService(
-  deps: CriarBackupsLocatarioServiceDeps,
-) {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function criarBackupsLocatarioService(deps: CriarBackupsLocatarioServiceDeps) {
   const agora = deps.agora ?? (() => new Date());
   const gerarId = deps.gerarId ?? (() => crypto.randomUUID());
 
@@ -96,9 +95,7 @@ export function criarBackupsLocatarioService(
     return deps.transacao.executar(fn);
   }
 
-  async function solicitarBackupLocatario(
-    input: SolicitarBackupLocatarioInput,
-  ): Promise<Result<SolicitarBackupLocatarioOutput, ErroApp>> {
+  async function solicitarBackupLocatario(input: SolicitarBackupLocatarioInput): Promise<Result<SolicitarBackupLocatarioOutput, ErroApp>> {
     const validacao = validarSolicitarBackupLocatarioInput(input);
     if (!validacao.ok) return validacao;
 
@@ -147,9 +144,7 @@ export function criarBackupsLocatarioService(
     });
   }
 
-  async function listarBackupsLocatario(
-    input: ListarBackupsLocatarioInput,
-  ): Promise<Result<ListarBackupsLocatarioOutput, ErroApp>> {
+  async function listarBackupsLocatario(input: ListarBackupsLocatarioInput): Promise<Result<ListarBackupsLocatarioOutput, ErroApp>> {
     const validacao = validarListarBackupsLocatarioInput(input);
     if (!validacao.ok) return validacao;
 
@@ -164,9 +159,7 @@ export function criarBackupsLocatarioService(
     });
   }
 
-  async function solicitarRestauracaoLocatario(
-    input: SolicitarRestauracaoLocatarioInput,
-  ): Promise<Result<SolicitarRestauracaoLocatarioOutput, ErroApp>> {
+  async function solicitarRestauracaoLocatario(input: SolicitarRestauracaoLocatarioInput): Promise<Result<SolicitarRestauracaoLocatarioOutput, ErroApp>> {
     const validacao = validarSolicitarRestauracaoLocatarioInput(input);
     if (!validacao.ok) return validacao;
 

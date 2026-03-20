@@ -1,6 +1,6 @@
 // packages/core/src/tokens/usecases/listarTokensDoUsuario.ts
 
-import { wrapOk } from "../../result";
+import { wrapOk } from "../../kernel";
 import type { ListarTokensDoUsuarioInput, ListarTokensDoUsuarioOutput, ResultadoListarTokensDoUsuario } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarUsuarioId } from "../../usuarios";
@@ -11,7 +11,7 @@ import { validarLocatarioId } from "../../locatarios";
  * @param deps 
  * @returns 
  */
-export function createListarTokensDoUsuario(deps: {
+export function createFnListarTokensDoUsuario(deps: {
   tokensRepo: TokensRepositorio;
 }) {
   return async function listarTokensDoUsuario(input: ListarTokensDoUsuarioInput): ResultadoListarTokensDoUsuario {

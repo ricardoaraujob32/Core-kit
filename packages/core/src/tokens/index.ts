@@ -35,8 +35,8 @@ export {
   criarTokenSeed,
 } from "./repositorioMemoria";
 
-export { createEmitirToken } from "./usecases/emitirToken";
-export { createObterTokenPorHash } from "./usecases/obterTokenPorHash";
-export { createListarTokensDoUsuario } from "./usecases/listarTokensDoUsuario";
-export { createRevogarToken } from "./usecases/revogarToken";
-export { createRotacionarToken } from "./usecases/rotacionarToken";
+export { createFnEmitirToken as createEmitirToken } from "./usecases/emitirToken";
+export { createFnObterTokenPorHash as createObterTokenPorHash } from "./usecases/obterTokenPorHash";
+export { createFnListarTokensDoUsuario as createListarTokensDoUsuario } from "./usecases/listarTokensDoUsuario";
+export { createFnRevogarToken as createRevogarToken } from "./usecases/revogarToken";
+export { createFnRotacionarToken as createRotacionarToken } from "./usecases/rotacionarToken";

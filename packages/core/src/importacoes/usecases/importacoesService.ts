@@ -1,67 +1,44 @@
-import { randomUUID } from "node:crypto";
-import { wrapOk } from "../../kernel/ROPHelpers";
-import type { ErroApp } from "../../kernel/erros";
-import type { Result } from "../../kernel/result";
-import {
-  erroImportacaoNaoEncontrada,
-  erroItemImportacaoNaoEncontrado,
-  erroTransicaoStatusImportacaoInvalida,
-} from "../erros";
-import type {
-  Importacao,
-  ItemImportacao,
-  ListarImportacoesLocatarioInput,
-  ListarItensImportacaoInput,
-  MarcarImportacaoComFalhaInput,
-  MarcarImportacaoConcluidaInput,
-  MarcarImportacaoEmExecucaoInput,
-  MarcarItemImportacaoComFalhaInput,
-  MarcarItemImportacaoProcessadoInput,
-  RegistrarItemImportacaoInput,
-  SolicitarImportacaoInput,
-  SolicitarImportacaoOutput,
-} from "../tipos";
-import {
-  validarListarImportacoesLocatarioInput,
-  validarListarItensImportacaoInput,
-  validarMarcarImportacaoComFalhaInput,
-  validarMarcarImportacaoConcluidaInput,
-  validarMarcarImportacaoEmExecucaoInput,
-  validarMarcarItemImportacaoComFalhaInput,
-  validarMarcarItemImportacaoProcessadoInput,
-  validarRegistrarItemImportacaoInput,
-  validarSolicitarImportacaoInput,
-} from "../validadores";
-import type {
-  ImportacoesRepositorio,
-  ItensImportacaoRepositorio,
-  PortaTransacao,
-} from "../portasRepositorio";
+// packages/core/src/importacoes/usecases/importacoesService.ts
 
+import { randomUUID } from "node:crypto";
+import { ErroApp, IdPorta, PortaTransacao, RelogioPorta, Result, wrapOk } from "../../kernel";
+import { ImportacoesRepositorio, ItensImportacaoRepositorio } from "../portasRepositorio";
+import { Importacao, ItemImportacao, ListarImportacoesLocatarioInput, ListarItensImportacaoInput, MarcarImportacaoComFalhaInput, 
+  MarcarImportacaoConcluidaInput, MarcarImportacaoEmExecucaoInput, MarcarItemImportacaoComFalhaInput, MarcarItemImportacaoProcessadoInput, 
+  RegistrarItemImportacaoInput, SolicitarImportacaoInput, SolicitarImportacaoOutput } from "../tipos";
+import { validarListarImportacoesLocatarioInput, validarListarItensImportacaoInput, validarMarcarImportacaoComFalhaInput, 
+  validarMarcarImportacaoConcluidaInput, validarMarcarImportacaoEmExecucaoInput, validarMarcarItemImportacaoComFalhaInput, 
+  validarMarcarItemImportacaoProcessadoInput, validarRegistrarItemImportacaoInput, validarSolicitarImportacaoInput } from "../validadores";
+import { erroImportacaoNaoEncontrada, erroItemImportacaoNaoEncontrado, erroTransicaoStatusImportacaoInvalida } from "../erros";
+
+/**
+ * 
+ */
 export interface CriarImportacoesServiceDeps {
   importacoesRepositorio: ImportacoesRepositorio;
   itensImportacaoRepositorio: ItensImportacaoRepositorio;
   transacao?: PortaTransacao;
-  agora?: () => Date;
-  gerarId?: () => string;
+  agora?: RelogioPorta;
+  gerarId?: IdPorta;
 }
 
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
 export function criarImportacoesService(
   deps: CriarImportacoesServiceDeps,
 ) {
   const agora = deps.agora ?? (() => new Date());
   const gerarId = deps.gerarId ?? (() => randomUUID());
 
-  async function executarEmTransacao<T>(
-    fn: () => Promise<Result<T, ErroApp>>,
-  ): Promise<Result<T, ErroApp>> {
+  async function executarEmTransacao<T>(fn: () => Promise<Result<T, ErroApp>>): Promise<Result<T, ErroApp>> {
     if (!deps.transacao) return fn();
     return deps.transacao.executar(fn);
   }
 
-  async function solicitarImportacao(
-    input: SolicitarImportacaoInput,
-  ): Promise<Result<SolicitarImportacaoOutput, ErroApp>> {
+  async function solicitarImportacao(input: SolicitarImportacaoInput): Promise<Result<SolicitarImportacaoOutput, ErroApp>> {
     const validacao = validarSolicitarImportacaoInput(input);
     if (!validacao.ok) return validacao;
 
@@ -88,9 +65,7 @@ export function criarImportacoesService(
     return wrapOk({ importacao: criada.value });
   }
 
-  async function registrarItemImportacao(
-    input: RegistrarItemImportacaoInput,
-  ): Promise<Result<ItemImportacao, ErroApp>> {
+  async function registrarItemImportacao(input: RegistrarItemImportacaoInput): Promise<Result<ItemImportacao, ErroApp>> {
     const validacao = validarRegistrarItemImportacaoInput(input);
     if (!validacao.ok) return validacao;
 
@@ -110,17 +85,13 @@ export function criarImportacoesService(
     });
   }
 
-  async function listarImportacoesLocatario(
-    input: ListarImportacoesLocatarioInput,
-  ) {
+  async function listarImportacoesLocatario(input: ListarImportacoesLocatarioInput) {
     const validacao = validarListarImportacoesLocatarioInput(input);
     if (!validacao.ok) return validacao;
     return deps.importacoesRepositorio.listarPorLocatario(input.locatarioId);
   }
 
-  async function listarItensImportacao(
-    input: ListarItensImportacaoInput,
-  ) {
+  async function listarItensImportacao(input: ListarItensImportacaoInput) {
     const validacao = validarListarItensImportacaoInput(input);
     if (!validacao.ok) return validacao;
     return deps.itensImportacaoRepositorio.listarPorImportacao(
@@ -129,9 +100,7 @@ export function criarImportacoesService(
     );
   }
 
-  async function marcarImportacaoEmExecucao(
-    input: MarcarImportacaoEmExecucaoInput,
-  ): Promise<Result<Importacao, ErroApp>> {
+  async function marcarImportacaoEmExecucao(input: MarcarImportacaoEmExecucaoInput): Promise<Result<Importacao, ErroApp>> {
     const validacao = validarMarcarImportacaoEmExecucaoInput(input);
     if (!validacao.ok) return validacao;
 
@@ -158,9 +127,7 @@ export function criarImportacoesService(
     });
   }
 
-  async function marcarImportacaoConcluida(
-    input: MarcarImportacaoConcluidaInput,
-  ): Promise<Result<Importacao, ErroApp>> {
+  async function marcarImportacaoConcluida(input: MarcarImportacaoConcluidaInput): Promise<Result<Importacao, ErroApp>> {
     const validacao = validarMarcarImportacaoConcluidaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -188,9 +155,7 @@ export function criarImportacoesService(
     });
   }
 
-  async function marcarImportacaoComFalha(
-    input: MarcarImportacaoComFalhaInput,
-  ): Promise<Result<Importacao, ErroApp>> {
+  async function marcarImportacaoComFalha(input: MarcarImportacaoComFalhaInput): Promise<Result<Importacao, ErroApp>> {
     const validacao = validarMarcarImportacaoComFalhaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -218,9 +183,7 @@ export function criarImportacoesService(
     });
   }
 
-  async function marcarItemImportacaoProcessado(
-    input: MarcarItemImportacaoProcessadoInput,
-  ): Promise<Result<ItemImportacao, ErroApp>> {
+  async function marcarItemImportacaoProcessado(input: MarcarItemImportacaoProcessadoInput): Promise<Result<ItemImportacao, ErroApp>> {
     const validacao = validarMarcarItemImportacaoProcessadoInput(input);
     if (!validacao.ok) return validacao;
 
@@ -244,9 +207,7 @@ export function criarImportacoesService(
     });
   }
 
-  async function marcarItemImportacaoComFalha(
-    input: MarcarItemImportacaoComFalhaInput,
-  ): Promise<Result<ItemImportacao, ErroApp>> {
+  async function marcarItemImportacaoComFalha(input: MarcarItemImportacaoComFalhaInput): Promise<Result<ItemImportacao, ErroApp>> {
     const validacao = validarMarcarItemImportacaoComFalhaInput(input);
     if (!validacao.ok) return validacao;
 

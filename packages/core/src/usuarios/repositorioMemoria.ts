@@ -1,12 +1,15 @@
-import { wrapOk } from "../kernel/result";
-import type { UsuariosRepositorio } from "./portasRepositorio";
-import type {
-  Usuario,
-  UsuarioId,
-  LocatarioId,
-  StatusUsuario,
-} from "./tipos";
+// packages/core/src/usuarios/repositorioMemoria.ts
 
+import { wrapOk } from "../kernel";
+import { LocatarioId } from "../locatarios";
+import type { UsuariosRepositorio } from "./portasRepositorio";
+import type { Usuario, UsuarioId, StatusUsuario } from "./tipos";
+
+/**
+ * 
+ * @param seed 
+ * @returns 
+ */
 export function criarUsuariosRepositorioMemoria(
   seed?: Usuario[],
 ): UsuariosRepositorio & {
@@ -99,6 +102,11 @@ export function criarUsuariosRepositorioMemoria(
   return api;
 }
 
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
 export function criarUsuarioSeed(params: {
   usuarioId: UsuarioId;
   locatarioId: LocatarioId | null;

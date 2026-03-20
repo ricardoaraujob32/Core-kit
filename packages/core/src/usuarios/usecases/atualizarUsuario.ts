@@ -1,16 +1,21 @@
+// packages/core/src/usuarios/usecases/atualizarUsuario.ts
+
 import { validarEmailUsuario, validarNomeUsuario, validarUsuarioId } from "../validadores";
 import { usuarioNaoEncontrado, emailUsuarioJaExiste } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import type { AtualizarUsuarioInput, ResultadoAtualizarUsuario } from "../tipos";
-import type { RelogioPorta } from "../../utils";
+import type { RelogioPorta } from "../../kernel";
 
-export function createAtualizarUsuario(deps: {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnAtualizarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
   relogio: RelogioPorta;
 }) {
-  return async function atualizarUsuario(
-    input: AtualizarUsuarioInput,
-  ): ResultadoAtualizarUsuario {
+  return async function atualizarUsuario(input: AtualizarUsuarioInput): ResultadoAtualizarUsuario {
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 

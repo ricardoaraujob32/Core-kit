@@ -1,24 +1,28 @@
-import { wrapOk } from "../kernel/ROPHelpers";
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import { validarIdGenerico, validarTextoObrigatorio } from "../utils";
-import { erroExportacaoInvalida } from "./erros";
-import type {
-  ListarExportacoesLocatarioInput,
-  MarcarExportacaoComFalhaInput,
-  MarcarExportacaoConcluidaInput,
-  MarcarExportacaoEmExecucaoInput,
-  SolicitarExportacaoInput,
-} from "./tipos";
+// packages/core/src/exportacoes/validadores.ts
 
+import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel";
+import { erroExportacaoInvalida } from "./erros";
+import { ListarExportacoesLocatarioInput, MarcarExportacaoComFalhaInput, MarcarExportacaoConcluidaInput, 
+  MarcarExportacaoEmExecucaoInput, SolicitarExportacaoInput } from "./tipos";
+
+/**
+ * 
+ * @param resultado 
+ * @param campo 
+ * @param valor 
+ * @returns 
+ */
 function mapearErro(resultado: Result<string, ErroApp>, campo: string, valor?: unknown): Result<string, ErroApp> {
   if (resultado.ok) return resultado;
   return erroExportacaoInvalida({ campo, valor });
 }
 
-export function validarSolicitarExportacaoInput(
-  input: SolicitarExportacaoInput,
-): Result<SolicitarExportacaoInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarSolicitarExportacaoInput(input: SolicitarExportacaoInput): Result<SolicitarExportacaoInput, ErroApp> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",
@@ -33,9 +37,12 @@ export function validarSolicitarExportacaoInput(
   return wrapOk(input);
 }
 
-export function validarListarExportacoesLocatarioInput(
-  input: ListarExportacoesLocatarioInput,
-): Result<ListarExportacoesLocatarioInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarListarExportacoesLocatarioInput(input: ListarExportacoesLocatarioInput): Result<ListarExportacoesLocatarioInput, ErroApp> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",
@@ -46,9 +53,12 @@ export function validarListarExportacoesLocatarioInput(
   return wrapOk(input);
 }
 
-export function validarMarcarExportacaoEmExecucaoInput(
-  input: MarcarExportacaoEmExecucaoInput,
-): Result<MarcarExportacaoEmExecucaoInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarMarcarExportacaoEmExecucaoInput(input: MarcarExportacaoEmExecucaoInput): Result<MarcarExportacaoEmExecucaoInput, ErroApp> {
   const exportacaoId = mapearErro(
     validarIdGenerico(input.exportacaoId, "exportacaoId"),
     "exportacaoId",
@@ -59,9 +69,12 @@ export function validarMarcarExportacaoEmExecucaoInput(
   return wrapOk(input);
 }
 
-export function validarMarcarExportacaoConcluidaInput(
-  input: MarcarExportacaoConcluidaInput,
-): Result<MarcarExportacaoConcluidaInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarMarcarExportacaoConcluidaInput(input: MarcarExportacaoConcluidaInput): Result<MarcarExportacaoConcluidaInput, ErroApp> {
   const exportacaoId = mapearErro(
     validarIdGenerico(input.exportacaoId, "exportacaoId"),
     "exportacaoId",
@@ -79,9 +92,12 @@ export function validarMarcarExportacaoConcluidaInput(
   return wrapOk(input);
 }
 
-export function validarMarcarExportacaoComFalhaInput(
-  input: MarcarExportacaoComFalhaInput,
-): Result<MarcarExportacaoComFalhaInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarMarcarExportacaoComFalhaInput(input: MarcarExportacaoComFalhaInput): Result<MarcarExportacaoComFalhaInput, ErroApp> {
   const exportacaoId = mapearErro(
     validarIdGenerico(input.exportacaoId, "exportacaoId"),
     "exportacaoId",

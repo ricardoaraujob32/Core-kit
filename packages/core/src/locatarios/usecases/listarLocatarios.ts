@@ -2,9 +2,14 @@
 
 import type {ListarLocatariosOutput, ResultadoListarLocatarios} from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
-import { wrapOk } from "../../result";
+import { wrapOk } from "../../kernel";
 
-export function createListarLocatarios(deps: {locRepo: LocatariosRepositorio} ) {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnListarLocatarios(deps: {locRepo: LocatariosRepositorio} ) {
   return async function listarLocatarios(): ResultadoListarLocatarios {
     const res = await deps.locRepo.listar();
     if (!res.ok) return res;

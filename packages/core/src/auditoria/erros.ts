@@ -1,15 +1,12 @@
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import { createErroApp, wrapErr } from "../kernel/ROPHelpers";
+// packages/core/src/auditoria/erros.ts
 
-export function erroAuditoriaInvalida(
-  detalhes?: Record<string, unknown>,
-): Result<never, ErroApp> {
-  return wrapErr(
-    createErroApp(
-      "AUDITORIA_INVALIDA",
-      "Dados de auditoria são inválidos.",
-      detalhes,
-    ),
-  );
+import { createErroApp, ErroApp, Result } from "../kernel";
+
+/**
+ * 
+ * @param detalhes 
+ * @returns 
+ */
+export function erroAuditoriaInvalida(detalhes?: Record<string, unknown>): Result<never, ErroApp> {
+  return createErroApp("AUDITORIA_INVALIDA","Dados de auditoria são inválidos.", detalhes);
 }

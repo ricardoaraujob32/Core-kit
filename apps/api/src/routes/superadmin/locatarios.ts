@@ -1,42 +1,58 @@
+// apps/api/src/routes/superadmin/locatarios.ts
+
 import type { FastifyInstance } from "fastify";
-import { wrapSuperAdminRoute } from "../../http/wrapSuperAdminRoute";
+
+type Resultado<T> =
+  | { ok: true; value: T }
+  | {
+      ok: false;
+      error: {
+        codigo: string;
+        mensagem: string;
+        detalhes?: Record<string, unknown>;
+      };
+    };
+
+type LocatarioResumo = {
+  locatarioId: string;
+  nome: string;
+};
 
 export async function registrarRotasSuperAdminLocatarios(
   app: FastifyInstance,
   deps: {
+    wrapSuperAdminRoute: <TBody = unknown, TResult = unknown>(
+      handler: (args: {
+        req: any;
+        reply: any;
+        ctx: any;
+      }) => Promise<Resultado<TResult>> | Resultado<TResult>,
+    ) => (req: any, reply: any) => Promise<unknown>;
     usecases: {
-      criarLocatario: (input: { nome: string }) => Promise<any>;
-      listarLocatarios: () => Promise<any>;
-      obterLocatario: (input: { locatarioId: string }) => Promise<any>;
+      criarLocatario: (input: { nome: string }) => Promise<Resultado<LocatarioResumo>>;
+      listarLocatarios: () => Promise<Resultado<{ items: LocatarioResumo[] }>>;
+      obterLocatario: (input: { locatarioId: string }) => Promise<Resultado<LocatarioResumo>>;
     };
-  }
+  },
 ) {
   app.post(
     "/superadmin/locatarios",
-    wrapSuperAdminRoute(async ({ req }) => {
+    deps.wrapSuperAdminRoute(async ({ req }) => {
       const body = (req.body ?? {}) as { nome?: string };
-
-      return deps.usecases.criarLocatario({
-        nome: body.nome ?? "",
-      });
-    })
+      return deps.usecases.criarLocatario({ nome: body.nome ?? "" });
+    }),
   );
 
   app.get(
     "/superadmin/locatarios",
-    wrapSuperAdminRoute(async () => {
-      return deps.usecases.listarLocatarios();
-    })
+    deps.wrapSuperAdminRoute(async () => deps.usecases.listarLocatarios()),
   );
 
   app.get(
     "/superadmin/locatarios/:locatarioId",
-    wrapSuperAdminRoute(async ({ req }) => {
+    deps.wrapSuperAdminRoute(async ({ req }) => {
       const params = req.params as { locatarioId: string };
-
-      return deps.usecases.obterLocatario({
-        locatarioId: params.locatarioId,
-      });
-    })
+      return deps.usecases.obterLocatario({ locatarioId: params.locatarioId });
+    }),
   );
 }

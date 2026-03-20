@@ -1,12 +1,16 @@
-import { wrapOk } from "../../kernel/result";
-import type {
-  AutorizarOperacaoInput,
-  ResultadoAutorizarOperacao,
-} from "../tipos";
+// packages/core/src/rbac/usecases/autorizarOperacao.ts
+
+import { wrapOk } from "../../kernel";
+import type { AutorizarOperacaoInput, ResultadoAutorizarOperacao } from "../tipos";
 import { naoAutorizado } from "../erros";
 import { exigirUsuario, normalizarPermissoes } from "../helpers";
 import { validarPermissao } from "../validadores";
 
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
 export function autorizarOperacao(input: AutorizarOperacaoInput): ResultadoAutorizarOperacao {
   const permissaoValida = validarPermissao(input.permissao);
   if (!permissaoValida.ok) return permissaoValida;

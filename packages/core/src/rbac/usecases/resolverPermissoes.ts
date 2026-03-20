@@ -1,24 +1,24 @@
-import { wrapOk } from "../../kernel/result";
-import type {
-  Papel,
-  Permissao,
-  ResolverPermissoesInput,
-  ResolverPermissoesOutput,
-  ResultadoResolverPermissoes,
-} from "../tipos";
-import type { RbacRepositorio } from "../portasRepositorio";
-import {
-  comPapeis,
-  comPermissoes,
-  exigirUsuario,
-} from "../helpers";
+// packages/core/src/rbac/usecases/resolverPermissoes.ts
 
+import { wrapOk } from "../../kernel";
+import type { Papel, Permissao, ResolverPermissoesInput, ResolverPermissoesOutput, ResultadoResolverPermissoes } from "../tipos";
+import type { RbacRepositorio } from "../portasRepositorio";
+import { comPapeis, comPermissoes, exigirUsuario } from "../helpers";
+
+/**
+ * 
+ */
 type CacheEntry = {
   permissoes: Permissao[];
   papeis: Papel[];
 };
 
-export function createResolverPermissoes(deps: { rbacRepo: RbacRepositorio }) {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnResolverPermissoes(deps: { rbacRepo: RbacRepositorio }) {
   const cache = new WeakMap<object, CacheEntry>();
 
   return async function resolverPermissoes(input: ResolverPermissoesInput): ResultadoResolverPermissoes {

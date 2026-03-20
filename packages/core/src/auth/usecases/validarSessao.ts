@@ -1,19 +1,20 @@
-import { wrapOk } from "../../kernel/result";
-import type {
-  ResultadoValidarSessao,
-  SessaoValidada,
-  ValidarSessaoInput,
-} from "../tipos";
-import type { JwtAuthPorta } from "../portasServico";
-import { validarTokenNaoVazio } from "../validadores";
-import { sessaoInvalida } from "../erros";
+// packages/core/src/auth/usecases/validarSessao.ts
 
-export function criarValidarSessao(deps: {
+import { wrapOk } from "../../kernel";
+import { sessaoInvalida } from "../erros";
+import { JwtAuthPorta } from "../portasServico";
+import { ResultadoValidarSessao, SessaoValidada, ValidarSessaoInput } from "../tipos";
+import { validarTokenNaoVazio } from "../validadores";
+
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnValidarSessao(deps: {
   jwtPorta: JwtAuthPorta;
 }) {
-  return function validarSessao(
-    input: ValidarSessaoInput,
-  ): ResultadoValidarSessao {
+  return function validarSessao(input: ValidarSessaoInput): ResultadoValidarSessao {
     const token = validarTokenNaoVazio(input.accessToken);
     if (!token.ok) return token;
 

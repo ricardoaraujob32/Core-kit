@@ -1,6 +1,6 @@
 // packages/core/src/locatarios/repositorioMemoria.ts
 
-import { wrapOk } from "../result";
+import { wrapOk } from "../kernel";
 import type { LocatariosRepositorio } from "./portasRepositorio";
 import type { Locatario, LocatarioId, LocatarioStatus } from "./tipos";
 

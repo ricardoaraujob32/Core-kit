@@ -1,4 +1,4 @@
-// packages/core/src/ROPHelpers.ts
+// packages/core/src/kernel/ROPHelpers.ts
 
 import { Result, wrapErr, wrapOk } from "./result";
 import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp } from "./erros";

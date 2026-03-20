@@ -1,19 +1,14 @@
-import type { Result } from "../../result";
-import { wrapOk } from "../../result";
-import type { ErroApp } from "../../erros";
-import { erroModuloNaoHabilitado } from "../erros";
-import type { ModulosHabilitadosRepositorio } from "../portasRepositorio";
-import type {
-  ListarModulosHabilitadosInput,
-  ListarModulosHabilitadosOutput,
-  ModuloEstaHabilitadoInput,
-  ModuloEstaHabilitadoOutput,
-} from "../tipos";
-import {
-  validarListarModulosHabilitadosInput,
-  validarModuloEstaHabilitadoInput,
-} from "../validadores";
+// packages/core/src/modulos/usecases/modulosHabilitadosService.ts
 
+import { ErroApp, Result, wrapOk } from "../../kernel";
+import { erroModuloNaoHabilitado } from "../erros";
+import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
+import { ListarModulosHabilitadosInput, ListarModulosHabilitadosOutput, ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput } from "../tipos";
+import { validarListarModulosHabilitadosInput, validarModuloEstaHabilitadoInput } from "../validadores";
+
+/**
+ * 
+ */
 export type ModulosHabilitadosService = {
   listarModulosHabilitados(
     input: ListarModulosHabilitadosInput,
@@ -28,11 +23,19 @@ export type ModulosHabilitadosService = {
   ): Promise<Result<ModuloEstaHabilitadoOutput, ErroApp>>;
 };
 
+/**
+ * 
+ */
 export type CriarModulosHabilitadosServiceDeps = {
   repositorio: ModulosHabilitadosRepositorio;
 };
 
-export function criarModulosHabilitadosService(
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnListarModulosHabilitados(
   deps: CriarModulosHabilitadosServiceDeps,
 ): ModulosHabilitadosService {
   return {

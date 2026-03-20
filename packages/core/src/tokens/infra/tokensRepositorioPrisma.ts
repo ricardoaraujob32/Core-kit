@@ -1,7 +1,14 @@
+// 
+
+import { createErroApp, wrapOk } from "../../kernel";
+import { LocatarioId } from "../../locatarios";
+import { UsuarioId } from "../../usuarios";
+import { TokenId } from "../tipos";
+
 function mapToken(row: {
-  locatario_id: string;
-  token_id: string;
-  usuario_id: string;
+  locatario_id: LocatarioId;
+  token_id: TokenId;
+  usuario_id: UsuarioId;
   token_hash: string;
   expira_em: Date;
   revogado_em: Date | null;
@@ -33,8 +40,8 @@ export function criarTokensRepositorioPrisma(
   return {
     async inserir(dados: {
       id: string;
-      locatarioId: string;
-      usuarioId: string;
+      locatarioId: LocatarioId;
+      usuarioId: UsuarioId;
       tokenHash: string;
       expiraEm: Date;
     }) {
@@ -58,7 +65,7 @@ export function criarTokensRepositorioPrisma(
       }
     },
 
-    async buscarPorId(locatarioId: string, tokenId: string) {
+    async buscarPorId(locatarioId: LocatarioId, tokenId: TokenId) {
       try {
         const row = await prisma.tokens.findUnique({
           where: {
@@ -75,7 +82,7 @@ export function criarTokensRepositorioPrisma(
       }
     },
 
-    async revogar(locatarioId: string, tokenId: string, revogadoEm: Date) {
+    async revogar(locatarioId: LocatarioId, tokenId: TokenId, revogadoEm: Date) {
       try {
         const row = await prisma.tokens.update({
           where: {

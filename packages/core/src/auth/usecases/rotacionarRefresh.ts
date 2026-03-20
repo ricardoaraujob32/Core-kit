@@ -1,22 +1,17 @@
-import { wrapOk } from "../../kernel/result";
-import type {
-  ResultadoRotacionarRefresh,
-  RotacionarRefreshInput,
-  Sessao,
-} from "../tipos";
-import type {
-  EventosSegurancaPorta,
-  IdPorta,
-  JwtAuthPorta,
-  RelogioPorta,
-  TokensAuthPorta,
-} from "../portasServico";
-import {
-  validarLocatarioIdAuth,
-  validarTokenNaoVazio,
-} from "../validadores";
+// packages/core/src/auth/usecases/rotacionarRefresh.ts
 
-export function criarRotacionarRefresh(deps: {
+import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
+import { EventosSegurancaPorta } from "../portasRepositorio";
+import { JwtAuthPorta, TokensAuthPorta } from "../portasServico";
+import { ResultadoRotacionarRefresh, RotacionarRefreshInput, Sessao } from "../tipos";
+import { validarLocatarioIdAuth, validarTokenNaoVazio } from "../validadores";
+
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnRotacionarRefresh(deps: {
   tokensPorta: TokensAuthPorta;
   jwtPorta: JwtAuthPorta;
   relogio: RelogioPorta;
@@ -26,9 +21,7 @@ export function criarRotacionarRefresh(deps: {
   ttlRefreshMs?: number;
   issuer?: string;
 }) {
-  return async function rotacionarRefresh(
-    input: RotacionarRefreshInput,
-  ): ResultadoRotacionarRefresh {
+  return async function rotacionarRefresh(input: RotacionarRefreshInput): ResultadoRotacionarRefresh {
     const locatarioId = validarLocatarioIdAuth(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 

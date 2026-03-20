@@ -1,8 +1,20 @@
+//
+
+import { criarExportacoesRepositorioPrisma } from "../../exportacoes/infra/exportacoesRepositorioPrisma";
+import { criarImportacoesRepositorioPrisma } from "../../importacoes/infra/importacoesRepositorioPrisma";
+import { LocatarioId } from "../../locatarios";
+import { BackupId } from "../tipos";
+
+/**
+ * 
+ * @param prisma 
+ * @returns 
+ */
 export function criarBackupsInfraPrisma(prisma: PrismaClient) {
   return {
     async solicitarBackup(params: {
-      locatarioId: string;
-      backupId: string;
+      locatarioId: LocatarioId;
+      backupId: BackupId;
       tipo: string;
     }) {
       const exportacoesRepo = criarExportacoesRepositorioPrisma(prisma);
@@ -16,8 +28,8 @@ export function criarBackupsInfraPrisma(prisma: PrismaClient) {
     },
 
     async solicitarRestauracao(params: {
-      locatarioId: string;
-      restauracaoId: string;
+      locatarioId: LocatarioId;
+      restauracaoId: BackupId;
       tipo: string;
       arquivoOrigem: string;
     }) {

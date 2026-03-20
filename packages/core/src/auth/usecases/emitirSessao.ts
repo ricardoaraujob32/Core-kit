@@ -1,31 +1,18 @@
-import { wrapOk } from "../../kernel/result";
-import type {
-  EmitirSessaoInput,
-  ResultadoEmitirSessao,
-  Sessao,
-} from "../tipos";
-import type {
-  EventosSegurancaPorta,
-  HashAuthPorta,
-  IdPorta,
-  JwtAuthPorta,
-  LocatariosAuthPorta,
-  RelogioPorta,
-  TokensAuthPorta,
-  UsuariosAuthPorta,
-} from "../portasServico";
-import {
-  validarEmailAuth,
-  validarLocatarioIdAuth,
-  validarSenha,
-} from "../validadores";
-import {
-  credenciaisInvalidas,
-  locatarioNaoPodeAutenticar,
-  usuarioNaoPodeAutenticar,
-} from "../erros";
+// packages/core/src/auth/usecases/emitirSessao.ts
 
-export function criarEmitirSessao(deps: {
+import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
+import { credenciaisInvalidas, locatarioNaoPodeAutenticar, usuarioNaoPodeAutenticar } from "../erros";
+import { EventosSegurancaPorta } from "../portasRepositorio";
+import { HashAuthPorta, JwtAuthPorta, LocatariosAuthPorta, TokensAuthPorta, UsuariosAuthPorta } from "../portasServico";
+import { EmitirSessaoInput, ResultadoEmitirSessao, Sessao } from "../tipos";
+import { validarEmailAuth, validarLocatarioIdAuth, validarSenha } from "../validadores";
+
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnEmitirSessao(deps: {
   usuariosPorta: UsuariosAuthPorta;
   locatariosPorta?: LocatariosAuthPorta;
   tokensPorta: TokensAuthPorta;
@@ -38,9 +25,7 @@ export function criarEmitirSessao(deps: {
   ttlRefreshMs?: number;
   issuer?: string;
 }) {
-  return async function emitirSessao(
-    input: EmitirSessaoInput,
-  ): ResultadoEmitirSessao {
+  return async function emitirSessao(input: EmitirSessaoInput): ResultadoEmitirSessao {
     const locatarioId = validarLocatarioIdAuth(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 

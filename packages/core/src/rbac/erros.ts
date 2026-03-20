@@ -1,8 +1,13 @@
 // packages/core/src/rbac/erros.ts
 
-import { createErroApp } from "../ROPHelpers";
+import { createErroApp } from "../kernel";
 import { Permissao } from "./tipos";
 
+/**
+ * 
+ * @param permissao 
+ * @returns 
+ */
 export function permissaoInvalida(permissao: Permissao) {
   return createErroApp({
     codigo: "RBAC_PERMISSAO_INVALIDA",
@@ -11,6 +16,10 @@ export function permissaoInvalida(permissao: Permissao) {
   });
 }
 
+/**
+ * 
+ * @returns 
+ */
 export function naoAutenticado() {
   return createErroApp({
     codigo: "RBAC_NAO_AUTENTICADO",
@@ -19,6 +28,11 @@ export function naoAutenticado() {
   });
 }
 
+/**
+ * 
+ * @param permissao 
+ * @returns 
+ */
 export function naoAutorizado(permissao: Permissao) {
   return createErroApp({
     codigo: "RBAC_NAO_AUTORIZADO",

@@ -1,12 +1,17 @@
 // packages/core/src/tokens/usecases/obterTokenPorHash.ts
 
-import { wrapOk } from "../../result";
+import { wrapOk } from "../../kernel";
 import type { ObterTokenPorHashInput, ResultadoObterTokenPorHash } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarHashToken } from "../validadores";
 import { tokenExpirado, tokenNaoEncontrado, tokenRevogado } from "../erros";
 
-export function createObterTokenPorHash(deps: {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnObterTokenPorHash(deps: {
   tokensRepo: TokensRepositorio;
   agora: () => Date;
 }) {

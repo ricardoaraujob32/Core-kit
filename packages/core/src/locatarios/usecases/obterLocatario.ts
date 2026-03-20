@@ -4,14 +4,14 @@ import type {ObterLocatarioInput, ResultadoObterLocatario} from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { validarLocatarioId } from "../validadores";
 import {locatarioEncerrado, locatarioNaoEncontrado, locatarioSuspenso} from "../erros";
-import { wrapOk } from "../../result";
+import { wrapOk } from "../../kernel";
 
 /**
  * 
  * @param deps 
  * @returns 
  */
-export function createObterLocatario(deps: {locRepo: LocatariosRepositorio} ) {
+export function createFnObterLocatario(deps: {locRepo: LocatariosRepositorio} ) {
   return async function obterLocatario(
     input: ObterLocatarioInput,
   ): ResultadoObterLocatario {

@@ -1,11 +1,14 @@
-import type { Result } from "../kernel/result";
-import type { ErroApp } from "../kernel/erros";
-import type { IdPorta, RelogioPorta } from "../kernel/utils";
-import type { LocatarioId } from "../locatarios";
-import type { UsuarioId, Usuario } from "../usuarios";
-import type { ContextoExecucaoRbac, ResolverPermissoesOutput } from "../rbac";
-import type { TokenId } from "../tokens";
+// packages/core/src/auth/portasServico.ts
 
+import { ErroApp, Result } from "../kernel";
+import { LocatarioId } from "../locatarios";
+import { ContextoExecucaoRbac, ResolverPermissoesOutput } from "../rbac";
+import { TokenId } from "../tokens";
+import { UsuarioId } from "../usuarios";
+
+/**
+ * 
+ */
 export interface UsuarioAuth {
   usuarioId: UsuarioId;
   locatarioId: LocatarioId | null;
@@ -14,6 +17,9 @@ export interface UsuarioAuth {
   status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO";
 }
 
+/**
+ * 
+ */
 export interface UsuariosAuthPorta {
   buscarPorEmail(params: {
     locatarioId: LocatarioId;
@@ -26,6 +32,9 @@ export interface UsuariosAuthPorta {
   }): Promise<Result<void, ErroApp>>;
 }
 
+/**
+ * 
+ */
 export interface LocatariosAuthPorta {
   buscarPorId(params: {
     locatarioId: LocatarioId;
@@ -40,6 +49,9 @@ export interface LocatariosAuthPorta {
   >;
 }
 
+/**
+ * 
+ */
 export interface HashAuthPorta {
   compararSenha(
     senha: string,
@@ -47,6 +59,9 @@ export interface HashAuthPorta {
   ): Promise<Result<boolean, ErroApp>>;
 }
 
+/**
+ * 
+ */
 export interface JwtAuthPorta {
   emitirAccessToken(params: {
     usuarioId: UsuarioId;
@@ -83,6 +98,9 @@ export interface JwtAuthPorta {
   >;
 }
 
+/**
+ * 
+ */
 export interface TokensAuthPorta {
   criarRefresh(params: {
     locatarioId: LocatarioId;
@@ -121,24 +139,11 @@ export interface TokensAuthPorta {
   }): Promise<Result<void, ErroApp>>;
 }
 
+/**
+ * 
+ */
 export interface RbacAuthPorta {
   resolverPermissoes(
     ctx: ContextoExecucaoRbac,
   ): Promise<Result<ResolverPermissoesOutput, ErroApp>>;
 }
-
-export interface EventosSegurancaPorta {
-  registrarEvento?(params: {
-    tipo:
-      | "auth.login.sucesso"
-      | "auth.login.falha"
-      | "auth.refresh"
-      | "auth.logout";
-    usuarioId?: string | null;
-    locatarioId?: string | null;
-    detalhes?: Record<string, unknown>;
-    quando: Date;
-  }): Promise<void>;
-}
-
-export type { IdPorta, RelogioPorta };

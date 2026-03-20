@@ -1,10 +1,17 @@
-import type { IdPorta, RelogioPorta } from "../../utils";
+// packages/core/src/tokens/usecases/rotacionarToken.ts
+
+import type { IdPorta, RelogioPorta } from "../../kernel";
 import { tokenInvalido, tokenNaoEncontrado, tokenRevogado, hashTokenJaExiste } from "../erros";
 import type { ResultadoRotacionarToken, RotacionarTokenInput } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarExpiraEm, validarHashToken, validarTokenId } from "../validadores";
 
-export function createRotacionarToken(deps: {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnRotacionarToken(deps: {
   tokensRepo: TokensRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;

@@ -1,6 +1,6 @@
 // packages/core/src/locatarios/erros.ts
 
-import { createErroApp } from "../ROPHelpers";
+import { createErroApp } from "../kernel";
 import { LocatarioId } from "./tipos";
 
 export function locatarioInvalido(detalhes?: Record<string, unknown>) {

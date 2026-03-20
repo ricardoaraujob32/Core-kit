@@ -1,25 +1,10 @@
 import type { FastifyRequest } from "fastify";
-import type {
-  ModulosHabilitadosService,
-  Papel,
-  Permissao,
-} from "@core-kit/core";
+import type { ModuloCodigo, Permissao, ContextoExecucao, UsuarioId, LocatarioId, Papel } from "@core-kit/core";
 import {
   comModulosHabilitados,
   createContextoExecucao,
   isErr,
 } from "@core-kit/core";
-
-type HeaderValue = string | string[] | undefined;
-
-type BuildContextDeps = {
-  modulosHabilitadosService: ModulosHabilitadosService;
-};
-
-type BuildContextOk = {
-  ok: true;
-  value: ReturnType<typeof createContextoExecucao>;
-};
 
 type BuildContextErr = {
   ok: false;
@@ -30,98 +15,138 @@ type BuildContextErr = {
   };
 };
 
+type BuildContextOk = {
+  ok: true;
+  value: ContextoExecucao;
+};
+
 export type BuildContextResult = BuildContextOk | BuildContextErr;
 
-function headerToString(value: HeaderValue): string | undefined {
-  if (Array.isArray(value)) return value[0];
-  if (typeof value === "string") return value;
-  return undefined;
+type SessaoValidada = {
+  usuarioId: UsuarioId;
+  locatarioId: LocatarioId;
+};
+
+type ContextoAutorizado = {
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+  papeis?: readonly Papel[];
+  permissoes?: readonly Permissao[];
+};
+
+type BuildContextDeps = {
+  validarSessao: (input: { accessToken: string }) => Promise<
+    | { ok: true; value: SessaoValidada }
+    | { ok: false; error: { codigo: string; mensagem: string; detalhes?: Record<string, unknown> } }
+  >;
+  resolverContextoAutorizado: (input: {
+    usuarioId: UsuarioId;
+    locatarioId: LocatarioId;
+  }) => Promise<
+    | { ok: true; value: ContextoAutorizado }
+    | { ok: false; error: { codigo: string; mensagem: string; detalhes?: Record<string, unknown> } }
+  >;
+  listarModulosHabilitados?: (input: { locatarioId: LocatarioId }) => Promise<
+    | { ok: true; value: { modulos: Array<{ codigo: ModuloCodigo }> } }
+    | { ok: false; error: { codigo: string; mensagem: string; detalhes?: Record<string, unknown> } }
+  >;
+};
+
+function extractBearerToken(req: FastifyRequest): string | null {
+  const raw = req.headers.authorization;
+  if (!raw) return null;
+
+  const [scheme, token] = raw.split(" ");
+  if (scheme?.toLowerCase() !== "bearer" || !token) {
+    return null;
+  }
+
+  return token;
 }
 
-function parseCsvHeader(value: HeaderValue): string[] | undefined {
-  const raw = headerToString(value);
-  if (!raw) return undefined;
-
-  const values = raw
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  return values.length > 0 ? values : undefined;
-}
-
-function parsePapeisHeader(value: HeaderValue): readonly Papel[] | undefined {
-  const values = parseCsvHeader(value);
-  return values as readonly Papel[] | undefined;
-}
-
-function parsePermissoesHeader(
-  value: HeaderValue,
-): readonly Permissao[] | undefined {
-  const values = parseCsvHeader(value);
-  return values as readonly Permissao[] | undefined;
+function mapError(error: {
+  codigo: string;
+  mensagem: string;
+  detalhes?: Record<string, unknown>;
+}): BuildContextErr {
+  return {
+    ok: false,
+    error: {
+      codigo: error.codigo,
+      mensagem: error.mensagem,
+      detalhes: error.detalhes,
+    },
+  };
 }
 
 export function createBuildContextFromRequest(deps: BuildContextDeps) {
   return async function buildContextFromRequest(
     req: FastifyRequest,
   ): Promise<BuildContextResult> {
-    const locatarioId = headerToString(req.headers["x-locatario-id"]);
-    const usuarioId = headerToString(req.headers["x-usuario-id"]);
-    const papeis = parsePapeisHeader(req.headers["x-papeis"]);
-    const permissoes = parsePermissoesHeader(req.headers["x-permissoes"]);
+    const token = extractBearerToken(req);
 
-    if (!locatarioId) {
+    if (!token) {
       return {
         ok: false,
         error: {
-          codigo: "INVALIDO",
-          mensagem: "Cabeçalho x-locatario-id é obrigatório.",
-          detalhes: { header: "x-locatario-id" },
+          codigo: "NAO_AUTENTICADO",
+          mensagem: "Bearer token ausente.",
         },
       };
     }
 
+    const sessaoResult = await deps.validarSessao({ accessToken: token });
+    if (!sessaoResult.ok) {
+      return mapError(sessaoResult.error);
+    }
+
+    const contextoResult = await deps.resolverContextoAutorizado({
+      usuarioId: sessaoResult.value.usuarioId,
+      locatarioId: sessaoResult.value.locatarioId,
+    });
+
+    if (!contextoResult.ok) {
+      return mapError(contextoResult.error);
+    }
+
     try {
       const ctxBase = createContextoExecucao({
-        locatarioId,
-        usuarioId,
-        papeis,
-        permissoes,
+        locatarioId: contextoResult.value.locatarioId,
+        usuarioId: contextoResult.value.usuarioId,
+        papeis: contextoResult.value.papeis as readonly string[] | undefined,
+        permissoes: contextoResult.value.permissoes as readonly Permissao[] | undefined,
       });
 
-      const modulosResult =
-        await deps.modulosHabilitadosService.listarModulosHabilitados({
-          locatarioId,
-        });
-
-      if (isErr(modulosResult)) {
-        return {
-          ok: false,
-          error: {
-            codigo: modulosResult.error.codigo,
-            mensagem: modulosResult.error.mensagem,
-            detalhes: modulosResult.error.detalhes,
-          },
-        };
+      if (!deps.listarModulosHabilitados) {
+        return { ok: true, value: ctxBase };
       }
 
-      const ctx = comModulosHabilitados(
-        ctxBase,
-        modulosResult.value.modulos.map((m) => m.codigo),
-      );
+      const modulosResult = await deps.listarModulosHabilitados({
+        locatarioId: contextoResult.value.locatarioId,
+      });
+
+      if (!modulosResult.ok) {
+        return mapError(modulosResult.error);
+      }
 
       return {
         ok: true,
-        value: ctx,
+        value: comModulosHabilitados(
+          ctxBase,
+          modulosResult.value.modulos.map((m) => m.codigo),
+        ),
       };
     } catch (causa) {
       return {
         ok: false,
         error: {
-          codigo: "INVALIDO",
-          mensagem: "ContextoExecucao inválido.",
-          detalhes: { locatarioId, usuarioId, causa },
+          codigo: "ERRO_INTERNO",
+          mensagem: "Falha ao construir ContextoExecucao.",
+          detalhes: {
+            causa,
+            usuarioId: contextoResult.value.usuarioId,
+            locatarioId: contextoResult.value.locatarioId,
+          },
         },
       };
     }

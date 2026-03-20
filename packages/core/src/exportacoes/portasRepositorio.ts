@@ -1,32 +1,18 @@
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import type {
-  Exportacao,
-  ExportacaoId,
-  LocatarioId,
-  RegistrarExportacaoParams,
-} from "./tipos";
+// packages/core/src/exportacoes/portasRepositorio.ts
 
-export interface PortaTransacao {
-  executar<T>(
-    fn: () => Promise<Result<T, ErroApp>>,
-  ): Promise<Result<T, ErroApp>>;
-}
+import { ErroApp, Result } from "../kernel";
+import { LocatarioId } from "../locatarios";
+import { Exportacao, ExportacaoId, RegistrarExportacaoParams } from "./tipos";
 
+/**
+ * 
+ */
 export interface ExportacoesRepositorio {
-  criarExportacao(
-    params: RegistrarExportacaoParams,
-  ): Promise<Result<Exportacao, ErroApp>>;
+  criarExportacao(params: RegistrarExportacaoParams): Promise<Result<Exportacao, ErroApp>>;
 
-  atualizarExportacao(
-    exportacao: Exportacao,
-  ): Promise<Result<Exportacao, ErroApp>>;
+  atualizarExportacao(exportacao: Exportacao): Promise<Result<Exportacao, ErroApp>>;
 
-  buscarPorId(
-    exportacaoId: ExportacaoId,
-  ): Promise<Result<Exportacao | null, ErroApp>>;
+  buscarPorId(exportacaoId: ExportacaoId): Promise<Result<Exportacao | null, ErroApp>>;
 
-  listarPorLocatario(
-    locatarioId: LocatarioId,
-  ): Promise<Result<Exportacao[], ErroApp>>;
+  listarPorLocatario(locatarioId: LocatarioId): Promise<Result<Exportacao[], ErroApp>>;
 }

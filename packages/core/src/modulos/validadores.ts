@@ -1,10 +1,14 @@
-import type { Result } from "../result";
-import { wrapOk } from "../result";
-import type { ErroApp } from "../erros";
-import { erroLocatarioIdInvalido, erroModuloCodigoInvalido} from "./erros";
-import type { ListarModulosHabilitadosInput, ModuloEstaHabilitadoInput} from "./tipos";
-import { validarIdGenerico, validarTextoObrigatorio } from "../utils";
+// packages/core/src/modulos/validadores.ts
 
+import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel";
+import { erroLocatarioIdInvalido, erroModuloCodigoInvalido } from "./erros";
+import { ListarModulosHabilitadosInput, ModuloEstaHabilitadoInput } from "./tipos";
+
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
 export function validarListarModulosHabilitadosInput(
   input: ListarModulosHabilitadosInput,
 ): Result<ListarModulosHabilitadosInput, ErroApp> {
@@ -18,6 +22,11 @@ export function validarListarModulosHabilitadosInput(
   });
 }
 
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
 export function validarModuloEstaHabilitadoInput(
   input: ModuloEstaHabilitadoInput,
 ): Result<ModuloEstaHabilitadoInput, ErroApp> {

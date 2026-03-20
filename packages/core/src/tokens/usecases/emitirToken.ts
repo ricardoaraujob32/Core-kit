@@ -1,7 +1,6 @@
 // packages/core/src/tokens/usecases/emitirToken.ts
 
-import { wrapOk } from "../../result";
-import type { IdPorta, RelogioPorta } from "../../utils";
+import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
 import type { EmitirTokenInput, EmitirTokenOutput, ResultadoEmitirToken } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarHashToken, validarExpiraEm, validarTokenTipo } from "../validadores";
@@ -14,7 +13,7 @@ import { validarUsuarioId } from "../../usuarios";
  * @param deps 
  * @returns 
  */
-export function createEmitirToken(deps: {
+export function createFnEmitirToken(deps: {
   tokensRepo: TokensRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;

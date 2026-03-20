@@ -1,12 +1,30 @@
+// packages/core/src/importacoes/tipos.ts
+
+import { LocatarioId } from "../locatarios";
+import { UsuarioId } from "../usuarios";
+
+/**
+ * 
+ */
 export type ImportacaoId = string;
+
+/**
+ * 
+ */
 export type ItemImportacaoId = string;
 
+/**
+ * 
+ */
 export type TipoOrigemImportacao =
   | "ARQUIVO"
   | "PLANILHA"
   | "URL"
   | "SISTEMA_EXTERNO";
 
+  /**
+   * 
+   */
 export type StatusJob =
   | "PENDENTE"
   | "EM_EXECUCAO"
@@ -14,6 +32,9 @@ export type StatusJob =
   | "FALHOU"
   | "CANCELADO";
 
+  /**
+   * 
+   */
 export interface Importacao {
   importacaoId: ImportacaoId;
   locatarioId: LocatarioId;
@@ -30,6 +51,9 @@ export interface Importacao {
   atualizadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface ItemImportacao {
   itemImportacaoId: ItemImportacaoId;
   importacaoId: ImportacaoId;
@@ -41,6 +65,9 @@ export interface ItemImportacao {
   criadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface SolicitarImportacaoInput {
   locatarioId: LocatarioId;
   criadoPorUsuarioId?: UsuarioId | null;
@@ -49,10 +76,16 @@ export interface SolicitarImportacaoInput {
   mapeamentoColunas?: Record<string, unknown>;
 }
 
+/**
+ * 
+ */
 export interface SolicitarImportacaoOutput {
   importacao: Importacao;
 }
 
+/**
+ * 
+ */
 export interface RegistrarItemImportacaoInput {
   importacaoId: ImportacaoId;
   locatarioId: LocatarioId;
@@ -60,38 +93,62 @@ export interface RegistrarItemImportacaoInput {
   dadosBrutos: Record<string, unknown>;
 }
 
+/**
+ * 
+ */
 export interface ListarImportacoesLocatarioInput {
   locatarioId: LocatarioId;
 }
 
+/**
+ * 
+ */
 export interface ListarItensImportacaoInput {
   importacaoId: ImportacaoId;
   locatarioId: LocatarioId;
 }
 
+/**
+ * 
+ */
 export interface MarcarImportacaoEmExecucaoInput {
   importacaoId: ImportacaoId;
 }
 
+/**
+ * 
+ */
 export interface MarcarImportacaoConcluidaInput {
   importacaoId: ImportacaoId;
   estatisticas?: Record<string, unknown>;
 }
 
+/**
+ * 
+ */
 export interface MarcarImportacaoComFalhaInput {
   importacaoId: ImportacaoId;
   mensagemErro: string;
 }
 
+/**
+ * 
+ */
 export interface MarcarItemImportacaoProcessadoInput {
   itemImportacaoId: ItemImportacaoId;
 }
 
+/**
+ * 
+ */
 export interface MarcarItemImportacaoComFalhaInput {
   itemImportacaoId: ItemImportacaoId;
   detalheErro: string;
 }
 
+/**
+ * 
+ */
 export interface RegistrarImportacaoParams {
   importacaoId?: ImportacaoId;
   locatarioId: LocatarioId;
@@ -108,6 +165,9 @@ export interface RegistrarImportacaoParams {
   atualizadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface RegistrarItemImportacaoParams {
   itemImportacaoId?: ItemImportacaoId;
   importacaoId: ImportacaoId;

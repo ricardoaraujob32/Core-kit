@@ -1,8 +1,7 @@
 // packages/core/src/rbac/tipos.ts
 
-import { ErroApp } from "../erros";
+import { ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
-import { Result } from "../result";
 import { UsuarioId } from "../usuarios";
 
 /**
@@ -60,6 +59,9 @@ export const Permissoes = {
 
 export type Permissao = (typeof Permissoes)[keyof typeof Permissoes];
 
+/**
+ * 
+ */
 export interface ContextoExecucaoRbac {
   locatarioId: LocatarioId;
   usuarioId?: UsuarioId;
@@ -68,21 +70,36 @@ export interface ContextoExecucaoRbac {
   agora?: () => Date;
 }
 
+/**
+ * 
+ */
 export interface ResolverPermissoesInput {
   ctx: ContextoExecucaoRbac;
 }
 
+/**
+ * 
+ */
 export interface ResolverPermissoesOutput {
   ctx: ContextoExecucaoRbac;
   permissoes: Permissao[];
   papeis: Papel[];
 }
 
+/**
+ * 
+ */
 export interface AutorizarOperacaoInput {
   ctx: ContextoExecucaoRbac;
   permissao: Permissao;
 }
 
+/**
+ * 
+ */
 export type ResultadoResolverPermissoes = Promise< Result<ResolverPermissoesOutput, ErroApp> >;
 
+/**
+ * 
+ */
 export type ResultadoAutorizarOperacao = Result<void, ErroApp>;

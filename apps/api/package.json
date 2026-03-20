@@ -14,14 +14,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@core-kit/core": "workspace:*",
-    "@prisma/client": "^7.3.0",
-    "fastify": "^4.0.0",
-    "prisma": "^7.3.0"
+    "@fastify/cors": "^11.0.0",
+    "@fastify/jwt": "^9.0.0",
+    "@prisma/client": "^6.0.0",
+    "fastify": "^5.0.0",
+    "fastify-plugin": "^5.0.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.10",
     "tsx": "^4.21.0",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "typescript": "^5.8.0"
   }
 }

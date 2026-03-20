@@ -30,5 +30,5 @@ export {
   comPapeis,
 } from "./helpers";
 
-export { createResolverPermissoes } from "./usecases/resolverPermissoes";
+export { createFnResolverPermissoes as createResolverPermissoes } from "./usecases/resolverPermissoes";
 export { autorizarOperacao } from "./usecases/autorizarOperacao";

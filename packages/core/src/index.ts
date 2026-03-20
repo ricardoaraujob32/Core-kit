@@ -5,15 +5,10 @@
  * Tudo que é exportado aqui é considerado estável
  */
 
-export * from "./result";
-export * from "./erros";
-export * from "./contextoExecucao";
 export * from "./rbac";
 export * from "./locatarios";
 export * from "./modulos";
 export * from "./auth";
 export * from "./tokens";
 export * from "./usuarios";
-
-export * from "./papeis";
-export * from "./permissoes";
+export * from "./kernel"

@@ -1,31 +1,46 @@
-// Ajuste os imports conforme o kernel real do projeto.
-import type { Result } from "../result";
-import { wrapErr } from "../result";
-import type { ErroApp } from "../erros";
-import { createErroApp } from "../ROPHelpers";
+// packages/core/src/modulos/erros.ts
 
+import { createErroApp, ErroApp, Result } from "../kernel"
+import { LocatarioId } from "../locatarios"
+
+/**
+ * 
+ * @param locatarioId 
+ * @returns 
+ */
 export function erroLocatarioIdInvalido(locatarioId: unknown): Result<never, ErroApp> {
   return createErroApp( {"INVALIDO", "locatarioId inválido.", { locatarioId } } );
 }
 
+/**
+ * 
+ * @param codigo 
+ * @returns 
+ */
 export function erroModuloCodigoInvalido(codigo: unknown): Result<never, ErroApp> {
   return createErroApp("INVALIDO", "Código do módulo inválido.", { codigo }),
   );
 }
 
-export function erroRepositorioModulos(
-  causa?: unknown,
-): Result<never, ErroApp> {
+/**
+ * 
+ * @param causa 
+ * @returns 
+ */
+export function erroRepositorioModulos(causa?: unknown): Result<never, ErroApp> {
   return createErroApp("ERRO_INTERNO", "Falha ao consultar módulos habilitados.", {
       causa,
     }),
   );
 }
 
-export function erroModuloNaoHabilitado(
-  codigo: string,
-  locatarioId: string,
-): Result<never, ErroApp> {
+/**
+ * 
+ * @param codigo 
+ * @param locatarioId 
+ * @returns 
+ */
+export function erroModuloNaoHabilitado(codigo: string, locatarioId: LocatarioId): Result<never, ErroApp> {
   return createErroApp("NAO_AUTORIZADO", "Módulo não habilitado para o locatário.", {
       codigo,
       locatarioId,

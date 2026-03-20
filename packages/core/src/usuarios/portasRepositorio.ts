@@ -1,8 +1,12 @@
-import { ErroApp } from "../erros";
+// packages/core/src/usuarios/portasRepositorio.ts
+
+import { ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
-import { Result } from "../result";
 import { Usuario, UsuarioId } from "./tipos";
 
+/**
+ * 
+ */
 export interface UsuariosRepositorio {
   criar(params: {
     usuarioId: UsuarioId;
@@ -42,13 +46,3 @@ export interface UsuariosRepositorio {
     quando: Date;
   }): Promise<Result<void, ErroApp>>;
 }
-
-
-
-
-  
-
-
-  
-
-  

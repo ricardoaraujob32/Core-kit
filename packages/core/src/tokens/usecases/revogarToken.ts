@@ -1,12 +1,17 @@
 // packages/core/src/tokens/usecases/revogarToken.ts
 
-import type { RelogioPorta } from "../../utils";
+import type { RelogioPorta } from "../../kernel";
 import type { RevogarTokenInput, ResultadoRevogarToken } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarTokenId } from "../validadores";
 import { tokenNaoEncontrado, tokenRevogado } from "../erros";
 
-export function createRevogarToken(deps: {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnRevogarToken(deps: {
   tokensRepo: TokensRepositorio;
   relogio: RelogioPorta;
 }) {

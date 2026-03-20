@@ -1,28 +1,16 @@
-import { randomUUID } from "node:crypto";
-import { wrapOk } from "../kernel/ROPHelpers";
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import type {
-  EventoAuditoriaLocatario,
-  EventoAuditoriaPlataforma,
-  ListarAuditoriaLocatarioInput,
-  ListarAuditoriaPlataformaInput,
-  RegistrarEventoLocatarioInput,
-  RegistrarEventoPlataformaInput,
-} from "./tipos";
-import type {
-  AuditoriaLocatarioRepositorio,
-  AuditoriaPlataformaRepositorio,
-} from "./portasRepositorio";
+// packages/core/src/auditoria/repositorioMemoria.ts
 
-export class AuditoriaLocatarioRepositorioMemoria
-  implements AuditoriaLocatarioRepositorio
-{
+import { randomUUID } from "node:crypto";
+import { ErroApp, Result, wrapOk } from "../kernel";
+import { EventoAuditoriaLocatario, EventoAuditoriaPlataforma, ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoLocatarioInput, RegistrarEventoPlataformaInput } from "./tipos";
+
+/**
+ * 
+ */
+export class AuditoriaLocatarioRepositorioMemoria implements AuditoriaLocatarioRepositorio {
   private readonly itens: EventoAuditoriaLocatario[] = [];
 
-  async registrarEvento(
-    input: RegistrarEventoLocatarioInput,
-  ): Promise<Result<EventoAuditoriaLocatario, ErroApp>> {
+  async registrarEvento(input: RegistrarEventoLocatarioInput): Promise<Result<EventoAuditoriaLocatario, ErroApp>> {
     const item: EventoAuditoriaLocatario = {
       auditoriaId: randomUUID(),
       locatarioId: input.locatarioId,
@@ -47,9 +35,7 @@ export class AuditoriaLocatarioRepositorioMemoria
     return wrapOk(item);
   }
 
-  async listarEventos(
-    filtro: ListarAuditoriaLocatarioInput,
-  ): Promise<Result<EventoAuditoriaLocatario[], ErroApp>> {
+  async listarEventos(filtro: ListarAuditoriaLocatarioInput): Promise<Result<EventoAuditoriaLocatario[], ErroApp>> {
     const limite = filtro.limite ?? 100;
     const itens = this.itens
       .filter((x) => x.locatarioId === filtro.locatarioId)
@@ -63,14 +49,13 @@ export class AuditoriaLocatarioRepositorioMemoria
   }
 }
 
-export class AuditoriaPlataformaRepositorioMemoria
-  implements AuditoriaPlataformaRepositorio
-{
+/**
+ * 
+ */
+export class AuditoriaPlataformaRepositorioMemoria implements AuditoriaPlataformaRepositorio {
   private readonly itens: EventoAuditoriaPlataforma[] = [];
 
-  async registrarEvento(
-    input: RegistrarEventoPlataformaInput,
-  ): Promise<Result<EventoAuditoriaPlataforma, ErroApp>> {
+  async registrarEvento(input: RegistrarEventoPlataformaInput): Promise<Result<EventoAuditoriaPlataforma, ErroApp>> {
     const item: EventoAuditoriaPlataforma = {
       auditoriaId: randomUUID(),
       usuarioId: input.usuarioId,
@@ -95,9 +80,7 @@ export class AuditoriaPlataformaRepositorioMemoria
     return wrapOk(item);
   }
 
-  async listarEventos(
-    filtro: ListarAuditoriaPlataformaInput,
-  ): Promise<Result<EventoAuditoriaPlataforma[], ErroApp>> {
+  async listarEventos(filtro: ListarAuditoriaPlataformaInput): Promise<Result<EventoAuditoriaPlataforma[], ErroApp>> {
     const limite = filtro.limite ?? 100;
     const itens = this.itens
       .filter((x) => filtro.locatarioAlvoId === undefined || x.locatarioAlvoId === filtro.locatarioAlvoId)

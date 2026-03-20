@@ -1,6 +1,17 @@
+//
+
+import { AssinaturaId } from "../../assinaturas";
+import { createErroApp, wrapOk } from "../../kernel";
+import { LocatarioId } from "../../locatarios";
+
+/**
+ * 
+ * @param row 
+ * @returns 
+ */
 function mapAssinatura(row: {
-  locatario_id: string;
-  assinatura_id: string;
+  locatario_id: LocatarioId;
+  assinatura_id: AssinaturaId;
   plano_codigo: string;
   status: string;
   iniciado_em: Date;
@@ -20,6 +31,13 @@ function mapAssinatura(row: {
   };
 }
 
+/**
+ * 
+ * @param causa 
+ * @param operacao 
+ * @param detalhes 
+ * @returns 
+ */
 function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "ERRO_INTERNO",
@@ -29,13 +47,16 @@ function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, u
   });
 }
 
-export function criarAssinaturasRepositorioPrisma(
-  prisma: PrismaClient | Prisma.TransactionClient
-) {
+/**
+ * 
+ * @param prisma 
+ * @returns 
+ */
+export function criarAssinaturasRepositorioPrisma(prisma: PrismaClient | Prisma.TransactionClient) {
   return {
     async inserir(dados: {
       id: string;
-      locatarioId: string;
+      locatarioId: LocatarioId;
       planoCodigo: string;
       status: string;
       iniciadoEm: Date;
@@ -79,8 +100,8 @@ export function criarAssinaturasRepositorioPrisma(
     },
 
     async atualizarStatus(
-      locatarioId: string,
-      assinaturaId: string,
+      locatarioId: LocatarioId,
+      assinaturaId: AssinaturaId,
       status: string,
       encerradoEm?: Date | null
     ) {

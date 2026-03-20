@@ -1,25 +1,28 @@
-import { ErroApp } from "../erros";
-import type { Result } from "../kernel/result";
-import { wrapOk } from "../kernel/ROPHelpers";
-import { validarData, validarIdGenerico } from "../utils";
-import { erroAssinaturaInvalida } from "./erros";
-import type {
-  AtivarAssinaturaInput,
-  CancelarAssinaturaInput,
-  CriarAssinaturaInput,
-  DesvincularModuloDaAssinaturaInput,
-  SuspenderAssinaturaInput,
-  VincularModuloNaAssinaturaInput,
-} from "./tipos";
+// packages/core/src/assinaturas/validadores.ts
 
+import { ErroApp, Result, validarData, validarIdGenerico, wrapOk } from "../kernel";
+import { erroAssinaturaInvalida } from "./erros";
+import { AtivarAssinaturaInput, CancelarAssinaturaInput, CriarAssinaturaInput, DesvincularModuloDaAssinaturaInput,
+  SuspenderAssinaturaInput, VincularModuloNaAssinaturaInput } from "./tipos";
+
+/**
+ * 
+ * @param resultado 
+ * @param campo 
+ * @param valor 
+ * @returns 
+ */
 function mapearErro(resultado: Result<string | Date, ErroApp>, campo: string, valor?: unknown): any {
   if (resultado.ok) return resultado;
   return erroAssinaturaInvalida({ campo, valor });
 }
 
-export function validarCriarAssinaturaInput(
-  input: CriarAssinaturaInput,
-): Result<CriarAssinaturaInput, unknown> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarCriarAssinaturaInput(input: CriarAssinaturaInput): Result<CriarAssinaturaInput, unknown> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",
@@ -46,9 +49,12 @@ export function validarCriarAssinaturaInput(
   return wrapOk(input);
 }
 
-export function validarAtivarAssinaturaInput(
-  input: AtivarAssinaturaInput,
-): Result<AtivarAssinaturaInput, unknown> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarAtivarAssinaturaInput(input: AtivarAssinaturaInput): Result<AtivarAssinaturaInput, unknown> {
   const assinaturaId = mapearErro(
     validarIdGenerico(input.assinaturaId, "assinaturaId"),
     "assinaturaId",
@@ -59,9 +65,12 @@ export function validarAtivarAssinaturaInput(
   return wrapOk(input);
 }
 
-export function validarSuspenderAssinaturaInput(
-  input: SuspenderAssinaturaInput,
-): Result<SuspenderAssinaturaInput, unknown> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarSuspenderAssinaturaInput(input: SuspenderAssinaturaInput): Result<SuspenderAssinaturaInput, unknown> {
   const assinaturaId = mapearErro(
     validarIdGenerico(input.assinaturaId, "assinaturaId"),
     "assinaturaId",
@@ -72,9 +81,12 @@ export function validarSuspenderAssinaturaInput(
   return wrapOk(input);
 }
 
-export function validarCancelarAssinaturaInput(
-  input: CancelarAssinaturaInput,
-): Result<CancelarAssinaturaInput, unknown> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarCancelarAssinaturaInput(input: CancelarAssinaturaInput): Result<CancelarAssinaturaInput, unknown> {
   const assinaturaId = mapearErro(
     validarIdGenerico(input.assinaturaId, "assinaturaId"),
     "assinaturaId",
@@ -94,8 +106,12 @@ export function validarCancelarAssinaturaInput(
   return wrapOk(input);
 }
 
-export function validarVincularModuloNaAssinaturaInput(
-  input: VincularModuloNaAssinaturaInput,
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarVincularModuloNaAssinaturaInput(input: VincularModuloNaAssinaturaInput,
 ): Result<VincularModuloNaAssinaturaInput, unknown> {
   const assinaturaId = mapearErro(
     validarIdGenerico(input.assinaturaId, "assinaturaId"),
@@ -114,6 +130,11 @@ export function validarVincularModuloNaAssinaturaInput(
   return wrapOk(input);
 }
 
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
 export function validarDesvincularModuloDaAssinaturaInput(
   input: DesvincularModuloDaAssinaturaInput,
 ): Result<DesvincularModuloDaAssinaturaInput, unknown> {

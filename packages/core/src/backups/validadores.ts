@@ -1,22 +1,27 @@
-import { wrapOk } from "../kernel/ROPHelpers";
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import { validarIdGenerico, validarTextoObrigatorio } from "../utils";
-import { erroBackupInvalido } from "./erros";
-import type {
-  ListarBackupsLocatarioInput,
-  SolicitarBackupLocatarioInput,
-  SolicitarRestauracaoLocatarioInput,
-} from "./tipos";
+// packages/core/src/backups/validadores.ts
 
+import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel";
+import { erroBackupInvalido } from "./erros";
+import { ListarBackupsLocatarioInput, SolicitarBackupLocatarioInput, SolicitarRestauracaoLocatarioInput } from "./tipos";
+
+/**
+ * 
+ * @param resultado 
+ * @param campo 
+ * @param valor 
+ * @returns 
+ */
 function mapearErro(resultado: Result<string, ErroApp>, campo: string, valor?: unknown): Result<string, ErroApp> {
   if (resultado.ok) return resultado;
   return erroBackupInvalido({ campo, valor });
 }
 
-export function validarSolicitarBackupLocatarioInput(
-  input: SolicitarBackupLocatarioInput,
-): Result<SolicitarBackupLocatarioInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarSolicitarBackupLocatarioInput(input: SolicitarBackupLocatarioInput): Result<SolicitarBackupLocatarioInput, ErroApp> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",
@@ -34,9 +39,12 @@ export function validarSolicitarBackupLocatarioInput(
   return wrapOk(input);
 }
 
-export function validarListarBackupsLocatarioInput(
-  input: ListarBackupsLocatarioInput,
-): Result<ListarBackupsLocatarioInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarListarBackupsLocatarioInput(input: ListarBackupsLocatarioInput): Result<ListarBackupsLocatarioInput, ErroApp> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",
@@ -47,9 +55,12 @@ export function validarListarBackupsLocatarioInput(
   return wrapOk(input);
 }
 
-export function validarSolicitarRestauracaoLocatarioInput(
-  input: SolicitarRestauracaoLocatarioInput,
-): Result<SolicitarRestauracaoLocatarioInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarSolicitarRestauracaoLocatarioInput(input: SolicitarRestauracaoLocatarioInput): Result<SolicitarRestauracaoLocatarioInput, ErroApp> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",

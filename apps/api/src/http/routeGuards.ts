@@ -3,11 +3,13 @@ import {
   exigirAlguma,
   exigirModuloHabilitado,
   exigirTodas,
+  exigirUsuario,
   isErr,
   possuiPermissao,
 } from "@core-kit/core";
 
 export type GuardOptions = {
+  autenticado?: boolean;
   modulo?: ModuloCodigo;
   permissao?: Permissao;
   todasPermissoes?: readonly Permissao[];
@@ -32,6 +34,20 @@ export function aplicarGuardsHttp(
     return { ok: true };
   }
 
+  if (options.autenticado) {
+    const authResult = exigirUsuario(ctx);
+    if (isErr(authResult)) {
+      return {
+        ok: false,
+        error: {
+          codigo: authResult.error.codigo,
+          mensagem: authResult.error.mensagem ?? "Autenticação obrigatória.",
+          detalhes: authResult.error.detalhes,
+        },
+      };
+    }
+  }
+
   if (options.modulo) {
     const moduloResult = exigirModuloHabilitado(ctx, options.modulo);
     if (isErr(moduloResult)) {
@@ -39,8 +55,7 @@ export function aplicarGuardsHttp(
         ok: false,
         error: {
           codigo: moduloResult.error.codigo,
-          mensagem:
-            moduloResult.error.mensagem ?? "Módulo não habilitado.",
+          mensagem: moduloResult.error.mensagem ?? "Módulo não habilitado.",
           detalhes: moduloResult.error.detalhes,
         },
       };
@@ -54,15 +69,14 @@ export function aplicarGuardsHttp(
         ok: false,
         error: {
           codigo: permissaoResult.error.codigo,
-          mensagem:
-            permissaoResult.error.mensagem ?? "Permissão ausente.",
+          mensagem: permissaoResult.error.mensagem ?? "Permissão ausente.",
           detalhes: permissaoResult.error.detalhes,
         },
       };
     }
   }
 
-  if (options.todasPermissoes && options.todasPermissoes.length > 0) {
+  if (options.todasPermissoes?.length) {
     const todasResult = exigirTodas(ctx, options.todasPermissoes);
     if (isErr(todasResult)) {
       return {
@@ -78,7 +92,7 @@ export function aplicarGuardsHttp(
     }
   }
 
-  if (options.algumaPermissao && options.algumaPermissao.length > 0) {
+  if (options.algumaPermissao?.length) {
     const algumaResult = exigirAlguma(ctx, options.algumaPermissao);
     if (isErr(algumaResult)) {
       return {

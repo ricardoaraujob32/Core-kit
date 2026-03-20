@@ -1,8 +1,7 @@
 // packages/core/src/tokens/portasRepositorio.ts
 
-import { ErroApp } from "../erros";
+import { ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios/tipos";
-import { Result } from "../result";
 import { UsuarioId } from "../usuarios";
 import { TokenId, TokenPersistido, TokenTipo } from "./tipos";
 

@@ -1,15 +1,20 @@
-import { wrapOk } from "../../result";
+// packages/core/src/usuarios/usecases/obterUsuario.ts
+
+import { wrapOk } from "../../kernel";
 import type { ObterUsuarioInput, ResultadoObterUsuario } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import { validarUsuarioId } from "../validadores";
 import { usuarioEncerrado, usuarioInativo, usuarioNaoEncontrado, usuarioSuspenso } from "../erros";
 
-export function createObterUsuario(deps: {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnObterUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
 }) {
-  return async function obterUsuario(
-    input: ObterUsuarioInput,
-  ): ResultadoObterUsuario {
+  return async function obterUsuario(input: ObterUsuarioInput): ResultadoObterUsuario {
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 

@@ -1,6 +1,17 @@
+//
+
+import { createErroApp, wrapOk } from "../../kernel";
+import { LocatarioId } from "../../locatarios";
+import { ExportacaoId } from "../tipos";
+
+/**
+ * 
+ * @param row 
+ * @returns 
+ */
 function mapExportacao(row: {
-  locatario_id: string;
-  exportacao_id: string;
+  locatario_id: LocatarioId;
+  exportacao_id: ExportacaoId;
   tipo: string;
   status: string;
   arquivo_url: string | null;
@@ -20,6 +31,13 @@ function mapExportacao(row: {
   };
 }
 
+/**
+ * 
+ * @param causa 
+ * @param operacao 
+ * @param detalhes 
+ * @returns 
+ */
 function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "ERRO_INTERNO",
@@ -29,13 +47,18 @@ function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, u
   });
 }
 
+/**
+ * 
+ * @param prisma 
+ * @returns 
+ */
 export function criarExportacoesRepositorioPrisma(
   prisma: PrismaClient | Prisma.TransactionClient
 ) {
   return {
     async inserir(dados: {
       id: string;
-      locatarioId: string;
+      locatarioId: LocatarioId;
       tipo: string;
       status: string;
     }) {
@@ -55,7 +78,7 @@ export function criarExportacoesRepositorioPrisma(
       }
     },
 
-    async listarPorLocatario(locatarioId: string) {
+    async listarPorLocatario(locatarioId: LocatarioId) {
       try {
         const rows = await prisma.exportacoes.findMany({
           where: { locatario_id: locatarioId },

@@ -1,7 +1,6 @@
 // packages/core/src/locatarios/tipos.ts
 
-import type { ErroApp } from "../erros";
-import type { Result } from "../result";
+import type { ErroApp, Result } from "../kernel";
 
 export type LocatarioId = string;
 

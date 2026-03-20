@@ -1,8 +1,13 @@
 // packages/core/src/tokens/erros.ts
 
-import { createErroApp } from "../ROPHelpers";
+import { createErroApp } from "../kernel";
 import { TokenId } from "./tipos";
 
+/**
+ * 
+ * @param detalhes 
+ * @returns 
+ */
 export function entradaInvalida(detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "INVALIDO",
@@ -11,6 +16,10 @@ export function entradaInvalida(detalhes?: Record<string, unknown>) {
   });
 }
 
+/**
+ * 
+ * @returns 
+ */
 export function tokenNaoAutenticado() {
   return createErroApp({
     codigo: "NAO_AUTENTICADO",
@@ -18,6 +27,11 @@ export function tokenNaoAutenticado() {
   });
 }
 
+/**
+ * 
+ * @param detalhes 
+ * @returns 
+ */
 export function conflitoRotacao(detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "CONFLITO",
@@ -26,6 +40,11 @@ export function conflitoRotacao(detalhes?: Record<string, unknown>) {
   });
 }
 
+/**
+ * 
+ * @param detalhes 
+ * @returns 
+ */
 export function tokenInvalido(detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "TOKEN_INVALIDO",
@@ -34,6 +53,11 @@ export function tokenInvalido(detalhes?: Record<string, unknown>) {
   });
 }
 
+/**
+ * 
+ * @param tokenIdOuHash 
+ * @returns 
+ */
 export function tokenNaoEncontrado(tokenIdOuHash: TokenId | string) {
   return createErroApp({
     codigo: "TOKEN_NAO_ENCONTRADO",
@@ -42,6 +66,11 @@ export function tokenNaoEncontrado(tokenIdOuHash: TokenId | string) {
   });
 }
 
+/**
+ * 
+ * @param tokenId 
+ * @returns 
+ */
 export function tokenRevogado(tokenId: TokenId) {
   return createErroApp({
     codigo: "TOKEN_REVOGADO",
@@ -50,6 +79,11 @@ export function tokenRevogado(tokenId: TokenId) {
   });
 }
 
+/**
+ * 
+ * @param tokenId 
+ * @returns 
+ */
 export function tokenExpirado(tokenId: TokenId) {
   return createErroApp({
     codigo: "TOKEN_EXPIRADO",
@@ -58,6 +92,11 @@ export function tokenExpirado(tokenId: TokenId) {
   });
 }
 
+/**
+ * 
+ * @param hashToken 
+ * @returns 
+ */
 export function hashTokenJaExiste(hashToken: string) {
   return createErroApp({
     codigo: "TOKEN_HASH_JA_EXISTE",

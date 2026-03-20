@@ -15,7 +15,4 @@ export type {
   StatusJob,
 } from "./tipos";
 
-export type {
-  ExportacoesRepositorio,
-  PortaTransacao,
-} from "./portasRepositorio";
+export type { ExportacoesRepositorio } from "./portasRepositorio";

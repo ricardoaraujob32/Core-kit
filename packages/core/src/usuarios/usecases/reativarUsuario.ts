@@ -1,16 +1,21 @@
+// packages/core/src/usuarios/usecases/reativarUsuario.ts
+
 import { validarUsuarioId } from "../validadores";
 import { usuarioNaoEncontrado } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import type { ReativarUsuarioInput, ResultadoReativarUsuario } from "../tipos";
-import type { RelogioPorta } from "../../utils";
+import type { RelogioPorta } from "../../kernel";
 
-export function createReativarUsuario(deps: {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnReativarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
   relogio: RelogioPorta;
 }) {
-  return async function reativarUsuario(
-    input: ReativarUsuarioInput,
-  ): ResultadoReativarUsuario {
+  return async function reativarUsuario(input: ReativarUsuarioInput): ResultadoReativarUsuario {
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 

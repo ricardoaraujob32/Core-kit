@@ -1,69 +1,47 @@
-import { randomUUID } from "node:crypto";
-import { wrapOk } from "../kernel/ROPHelpers";
-import type { Result } from "../kernel/result";
-import type { ErroApp } from "../kernel/erros";
-import {
-  erroAssinaturaJaExisteParaLocatario,
-  erroAssinaturaNaoEncontrada,
-  erroModuloJaVinculado,
-  erroModuloInvalido,
-  erroModuloNaoVinculado,
-  erroPlanoInvalido,
-  erroTransicaoStatusInvalida,
-} from "../erros";
-import type {
-  Assinatura,
-  CancelarAssinaturaInput,
-  CriarAssinaturaInput,
-  CriarAssinaturaOutput,
-  ListarModulosHabilitadosLocatarioInput,
-  ListarModulosHabilitadosLocatarioOutput,
-  ModuloHabilitadoLocatario,
-  SuspenderAssinaturaInput,
-  VincularModuloNaAssinaturaInput,
-  AtivarAssinaturaInput,
-  DesvincularModuloDaAssinaturaInput,
-} from "../tipos";
-import {
-  validarAtivarAssinaturaInput,
-  validarCancelarAssinaturaInput,
-  validarCriarAssinaturaInput,
-  validarDesvincularModuloDaAssinaturaInput,
-  validarSuspenderAssinaturaInput,
-  validarVincularModuloNaAssinaturaInput,
-} from "../validadores";
-import type {
-  AssinaturasModulosRepositorio,
-  AssinaturasRepositorio,
-  ModulosConsultaRepositorio,
-  PlanosConsultaRepositorio,
-  PortaTransacao,
-} from "../portasRepositorio";
+// packages/core/src/assinaturas/usecases/assinaturasService.ts
 
+import { randomUUID } from "node:crypto";
+import { PlanosConsultaRepositorio, ModulosConsultaRepositorio, AssinaturasModulosRepositorio,
+  AssinaturasRepositorio } from "../portasRepositorio";
+import { ErroApp, Result, wrapOk } from "../../kernel";
+import { Assinatura, AtivarAssinaturaInput, CancelarAssinaturaInput, CriarAssinaturaInput, CriarAssinaturaOutput,
+  DesvincularModuloDaAssinaturaInput, ListarModulosHabilitadosLocatarioInput, ListarModulosHabilitadosLocatarioOutput,
+  ModuloHabilitadoLocatario, SuspenderAssinaturaInput, VincularModuloNaAssinaturaInput } from "../tipos";
+import { validarAtivarAssinaturaInput, validarCancelarAssinaturaInput, validarCriarAssinaturaInput,
+  validarDesvincularModuloDaAssinaturaInput, validarSuspenderAssinaturaInput,
+  validarVincularModuloNaAssinaturaInput } from "../validadores";
+import { erroAssinaturaJaExisteParaLocatario, erroAssinaturaNaoEncontrada, erroModuloInvalido, erroModuloJaVinculado,
+  erroModuloNaoVinculado, erroPlanoInvalido, erroTransicaoStatusInvalida } from "../erros";
+import { IdPorta, PortaTransacao, RelogioPorta } from "../../kernel/utils";
+
+/**
+ * 
+ */
 export interface CriarAssinaturasServiceDeps {
   assinaturasRepositorio: AssinaturasRepositorio;
   assinaturasModulosRepositorio: AssinaturasModulosRepositorio;
   planosConsultaRepositorio: PlanosConsultaRepositorio;
   modulosConsultaRepositorio: ModulosConsultaRepositorio;
   transacao?: PortaTransacao;
-  agora?: () => Date;
-  gerarId?: () => string;
+  agora?: RelogioPorta;
+  gerarId?: IdPorta;
 }
 
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
 export function criarAssinaturasService(deps: CriarAssinaturasServiceDeps) {
   const agora = deps.agora ?? (() => new Date());
   const gerarId = deps.gerarId ?? (() => randomUUID());
 
-  async function executarEmTransacao<T>(
-    fn: () => Promise<Result<T, ErroApp>>,
-  ): Promise<Result<T, ErroApp>> {
+  async function executarEmTransacao<T>( fn: () => Promise<Result<T, ErroApp>> ): Promise<Result<T, ErroApp>> {
     if (!deps.transacao) return fn();
     return deps.transacao.executar(fn);
   }
 
-  async function criarAssinatura(
-    input: CriarAssinaturaInput,
-  ): Promise<Result<CriarAssinaturaOutput, ErroApp>> {
+  async function criarAssinatura(input: CriarAssinaturaInput): Promise<Result<CriarAssinaturaOutput, ErroApp>> {
     const validacao = validarCriarAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -92,9 +70,7 @@ export function criarAssinaturasService(deps: CriarAssinaturasServiceDeps) {
     return wrapOk({ assinatura: criada.value });
   }
 
-  async function ativarAssinatura(
-    input: AtivarAssinaturaInput,
-  ): Promise<Result<Assinatura, ErroApp>> {
+  async function ativarAssinatura(input: AtivarAssinaturaInput): Promise<Result<Assinatura, ErroApp>> {
     const validacao = validarAtivarAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -122,9 +98,7 @@ export function criarAssinaturasService(deps: CriarAssinaturasServiceDeps) {
     });
   }
 
-  async function suspenderAssinatura(
-    input: SuspenderAssinaturaInput,
-  ): Promise<Result<Assinatura, ErroApp>> {
+  async function suspenderAssinatura(input: SuspenderAssinaturaInput): Promise<Result<Assinatura, ErroApp>> {
     const validacao = validarSuspenderAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -149,9 +123,7 @@ export function criarAssinaturasService(deps: CriarAssinaturasServiceDeps) {
     });
   }
 
-  async function cancelarAssinatura(
-    input: CancelarAssinaturaInput,
-  ): Promise<Result<Assinatura, ErroApp>> {
+  async function cancelarAssinatura(input: CancelarAssinaturaInput): Promise<Result<Assinatura, ErroApp>> {
     const validacao = validarCancelarAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -177,9 +149,7 @@ export function criarAssinaturasService(deps: CriarAssinaturasServiceDeps) {
     });
   }
 
-  async function vincularModuloNaAssinatura(
-    input: VincularModuloNaAssinaturaInput,
-  ): Promise<Result<void, ErroApp>> {
+  async function vincularModuloNaAssinatura(input: VincularModuloNaAssinaturaInput): Promise<Result<void, ErroApp>> {
     const validacao = validarVincularModuloNaAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -215,9 +185,7 @@ export function criarAssinaturasService(deps: CriarAssinaturasServiceDeps) {
     });
   }
 
-  async function desvincularModuloDaAssinatura(
-    input: DesvincularModuloDaAssinaturaInput,
-  ): Promise<Result<void, ErroApp>> {
+  async function desvincularModuloDaAssinatura(input: DesvincularModuloDaAssinaturaInput): Promise<Result<void, ErroApp>> {
     const validacao = validarDesvincularModuloDaAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -244,8 +212,7 @@ export function criarAssinaturasService(deps: CriarAssinaturasServiceDeps) {
   }
 
   async function listarModulosHabilitadosLocatario(
-    input: ListarModulosHabilitadosLocatarioInput,
-  ): Promise<Result<ListarModulosHabilitadosLocatarioOutput, ErroApp>> {
+    input: ListarModulosHabilitadosLocatarioInput): Promise<Result<ListarModulosHabilitadosLocatarioOutput, ErroApp>> {
     const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
       input.locatarioId,
     );

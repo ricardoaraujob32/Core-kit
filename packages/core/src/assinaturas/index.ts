@@ -1,3 +1,5 @@
+// packages/core/src/assinaturas/index.ts
+
 export { criarAssinaturasService } from "./usecases/assinaturasService";
 
 export type {

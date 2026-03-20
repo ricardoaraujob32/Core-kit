@@ -1,19 +1,23 @@
-import { wrapOk } from "../../result";
+// packages/core/src/usuarios/usecases/criarUsuario.ts
+
+import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
 import type { CriarUsuarioInput, CriarUsuarioOutput, ResultadoCriarUsuario } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { IdPorta, RelogioPorta } from "../../utils";
 import { validarEmailUsuario, validarNomeUsuario, validarSenhaHash } from "../validadores";
 import { emailUsuarioJaExiste } from "../erros";
 import { validarLocatarioId } from "../../locatarios";
 
-export function createCriarUsuario(deps: {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnCriarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
 }) {
-  return async function criarUsuario(
-    input: CriarUsuarioInput,
-  ): ResultadoCriarUsuario {
+  return async function criarUsuario(input: CriarUsuarioInput): ResultadoCriarUsuario {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 

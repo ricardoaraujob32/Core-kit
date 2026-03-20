@@ -1,43 +1,30 @@
-import { randomUUID } from "node:crypto";
-import { wrapOk } from "../../kernel/ROPHelpers";
-import type { ErroApp } from "../../kernel/erros";
-import type { Result } from "../../kernel/result";
-import {
-  erroExportacaoNaoEncontrada,
-  erroTransicaoStatusExportacaoInvalida,
-} from "../erros";
-import type {
-  Exportacao,
-  ListarExportacoesLocatarioInput,
-  ListarExportacoesLocatarioOutput,
-  MarcarExportacaoComFalhaInput,
-  MarcarExportacaoConcluidaInput,
-  MarcarExportacaoEmExecucaoInput,
-  SolicitarExportacaoInput,
-  SolicitarExportacaoOutput,
-} from "../tipos";
-import {
-  validarListarExportacoesLocatarioInput,
-  validarMarcarExportacaoComFalhaInput,
-  validarMarcarExportacaoConcluidaInput,
-  validarMarcarExportacaoEmExecucaoInput,
-  validarSolicitarExportacaoInput,
-} from "../validadores";
-import type {
-  ExportacoesRepositorio,
-  PortaTransacao,
-} from "../portasRepositorio";
+// packages/core/src/exportacoes/usecases/exportacoesService.ts
 
+import { randomUUID } from "node:crypto";
+import { ErroApp, IdPorta, PortaTransacao, RelogioPorta, Result, wrapOk } from "../../kernel";
+import { ExportacoesRepositorio } from "../portasRepositorio";
+import { Exportacao, ListarExportacoesLocatarioInput, ListarExportacoesLocatarioOutput, MarcarExportacaoComFalhaInput, 
+  MarcarExportacaoConcluidaInput, MarcarExportacaoEmExecucaoInput, SolicitarExportacaoInput, SolicitarExportacaoOutput } from "../tipos";
+import { validarListarExportacoesLocatarioInput, validarMarcarExportacaoComFalhaInput, validarMarcarExportacaoConcluidaInput, 
+  validarMarcarExportacaoEmExecucaoInput, validarSolicitarExportacaoInput } from "../validadores";
+import { erroExportacaoNaoEncontrada, erroTransicaoStatusExportacaoInvalida } from "../erros";
+
+/**
+ * 
+ */
 export interface CriarExportacoesServiceDeps {
   exportacoesRepositorio: ExportacoesRepositorio;
   transacao?: PortaTransacao;
-  agora?: () => Date;
-  gerarId?: () => string;
+  agora?: RelogioPorta;
+  gerarId?: IdPorta;
 }
 
-export function criarExportacoesService(
-  deps: CriarExportacoesServiceDeps,
-) {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function criarExportacoesService(deps: CriarExportacoesServiceDeps) {
   const agora = deps.agora ?? (() => new Date());
   const gerarId = deps.gerarId ?? (() => randomUUID());
 
@@ -48,9 +35,7 @@ export function criarExportacoesService(
     return deps.transacao.executar(fn);
   }
 
-  async function solicitarExportacao(
-    input: SolicitarExportacaoInput,
-  ): Promise<Result<SolicitarExportacaoOutput, ErroApp>> {
+  async function solicitarExportacao(input: SolicitarExportacaoInput): Promise<Result<SolicitarExportacaoOutput, ErroApp>> {
     const validacao = validarSolicitarExportacaoInput(input);
     if (!validacao.ok) return validacao;
 
@@ -74,9 +59,7 @@ export function criarExportacoesService(
     return wrapOk({ exportacao: criada.value });
   }
 
-  async function listarExportacoesLocatario(
-    input: ListarExportacoesLocatarioInput,
-  ): Promise<Result<ListarExportacoesLocatarioOutput, ErroApp>> {
+  async function listarExportacoesLocatario(input: ListarExportacoesLocatarioInput): Promise<Result<ListarExportacoesLocatarioOutput, ErroApp>> {
     const validacao = validarListarExportacoesLocatarioInput(input);
     if (!validacao.ok) return validacao;
 
@@ -91,9 +74,7 @@ export function criarExportacoesService(
     });
   }
 
-  async function marcarExportacaoEmExecucao(
-    input: MarcarExportacaoEmExecucaoInput,
-  ): Promise<Result<Exportacao, ErroApp>> {
+  async function marcarExportacaoEmExecucao(input: MarcarExportacaoEmExecucaoInput): Promise<Result<Exportacao, ErroApp>> {
     const validacao = validarMarcarExportacaoEmExecucaoInput(input);
     if (!validacao.ok) return validacao;
 
@@ -118,9 +99,7 @@ export function criarExportacoesService(
     });
   }
 
-  async function marcarExportacaoConcluida(
-    input: MarcarExportacaoConcluidaInput,
-  ): Promise<Result<Exportacao, ErroApp>> {
+  async function marcarExportacaoConcluida(input: MarcarExportacaoConcluidaInput): Promise<Result<Exportacao, ErroApp>> {
     const validacao = validarMarcarExportacaoConcluidaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -147,9 +126,7 @@ export function criarExportacoesService(
     });
   }
 
-  async function marcarExportacaoComFalha(
-    input: MarcarExportacaoComFalhaInput,
-  ): Promise<Result<Exportacao, ErroApp>> {
+  async function marcarExportacaoComFalha(input: MarcarExportacaoComFalhaInput): Promise<Result<Exportacao, ErroApp>> {
     const validacao = validarMarcarExportacaoComFalhaInput(input);
     if (!validacao.ok) return validacao;
 

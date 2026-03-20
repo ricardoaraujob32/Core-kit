@@ -1,3 +1,14 @@
+//
+
+import { createErroApp, wrapOk } from "../../kernel";
+
+/**
+ * 
+ * @param causa 
+ * @param operacao 
+ * @param detalhes 
+ * @returns 
+ */
 function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "ERRO_INTERNO",
@@ -7,6 +18,11 @@ function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, u
   });
 }
 
+/**
+ * 
+ * @param prisma 
+ * @returns 
+ */
 export function criarImportacoesRepositorioPrisma(
   prisma: PrismaClient | Prisma.TransactionClient
 ) {

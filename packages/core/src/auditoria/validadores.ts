@@ -1,27 +1,28 @@
-import { wrapOk } from "../kernel/ROPHelpers";
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import { validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio } from "../utils";
-import { erroAuditoriaInvalida } from "./erros";
-import type {
-  ListarAuditoriaLocatarioInput,
-  ListarAuditoriaPlataformaInput,
-  RegistrarEventoLocatarioInput,
-  RegistrarEventoPlataformaInput,
-} from "./tipos";
+// packages/core/src/auditoria/validadores.ts
 
-function mapearErro(
-  resultado: Result<string | number, ErroApp>,
-  campo: string,
-  valor?: unknown,
-): any {
+import { ErroApp, Result, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel";
+import { erroAuditoriaInvalida } from "./erros";
+import { ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoLocatarioInput, 
+  RegistrarEventoPlataformaInput } from "./tipos";
+
+/**
+ * 
+ * @param resultado 
+ * @param campo 
+ * @param valor 
+ * @returns 
+ */
+function mapearErro(resultado: Result<string | number, ErroApp>, campo: string, valor?: unknown): any {
   if (resultado.ok) return resultado;
   return erroAuditoriaInvalida({ campo, valor });
 }
 
-function validarLimiteOpcional(
-  limite?: number,
-): Result<number | undefined, ErroApp> {
+/**
+ * 
+ * @param limite 
+ * @returns 
+ */
+function validarLimiteOpcional(limite?: number): Result<number | undefined, ErroApp> {
   if (limite === undefined) {
     return wrapOk(undefined);
   }
@@ -36,9 +37,12 @@ function validarLimiteOpcional(
   return wrapOk(limite);
 }
 
-export function validarRegistrarEventoLocatarioInput(
-  input: RegistrarEventoLocatarioInput,
-): Result<RegistrarEventoLocatarioInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarRegistrarEventoLocatarioInput(input: RegistrarEventoLocatarioInput): Result<RegistrarEventoLocatarioInput, ErroApp> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",
@@ -63,9 +67,12 @@ export function validarRegistrarEventoLocatarioInput(
   return wrapOk(input);
 }
 
-export function validarRegistrarEventoPlataformaInput(
-  input: RegistrarEventoPlataformaInput,
-): Result<RegistrarEventoPlataformaInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarRegistrarEventoPlataformaInput(input: RegistrarEventoPlataformaInput): Result<RegistrarEventoPlataformaInput, ErroApp> {
   const usuarioId = mapearErro(
     validarIdGenerico(input.usuarioId, "usuarioId"),
     "usuarioId",
@@ -83,9 +90,12 @@ export function validarRegistrarEventoPlataformaInput(
   return wrapOk(input);
 }
 
-export function validarListarAuditoriaLocatarioInput(
-  input: ListarAuditoriaLocatarioInput,
-): Result<ListarAuditoriaLocatarioInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarListarAuditoriaLocatarioInput(input: ListarAuditoriaLocatarioInput): Result<ListarAuditoriaLocatarioInput, ErroApp> {
   const locatarioId = mapearErro(
     validarIdGenerico(input.locatarioId, "locatarioId"),
     "locatarioId",
@@ -99,11 +109,15 @@ export function validarListarAuditoriaLocatarioInput(
   return wrapOk(input);
 }
 
-export function validarListarAuditoriaPlataformaInput(
-  input: ListarAuditoriaPlataformaInput,
-): Result<ListarAuditoriaPlataformaInput, ErroApp> {
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarListarAuditoriaPlataformaInput(input: ListarAuditoriaPlataformaInput): Result<ListarAuditoriaPlataformaInput, ErroApp> {
   const limite = validarLimiteOpcional(input.limite);
   if (!limite.ok) return limite;
 
   return wrapOk(input);
 }
+

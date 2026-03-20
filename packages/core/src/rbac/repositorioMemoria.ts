@@ -1,24 +1,37 @@
 // packages/core/src/rbac/repositorioMemoria.ts
 
-import { wrapOk } from "../result";
+import { wrapOk } from "../kernel";
+import { LocatarioId } from "../locatarios";
+import { UsuarioId } from "../usuarios";
 import type { RbacRepositorio } from "./portasRepositorio";
 import type { Papel, Permissao } from "./tipos";
 
-function chave(locatarioId: string, usuarioId: string) {
+/**
+ * 
+ * @param locatarioId 
+ * @param usuarioId 
+ * @returns 
+ */
+function chave(locatarioId: LocatarioId, usuarioId: UsuarioId) {
   return `${locatarioId}:${usuarioId}`;
 }
 
+/**
+ * 
+ * @param seed 
+ * @returns 
+ */
 export function criarRbacRepositorioMemoria(
   seed?: Array<{
-    locatarioId: string;
-    usuarioId: string;
+    locatarioId: LocatarioId;
+    usuarioId: UsuarioId;
     papeis?: Papel[];
     permissoes?: Permissao[];
   }>,
 ): RbacRepositorio & {
   seed(params: {
-    locatarioId: string;
-    usuarioId: string;
+    locatarioId: LocatarioId;
+    usuarioId: UsuarioId;
     papeis?: Papel[];
     permissoes?: Permissao[];
   }): void;
@@ -39,8 +52,8 @@ export function criarRbacRepositorioMemoria(
 
   const api = {
     seed(params: {
-      locatarioId: string;
-      usuarioId: string;
+      locatarioId: LocatarioId;
+      usuarioId: UsuarioId;
       papeis?: Papel[];
       permissoes?: Permissao[];
     }) {
@@ -64,8 +77,8 @@ export function criarRbacRepositorioMemoria(
     },
 
     async listarPapeisDoUsuario(params: {
-      locatarioId: string;
-      usuarioId: string;
+      locatarioId: LocatarioId;
+      usuarioId: UsuarioId;
     }) {
       countPapeis += 1;
       return wrapOk([
@@ -75,8 +88,8 @@ export function criarRbacRepositorioMemoria(
     },
 
     async listarPermissoesEfetivasDoUsuario(params: {
-      locatarioId: string;
-      usuarioId: string;
+      locatarioId: LocatarioId;
+      usuarioId: UsuarioId;
     }) {
       countPermissoes += 1;
       return wrapOk([

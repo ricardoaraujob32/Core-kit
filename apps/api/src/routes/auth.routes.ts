@@ -1,3 +1,5 @@
+// apps/api/src/routes/auth.routes.ts
+
 import type { FastifyPluginAsync } from "fastify";
 import { loginController, refreshController } from "../modules/auth/auth.controller";
 

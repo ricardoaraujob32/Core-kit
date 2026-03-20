@@ -1,10 +1,9 @@
 // packages/core/src/contextoExecucao.ts
 
-import { LocatarioId } from "./locatarios/tipos";
-import { UsuarioId } from "./usuarios/index";
-import { Permissao } from "./permissoes";
-import { Papel } from "./papeis";
-import { ModuloCodigo } from "./modulos";
+import { LocatarioId } from "../locatarios/tipos";
+import { UsuarioId } from "../usuarios/index";
+import { ModuloCodigo } from "../modulos";
+import { Papel, Permissao } from "../rbac";
 
 /**
  * Cria um símbolo único que marca o contexto.

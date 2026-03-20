@@ -1,30 +1,23 @@
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import type {
-  EventoAuditoriaLocatario,
-  EventoAuditoriaPlataforma,
-  ListarAuditoriaLocatarioInput,
-  ListarAuditoriaPlataformaInput,
-  RegistrarEventoLocatarioInput,
-  RegistrarEventoPlataformaInput,
-} from "./tipos";
+// packages/core/src/auditoria/portasRepositorio
 
+import { ErroApp, Result } from "../kernel";
+import { EventoAuditoriaLocatario, EventoAuditoriaPlataforma, ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, 
+  RegistrarEventoLocatarioInput, RegistrarEventoPlataformaInput } from "./tipos";
+
+/**
+ * 
+ */
 export interface AuditoriaLocatarioRepositorio {
-  registrarEvento(
-    input: RegistrarEventoLocatarioInput,
-  ): Promise<Result<EventoAuditoriaLocatario, ErroApp>>;
+  registrarEvento(input: RegistrarEventoLocatarioInput): Promise<Result<EventoAuditoriaLocatario, ErroApp>>;
 
-  listarEventos(
-    filtro: ListarAuditoriaLocatarioInput,
-  ): Promise<Result<EventoAuditoriaLocatario[], ErroApp>>;
+  listarEventos(filtro: ListarAuditoriaLocatarioInput): Promise<Result<EventoAuditoriaLocatario[], ErroApp>>;
 }
 
+/**
+ * 
+ */
 export interface AuditoriaPlataformaRepositorio {
-  registrarEvento(
-    input: RegistrarEventoPlataformaInput,
-  ): Promise<Result<EventoAuditoriaPlataforma, ErroApp>>;
+  registrarEvento(input: RegistrarEventoPlataformaInput): Promise<Result<EventoAuditoriaPlataforma, ErroApp>>;
 
-  listarEventos(
-    filtro: ListarAuditoriaPlataformaInput,
-  ): Promise<Result<EventoAuditoriaPlataforma[], ErroApp>>;
+  listarEventos(filtro: ListarAuditoriaPlataformaInput): Promise<Result<EventoAuditoriaPlataforma[], ErroApp>>;
 }

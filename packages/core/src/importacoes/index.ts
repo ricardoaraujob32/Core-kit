@@ -19,5 +19,4 @@ export type {
 export type {
   ImportacoesRepositorio,
   ItensImportacaoRepositorio,
-  PortaTransacao,
 } from "./portasRepositorio";

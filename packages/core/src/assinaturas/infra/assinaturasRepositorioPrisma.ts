@@ -1,25 +1,10 @@
-import type { PrismaClient } from "@prisma/client";
-import { wrapOk } from "../../kernel/ROPHelpers";
-import type { ErroApp } from "../../kernel/erros";
-import type { Result } from "../../kernel/result";
-import type {
-  Assinatura,
-  AssinaturaId,
-  ModuloConsulta,
-  ModuloDaAssinatura,
-  ModuloGratis,
-  ModuloId,
-  PlanoConsulta,
-  PlanoId,
-  RegistrarAssinaturaParams,
-  RegistrarModuloDaAssinaturaParams,
-} from "../tipos";
-import type {
-  AssinaturasModulosRepositorio,
-  AssinaturasRepositorio,
-  ModulosConsultaRepositorio,
-  PlanosConsultaRepositorio,
-} from "../portasRepositorio";
+// 
+
+import { ErroApp, Result, wrapOk } from "../../kernel";
+import { LocatarioId } from "../../locatarios";
+import { ModuloId } from "../../modulos";
+import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio, PlanosConsultaRepositorio } from "../portasRepositorio";
+import { Assinatura, AssinaturaId, PlanoId, RegistrarAssinaturaParams } from "../tipos";
 
 /**
  * Observação importante:
@@ -34,9 +19,9 @@ import type {
  */
 
 function mapAssinatura(row: {
-  assinatura_id: string;
-  locatario_id: string;
-  plano_id: string;
+  assinatura_id: AssinaturaId;
+  locatario_id: LocatarioId;
+  plano_id: PlanoId;
   status: string;
   iniciada_em: Date;
   encerrada_em: Date | null;
@@ -56,8 +41,8 @@ function mapAssinatura(row: {
 }
 
 function mapModuloDaAssinatura(row: {
-  assinatura_id: string;
-  modulo_id: string;
+  assinatura_id: AssinaturaId;
+  modulo_id: ModuloId;
   habilitado_em: Date;
   desabilitado_em: Date | null;
 }): ModuloDaAssinatura {

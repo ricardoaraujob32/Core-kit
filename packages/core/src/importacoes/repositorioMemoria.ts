@@ -1,27 +1,19 @@
-import { randomUUID } from "node:crypto";
-import { wrapOk } from "../kernel/ROPHelpers";
-import type { ErroApp } from "../kernel/erros";
-import type { Result } from "../kernel/result";
-import type {
-  Importacao,
-  ImportacaoId,
-  ItemImportacao,
-  ItemImportacaoId,
-  LocatarioId,
-  RegistrarImportacaoParams,
-  RegistrarItemImportacaoParams,
-} from "./tipos";
-import type {
-  ImportacoesRepositorio,
-  ItensImportacaoRepositorio,
-} from "./portasRepositorio";
+// packages/core/src/importacoes/repositorioMemoria.ts
 
+import { randomUUID } from "node:crypto";
+import { ErroApp, Result, wrapOk } from "../kernel";
+import { ImportacoesRepositorio, ItensImportacaoRepositorio } from "./portasRepositorio";
+import { Importacao, ImportacaoId, ItemImportacao, ItemImportacaoId, RegistrarImportacaoParams, RegistrarItemImportacaoParams 
+} from "./tipos";
+import { LocatarioId } from "../locatarios";
+
+/**
+ * 
+ */
 export class ImportacoesRepositorioMemoria implements ImportacoesRepositorio {
   private readonly itens = new Map<ImportacaoId, Importacao>();
 
-  async criarImportacao(
-    params: RegistrarImportacaoParams,
-  ): Promise<Result<Importacao, ErroApp>> {
+  async criarImportacao(params: RegistrarImportacaoParams): Promise<Result<Importacao, ErroApp>> {
     const item: Importacao = {
       importacaoId: params.importacaoId ?? randomUUID(),
       locatarioId: params.locatarioId,
@@ -42,22 +34,16 @@ export class ImportacoesRepositorioMemoria implements ImportacoesRepositorio {
     return wrapOk(item);
   }
 
-  async atualizarImportacao(
-    importacao: Importacao,
-  ): Promise<Result<Importacao, ErroApp>> {
+  async atualizarImportacao(importacao: Importacao): Promise<Result<Importacao, ErroApp>> {
     this.itens.set(importacao.importacaoId, importacao);
     return wrapOk(importacao);
   }
 
-  async buscarPorId(
-    importacaoId: ImportacaoId,
-  ): Promise<Result<Importacao | null, ErroApp>> {
+  async buscarPorId(importacaoId: ImportacaoId): Promise<Result<Importacao | null, ErroApp>> {
     return wrapOk(this.itens.get(importacaoId) ?? null);
   }
 
-  async listarPorLocatario(
-    locatarioId: LocatarioId,
-  ): Promise<Result<Importacao[], ErroApp>> {
+  async listarPorLocatario(locatarioId: LocatarioId): Promise<Result<Importacao[], ErroApp>> {
     return wrapOk(
       [...this.itens.values()]
         .filter((item) => item.locatarioId === locatarioId)
@@ -66,14 +52,14 @@ export class ImportacoesRepositorioMemoria implements ImportacoesRepositorio {
   }
 }
 
-export class ItensImportacaoRepositorioMemoria
-  implements ItensImportacaoRepositorio
+/**
+ * 
+ */
+export class ItensImportacaoRepositorioMemoria implements ItensImportacaoRepositorio
 {
   private readonly itens = new Map<ItemImportacaoId, ItemImportacao>();
 
-  async criarItem(
-    params: RegistrarItemImportacaoParams,
-  ): Promise<Result<ItemImportacao, ErroApp>> {
+  async criarItem(params: RegistrarItemImportacaoParams): Promise<Result<ItemImportacao, ErroApp>> {
     const item: ItemImportacao = {
       itemImportacaoId: params.itemImportacaoId ?? randomUUID(),
       importacaoId: params.importacaoId,
@@ -89,23 +75,16 @@ export class ItensImportacaoRepositorioMemoria
     return wrapOk(item);
   }
 
-  async atualizarItem(
-    item: ItemImportacao,
-  ): Promise<Result<ItemImportacao, ErroApp>> {
+  async atualizarItem(item: ItemImportacao): Promise<Result<ItemImportacao, ErroApp>> {
     this.itens.set(item.itemImportacaoId, item);
     return wrapOk(item);
   }
 
-  async buscarPorId(
-    itemImportacaoId: ItemImportacaoId,
-  ): Promise<Result<ItemImportacao | null, ErroApp>> {
+  async buscarPorId(itemImportacaoId: ItemImportacaoId): Promise<Result<ItemImportacao | null, ErroApp>> {
     return wrapOk(this.itens.get(itemImportacaoId) ?? null);
   }
 
-  async listarPorImportacao(
-    importacaoId: ImportacaoId,
-    locatarioId: LocatarioId,
-  ): Promise<Result<ItemImportacao[], ErroApp>> {
+  async listarPorImportacao(importacaoId: ImportacaoId, locatarioId: LocatarioId): Promise<Result<ItemImportacao[], ErroApp>> {
     return wrapOk(
       [...this.itens.values()]
         .filter(

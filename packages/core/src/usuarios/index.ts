@@ -1,3 +1,5 @@
+// packages/core/src/usuarios/index.ts
+
 export type {
   UsuarioId,
   StatusUsuario,
@@ -35,9 +37,9 @@ export {
   criarUsuarioSeed,
 } from "./repositorioMemoria";
 
-export { createCriarUsuario } from "./usecases/criarUsuario";
-export { createObterUsuario } from "./usecases/obterUsuario";
-export { createListarUsuariosPorLocatario } from "./usecases/listarUsuariosPorLocatario";
-export { createAtualizarUsuario } from "./usecases/atualizarUsuario";
-export { createInativarUsuario } from "./usecases/inativarUsuario";
-export { createReativarUsuario } from "./usecases/reativarUsuario";
+export { createFnCriarUsuario as createCriarUsuario } from "./usecases/criarUsuario";
+export { createFnObterUsuario as createObterUsuario } from "./usecases/obterUsuario";
+export { createFnListarUsuariosPorLocatario as createListarUsuariosPorLocatario } from "./usecases/listarUsuariosPorLocatario";
+export { createFnAtualizarUsuario as createAtualizarUsuario } from "./usecases/atualizarUsuario";
+export { createFnInativarUsuario as createInativarUsuario } from "./usecases/inativarUsuario";
+export { createFnReativarUsuario as createReativarUsuario } from "./usecases/reativarUsuario";

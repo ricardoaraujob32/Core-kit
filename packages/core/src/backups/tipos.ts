@@ -1,6 +1,21 @@
+// packages/core/src/backups/tipos.ts
+
+import { LocatarioId } from "../locatarios";
+import { UsuarioId } from "../usuarios";
+
+/**
+ * 
+ */
 export type BackupId = string;
+
+/**
+ * 
+ */
 export type RestauracaoId = string;
 
+/**
+ * 
+ */
 export type StatusBackup =
   | "PENDENTE"
   | "EM_EXECUCAO"
@@ -8,6 +23,9 @@ export type StatusBackup =
   | "FALHOU"
   | "CANCELADO";
 
+  /**
+   * 
+   */
 export type StatusRestauracao =
   | "PENDENTE"
   | "EM_EXECUCAO"
@@ -15,6 +33,9 @@ export type StatusRestauracao =
   | "FALHOU"
   | "CANCELADO";
 
+/**
+ * 
+ */  
 export interface BackupLocatario {
   backupId: BackupId;
   locatarioId: LocatarioId;
@@ -28,6 +49,9 @@ export interface BackupLocatario {
   atualizadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface RestauracaoLocatario {
   restauracaoId: RestauracaoId;
   locatarioId: LocatarioId;
@@ -44,24 +68,39 @@ export interface RestauracaoLocatario {
   atualizadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface SolicitarBackupLocatarioInput {
   locatarioId: LocatarioId;
   solicitadoPorUsuarioId: UsuarioId;
 }
 
+/**
+ * 
+ */
 export interface SolicitarBackupLocatarioOutput {
   backup: BackupLocatario;
 }
 
+/**
+ * 
+ */
 export interface ListarBackupsLocatarioInput {
   locatarioId: LocatarioId;
 }
 
+/**
+ * 
+ */
 export interface ListarBackupsLocatarioOutput {
   locatarioId: LocatarioId;
   backups: BackupLocatario[];
 }
 
+/**
+ * 
+ */
 export interface SolicitarRestauracaoLocatarioInput {
   locatarioId: LocatarioId;
   backupId: BackupId;
@@ -69,6 +108,9 @@ export interface SolicitarRestauracaoLocatarioInput {
   motivo: string;
 }
 
+/**
+ * 
+ */
 export interface SolicitarRestauracaoLocatarioOutput {
   restauracao: RestauracaoLocatario;
 }

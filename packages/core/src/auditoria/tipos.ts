@@ -1,8 +1,16 @@
+// packages/core/src/auditoria/tipos.ts
+
 import { LocatarioId } from "../locatarios";
 import { UsuarioId } from "../usuarios";
 
+/**
+ * 
+ */
 export type AuditoriaId = string;
 
+/**
+ * 
+ */
 export interface EventoAuditoriaBase {
   evento: string;
   sucesso: boolean;
@@ -19,6 +27,9 @@ export interface EventoAuditoriaBase {
   metadados?: Record<string, unknown>;
 }
 
+/**
+ * 
+ */
 export interface EventoAuditoriaLocatario {
   auditoriaId: AuditoriaId;
   locatarioId: LocatarioId;
@@ -39,6 +50,9 @@ export interface EventoAuditoriaLocatario {
   criadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface EventoAuditoriaPlataforma {
   auditoriaId: AuditoriaId;
   usuarioId: UsuarioId;
@@ -59,16 +73,25 @@ export interface EventoAuditoriaPlataforma {
   criadoEm: Date;
 }
 
+/**
+ * 
+ */
 export interface RegistrarEventoLocatarioInput extends EventoAuditoriaBase {
   locatarioId: LocatarioId;
   usuarioId: UsuarioId;
 }
 
+/**
+ * 
+ */
 export interface RegistrarEventoPlataformaInput extends EventoAuditoriaBase {
   usuarioId: UsuarioId;
   locatarioAlvoId?: LocatarioId | null;
 }
 
+/**
+ * 
+ */
 export interface ListarAuditoriaLocatarioInput {
   locatarioId: LocatarioId;
   entidadeTipo?: string;
@@ -77,6 +100,9 @@ export interface ListarAuditoriaLocatarioInput {
   limite?: number;
 }
 
+/**
+ * 
+ */
 export interface ListarAuditoriaPlataformaInput {
   locatarioAlvoId?: LocatarioId | null;
   entidadeTipo?: string;

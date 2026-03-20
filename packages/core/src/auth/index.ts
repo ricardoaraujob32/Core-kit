@@ -36,7 +36,7 @@ export type {
   EventosSegurancaPorta,
 } from "./portasServico";
 
-export { criarEmitirSessao } from "./usecases/emitirSessao";
-export { criarValidarSessao } from "./usecases/validarSessao";
-export { criarRotacionarRefresh } from "./usecases/rotacionarRefresh";
-export { criarResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";
+export { createFnEmitirSessao as criarEmitirSessao } from "./usecases/emitirSessao";
+export { createFnValidarSessao as criarValidarSessao } from "./usecases/validarSessao";
+export { createFnRotacionarRefresh as criarRotacionarRefresh } from "./usecases/rotacionarRefresh";
+export { createFnResolverContextoAutorizado as criarResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";

@@ -1,3 +1,16 @@
+// 
+
+import { createErroApp, wrapOk } from "../../kernel";
+import { LocatarioId } from "../../locatarios";
+import { UsuarioId } from "../../usuarios";
+
+/**
+ * 
+ * @param causa 
+ * @param operacao 
+ * @param detalhes 
+ * @returns 
+ */
 function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "ERRO_INTERNO",
@@ -7,11 +20,14 @@ function erroInfra(causa: unknown, operacao: string, detalhes?: Record<string, u
   });
 }
 
-export function criarPermissoesRepositorioPrisma(
-  prisma: PrismaClient | Prisma.TransactionClient
-) {
+/**
+ * 
+ * @param prisma 
+ * @returns 
+ */
+export function criarPermissoesRepositorioPrisma(prisma: PrismaClient | Prisma.TransactionClient) {
   return {
-    async listarPorUsuario(locatarioId: string, usuarioId: string) {
+    async listarPorUsuario(locatarioId: LocatarioId, usuarioId: UsuarioId) {
       try {
         const rows = await prisma.usuarios_permissoes.findMany({
           where: {
