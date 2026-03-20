@@ -22,7 +22,6 @@ export type {
   AssinaturasModulosRepositorio,
   PlanosConsultaRepositorio,
   ModulosConsultaRepositorio,
-  PortaTransacao,
 } from "./portasRepositorio";
 
 export {

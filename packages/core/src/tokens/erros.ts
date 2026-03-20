@@ -46,11 +46,7 @@ export function conflitoRotacao(detalhes?: Record<string, unknown>) {
  * @returns 
  */
 export function tokenInvalido(detalhes?: Record<string, unknown>) {
-  return createErroApp({
-    codigo: "TOKEN_INVALIDO",
-    mensagem: "Dados do token inválidos.",
-    detalhes,
-  });
+  return createErroApp({codigo: "TOKEN_INVALIDO", detalhes});
 }
 
 /**
@@ -59,11 +55,7 @@ export function tokenInvalido(detalhes?: Record<string, unknown>) {
  * @returns 
  */
 export function tokenNaoEncontrado(tokenIdOuHash: TokenId | string) {
-  return createErroApp({
-    codigo: "TOKEN_NAO_ENCONTRADO",
-    mensagem: "Token não encontrado.",
-    detalhes: { tokenIdOuHash },
-  });
+  return createErroApp({codigo: "TOKEN_NAO_ENCONTRADO", detalhes: { tokenIdOuHash } });
 }
 
 /**
@@ -72,11 +64,7 @@ export function tokenNaoEncontrado(tokenIdOuHash: TokenId | string) {
  * @returns 
  */
 export function tokenRevogado(tokenId: TokenId) {
-  return createErroApp({
-    codigo: "TOKEN_REVOGADO",
-    mensagem: "Token revogado.",
-    detalhes: { tokenId },
-  });
+  return createErroApp({codigo: "TOKEN_REVOGADO", detalhes: { tokenId } });
 }
 
 /**
@@ -85,11 +73,7 @@ export function tokenRevogado(tokenId: TokenId) {
  * @returns 
  */
 export function tokenExpirado(tokenId: TokenId) {
-  return createErroApp({
-    codigo: "TOKEN_EXPIRADO",
-    mensagem: "Token expirado.",
-    detalhes: { tokenId },
-  });
+  return createErroApp({codigo: "TOKEN_EXPIRADO", detalhes: { tokenId } });
 }
 
 /**
@@ -98,9 +82,5 @@ export function tokenExpirado(tokenId: TokenId) {
  * @returns 
  */
 export function hashTokenJaExiste(hashToken: string) {
-  return createErroApp({
-    codigo: "TOKEN_HASH_JA_EXISTE",
-    mensagem: "Já existe token com este hash.",
-    detalhes: { hashToken },
-  });
+  return createErroApp({codigo: "TOKEN_HASH_JA_EXISTE", detalhes: { hashToken } });
 }

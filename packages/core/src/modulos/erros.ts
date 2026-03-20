@@ -9,7 +9,7 @@ import { LocatarioId } from "../locatarios"
  * @returns 
  */
 export function erroLocatarioIdInvalido(locatarioId: unknown): Result<never, ErroApp> {
-  return createErroApp( {"INVALIDO", "locatarioId inválido.", { locatarioId } } );
+  return createErroApp( { codigo:"INVALIDO", mensagem:"locatarioId inválido.", detalhes:{ locatarioId } } );
 }
 
 /**
@@ -18,8 +18,7 @@ export function erroLocatarioIdInvalido(locatarioId: unknown): Result<never, Err
  * @returns 
  */
 export function erroModuloCodigoInvalido(codigo: unknown): Result<never, ErroApp> {
-  return createErroApp("INVALIDO", "Código do módulo inválido.", { codigo }),
-  );
+  return createErroApp({ codigo:"INVALIDO", mensagem:"Código do módulo inválido.", detalhes:{ codigo } });
 }
 
 /**
@@ -28,10 +27,7 @@ export function erroModuloCodigoInvalido(codigo: unknown): Result<never, ErroApp
  * @returns 
  */
 export function erroRepositorioModulos(causa?: unknown): Result<never, ErroApp> {
-  return createErroApp("ERRO_INTERNO", "Falha ao consultar módulos habilitados.", {
-      causa,
-    }),
-  );
+  return createErroApp({ codigo:"ERRO_INTERNO", mensagem:"Falha ao consultar módulos habilitados.", detalhes:{ causa } });
 }
 
 /**
@@ -41,9 +37,5 @@ export function erroRepositorioModulos(causa?: unknown): Result<never, ErroApp> 
  * @returns 
  */
 export function erroModuloNaoHabilitado(codigo: string, locatarioId: LocatarioId): Result<never, ErroApp> {
-  return createErroApp("NAO_AUTORIZADO", "Módulo não habilitado para o locatário.", {
-      codigo,
-      locatarioId,
-    }),
-  );
+  return createErroApp({ codigo:"NAO_AUTORIZADO", mensagem:"Módulo não habilitado para o locatário.", detalhes:{codigo, locatarioId} });
 }

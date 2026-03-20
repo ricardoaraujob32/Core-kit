@@ -9,13 +9,7 @@ import { Papel, Permissao } from "./tipos";
  * 
  */
 export interface RbacRepositorio {
-  listarPapeisDoUsuario(params: {
-    locatarioId: LocatarioId;
-    usuarioId: UsuarioId;
-  }): Promise<Result<Papel[], ErroApp>>;
+  listarPapeisDoUsuario(params: {locatarioId: LocatarioId; usuarioId: UsuarioId}): Promise<Result<Papel[], ErroApp>>;
 
-  listarPermissoesEfetivasDoUsuario(params: {
-    locatarioId: LocatarioId;
-    usuarioId: UsuarioId;
-  }): Promise<Result<Permissao[], ErroApp>>;
+  listarPermissoesEfetivasDoUsuario(params: {locatarioId: LocatarioId; usuarioId: UsuarioId}): Promise<Result<Permissao[], ErroApp>>;
 }

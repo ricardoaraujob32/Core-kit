@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { HttpError } from "../../../core/api/httpClient";
 import { useAuth } from "../../../core/auth/useAuth";
+import { mapError } from "../../../core/errors/mapError";
 
 type LocationState = {
   from?: {
@@ -14,7 +14,7 @@ type LocationState = {
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, user } = useAuth();
+  const { login, isLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -32,12 +32,8 @@ export default function LoginPage(): JSX.Element {
 
       navigate(state?.from?.pathname || fallbackPath, { replace: true });
     } catch (error) {
-      if (error instanceof HttpError) {
-        setErro(error.message);
-        return;
-      }
-
-      setErro("Não foi possível realizar login.");
+      const uiError = mapError(error);
+      setErro(uiError.message);
     }
   }
 

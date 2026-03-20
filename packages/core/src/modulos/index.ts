@@ -27,19 +27,9 @@ export {
 } from "./validadores";
 
 // Repositório
-export type {
-  ModulosHabilitadosRepositorio,
-} from "./portasRepositorio";
-export {
-  criarModulosHabilitadosRepositorioMemoria,
-  EstadoModulosHabilitadosMemoria,
-} from "./repositorioMemoria";
+export type { ModulosHabilitadosRepositorio } from "./portasRepositorio";
+export { criarModulosHabilitadosRepositorioMemoria, EstadoModulosHabilitadosMemoria } from "./repositorioMemoria";
 
 // Serviços
-export type {
-  ModulosHabilitadosService,
-  CriarModulosHabilitadosServiceDeps,
-} from "./usecases/modulosHabilitadosService";
-export {
-  createFnListarModulosHabilitados as criarModulosHabilitadosService,
-} from "./usecases/modulosHabilitadosService";
+export type { ModulosHabilitadosService, CriarModulosHabilitadosServiceDeps } from "./usecases/modulosHabilitadosService";
+export { createFnListarModulosHabilitados } from "./usecases/modulosHabilitadosService";

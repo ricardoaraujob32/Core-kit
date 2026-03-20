@@ -1,36 +1,31 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../../../core/auth/AuthContext";
-import { listarUsuarios, type UsuarioResumo } from "../usuarios/api/usuariosApi";
-import { UsuariosList } from "../usuarios/components/UsuariosList";
-import { HttpError } from "../../../core/api/httpClient";
-import { mapErrorMessage } from "../../../core/errors/mapError";
+// frontend/src/features/tenant-admin/pages/Dashboard.tsx
 
-export function TenantAdminDashboardPage() {
-  const { session } = useAuth();
-  const [items, setItems] = useState<UsuarioResumo[]>([]);
-  const [error, setError] = useState<string | null>(null);
+import { useAuth } from "../../../core/auth/useAuth";
+import { useTenant } from "../../../core/tenant/useTenant";
 
-  useEffect(() => {
-    const token = session?.accessToken;
-    if (!token) return;
-
-    void listarUsuarios(token)
-      .then(setItems)
-      .catch((err) => {
-        if (err instanceof HttpError) {
-          setError(mapErrorMessage(err.payload));
-          return;
-        }
-        setError("Falha ao carregar usuários.");
-      });
-  }, [session?.accessToken]);
+export default function Dashboard(): JSX.Element {
+  const { user } = useAuth();
+  const { branding } = useTenant();
 
   return (
     <section>
-      <h1>Admin do locatário</h1>
-      <p>Painel administrativo inicial do locatário.</p>
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      <UsuariosList items={items} />
+      <h1>Dashboard do Locatário</h1>
+      <p>Integração com backend validada para área tenant-aware.</p>
+
+      <pre>
+        {JSON.stringify(
+          {
+            usuarioId: user?.usuarioId,
+            locatarioId: user?.locatarioId,
+            isSuperAdmin: user?.isSuperAdmin,
+            papeis: user?.papeis,
+            permissoes: user?.permissoes,
+            branding,
+          },
+          null,
+          2,
+        )}
+      </pre>
     </section>
   );
 }

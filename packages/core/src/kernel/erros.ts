@@ -11,7 +11,22 @@ export type CodigoErroApp =
   | "NAO_ENCONTRADO"
   | "ERRO_INTERNO"
   | "CONFLITO"
-  | "SESSAO_INVALIDA";
+  | "SESSAO_INVALIDA"
+  | "LOCATARIO_INVALIDO"
+  | "LOCATARIO_NAO_ENCONTRADO"
+  | "LOCATARIO_SUSPENSO"
+  | "LOCATARIO_ENCERRADO"
+  | "USUARIO_INVALIDO"
+  | "USUARIO_NAO_ENCONTRADO"
+  | "USUARIO_INATIVO"
+  | "USUARIO_SUSPENSO"
+  | "USUARIO_ENCERRADO"
+  | "USUARIO_EMAIL_JA_EXISTE"
+  | "TOKEN_INVALIDO"
+  | "TOKEN_NAO_ENCONTRADO"
+  | "TOKEN_REVOGADO"
+  | "TOKEN_EXPIRADO"
+  | "TOKEN_HASH_JA_EXISTE";
 
 /**
  * Retorna mensagens padronizadas de erro
@@ -34,6 +49,36 @@ export type CodigoErroApp =
         return "Erro interno.";
       case "SESSAO_INVALIDA":
         return "Sessão inválida.";
+      case "LOCATARIO_INVALIDO":
+        return "Locatário não encontrado."
+      case "LOCATARIO_NAO_ENCONTRADO":
+        return "Locatário não encontrado.";
+      case "LOCATARIO_SUSPENSO":
+        return "Locatário suspenso.";
+      case "LOCATARIO_ENCERRADO":
+        return "Locatário encerrado.";
+      case "USUARIO_INVALIDO":
+        return "Dados do usuário inválidos.";
+      case "USUARIO_NAO_ENCONTRADO":
+        return "Usuário não encontrado.";
+      case "USUARIO_INATIVO":
+        return "Usuário inativo.";
+      case "USUARIO_SUSPENSO":
+        return "Usuário suspenso.";
+      case "USUARIO_ENCERRADO":
+        return "Usuário encerrado.";
+      case "USUARIO_EMAIL_JA_EXISTE":
+        return "Já existe usuário com este e-mail no escopo informado.";
+      case "TOKEN_INVALIDO":
+        return "Dados do token inválidos.";
+      case "TOKEN_NAO_ENCONTRADO":
+        return "Token não encontrado.";
+      case "TOKEN_REVOGADO":
+        return "Token revogado.";
+      case "TOKEN_EXPIRADO":
+        return "Token expirado."
+      case "TOKEN_HASH_JA_EXISTE":
+        return "Já existe token com este hash."
       default:
         return "Desconhecido"; // Nunca deveria chamar
     }

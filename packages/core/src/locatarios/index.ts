@@ -30,6 +30,6 @@ export {
   criarLocatarioSeed,
 } from "./repositorioMemoria";
 
-export { createFnCriarLocatario as createCriarLocatario } from "./usecases/criarLocatario";
-export { createFnObterLocatario as createObterLocatario } from "./usecases/obterLocatario";
-export { createFnListarLocatarios as createListarLocatarios } from "./usecases/listarLocatarios";
+export { createFnCriarLocatario } from "./usecases/criarLocatario";
+export { createFnObterLocatario } from "./usecases/obterLocatario";
+export { createFnListarLocatarios } from "./usecases/listarLocatarios";

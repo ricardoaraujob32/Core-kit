@@ -1,33 +1,26 @@
-import {
- 
-  criarEmitirSessao,
-  criarValidarSessao,
-  criarResolverContextoAutorizado,
-  criarRotacionarRefresh,
-  resolverPermissoes,
-  LocatarioId,
-  UsuarioId,
-  createCriarLocatario,
-  createListarLocatarios,
-  createObterLocatario,
-  createCriarUsuario,
-  createListarUsuariosPorLocatario,
-  createObterUsuario,
-} from "@core-kit/core";
+// apps/api/src/dependencyInjection.ts
 
-import { criarLocatariosRepositorioMemoria } from "@core-kit/core";
-import { criarUsuariosRepositorioMemoria } from "@core-kit/core";
-import { criarRbacRepositorioMemoria } from "@core-kit/core";
-import { criarTokensRepositorioMemoria } from "@core-kit/core";
+import { createFnCriarLocatario, createFnCriarUsuario, createFnListarLocatarios, createFnListarUsuariosPorLocatario, 
+  createFnObterLocatario, createFnObterUsuario, criarLocatariosRepositorioMemoria, criarRbacRepositorioMemoria, 
+  criarTokensRepositorioMemoria, criarUsuariosRepositorioMemoria, LocatarioId, TokenId, UsuarioId } from "@core-kit/core";
 
 const ACCESS_TOKEN_TTL_SEGUNDOS = 10 * 60;
 const REFRESH_TOKEN_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const ISSUER = "core-kit-api";
 
+/**
+ * 
+ * @param value 
+ * @returns 
+ */
 function base64UrlEncode(value: unknown): string {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
 
+/**
+ * 
+ * @returns 
+ */
 export function criarDependenciasAplicacao() {
   const locatariosRepo = criarLocatariosRepositorioMemoria();
   const usuariosRepo = criarUsuariosRepositorioMemoria();
@@ -182,7 +175,7 @@ export function criarDependenciasAplicacao() {
     },
 
     async validarRefresh(params: {
-      locatarioId: string;
+      locatarioId: LocatarioId;
       tokenBruto: string;
       agora: Date;
     }) {
@@ -223,9 +216,9 @@ export function criarDependenciasAplicacao() {
     },
 
     async revogar(params: {
-      locatarioId: string;
-      tokenId: string;
-      usuarioId: string;
+      locatarioId: LocatarioId;
+      tokenId: TokenId;
+      usuarioId: UsuarioId;
       agora: Date;
       motivo?: string;
     }) {
@@ -245,13 +238,13 @@ export function criarDependenciasAplicacao() {
   };
 
   const usecases = {
-    criarLocatario: createCriarLocatario({ locRepo: locatariosRepo }),
-    listarLocatarios: createListarLocatarios({ locRepo: locatariosRepo }),
-    obterLocatario: createObterLocatario({ locRepo: locatariosRepo }),
+    criarLocatario: createFnCriarLocatario({ locRepo: locatariosRepo }),
+    listarLocatarios: createFnListarLocatarios({ locRepo: locatariosRepo }),
+    obterLocatario: createFnObterLocatario({ locRepo: locatariosRepo }),
 
-    criarUsuario: createCriarUsuario({ usuariosRepo }),
-    listarUsuarios: createListarUsuariosPorLocatario({ usuariosRepo }),
-    obterUsuario: createObterUsuario({ usuariosRepo }),
+    criarUsuario: createFnCriarUsuario({ usuariosRepo }),
+    listarUsuarios: createFnListarUsuariosPorLocatario({ usuariosRepo }),
+    obterUsuario: createFnObterUsuario({ usuariosRepo }),
 
     emitirSessao: criarEmitirSessao({
       usuariosRepo,

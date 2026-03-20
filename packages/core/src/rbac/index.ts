@@ -21,14 +21,6 @@ export type { RbacRepositorio } from "./portasRepositorio";
 
 export { criarRbacRepositorioMemoria } from "./repositorioMemoria";
 
-export {
-  temUsuario,
-  exigirUsuario,
-  normalizarPermissoes,
-  normalizarPapeis,
-  comPermissoes,
-  comPapeis,
-} from "./helpers";
+export { createFnResolverPermissoes } from "./usecases/resolverPermissoes";
 
-export { createFnResolverPermissoes as createResolverPermissoes } from "./usecases/resolverPermissoes";
 export { autorizarOperacao } from "./usecases/autorizarOperacao";

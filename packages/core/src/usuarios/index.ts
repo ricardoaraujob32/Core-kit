@@ -37,9 +37,9 @@ export {
   criarUsuarioSeed,
 } from "./repositorioMemoria";
 
-export { createFnCriarUsuario as createCriarUsuario } from "./usecases/criarUsuario";
-export { createFnObterUsuario as createObterUsuario } from "./usecases/obterUsuario";
-export { createFnListarUsuariosPorLocatario as createListarUsuariosPorLocatario } from "./usecases/listarUsuariosPorLocatario";
-export { createFnAtualizarUsuario as createAtualizarUsuario } from "./usecases/atualizarUsuario";
-export { createFnInativarUsuario as createInativarUsuario } from "./usecases/inativarUsuario";
-export { createFnReativarUsuario as createReativarUsuario } from "./usecases/reativarUsuario";
+export { createFnCriarUsuario } from "./usecases/criarUsuario";
+export { createFnObterUsuario } from "./usecases/obterUsuario";
+export { createFnListarUsuariosPorLocatario } from "./usecases/listarUsuariosPorLocatario";
+export { createFnAtualizarUsuario } from "./usecases/atualizarUsuario";
+export { createFnInativarUsuario } from "./usecases/inativarUsuario";
+export { createFnReativarUsuario } from "./usecases/reativarUsuario";

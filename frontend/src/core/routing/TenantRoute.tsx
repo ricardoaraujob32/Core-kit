@@ -2,17 +2,18 @@
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import type { Permissao } from "../auth/types";
 
 type TenantRouteProps = {
-  requiredPermissions?: string[];
+  requiredPermissions?: Permissao[];
   requireAllPermissions?: boolean;
   loginPath?: string;
   forbiddenPath?: string;
 };
 
 function hasRequiredPermissions(
-  currentPermissions: string[],
-  requiredPermissions: string[],
+  currentPermissions: Permissao[],
+  requiredPermissions: Permissao[],
   requireAllPermissions: boolean,
 ): boolean {
   if (requiredPermissions.length === 0) {
@@ -53,8 +54,6 @@ export function TenantRoute({
     );
   }
 
-  // Superadmin não deve entrar automaticamente em área tenant,
-  // porque a área tenant depende de contexto de locatário.
   if (user.isSuperAdmin) {
     return <Navigate to={forbiddenPath} replace />;
   }

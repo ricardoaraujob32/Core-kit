@@ -1,11 +1,18 @@
-import { Link } from "react-router-dom";
+// frontend/src/pages/AccessDenied.tsx
 
-export function AccessDeniedPage() {
+import { Link } from "react-router-dom";
+import { useAuth } from "../core/auth/useAuth";
+
+export default function AccessDenied(): JSX.Element {
+  const { user } = useAuth();
+
+  const fallbackHref = user?.isSuperAdmin ? "/superadmin" : "/app";
+
   return (
     <main style={{ padding: 24 }}>
       <h1>Acesso negado</h1>
-      <p>Seu perfil não possui a permissão necessária para esta área.</p>
-      <Link to="/auth/login">Voltar ao login</Link>
+      <p>Você não possui permissão para acessar esta área.</p>
+      <Link to={fallbackHref}>Voltar</Link>
     </main>
   );
 }

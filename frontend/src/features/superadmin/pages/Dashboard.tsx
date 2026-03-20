@@ -1,36 +1,27 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../../../core/auth/AuthContext";
-import { listarLocatarios, type LocatarioResumo } from "../locatarios/api/locatariosApi";
-import { LocatariosList } from "../locatarios/components/LocatariosList";
-import { HttpError } from "../../../core/api/httpClient";
-import { mapErrorMessage } from "../../../core/errors/mapError";
+// frontend/src/features/superadmin/pages/Dashboard.tsx
 
-export function SuperAdminDashboardPage() {
-  const { session } = useAuth();
-  const [items, setItems] = useState<LocatarioResumo[]>([]);
-  const [error, setError] = useState<string | null>(null);
+import { useAuth } from "../../../core/auth/useAuth";
 
-  useEffect(() => {
-    const token = session?.accessToken;
-    if (!token) return;
-
-    void listarLocatarios(token)
-      .then(setItems)
-      .catch((err) => {
-        if (err instanceof HttpError) {
-          setError(mapErrorMessage(err.payload));
-          return;
-        }
-        setError("Falha ao carregar locatários.");
-      });
-  }, [session?.accessToken]);
+export default function Dashboard(): JSX.Element {
+  const { user } = useAuth();
 
   return (
     <section>
-      <h1>Superadmin</h1>
-      <p>Painel inicial da plataforma.</p>
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      <LocatariosList items={items} />
+      <h1>Dashboard SuperAdmin</h1>
+      <p>Integração com backend validada para área de plataforma.</p>
+
+      <pre>
+        {JSON.stringify(
+          {
+            usuarioId: user?.usuarioId,
+            isSuperAdmin: user?.isSuperAdmin,
+            papeis: user?.papeis,
+            permissoes: user?.permissoes,
+          },
+          null,
+          2,
+        )}
+      </pre>
     </section>
   );
 }

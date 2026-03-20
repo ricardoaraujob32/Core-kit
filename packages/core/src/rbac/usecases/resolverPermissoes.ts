@@ -1,9 +1,8 @@
 // packages/core/src/rbac/usecases/resolverPermissoes.ts
 
-import { wrapOk } from "../../kernel";
+import { comPapeis, comPermissoes, exigirUsuario, wrapOk } from "../../kernel";
 import type { Papel, Permissao, ResolverPermissoesInput, ResolverPermissoesOutput, ResultadoResolverPermissoes } from "../tipos";
 import type { RbacRepositorio } from "../portasRepositorio";
-import { comPapeis, comPermissoes, exigirUsuario } from "../helpers";
 
 /**
  * 

@@ -33,10 +33,9 @@ export type {
   JwtAuthPorta,
   TokensAuthPorta,
   RbacAuthPorta,
-  EventosSegurancaPorta,
 } from "./portasServico";
 
-export { createFnEmitirSessao as criarEmitirSessao } from "./usecases/emitirSessao";
-export { createFnValidarSessao as criarValidarSessao } from "./usecases/validarSessao";
-export { createFnRotacionarRefresh as criarRotacionarRefresh } from "./usecases/rotacionarRefresh";
-export { createFnResolverContextoAutorizado as criarResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";
+export { createFnEmitirSessao } from "./usecases/emitirSessao";
+export { createFnValidarSessao } from "./usecases/validarSessao";
+export { createFnRotacionarRefresh } from "./usecases/rotacionarRefresh";
+export { createFnResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";

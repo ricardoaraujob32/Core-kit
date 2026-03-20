@@ -1,27 +1,42 @@
+// frontend/src/app/router.tsx
+
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { LoginPage } from "../features/auth/pages/LoginPage";
-import { SuperAdminDashboardPage } from "../features/superadmin/pages/DashboardPage";
-import { TenantAdminDashboardPage } from "../features/tenant-admin/pages/DashboardPage";
-import { AuthLayout } from "../layouts/AuthLayout";
-import { SuperAdminLayout } from "../layouts/SuperAdminLayout";
-import { TenantLayout } from "../layouts/TenantLayout";
-import { AccessDeniedPage } from "../pages/AccessDenied";
-import { NotFoundPage } from "../pages/NotFound";
-import { SuperAdminRoute } from "../core/routing/SuperAdminRoute";
-import { TenantAdminRoute } from "../core/routing/TenantAdminRoute";
+
+import ProtectedRoute from "../core/routing/ProtectedRoute";
+import SuperAdminRoute from "../core/routing/SuperAdminRoute";
+import TenantRoute from "../core/routing/TenantRoute";
+
+import AuthLayout from "../layouts/AuthLayout";
+import SuperAdminLayout from "../layouts/SuperAdminLayout";
+import TenantLayout from "../layouts/TenantLayout";
+
+import LoginPage from "../features/auth/pages/LoginPage";
+import SuperAdminDashboard from "../features/superadmin/pages/Dashboard";
+import TenantAdminDashboard from "../features/tenant-admin/pages/Dashboard";
+
+import AccessDenied from "../pages/AccessDenied";
+import NotFound from "../pages/NotFound";
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/auth/login" replace />,
+    element: <Navigate to="/login" replace />,
   },
   {
-    path: "/auth",
     element: <AuthLayout />,
     children: [
       {
-        path: "login",
+        path: "/login",
         element: <LoginPage />,
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/acesso-negado",
+        element: <AccessDenied />,
       },
     ],
   },
@@ -34,14 +49,14 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <SuperAdminDashboardPage />,
+            element: <SuperAdminDashboard />,
           },
         ],
       },
     ],
   },
   {
-    element: <TenantAdminRoute />,
+    element: <TenantRoute />,
     children: [
       {
         path: "/app",
@@ -49,18 +64,14 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <TenantAdminDashboardPage />,
+            element: <TenantAdminDashboard />,
           },
         ],
       },
     ],
   },
   {
-    path: "/acesso-negado",
-    element: <AccessDeniedPage />,
-  },
-  {
     path: "*",
-    element: <NotFoundPage />,
+    element: <NotFound />,
   },
 ]);
