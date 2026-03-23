@@ -7,14 +7,33 @@ import type { TokensRepositorio } from "./portasRepositorio";
 import type { TokenPersistido, TokenId, TokenTipo } from "./tipos";
 
 /**
- * 
- * @param seed 
- * @returns 
+ * Cria uma implementação em memória da porta `TokensRepositorio`.
+ *
+ * Esta implementação existe para testes unitários do domínio de tokens,
+ * preservando comportamento determinístico e simplicidade operacional.
+ *
+ * Recursos auxiliares expostos além da porta:
+ * - `seed(...)`: injeta tokens diretamente no estado interno;
+ * - `dump()`: devolve uma cópia defensiva do estado persistido.
+ *
+ * @param seed Coleção inicial opcional de tokens persistidos.
+ * @returns Repositório em memória compatível com a porta de tokens.
  */
 export function criarTokensRepositorioMemoria(
   seed?: TokenPersistido[],
 ): TokensRepositorio & {
+  /**
+   * Injeta um token diretamente no estado interno.
+   *
+   * @param token Entidade de token persistido a ser semeada.
+   */
   seed(token: TokenPersistido): void;
+
+  /**
+   * Retorna uma cópia defensiva do estado atual do repositório.
+   *
+   * @returns Coleção de tokens atualmente armazenados.
+   */
   dump(): TokenPersistido[];
 } {
   const byId = new Map<string, TokenPersistido>();
@@ -102,9 +121,22 @@ export function criarTokensRepositorioMemoria(
 }
 
 /**
- * 
- * @param params 
- * @returns 
+ * Cria uma entidade `TokenPersistido` pronta para uso em testes.
+ *
+ * Este helper padroniza seeds de token em cenários unitários, permitindo
+ * configurar apenas os campos relevantes ao teste.
+ *
+ * Defaults atuais:
+ * - `tipo`: `"ACESSO"`
+ * - `emitidoEm`: `2026-01-01T00:00:00.000Z`
+ * - `expiraEm`: `2026-12-31T00:00:00.000Z`
+ * - `revogadoEm`: `null`
+ * - `proximoTokenId`: `null`
+ * - `agenteUsuario`: `null`
+ * - `enderecoIp`: `null`
+ *
+ * @param params Dados base do token de teste.
+ * @returns Entidade `TokenPersistido` materializada.
  */
 export function criarTokenSeed(params: {
   tokenId: TokenId;

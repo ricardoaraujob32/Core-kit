@@ -12,3 +12,8 @@ export * from "./auth";
 export * from "./tokens";
 export * from "./usuarios";
 export * from "./kernel"
+export * from "./assinaturas";
+export * from "./auditoria";
+export * from "./backups";
+export * from "./exportacoes";
+export * from "./importacoes";

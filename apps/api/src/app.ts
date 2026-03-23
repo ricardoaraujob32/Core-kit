@@ -14,7 +14,7 @@ export async function criarApp() {
 
   await app.register(requestIdPlugin);
   await app.register(authPlugin);
-  await app.register(routes);
+  await app.register(routes, { prefix: "" });
 
   return app;
 }

@@ -3,6 +3,7 @@
 import { useEffect, type PropsWithChildren } from "react";
 import { useTenant } from "./TenantContext";
 
+
 const DEFAULT_THEME = {
   primary: "#2563eb",
   secondary: "#1d4ed8",

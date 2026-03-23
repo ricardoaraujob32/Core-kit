@@ -15,9 +15,8 @@ export default function Dashboard(): JSX.Element {
       <pre>
         {JSON.stringify(
           {
-            usuarioId: user?.usuarioId,
+            id: user?.id,
             locatarioId: user?.locatarioId,
-            isSuperAdmin: user?.isSuperAdmin,
             papeis: user?.papeis,
             permissoes: user?.permissoes,
             branding,

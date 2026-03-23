@@ -17,5 +17,10 @@ export { comModulosHabilitados, comPapeis, comPermissoes, exigirUsuario, normali
     normalizarPapeis, normalizarPermissoes, normalizarRelogio, temUsuario
 } from "./autorizacao";
 
-export type { HashPorta, IdPorta, RelogioPorta, TokenPorta, TransacaoPorta, PortaTransacao } from "./utils";
 export { normalizarEmail, validarData, validarEmail, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio } from "./utils";
+
+export { executarEmTransacao } from "./executarEmTransacao";
+
+export type { HashPorta, IdPorta, RelogioPorta, TokenPorta, TransacaoPorta } from "./portasGenericas";
+
+export type { StatusJob } from "./tipos";

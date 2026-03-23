@@ -7,15 +7,49 @@ import type { TokensRepositorio } from "../portasRepositorio";
 import { validarExpiraEm, validarHashToken, validarTokenId } from "../validadores";
 
 /**
- * 
- * @param deps 
- * @returns 
+ * Cria a função de caso de uso responsável por rotacionar um token persistido.
+ *
+ * Este caso de uso:
+ * - valida `tokenId`, `novoHashToken` e `novoExpiraEm`;
+ * - rejeita expiração futura inválida;
+ * - consulta o token atual;
+ * - falha quando o token não existe ou já está revogado;
+ * - garante unicidade do novo hash;
+ * - gera um novo `tokenId`;
+ * - revoga o token anterior e aponta `proximoTokenId`;
+ * - cria o novo token reaproveitando metadados relevantes do anterior;
+ * - devolve o par `{ tokenAnterior, tokenNovo }`.
+ *
+ * Dependências:
+ * - `tokensRepo`: consulta e persistência de tokens;
+ * - `idPorta`: geração de identidade para o novo token;
+ * - `relogio`: materialização do instante da rotação.
+ *
+ * @param deps Dependências externas necessárias para a execução do caso de uso.
+ * @returns Função `rotacionarToken` pronta para receber a entrada do caso de uso.
  */
 export function createFnRotacionarToken(deps: {
   tokensRepo: TokensRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
 }) {
+  /**
+   * Executa o caso de uso de rotação de token.
+   *
+   * Fluxo:
+   * 1. valida `tokenId`, `novoHashToken` e `novoExpiraEm`;
+   * 2. rejeita expiração não futura;
+   * 3. busca o token atual;
+   * 4. falha se o token não existir ou estiver revogado;
+   * 5. verifica se o novo hash já está em uso;
+   * 6. gera `novoTokenId`;
+   * 7. revoga o token anterior e registra a cadeia por `proximoTokenId`;
+   * 8. cria o novo token;
+   * 9. relê o token novo para devolvê-lo completo no output.
+   *
+   * @param input Dados necessários para rotacionar o token.
+   * @returns `Ok({ tokenAnterior, tokenNovo })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
+   */
   return async function rotacionarToken(input: RotacionarTokenInput): ResultadoRotacionarToken {
     const tokenId = validarTokenId(input.tokenId);
     if (!tokenId.ok) return tokenId;

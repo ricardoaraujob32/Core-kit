@@ -8,9 +8,33 @@ import { EmitirSessaoInput, ResultadoEmitirSessao, Sessao } from "../tipos";
 import { validarEmailAuth, validarLocatarioIdAuth, validarSenha } from "../validadores";
 
 /**
- * 
- * @param deps 
- * @returns 
+ * Cria o caso de uso responsável por autenticar um usuário e emitir uma nova sessão.
+ *
+ * Este caso de uso:
+ * - valida `locatarioId`, e-mail e senha;
+ * - opcionalmente valida o locatário via `locatariosPorta`;
+ * - busca o usuário por e-mail;
+ * - valida o estado do usuário;
+ * - compara a senha informada com o hash persistido;
+ * - emite access token;
+ * - cria refresh token;
+ * - registra último login em modo best effort;
+ * - registra eventos de segurança, quando a porta estiver disponível;
+ * - devolve a sessão materializada.
+ *
+ * Dependências:
+ * - `usuariosPorta`: consulta e atualização do usuário de autenticação;
+ * - `locatariosPorta`: validação opcional do locatário;
+ * - `tokensPorta`: criação do refresh token;
+ * - `hashPorta`: comparação segura de senha;
+ * - `jwtPorta`: emissão do access token;
+ * - `relogio`: materialização do instante atual;
+ * - `idPorta`: geração de `sessionId`;
+ * - `eventos`: registro opcional de eventos de segurança;
+ * - TTLs e `issuer`: parâmetros opcionais de sessão.
+ *
+ * @param deps Dependências externas necessárias para a execução.
+ * @returns Função `emitirSessao` pronta para receber a entrada do caso de uso.
  */
 export function createFnEmitirSessao(deps: {
   usuariosPorta: UsuariosAuthPorta;
@@ -25,6 +49,25 @@ export function createFnEmitirSessao(deps: {
   ttlRefreshMs?: number;
   issuer?: string;
 }) {
+  /**
+   * Executa o caso de uso de emissão de sessão.
+   *
+   * Fluxo:
+   * 1. valida entrada;
+   * 2. valida locatário, quando aplicável;
+   * 3. busca usuário por e-mail;
+   * 4. verifica estado do usuário;
+   * 5. compara senha;
+   * 6. gera `sessionId`;
+   * 7. emite access token;
+   * 8. cria refresh token;
+   * 9. atualiza último login em best effort;
+   * 10. registra evento de sucesso/falha;
+   * 11. devolve a sessão.
+   *
+   * @param input Credenciais e escopo do login.
+   * @returns `Ok(sessao)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
+   */
   return async function emitirSessao(input: EmitirSessaoInput): ResultadoEmitirSessao {
     const locatarioId = validarLocatarioIdAuth(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;

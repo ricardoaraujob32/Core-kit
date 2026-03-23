@@ -3,7 +3,6 @@
 export type {
   Papel,
   Permissao,
-  ContextoExecucaoRbac,
   ResolverPermissoesInput,
   ResolverPermissoesOutput,
   AutorizarOperacaoInput,

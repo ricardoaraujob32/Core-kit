@@ -8,18 +8,32 @@ import { createErroApp } from "./ROPHelpers";
 import { Papel, Permissao } from "../rbac";
 
 /**
- * 
- * @param ctx 
- * @returns 
+ * Propósito do arquivo:
+ * Fornece utilitários para manipulação, validação e enriquecimento
+ * do contexto de execução no que diz respeito à autorização.
+ *
+ * Atua como camada intermediária entre:
+ * - autenticação (quem é o usuário)
+ * - autorização (o que ele pode fazer)
+ *
+ * Este módulo NÃO resolve permissões; apenas normaliza e garante consistência.
+ */
+
+/**
+ * Verifica se o contexto possui um usuário autenticado válido.
+ *
+ * @param ctx Contexto de execução.
+ * @returns `true` se há usuário válido (string não vazia).
  */
 export function temUsuario(ctx: ContextoExecucao): ctx is ContextoExecucao & { usuarioId: UsuarioId } {
   return typeof ctx.usuarioId === "string" && ctx.usuarioId.trim().length > 0;
 }
 
 /**
- * 
- * @param ctx 
- * @returns 
+ * Garante que o contexto possui um usuário autenticado.
+ *
+ * @param ctx Contexto de execução.
+ * @returns `Ok(ctx)` quando autenticado; `Err` caso contrário.
  */
 export function exigirUsuario(ctx: ContextoExecucao): Result<ContextoExecucao & { usuarioId: UsuarioId }, ErroApp> {
   return temUsuario(ctx)
@@ -32,57 +46,59 @@ export function exigirUsuario(ctx: ContextoExecucao): Result<ContextoExecucao & 
 }
 
 /**
- * 
- * @param ctx 
- * @returns 
+ * Normaliza permissões do contexto para array mutável.
+ *
+ * @param ctx Contexto de execução.
+ * @returns Lista de permissões (cópia defensiva).
  */
 export function normalizarPermissoes(ctx: ContextoExecucao): Permissao[] {
   return Array.isArray(ctx.permissoes) ? [...ctx.permissoes] : [];
 }
 
 /**
- * 
- * @param ctx 
- * @returns 
+ * Normaliza papéis do contexto para array mutável.
+ *
+ * @param ctx Contexto de execução.
+ * @returns Lista de papéis (cópia defensiva).
  */
 export function normalizarPapeis(ctx: ContextoExecucao): Papel[] {
   return Array.isArray(ctx.papeis) ? [...ctx.papeis] : [];
 }
 
 /**
- * 
- * @param ctx 
- * @returns 
+ * Obtém o instante atual a partir do contexto.
+ *
+ * @param ctx Contexto de execução.
+ * @returns Data atual usando relógio injetado ou sistema.
  */
 export function normalizarRelogio(ctx: ContextoExecucao): Date {
   return ctx.agora ? ctx.agora() : new Date();
 }
 
 /**
- * 
- * @param ctx 
- * @returns 
+ * Normaliza módulos do contexto para array mutável.
+ * @param ctx Contexto de execução.
+ * @returns Lista de módulos habilitados (cópia defensiva).
  */
 export function normalizarModulosHabilitados(ctx: ContextoExecucao): ModuloCodigo[] {
-  return Array.isArray(ctx.modulosHabilitados)
-    ? [...ctx.modulosHabilitados]
-    : [];
+  return Array.isArray(ctx.modulosHabilitados) ? [...ctx.modulosHabilitados] : [];
 }
 
 /**
- * 
- * @param itens 
- * @returns 
+ * Garante um conjunto de itens únicos
+ * @param itens o conjunto
+ * @returns o conjunto com itens únicos
  */
 function unique<T>(itens: T[]): T[] {
   return Array.from(new Set(itens));
 }
 
 /**
- * 
- * @param ctx 
- * @param permissoes 
- * @returns 
+ * Retorna novo contexto com permissões atualizadas.
+ *
+ * @param ctx Contexto original.
+ * @param permissoes Lista de permissões.
+ * @returns Novo contexto imutável.
  */
 export function comPermissoes(ctx: ContextoExecucao, permissoes: Permissao[]): ContextoExecucao {
   return createContextoExecucao({
@@ -96,10 +112,11 @@ export function comPermissoes(ctx: ContextoExecucao, permissoes: Permissao[]): C
 }
 
 /**
- * 
- * @param ctx 
- * @param papeis 
- * @returns 
+ * Retorna novo contexto com papéis atualizados.
+ *
+ * @param ctx Contexto original.
+ * @param papeis Lista de papéis.
+ * @returns Novo contexto imutável.
  */
 export function comPapeis(ctx: ContextoExecucao, papeis: Papel[]): ContextoExecucao {
   return createContextoExecucao({
@@ -113,10 +130,11 @@ export function comPapeis(ctx: ContextoExecucao, papeis: Papel[]): ContextoExecu
 }
 
 /**
- * 
- * @param ctx 
- * @param modulosHabilitados 
- * @returns 
+ * Retorna novo contexto com módulos habilitados.
+ *
+ * @param ctx Contexto original.
+ * @param modulosHabilitados Lista de módulos.
+ * @returns Novo contexto imutável.
  */
 export function comModulosHabilitados(ctx: ContextoExecucao, modulosHabilitados: ModuloCodigo[]): ContextoExecucao {
   return createContextoExecucao({

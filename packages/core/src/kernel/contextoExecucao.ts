@@ -6,6 +6,19 @@ import { ModuloCodigo } from "../modulos";
 import { Papel, Permissao } from "../rbac";
 
 /**
+ * Propósito do arquivo:
+ * Define o modelo central de contexto de execução do sistema,
+ * incluindo identidade do usuário, locatário e atributos de autorização.
+ *
+ * Este é um dos objetos mais importantes do Core,
+ * sendo utilizado para:
+ * - autenticação
+ * - autorização (RBAC)
+ * - controle de acesso a módulos
+ * - injeção de relógio para testes
+ */
+
+/**
  * Cria um símbolo único que marca o contexto.
  * Impede falsificação de contexto e centraliza a criação numa fábrica.
  */
@@ -30,6 +43,10 @@ export type ContextoExecucao = {
 /**
  * Um tipo que representa os atributos necessários para a criação do contexto.
  * Deve ser passado como argumento para a fábrica.
+ * Observação:
+ * Este tipo remove o branding interno e deve ser considerado
+ * apenas como DTO de entrada da fábrica.
+ * Nunca deve ser usado como substituto de `ContextoExecucao`.
  */
 export type CreateContextoExecucaoParams = Omit<ContextoExecucao, typeof CTX_BRAND>;
 

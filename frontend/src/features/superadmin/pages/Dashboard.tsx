@@ -13,8 +13,8 @@ export default function Dashboard(): JSX.Element {
       <pre>
         {JSON.stringify(
           {
-            usuarioId: user?.usuarioId,
-            isSuperAdmin: user?.isSuperAdmin,
+            id: user?.id,
+            locatarioId: user?.locatarioId,
             papeis: user?.papeis,
             permissoes: user?.permissoes,
           },

@@ -7,13 +7,34 @@ import { ResultadoValidarSessao, SessaoValidada, ValidarSessaoInput } from "../t
 import { validarTokenNaoVazio } from "../validadores";
 
 /**
- * 
- * @param deps 
- * @returns 
+ * Cria o caso de uso responsável por validar um access token
+ * e convertê-lo em uma projeção de sessão autenticada.
+ *
+ * Este caso de uso:
+ * - valida que o token textual não esteja vazio;
+ * - delega à `jwtPorta` a verificação do token;
+ * - converte o payload em `SessaoValidada`;
+ * - devolve erro específico de sessão inválida quando a validação falha.
+ *
+ * Dependências:
+ * - `jwtPorta`: serviço de validação do access token.
+ *
+ * @param deps Dependências externas necessárias para a execução.
+ * @returns Função `validarSessao` pronta para receber a entrada do caso de uso.
  */
-export function createFnValidarSessao(deps: {
-  jwtPorta: JwtAuthPorta;
-}) {
+export function createFnValidarSessao(deps: {jwtPorta: JwtAuthPorta}) {
+   /**
+   * Executa o caso de uso de validação de sessão.
+   *
+   * Fluxo:
+   * 1. valida o token textual de entrada;
+   * 2. verifica o token na `jwtPorta`;
+   * 3. converte o payload em `SessaoValidada`;
+   * 4. falha com `sessaoInvalida` quando a validação JWT falhar.
+   *
+   * @param input Access token a ser validado.
+   * @returns `Ok(sessaoValidada)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
+   */
   return function validarSessao(input: ValidarSessaoInput): ResultadoValidarSessao {
     const token = validarTokenNaoVazio(input.accessToken);
     if (!token.ok) return token;

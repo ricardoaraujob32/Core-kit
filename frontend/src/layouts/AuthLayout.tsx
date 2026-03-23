@@ -2,6 +2,7 @@
 
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
+import { isSuperAdmin } from "../core/auth/types";
 
 export default function AuthLayout(): JSX.Element {
   const { isLoading, isAuthenticated, user } = useAuth();
@@ -13,7 +14,7 @@ export default function AuthLayout(): JSX.Element {
   if (isAuthenticated && user) {
     return (
       <Navigate
-        to={user.isSuperAdmin ? "/superadmin" : "/app"}
+        to={isSuperAdmin(user) ? "/superadmin" : "/app"}
         replace
       />
     );

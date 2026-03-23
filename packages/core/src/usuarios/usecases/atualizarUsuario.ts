@@ -7,14 +7,44 @@ import type { AtualizarUsuarioInput, ResultadoAtualizarUsuario } from "../tipos"
 import type { RelogioPorta } from "../../kernel";
 
 /**
- * 
- * @param deps 
- * @returns 
+ * Cria a função de caso de uso responsável por atualizar dados cadastrais
+ * de um usuário existente.
+ *
+ * Este caso de uso:
+ * - valida `usuarioId`;
+ * - carrega o usuário atual;
+ * - impede atualização de usuário inexistente ou logicamente excluído;
+ * - permite atualização parcial de nome e e-mail;
+ * - revalida os campos que forem informados;
+ * - verifica unicidade do novo e-mail dentro do mesmo locatário;
+ * - atualiza `atualizadoEm` com o relógio injetado;
+ * - persiste a nova versão da entidade.
+ *
+ * Dependências:
+ * - `usuariosRepo`: consulta e persistência de usuários;
+ * - `relogio`: materialização do instante de atualização.
+ *
+ * @param deps Dependências externas necessárias para a execução do caso de uso.
+ * @returns Função `atualizarUsuario` pronta para receber a entrada do caso de uso.
  */
 export function createFnAtualizarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
   relogio: RelogioPorta;
 }) {
+  /**
+   * Executa o caso de uso de atualização de usuário.
+   *
+   * Fluxo:
+   * 1. valida `usuarioId`;
+   * 2. busca o usuário atual;
+   * 3. falha se o usuário não existir ou estiver excluído;
+   * 4. revalida `nome` e/ou `email` apenas se informados;
+   * 5. garante unicidade do e-mail quando houver alteração;
+   * 6. persiste a entidade atualizada.
+   *
+   * @param input Dados parciais para atualização do usuário.
+   * @returns `Ok(usuarioAtualizado)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
+   */
   return async function atualizarUsuario(input: AtualizarUsuarioInput): ResultadoAtualizarUsuario {
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { isSuperAdmin } from "../../../core/auth/types";
 import { useAuth } from "../../../core/auth/useAuth";
 import { mapError } from "../../../core/errors/mapError";
 
@@ -18,6 +19,7 @@ export default function LoginPage(): JSX.Element {
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [locatarioId, setLocatarioId] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -25,10 +27,16 @@ export default function LoginPage(): JSX.Element {
     setErro(null);
 
     try {
-      const authenticatedUser = await login({ email, senha });
+      const authenticatedUser = await login({
+        email,
+        senha,
+        locatarioId: locatarioId.trim() || null,
+      });
 
       const state = location.state as LocationState | null;
-      const fallbackPath = authenticatedUser.isSuperAdmin ? "/superadmin" : "/app";
+      const fallbackPath = isSuperAdmin(authenticatedUser)
+        ? "/superadmin"
+        : "/app";
 
       navigate(state?.from?.pathname || fallbackPath, { replace: true });
     } catch (error) {
@@ -42,6 +50,17 @@ export default function LoginPage(): JSX.Element {
       <h1>Entrar</h1>
 
       <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="locatarioId">Locatário (opcional)</label>
+          <input
+            id="locatarioId"
+            type="text"
+            value={locatarioId}
+            onChange={(event) => setLocatarioId(event.target.value)}
+            autoComplete="organization"
+          />
+        </div>
+
         <div>
           <label htmlFor="email">E-mail</label>
           <input

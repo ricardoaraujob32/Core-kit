@@ -1,4 +1,5 @@
-export { criarExportacoesService } from "./usecases/exportacoesService";
+// packages/core/src/exportacoes/index.ts
+
 export { ExportacoesRepositorioMemoria } from "./repositorioMemoria";
 
 export type {
@@ -12,7 +13,12 @@ export type {
   MarcarExportacaoEmExecucaoInput,
   SolicitarExportacaoInput,
   SolicitarExportacaoOutput,
-  StatusJob,
 } from "./tipos";
 
 export type { ExportacoesRepositorio } from "./portasRepositorio";
+
+export { createFnListarExportacoesLocatario } from "./usecases/listarExportacoesLocatario";
+export { createFnMarcarExportacaoComFalha } from "./usecases/marcarExportacaoComFalha";
+export { createFnMarcarExportacaoConcluida } from "./usecases/marcarExportacaoConcluida";
+export { createFnMarcarExportacaoEmExecucao} from "./usecases/marcarExportacaoEmExecucao";
+export { createFnSolicitarExportacao } from "./usecases/solicitarExportacao";

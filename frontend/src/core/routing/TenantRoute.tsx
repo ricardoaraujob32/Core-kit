@@ -1,8 +1,8 @@
 // frontend/src/core/routing/TenantRoute.tsx
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import type { Permissao } from "../auth/types";
+import { isSuperAdmin, type Permissao } from "../auth/types";
+import { useAuth } from "../auth/useAuth";
 
 type TenantRouteProps = {
   requiredPermissions?: Permissao[];
@@ -54,7 +54,7 @@ export function TenantRoute({
     );
   }
 
-  if (user.isSuperAdmin) {
+  if (isSuperAdmin(user)) {
     return <Navigate to={forbiddenPath} replace />;
   }
 

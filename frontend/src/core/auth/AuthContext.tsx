@@ -11,7 +11,6 @@ import {
 } from "react";
 
 import {
-  HttpError,
   registerAccessTokenGetter,
   registerUnauthorizedHandler,
 } from "../api/httpClient";
@@ -20,33 +19,23 @@ import { authStorage } from "./authStorage";
 import {
   login as loginRequest,
   logout as logoutRequest,
-  me as meRequest,
   refresh as refreshRequest,
-  type LoginInput,
-  type SessionUser,
 } from "../../features/auth/api/authApi";
 
-type AuthStatus = "idle" | "loading" | "authenticated" | "unauthenticated";
-
-type AuthContextValue = {
-  status: AuthStatus;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  user: SessionUser | null;
-  accessToken: string | null;
-  login: (input: LoginInput) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshSession: () => Promise<void>;
-};
+import type {
+  AuthContextValue,
+  LoginInput,
+  SessionUser,
+} from "./types";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
-  const [status, setStatus] = useState<AuthStatus>("idle");
+  const [status, setStatus] = useState<AuthContextValue["status"]>("idle");
   const [accessToken, setAccessToken] = useState<string | null>(
     authStorage.getAccessToken(),
   );
-  const [user, setUser] = useState<SessionUser | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(authStorage.getUser());
 
   const clearSession = useCallback(() => {
     authStorage.clear();
@@ -57,43 +46,19 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
 
   const logout = useCallback(async () => {
     try {
-      if (authStorage.getAccessToken()) {
-        await logoutRequest();
-      }
+      await logoutRequest();
     } catch {
-      // mesmo se a chamada falhar, a sessão local deve ser encerrada
+      // noop
     } finally {
       clearSession();
     }
   }, [clearSession]);
 
-  const tryRefreshToken = useCallback(async (): Promise<boolean> => {
-    const currentRefreshToken = authStorage.getRefreshToken();
-
-    if (!currentRefreshToken) {
-      return false;
-    }
-
-    try {
-      const response = await refreshRequest(currentRefreshToken);
-
-      authStorage.setAccessToken(response.accessToken);
-
-      if (response.refreshToken) {
-        authStorage.setRefreshToken(response.refreshToken);
-      }
-
-      setAccessToken(response.accessToken);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
   const refreshSession = useCallback(async () => {
-    const storedAccessToken = authStorage.getAccessToken();
+    const storedRefreshToken = authStorage.getRefreshToken();
+    const storedUser = authStorage.getUser();
 
-    if (!storedAccessToken) {
+    if (!storedRefreshToken || !storedUser) {
       clearSession();
       return;
     }
@@ -101,34 +66,20 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     setStatus("loading");
 
     try {
-      const response = await meRequest();
-      setAccessToken(authStorage.getAccessToken());
-      setUser(response.usuario);
+      const response = await refreshRequest({
+        refreshToken: storedRefreshToken,
+      });
+
+      authStorage.setAccessToken(response.accessToken);
+      authStorage.setRefreshToken(response.refreshToken);
+
+      setAccessToken(response.accessToken);
+      setUser(storedUser);
       setStatus("authenticated");
-    } catch (error) {
-      if (error instanceof HttpError && error.status === 401) {
-        const refreshed = await tryRefreshToken();
-
-        if (!refreshed) {
-          clearSession();
-          return;
-        }
-
-        try {
-          const retryResponse = await meRequest();
-          setAccessToken(authStorage.getAccessToken());
-          setUser(retryResponse.usuario);
-          setStatus("authenticated");
-          return;
-        } catch {
-          clearSession();
-          return;
-        }
-      }
-
+    } catch {
       clearSession();
     }
-  }, [clearSession, tryRefreshToken]);
+  }, [clearSession]);
 
   const login = useCallback(async (input: LoginInput): Promise<SessionUser> => {
     setStatus("loading");
@@ -136,10 +87,8 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     const response = await loginRequest(input);
 
     authStorage.setAccessToken(response.accessToken);
-
-    if (response.refreshToken) {
-      authStorage.setRefreshToken(response.refreshToken);
-    }
+    authStorage.setRefreshToken(response.refreshToken);
+    authStorage.setUser(response.usuario);
 
     setAccessToken(response.accessToken);
     setUser(response.usuario);
@@ -160,8 +109,19 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   }, [logout]);
 
   useEffect(() => {
-    void refreshSession();
-  }, [refreshSession]);
+    const token = authStorage.getAccessToken();
+    const refreshToken = authStorage.getRefreshToken();
+    const storedUser = authStorage.getUser();
+
+    if (!token || !refreshToken || !storedUser) {
+      clearSession();
+      return;
+    }
+
+    setAccessToken(token);
+    setUser(storedUser);
+    setStatus("authenticated");
+  }, [clearSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

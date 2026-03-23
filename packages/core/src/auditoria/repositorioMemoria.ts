@@ -5,11 +5,24 @@ import { ErroApp, Result, wrapOk } from "../kernel";
 import { EventoAuditoriaLocatario, EventoAuditoriaPlataforma, ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoLocatarioInput, RegistrarEventoPlataformaInput } from "./tipos";
 
 /**
- * 
+ * Implementação em memória do repositório de auditoria no escopo de locatário.
+ *
+ * Esta classe mantém os eventos em um vetor simples, preservando ordem de
+ * inserção e permitindo testes de trilha de auditoria sem infraestrutura externa.
  */
 export class AuditoriaLocatarioRepositorioMemoria implements AuditoriaLocatarioRepositorio {
+  /** Coleção interna de eventos de auditoria de locatário. */
   private readonly itens: EventoAuditoriaLocatario[] = [];
 
+  /**
+   * Registra um novo evento de auditoria de locatário.
+   *
+   * O identificador é gerado internamente, e `criadoEm` é materializado
+   * no momento do registro.
+   *
+   * @param input Dados do evento a ser registrado.
+   * @returns `Ok(evento)` com o evento persistido em memória.
+   */
   async registrarEvento(input: RegistrarEventoLocatarioInput): Promise<Result<EventoAuditoriaLocatario, ErroApp>> {
     const item: EventoAuditoriaLocatario = {
       auditoriaId: randomUUID(),
@@ -35,6 +48,18 @@ export class AuditoriaLocatarioRepositorioMemoria implements AuditoriaLocatarioR
     return wrapOk(item);
   }
 
+  /**
+   * Lista eventos de auditoria de locatário aplicando filtros opcionais.
+   *
+   * Regras atuais:
+   * - filtro obrigatório por `locatarioId`;
+   * - filtros opcionais por `evento`, `entidadeTipo` e `entidadeId`;
+   * - limite default de `100`;
+   * - ordenação decrescente por `criadoEm`.
+   *
+   * @param filtro Parâmetros de consulta da auditoria.
+   * @returns `Ok` com a coleção filtrada de eventos.
+   */
   async listarEventos(filtro: ListarAuditoriaLocatarioInput): Promise<Result<EventoAuditoriaLocatario[], ErroApp>> {
     const limite = filtro.limite ?? 100;
     const itens = this.itens
@@ -50,11 +75,24 @@ export class AuditoriaLocatarioRepositorioMemoria implements AuditoriaLocatarioR
 }
 
 /**
- * 
+ * Implementação em memória do repositório de auditoria de plataforma.
+ *
+ * Esta classe mantém eventos em um vetor simples e é útil para testes do
+ * escopo administrativo/global da aplicação.
  */
 export class AuditoriaPlataformaRepositorioMemoria implements AuditoriaPlataformaRepositorio {
+  /** Coleção interna de eventos de auditoria de plataforma. */
   private readonly itens: EventoAuditoriaPlataforma[] = [];
 
+  /**
+   * Registra um novo evento de auditoria de plataforma.
+   *
+   * O identificador é gerado internamente, e `criadoEm` é materializado
+   * no momento do registro.
+   *
+   * @param input Dados do evento a ser registrado.
+   * @returns `Ok(evento)` com o evento persistido em memória.
+   */
   async registrarEvento(input: RegistrarEventoPlataformaInput): Promise<Result<EventoAuditoriaPlataforma, ErroApp>> {
     const item: EventoAuditoriaPlataforma = {
       auditoriaId: randomUUID(),
@@ -80,6 +118,18 @@ export class AuditoriaPlataformaRepositorioMemoria implements AuditoriaPlataform
     return wrapOk(item);
   }
 
+  /**
+   * Lista eventos de auditoria de plataforma aplicando filtros opcionais.
+   *
+   * Regras atuais:
+   * - filtro opcional por `locatarioAlvoId`;
+   * - filtros opcionais por `evento`, `entidadeTipo` e `entidadeId`;
+   * - limite default de `100`;
+   * - ordenação decrescente por `criadoEm`.
+   *
+   * @param filtro Parâmetros de consulta da auditoria.
+   * @returns `Ok` com a coleção filtrada de eventos.
+   */
   async listarEventos(filtro: ListarAuditoriaPlataformaInput): Promise<Result<EventoAuditoriaPlataforma[], ErroApp>> {
     const limite = filtro.limite ?? 100;
     const itens = this.itens

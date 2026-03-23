@@ -5,11 +5,16 @@ import { locatarioInvalido } from "./erros";
 import { LocatarioId } from "./tipos";
 
 /**
- * 
- * @param resultado 
- * @param campo 
- * @param valor 
- * @returns 
+ * Converte erro genérico de validação transversal em erro específico do
+ * domínio de locatários.
+ *
+ * Este helper mantém o módulo desacoplado dos detalhes do kernel e garante
+ * que falhas de validação sejam reportadas com semântica própria do pacote.
+ *
+ * @param resultado Resultado bruto da validação transversal.
+ * @param campo Nome lógico do campo validado.
+ * @param valor Valor original rejeitado.
+ * @returns Resultado original em caso de sucesso, ou erro específico do módulo.
  */
 function mapearErro(resultado: Result<string, ErroApp>, campo: string, valor?: unknown): Result<string, ErroApp> {
   if (resultado.ok) return resultado;
@@ -17,27 +22,25 @@ function mapearErro(resultado: Result<string, ErroApp>, campo: string, valor?: u
 }
 
 /**
- * 
- * @param nome 
- * @returns 
+ * Valida o nome de um locatário.
+ *
+ * Regras atuais:
+ * - deve ser texto;
+ * - deve possuir ao menos 2 caracteres úteis após `trim`.
+ *
+ * @param nome Nome informado para o locatário.
+ * @returns `Ok(string)` com nome normalizado ou erro específico do módulo.
  */
 export function validarNomeLocatario(nome: string): Result<string, ErroApp> {
-  return mapearErro(
-    validarTextoObrigatorio(nome, "nome", 2),
-    "nome",
-    nome,
-  );
+  return mapearErro( validarTextoObrigatorio(nome, "nome", 2), "nome", nome );
 }
 
 /**
- * 
- * @param locatarioId 
- * @returns 
+ * Valida o identificador lógico de um locatário.
+ *
+ * @param locatarioId Identificador textual do locatário.
+ * @returns `Ok(string)` com ID validado ou erro específico do módulo.
  */
 export function validarLocatarioId(locatarioId: LocatarioId): Result<string, ErroApp> {
-  return mapearErro(
-    validarIdGenerico(locatarioId, "locatarioId"),
-    "locatarioId",
-    locatarioId,
-  );
+  return mapearErro( validarIdGenerico(locatarioId, "locatarioId"), "locatarioId", locatarioId );
 }

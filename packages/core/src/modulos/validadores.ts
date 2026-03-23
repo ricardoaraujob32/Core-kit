@@ -5,9 +5,13 @@ import { erroLocatarioIdInvalido, erroModuloCodigoInvalido } from "./erros";
 import { ListarModulosHabilitadosInput, ModuloEstaHabilitadoInput } from "./tipos";
 
 /**
- * 
- * @param input 
- * @returns 
+ * Valida a entrada da operação que lista módulos habilitados para um locatário.
+ *
+ * Regras atuais:
+ * - `locatarioId` deve ser um ID textual válido.
+ *
+ * @param input Entrada recebida pelo caso de uso.
+ * @returns `Ok(inputNormalizado)` quando a estrutura mínima é válida.
  */
 export function validarListarModulosHabilitadosInput(
   input: ListarModulosHabilitadosInput,
@@ -23,9 +27,15 @@ export function validarListarModulosHabilitadosInput(
 }
 
 /**
- * 
- * @param input 
- * @returns 
+ * Valida a entrada da operação que verifica se um módulo está habilitado.
+ *
+ * Regras atuais:
+ * - `locatarioId` deve ser um ID textual válido;
+ * - `codigo` deve ser texto obrigatório;
+ * - o código retornado é normalizado para maiúsculas.
+ *
+ * @param input Entrada recebida pela operação.
+ * @returns `Ok(inputNormalizado)` quando os campos atendem ao contrato mínimo.
  */
 export function validarModuloEstaHabilitadoInput(
   input: ModuloEstaHabilitadoInput,

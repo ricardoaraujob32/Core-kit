@@ -1,10 +1,10 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 
-export async function registrarRotaHealth(app: FastifyInstance) {
+export const healthRoutes: FastifyPluginAsync = async (app) => {
   app.get("/health", async () => {
     return {
       status: "ok",
       service: "core-kit-api",
     };
   });
-}
+};

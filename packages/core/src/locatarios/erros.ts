@@ -4,37 +4,48 @@ import { createErroApp } from "../kernel";
 import { LocatarioId } from "./tipos";
 
 /**
- * 
- * @param detalhes 
- * @returns 
+ * Cria erro para entradas inválidas relacionadas ao domínio de locatários.
+ *
+ * Use este helper quando os dados recebidos para criação, atualização,
+ * ativação ou consulta de locatário não respeitarem as invariantes mínimas
+ * do módulo.
+ *
+ * @param detalhes Metadados estruturados sobre o motivo da invalidez.
+ * @returns `Err(ErroApp)` tipado para o domínio de locatários.
  */
 export function locatarioInvalido(detalhes?: Record<string, unknown>) {
-  return createErroApp({codigo: "LOCATARIO_INVALIDO", detalhes});
+  return createErroApp({ codigo: "LOCATARIO_INVALIDO", detalhes });
 }
 
 /**
- * 
- * @param locatarioId 
- * @returns 
+ * Cria erro para tentativa de acesso a locatário inexistente.
+ *
+ * @param locatarioId Identificador do locatário que não foi encontrado.
+ * @returns `Err(ErroApp)` com o código específico do módulo.
  */
 export function locatarioNaoEncontrado(locatarioId: LocatarioId) {
-  return createErroApp({codigo: "LOCATARIO_NAO_ENCONTRADO", detalhes: { locatarioId } });
+  return createErroApp({ codigo: "LOCATARIO_NAO_ENCONTRADO", detalhes: { locatarioId } });
 }
 
 /**
- * 
- * @param locatarioId 
- * @returns 
+ * Cria erro para locatário suspenso.
+ *
+ * Use este helper quando a operação exigir locatário operacional, mas o
+ * registro estiver em estado incompatível com uso normal do sistema.
+ *
+ * @param locatarioId Identificador do locatário suspenso.
+ * @returns `Err(ErroApp)` com status contextual em `detalhes`.
  */
 export function locatarioSuspenso(locatarioId: LocatarioId) {
-  return createErroApp({codigo: "LOCATARIO_SUSPENSO", detalhes: { locatarioId, status: "SUSPENSO" } });
+  return createErroApp({ codigo: "LOCATARIO_SUSPENSO", detalhes: { locatarioId, status: "SUSPENSO" } });
 }
 
 /**
- * 
- * @param locatarioId 
- * @returns 
+ * Cria erro para locatário encerrado.
+ *
+ * @param locatarioId Identificador do locatário encerrado.
+ * @returns `Err(ErroApp)` com status contextual em `detalhes`.
  */
 export function locatarioEncerrado(locatarioId: LocatarioId) {
-  return createErroApp({codigo: "LOCATARIO_ENCERRADO", detalhes: { locatarioId, status: "ENCERRADO" } });
+  return createErroApp({ codigo: "LOCATARIO_ENCERRADO", detalhes: { locatarioId, status: "ENCERRADO" } });
 }

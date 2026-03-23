@@ -1,23 +1,32 @@
+// apps/api/src/modules/auth/auth.controller.ts
+
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { clientePrisma } from "../../infra/prisma/client";
+import { createContextoExecucao, createFnEmitirSessao, createFnRotacionarRefresh, LocatarioId } from "@core-kit/core";
+import { criarAuthInfraPrisma } from "../../infra/auth/authTransacaoPrisma";
 
+/**
+ * 
+ * @returns 
+ */
 function criarCtx() {
-  return criarContextoExecucao({
+  return createContextoExecucao({
     locatarioId: "plataforma",
-    usuarioId: null,
+    usuarioId: "superadmin",
     papeis: [],
     permissoes: [],
   });
 }
 
-export async function loginController(
-  request: FastifyRequest<{
-    Body: { email: string; senha: string; locatarioId?: string | null };
-  }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function loginController(request: FastifyRequest<{ Body: { email: string; senha: string; locatarioId?: LocatarioId | null } }>, reply: FastifyReply) {
   const authInfra = criarAuthInfraPrisma(clientePrisma);
-  const usecase = criarEmitirSessaoUseCase(authInfra);
+  const usecase = createFnEmitirSessao(authInfra);
   const resultado = await usecase(criarCtx(), request.body);
 
   if (!resultado.ok) {
@@ -40,12 +49,15 @@ export async function loginController(
   });
 }
 
-export async function refreshController(
-  request: FastifyRequest<{ Body: { refreshToken: string } }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function refreshController(request: FastifyRequest<{ Body: { refreshToken: string } }>, reply: FastifyReply) {
   const authInfra = criarAuthInfraPrisma(clientePrisma);
-  const usecase = criarRotacionarRefreshUseCase(authInfra);
+  const usecase = createFnRotacionarRefresh(authInfra);
   const resultado = await usecase(criarCtx(), request.body);
 
   if (!resultado.ok) {

@@ -1,21 +1,23 @@
 // frontend/src/features/auth/api/authApi.ts
 
+import { LoginInput, LoginResponse, RefreshInput, RefreshResponse } from "frontend/src/core/auth/types";
 import { httpClient } from "../../../core/api/httpClient";
-import type {
-  LoginInput,
-  LoginResponse,
-  MeResponse,
-  RefreshInput,
-  RefreshResponse,
-} from "../../../core/auth/types";
+
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
   return httpClient.post<LoginResponse, LoginInput>("/auth/login", input);
 }
 
-export async function me(): Promise<MeResponse> {
-  return httpClient.get<MeResponse>("/auth/me");
-}
+// export async function login(data: {
+//   email: string;
+//   senha: string;
+//   locatarioId?: string | null;
+// }) {
+//   return httpRequest("/auth/login", {
+//     method: "POST",
+//     body: JSON.stringify(data),
+//   });
+// }
 
 export async function refresh(input: RefreshInput): Promise<RefreshResponse> {
   return httpClient.post<RefreshResponse, RefreshInput>(
@@ -30,5 +32,6 @@ export async function refresh(input: RefreshInput): Promise<RefreshResponse> {
 }
 
 export async function logout(): Promise<void> {
-  await httpClient.post<void, Record<string, never>>("/auth/logout", {});
+  // O backend enviado não expõe logout dedicado.
+  return Promise.resolve();
 }

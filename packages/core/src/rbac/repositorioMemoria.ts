@@ -7,19 +7,30 @@ import type { RbacRepositorio } from "./portasRepositorio";
 import type { Papel, Permissao } from "./tipos";
 
 /**
- * 
- * @param locatarioId 
- * @param usuarioId 
- * @returns 
+ * Gera a chave composta usada internamente para indexar papéis e permissões
+ * por usuário dentro do escopo de um locatário.
+ *
+ * @param locatarioId Identificador do locatário.
+ * @param usuarioId Identificador do usuário.
+ * @returns Chave estável no formato `${locatarioId}:${usuarioId}`.
  */
 function chave(locatarioId: LocatarioId, usuarioId: UsuarioId) {
   return `${locatarioId}:${usuarioId}`;
 }
 
 /**
- * 
- * @param seed 
- * @returns 
+ * Cria uma implementação em memória da porta `RbacRepositorio`.
+ *
+ * Esta implementação é voltada a testes unitários do domínio de autorização
+ * e mantém coleções separadas de papéis e permissões por usuário/locatário.
+ *
+ * Recursos auxiliares expostos além da porta:
+ * - `seed(...)`: injeta papéis/permissões no estado interno;
+ * - `dump()`: devolve o estado atual em formato serializável;
+ * - `stats()`: devolve contadores de chamadas para inspeção em testes.
+ *
+ * @param seed Coleção inicial opcional de atribuições de RBAC.
+ * @returns Repositório em memória compatível com a porta de RBAC.
  */
 export function criarRbacRepositorioMemoria(
   seed?: Array<{
@@ -29,16 +40,36 @@ export function criarRbacRepositorioMemoria(
     permissoes?: Permissao[];
   }>,
 ): RbacRepositorio & {
+  /**
+   * Injeta papéis e permissões diretamente no estado interno.
+   *
+   * @param params Atribuição inicial a ser semeada.
+   */
   seed(params: {
     locatarioId: LocatarioId;
     usuarioId: UsuarioId;
     papeis?: Papel[];
     permissoes?: Permissao[];
   }): void;
+
+  /**
+   * Retorna uma visão serializável do estado atual do repositório.
+   *
+   * @returns Mapas materializados de papéis e permissões por chave composta.
+   */
   dump(): {
     papeis: Record<string, Papel[]>;
     permissoes: Record<string, Permissao[]>;
   };
+
+  /**
+   * Retorna estatísticas simples de uso do repositório.
+   *
+   * Útil para verificar cache, número de consultas e comportamento
+   * esperado em testes unitários.
+   *
+   * @returns Contadores de chamadas por operação.
+   */
   stats(): {
     listarPapeisDoUsuario: number;
     listarPermissoesEfetivasDoUsuario: number;

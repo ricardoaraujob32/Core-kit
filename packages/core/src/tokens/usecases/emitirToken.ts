@@ -9,15 +9,43 @@ import { validarLocatarioId } from "../../locatarios";
 import { validarUsuarioId } from "../../usuarios";
 
 /**
- * 
- * @param deps 
- * @returns 
+ * Cria a função de caso de uso responsável por emitir e persistir um token.
+ *
+ * Este caso de uso:
+ * - valida `usuarioId`, `locatarioId`, `hashToken`, `tipo` e `expiraEm`;
+ * - garante que a expiração esteja no futuro em relação ao relógio injetado;
+ * - verifica unicidade do `hashToken`;
+ * - gera um novo `tokenId`;
+ * - persiste o token com `emitidoEm` igual ao instante atual e `revogadoEm` nulo;
+ * - devolve apenas o identificador criado no output.
+ *
+ * Dependências:
+ * - `tokensRepo`: persistência e consulta de tokens;
+ * - `idPorta`: geração de identidade estável para o token;
+ * - `relogio`: materialização do instante de emissão.
+ *
+ * @param deps Dependências externas necessárias para a execução do caso de uso.
+ * @returns Função `emitirToken` pronta para receber a entrada do caso de uso.
  */
 export function createFnEmitirToken(deps: {
   tokensRepo: TokensRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
 }) {
+  /**
+   * Executa o caso de uso de emissão de token.
+   *
+   * Fluxo:
+   * 1. valida todos os campos estruturais da entrada;
+   * 2. rejeita expiração passada ou igual ao instante atual;
+   * 3. verifica se o `hashToken` já existe;
+   * 4. gera `tokenId`;
+   * 5. persiste o token;
+   * 6. devolve `{ tokenId }`.
+   *
+   * @param input Dados necessários para emitir e persistir o token.
+   * @returns `Ok({ tokenId })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
+   */
   return async function emitirToken(input: EmitirTokenInput): ResultadoEmitirToken {
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;

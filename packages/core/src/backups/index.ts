@@ -1,4 +1,4 @@
-export { criarBackupsLocatarioService } from "./usecases/backupsLocatarioService";
+// packages/core/src/backups/index.ts
 
 export type {
   BackupId,
@@ -14,3 +14,7 @@ export type {
   StatusBackup,
   StatusRestauracao,
 } from "./tipos";
+
+export { createFnListarBackupsLocatario } from "./usecases/listarBackupsLocatario";
+export { createFnSolicitarBackupLocatario } from "./usecases/solicitarBackupLocatario";
+export { createFnSolicitarRestauracaoLocatario } from "./usecases/solicitarRestauracaoLocatario";

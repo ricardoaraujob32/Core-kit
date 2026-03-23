@@ -4,6 +4,16 @@ import { Result, wrapErr, wrapOk } from "./result";
 import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp } from "./erros";
 
 /**
+ * Propósito do arquivo:
+ * Fornece helpers para o padrão ROP (Result-Oriented Programming),
+ * incluindo criação padronizada de erros, captura segura de exceções
+ * e normalização de mensagens.
+ *
+ * Este módulo centraliza a adaptação entre exceções imperativas e o fluxo
+ * funcional baseado em `Result<T, ErroApp>`.
+ */
+
+/**
  * Fábrica de erros padronizados para ROP. Normaliza argumentos e usa o construtor padrão.
  * @param params um objeto que encapsula os dados necessários, dos quais somente codigo é obrigatório.
  * - codigo: codigo de erro padronizado. Obrigatório.
@@ -33,7 +43,18 @@ export function normalizarMensagem(mensagem?: string | null): string | undefined
 }
 
 /**
- * Tenta executar uma função e captura uma exceção se necessário
+ * Executa uma função protegendo contra exceções imperativas.
+ *
+ * Regras:
+ * - se retornar normalmente → `Ok`
+ * - se lançar `Result Err` → preserva
+ * - se lançar `ErroApp` → preserva
+ * - caso contrário → converte para `ERRO_INTERNO`
+ *
+ * Importante:
+ * Este helper deve ser usado na borda do sistema (infra/adapters),
+ * não dentro do domínio puro.
+ *
  * @param fn função a ser executada, não pede argumentos e retorna T
  * @returns retorna Ok com sucesso; se uma exceção for lançada, um Err com erro interno e a causa
  */
@@ -53,7 +74,11 @@ export function fromThrowable<T>(fn: () => T,): Result<T, ErroApp> {
 }
 
 /**
- * O mesmo que fromThrowable, mas de forma assíncrona
+ * Versão assíncrona de `fromThrowable`.
+ *
+ * Ideal para integração com I/O (DB, HTTP, filesystem),
+ * mantendo a semântica de erro padronizada do Core.
+ *
  * @param fn função a ser executada, não pede argumentos e retorna uma Promise de T
  * @returns retorna uma Promise de Ok com sucesso; se uma exceção for lançada, uma Promise de Err com erro interno e a causa
  */

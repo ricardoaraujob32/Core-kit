@@ -1,11 +1,12 @@
+// apps/api/src/http/context.ts
+
 import type { FastifyRequest } from "fastify";
 import type { ModuloCodigo, Permissao, ContextoExecucao, UsuarioId, LocatarioId, Papel } from "@core-kit/core";
-import {
-  comModulosHabilitados,
-  createContextoExecucao,
-  isErr,
-} from "@core-kit/core";
+import { comModulosHabilitados, createContextoExecucao } from "@core-kit/core";
 
+/**
+ * 
+ */
 type BuildContextErr = {
   ok: false;
   error: {
@@ -15,18 +16,30 @@ type BuildContextErr = {
   };
 };
 
+/**
+ * 
+ */
 type BuildContextOk = {
   ok: true;
   value: ContextoExecucao;
 };
 
+/**
+ * 
+ */
 export type BuildContextResult = BuildContextOk | BuildContextErr;
 
+/**
+ * 
+ */
 type SessaoValidada = {
   usuarioId: UsuarioId;
   locatarioId: LocatarioId;
 };
 
+/**
+ * 
+ */
 type ContextoAutorizado = {
   locatarioId: LocatarioId;
   usuarioId: UsuarioId;
@@ -34,6 +47,9 @@ type ContextoAutorizado = {
   permissoes?: readonly Permissao[];
 };
 
+/**
+ * 
+ */
 type BuildContextDeps = {
   validarSessao: (input: { accessToken: string }) => Promise<
     | { ok: true; value: SessaoValidada }
@@ -52,6 +68,11 @@ type BuildContextDeps = {
   >;
 };
 
+/**
+ * 
+ * @param req 
+ * @returns 
+ */
 function extractBearerToken(req: FastifyRequest): string | null {
   const raw = req.headers.authorization;
   if (!raw) return null;
@@ -64,6 +85,11 @@ function extractBearerToken(req: FastifyRequest): string | null {
   return token;
 }
 
+/**
+ * 
+ * @param error 
+ * @returns 
+ */
 function mapError(error: {
   codigo: string;
   mensagem: string;
@@ -79,10 +105,13 @@ function mapError(error: {
   };
 }
 
-export function createBuildContextFromRequest(deps: BuildContextDeps) {
-  return async function buildContextFromRequest(
-    req: FastifyRequest,
-  ): Promise<BuildContextResult> {
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
+export function createFnBuildContextFromRequest(deps: BuildContextDeps) {
+  return async function buildContextFromRequest(req: FastifyRequest): Promise<BuildContextResult> {
     const token = extractBearerToken(req);
 
     if (!token) {

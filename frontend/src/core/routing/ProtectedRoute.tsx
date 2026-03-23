@@ -1,7 +1,7 @@
 // frontend/src/core/routing/ProtectedRoute.tsx
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
 
 type ProtectedRouteProps = {
   redirectTo?: string;

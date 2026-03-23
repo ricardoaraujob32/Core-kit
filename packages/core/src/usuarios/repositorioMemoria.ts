@@ -6,14 +6,35 @@ import type { UsuariosRepositorio } from "./portasRepositorio";
 import type { Usuario, UsuarioId, StatusUsuario } from "./tipos";
 
 /**
- * 
- * @param seed 
- * @returns 
+ * Cria uma implementação em memória da porta `UsuariosRepositorio`.
+ *
+ * Esta implementação é voltada a testes unitários e mantém usuários em um
+ * `Map` indexado por `usuarioId`, sem dependência de infraestrutura externa.
+ *
+ * Recursos auxiliares expostos além da porta:
+ * - `seed(...)`: injeta usuários diretamente no estado interno;
+ * - `dump()`: devolve uma cópia defensiva do estado persistido.
+ *
+ * @param seed Coleção inicial opcional de usuários para pré-carga do repositório.
+ * @returns Repositório em memória compatível com a porta de usuários.
  */
 export function criarUsuariosRepositorioMemoria(
   seed?: Usuario[],
 ): UsuariosRepositorio & {
+  /**
+   * Injeta um usuário diretamente no estado interno.
+   *
+   * Útil para montar cenários de teste sem passar pelos casos de uso.
+   *
+   * @param usuario Entidade de usuário a ser semeada.
+   */
   seed(usuario: Usuario): void;
+
+  /**
+   * Retorna uma cópia defensiva do estado atual do repositório.
+   *
+   * @returns Coleção de usuários armazenados em memória.
+   */
   dump(): Usuario[];
 } {
   const byId = new Map<string, Usuario>();
@@ -103,9 +124,21 @@ export function criarUsuariosRepositorioMemoria(
 }
 
 /**
- * 
- * @param params 
- * @returns 
+ * Cria uma entidade `Usuario` pronta para uso em testes.
+ *
+ * Este helper reduz repetição em seeds de testes, aplicando defaults coerentes
+ * com o domínio para campos como status, hash de senha e timestamps.
+ *
+ * Defaults atuais:
+ * - `email`: normalizado para minúsculas;
+ * - `senhaHash`: `"hash_super_seguro_mock_1234567890"`
+ * - `status`: `"ATIVO"`
+ * - `ultimoLoginEm`: `null`
+ * - timestamps: `2026-01-01T00:00:00.000Z`
+ * - `excluidoEm`: `null`
+ *
+ * @param params Dados base do usuário de teste.
+ * @returns Entidade `Usuario` materializada.
  */
 export function criarUsuarioSeed(params: {
   usuarioId: UsuarioId;

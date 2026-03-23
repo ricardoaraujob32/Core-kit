@@ -7,9 +7,29 @@ import { ResultadoRotacionarRefresh, RotacionarRefreshInput, Sessao } from "../t
 import { validarLocatarioIdAuth, validarTokenNaoVazio } from "../validadores";
 
 /**
- * 
- * @param deps 
- * @returns 
+ * Cria o caso de uso responsável por rotacionar um refresh token
+ * e emitir uma nova sessão autenticada.
+ *
+ * Este caso de uso:
+ * - valida `locatarioId` e `refreshToken`;
+ * - valida o refresh atual via `tokensPorta`;
+ * - gera novo `sessionId`;
+ * - emite novo access token;
+ * - cria novo refresh token;
+ * - revoga o refresh anterior;
+ * - registra evento de segurança, quando disponível;
+ * - devolve a nova sessão materializada.
+ *
+ * Dependências:
+ * - `tokensPorta`: validação, criação e revogação de refresh token;
+ * - `jwtPorta`: emissão do novo access token;
+ * - `relogio`: materialização do instante da rotação;
+ * - `idPorta`: geração de `sessionId`;
+ * - `eventos`: registro opcional de evento de refresh;
+ * - TTLs e `issuer`: parâmetros opcionais de sessão.
+ *
+ * @param deps Dependências externas necessárias para a execução.
+ * @returns Função `rotacionarRefresh` pronta para receber a entrada do caso de uso.
  */
 export function createFnRotacionarRefresh(deps: {
   tokensPorta: TokensAuthPorta;
@@ -21,6 +41,22 @@ export function createFnRotacionarRefresh(deps: {
   ttlRefreshMs?: number;
   issuer?: string;
 }) {
+  /**
+   * Executa o caso de uso de rotação de refresh.
+   *
+   * Fluxo:
+   * 1. valida entrada;
+   * 2. valida o refresh atual;
+   * 3. gera `sessionId`;
+   * 4. emite novo access token;
+   * 5. cria novo refresh token;
+   * 6. revoga o token antigo;
+   * 7. registra evento de segurança;
+   * 8. devolve a nova sessão.
+   *
+   * @param input Dados do refresh a ser rotacionado.
+   * @returns `Ok(sessao)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
+   */
   return async function rotacionarRefresh(input: RotacionarRefreshInput): ResultadoRotacionarRefresh {
     const locatarioId = validarLocatarioIdAuth(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;

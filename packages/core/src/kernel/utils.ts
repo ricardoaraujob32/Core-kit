@@ -6,70 +6,49 @@ import { wrapOk } from "./result";
 import { createErroApp } from "./ROPHelpers";
 
 /**
- * 
+ * Propósito do arquivo:
+ * reúne validadores transversais e normalizadores básicos do kernel,
+ * reutilizados por múltiplos módulos de domínio antes do mapeamento
+ * para erros específicos de cada pacote.
  */
-export interface IdPorta {
-  gerarId(): string;
-}
+/**
+ *  Sugestão:
+ * Considerar especializar `erroValidacao` por domínio no futuro.
+ *
+ * Hoje ele usa código genérico ("INVALIDO"), o que é correto no kernel,
+ * mas pode dificultar rastreabilidade em logs se não houver mapeamento
+ * posterior nos validadores de domínio.
+ */
 
 /**
- * 
- */
-export interface RelogioPorta {
-  agora(): Date;
-}
-
-/**
- * 
- */
-export interface HashPorta {
-  gerarHash(textoPlano: string): Promise<string>;
-  comparar(textoPlano: string, hash: string): Promise<boolean>;
-}
-
-/**
- * 
- */
-export interface TokenPorta {
-  assinar(payload: Record<string, unknown>): Promise<string>;
-  verificar(token: string): Promise<Record<string, unknown>>;
-}
-
-/**
- * 
- */
-export interface TransacaoPorta {
-  executar<T>(fn: () => Promise<T>): Promise<T>;
-}
-
-
-/**
- * 
- */
-export interface PortaTransacao {
-  executar<T>(fn: () => Promise<Result<T, ErroApp>>): Promise<Result<T, ErroApp>>;
-}
-
-/**
- * 
- * @param campo 
- * @param valor 
- * @returns 
+ * Cria erro genérico de validação transversal do kernel.
+ *
+ * Esta função é usada por validadores básicos reutilizáveis, antes do
+ * mapeamento para erros específicos de cada pacote de domínio.
+ *
+ * @param campo Nome lógico do campo rejeitado.
+ * @param valor Valor original que falhou na validação.
+ * @returns `Err(ErroApp)` com código genérico de entrada inválida.
  */
 function erroValidacao(campo: string, valor?: unknown): Result<never, ErroApp> {
   return createErroApp({
-    codigo: "VALIDACAO_UTIL_INVALIDA",
+    codigo: "INVALIDO",
     mensagem: "Validação transversal inválida.",
     detalhes: { campo, valor },
   });
 }
 
 /**
- * 
- * @param valor 
- * @param campo 
- * @param tamanhoMinimo 
- * @returns 
+ * Valida um texto obrigatório e devolve sua forma normalizada com `trim`.
+ *
+ * Regras:
+ * - o valor deve ser `string`;
+ * - após `trim`, deve possuir ao menos `tamanhoMinimo` caracteres.
+ *
+ * @param valor Texto a validar.
+ * @param campo Nome lógico do campo para contexto de erro.
+ * @param tamanhoMinimo Quantidade mínima de caracteres válidos após `trim`.
+ * @returns `Ok(string)` com texto normalizado ou `Err(ErroApp)` genérico.
  */
 export function validarTextoObrigatorio(valor: string, campo: string, tamanhoMinimo = 1): Result<string, ErroApp> {
   if (typeof valor !== "string") {
@@ -86,29 +65,39 @@ export function validarTextoObrigatorio(valor: string, campo: string, tamanhoMin
 }
 
 /**
- * 
- * @param valor 
- * @param campo 
- * @returns 
+ * Valida um identificador textual genérico.
+ *
+ * Atualmente delega para `validarTextoObrigatorio`, preservando um ponto
+ * único de evolução futura caso IDs passem a exigir formato específico.
+ *
+ * @param valor Identificador textual a validar.
+ * @param campo Nome lógico do campo de ID.
+ * @returns `Ok(string)` com ID normalizado ou `Err(ErroApp)` genérico.
  */
 export function validarIdGenerico(valor: string, campo: string): Result<string, ErroApp> {
   return validarTextoObrigatorio(valor, campo, 1);
 }
 
 /**
- * 
- * @param email 
- * @returns 
+ * Normaliza um endereço de e-mail.
+ *
+ * A normalização atual:
+ * - remove espaços nas extremidades;
+ * - converte para minúsculas.
+ *
+ * @param email E-mail bruto informado na entrada.
+ * @returns E-mail normalizado para persistência e comparação.
  */
 export function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
 /**
- * 
- * @param email 
- * @param campo 
- * @returns 
+ * Valida um endereço de e-mail e devolve sua forma normalizada.
+ *
+ * @param email E-mail bruto a validar.
+ * @param campo Nome lógico do campo, usado no contexto de erro.
+ * @returns `Ok(string)` com e-mail normalizado ou `Err(ErroApp)` genérico.
  */
 export function validarEmail(email: string, campo = "email"): Result<string, ErroApp> {
   if (typeof email !== "string") {
@@ -126,14 +115,13 @@ export function validarEmail(email: string, campo = "email"): Result<string, Err
 }
 
 /**
- * 
- * @param valor 
- * @param campo 
- * @returns 
+ * Valida se um valor é uma instância válida de `Date`.
+ *
+ * @param valor Valor a validar.
+ * @param campo Nome lógico do campo.
+ * @returns `Ok(Date)` quando o valor representa uma data válida.
  */
-export function validarData( valor: Date,
-  campo: string,
-): Result<Date, ErroApp> {
+export function validarData(valor: Date, campo: string): Result<Date, ErroApp> {
   if (!(valor instanceof Date) || Number.isNaN(valor.getTime())) {
     return erroValidacao(campo, valor);
   }
@@ -142,15 +130,13 @@ export function validarData( valor: Date,
 }
 
 /**
- * 
- * @param valor 
- * @param campo 
- * @returns 
+ * Valida se um número é finito e estritamente positivo.
+ *
+ * @param valor Número a validar.
+ * @param campo Nome lógico do campo.
+ * @returns `Ok(number)` quando o valor é positivo; `Err(ErroApp)` caso contrário.
  */
-export function validarNumeroPositivo(
-  valor: number,
-  campo: string,
-): Result<number, ErroApp> {
+export function validarNumeroPositivo(valor: number, campo: string): Result<number, ErroApp> {
   if (!Number.isFinite(valor) || valor <= 0) {
     return erroValidacao(campo, valor);
   }

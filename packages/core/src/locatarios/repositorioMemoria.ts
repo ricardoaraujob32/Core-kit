@@ -5,12 +5,34 @@ import type { LocatariosRepositorio } from "./portasRepositorio";
 import type { Locatario, LocatarioId, LocatarioStatus } from "./tipos";
 
 /**
- * 
- * @param seed 
- * @returns 
+ * Cria uma implementação em memória da porta `LocatariosRepositorio`.
+ *
+ * Esta implementação existe para testes unitários e cenários de desenvolvimento
+ * controlado. Ela mantém os locatários em um `Map` interno, sem dependência de
+ * banco de dados, ORM ou infraestrutura externa.
+ *
+ * Recursos auxiliares expostos além da porta:
+ * - `seed(...)`: injeta locatários diretamente no estado interno;
+ * - `dump()`: devolve uma cópia defensiva do estado persistido.
+ *
+ * @param seed Coleção inicial opcional de locatários para pré-carregar o repositório.
+ * @returns Repositório em memória compatível com a porta de locatários.
  */
 export function criarLocatariosRepositorioMemoria(seed?: Locatario[]): LocatariosRepositorio & {
+  /**
+   * Injeta um locatário diretamente no estado interno do repositório.
+   *
+   * Útil para preparar cenários de teste sem passar pelos casos de uso.
+   *
+   * @param locatario Entidade de locatário a ser semeada.
+   */
   seed(locatario: Locatario): void;
+
+  /**
+   * Retorna uma cópia defensiva do estado atual do repositório.
+   *
+   * @returns Coleção de locatários atualmente armazenados em memória.
+   */
   dump(): Locatario[];
 } {
   const byId = new Map<string, Locatario>();
@@ -64,9 +86,17 @@ export function criarLocatariosRepositorioMemoria(seed?: Locatario[]): Locatario
 }
 
 /**
- * 
- * @param params 
- * @returns 
+ * Cria uma entidade `Locatario` pronta para uso em testes.
+ *
+ * Este helper atua como factory de seed, reduzindo repetição em cenários
+ * unitários e padronizando valores default para campos opcionais.
+ *
+ * Defaults atuais:
+ * - `status`: `"ATIVO"`
+ * - `criadoEm`: `2026-01-01T00:00:00.000Z`
+ *
+ * @param params Dados base do locatário de teste.
+ * @returns Entidade `Locatario` materializada.
  */
 export function criarLocatarioSeed(params: {
   locatarioId: LocatarioId;

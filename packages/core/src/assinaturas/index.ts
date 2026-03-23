@@ -5,6 +5,7 @@ export { criarAssinaturasService } from "./usecases/assinaturasService";
 export type {
   Assinatura,
   AssinaturaId,
+  PlanoId,
   StatusAssinatura,
   CriarAssinaturaInput,
   CriarAssinaturaOutput,

@@ -2,11 +2,12 @@
 
 import { Link } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
+import { isSuperAdmin } from "../core/auth/types";
 
 export default function AccessDenied(): JSX.Element {
   const { user } = useAuth();
 
-  const fallbackHref = user?.isSuperAdmin ? "/superadmin" : "/app";
+  const fallbackHref = isSuperAdmin(user) ? "/superadmin" : "/app";
 
   return (
     <main style={{ padding: 24 }}>

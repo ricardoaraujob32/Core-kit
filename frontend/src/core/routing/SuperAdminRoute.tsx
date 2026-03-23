@@ -1,7 +1,8 @@
 // frontend/src/core/routing/SuperAdminRoute.tsx
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { isSuperAdmin } from "../auth/types";
+import { useAuth } from "../auth/useAuth";
 
 type SuperAdminRouteProps = {
   loginPath?: string;
@@ -29,7 +30,7 @@ export function SuperAdminRoute({
     );
   }
 
-  if (!user.isSuperAdmin) {
+  if (!isSuperAdmin(user)) {
     return <Navigate to={forbiddenPath} replace />;
   }
 

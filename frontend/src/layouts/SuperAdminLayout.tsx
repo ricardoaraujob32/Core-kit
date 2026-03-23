@@ -40,7 +40,7 @@ export default function SuperAdminLayout(): JSX.Element {
             <NavLink to="/superadmin">Dashboard</NavLink>
 
             <span style={{ fontSize: 14, color: "#6b7280" }}>
-              {user?.email ?? user?.nome ?? "Usuário autenticado"}
+              {user?.email ?? user?.nome ?? user?.id ?? "Usuário autenticado"}
             </span>
 
             <button type="button" onClick={handleLogout}>

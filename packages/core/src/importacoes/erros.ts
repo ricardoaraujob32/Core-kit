@@ -4,41 +4,48 @@ import { createErroApp, ErroApp, Result } from "../kernel";
 import { ImportacaoId, ItemImportacaoId } from "./tipos";
 
 /**
- * 
- * @param detalhes 
- * @returns 
+ * Cria erro para dados inválidos de importação.
+ *
+ * Use este helper em validações de entrada, parâmetros de reprocessamento
+ * ou montagem de comandos do módulo de importações.
+ *
+ * @param detalhes Metadados estruturados da invalidez detectada.
+ * @returns `Err(ErroApp)` específico do pacote `importacoes`.
  */
 export function erroImportacaoInvalida(detalhes?: Record<string, unknown>): Result<never, ErroApp> {
-  return createErroApp("IMPORTACAO_INVALIDA", "Dados da importação são inválidos.", detalhes);
+  return createErroApp({ codigo: "IMPORTACAO_INVALIDA", detalhes });
 }
 
 /**
- * 
- * @param importacaoId 
- * @returns 
+ * Cria erro para importação inexistente.
+ *
+ * @param importacaoId Identificador da importação não encontrada.
+ * @returns `Err(ErroApp)` com contexto da busca.
  */
 export function erroImportacaoNaoEncontrada(importacaoId: ImportacaoId): Result<never, ErroApp> {
-  return createErroApp("IMPORTACAO_NAO_ENCONTRADA", "Importação não encontrada.", { importacaoId });
+  return createErroApp({ codigo: "IMPORTACAO_NAO_ENCONTRADA", detalhes: { importacaoId } });
 }
 
 /**
- * 
- * @param itemImportacaoId 
- * @returns 
+ * Cria erro para item de importação inexistente.
+ *
+ * @param itemImportacaoId Identificador do item não encontrado.
+ * @returns `Err(ErroApp)` com contexto do item.
  */
 export function erroItemImportacaoNaoEncontrado(itemImportacaoId: ItemImportacaoId): Result<never, ErroApp> {
-  return createErroApp("ITEM_IMPORTACAO_NAO_ENCONTRADO", "Item de importação não encontrado.", { itemImportacaoId });
+  return createErroApp({ codigo: "ITEM_IMPORTACAO_NAO_ENCONTRADO", detalhes: { itemImportacaoId } });
 }
 
 /**
- * 
- * @param entidade 
- * @param id 
- * @param statusAtual 
- * @param statusDestino 
- * @returns 
+ * Cria erro para transição inválida de status em importações ou itens
+ * relacionados ao fluxo de importação.
+ *
+ * @param entidade Nome lógico da entidade cujo status está sendo alterado.
+ * @param id Identificador da entidade.
+ * @param statusAtual Estado atual persistido.
+ * @param statusDestino Estado solicitado.
+ * @returns `Err(ErroApp)` específico de transição de status inválida.
  */
 export function erroTransicaoStatusImportacaoInvalida(entidade: string, id: string, statusAtual: string, statusDestino: string): Result<never, ErroApp> {
-  return createErroApp("IMPORTACAO_TRANSICAO_STATUS_INVALIDA", "A transição de status é inválida.",
-      { entidade, id, statusAtual, statusDestino } );
+  return createErroApp({ codigo: "IMPORTACAO_TRANSICAO_STATUS_INVALIDA", detalhes: { entidade, id, statusAtual, statusDestino } });
 }

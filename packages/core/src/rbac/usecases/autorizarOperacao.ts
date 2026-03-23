@@ -6,9 +6,21 @@ import { naoAutorizado } from "../erros";
 import { validarPermissao } from "../validadores";
 
 /**
- * 
- * @param input 
- * @returns 
+ * Autoriza uma operação a partir do contexto corrente e da permissão exigida.
+ *
+ * Este caso de uso:
+ * - valida a permissão requerida;
+ * - exige que exista usuário autenticado no contexto;
+ * - normaliza a coleção de permissões já presentes no contexto;
+ * - verifica se a permissão exigida está incluída;
+ * - falha com erro específico de RBAC quando a permissão não estiver disponível.
+ *
+ * Observação:
+ * esta função não resolve permissões no repositório. Ela apenas decide a
+ * autorização com base no contexto já enriquecido ou previamente preparado.
+ *
+ * @param input Contexto de execução e permissão requerida para a operação.
+ * @returns `Ok(void)` quando a operação é autorizada, ou `Err(ErroApp)` quando negada.
  */
 export function autorizarOperacao(input: AutorizarOperacaoInput): ResultadoAutorizarOperacao {
   const permissaoValida = validarPermissao(input.permissao);

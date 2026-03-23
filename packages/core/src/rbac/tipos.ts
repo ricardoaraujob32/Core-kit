@@ -1,40 +1,45 @@
 // packages/core/src/rbac/tipos.ts
 
-import { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
+import { ContextoExecucao, ErroApp, Result } from "../kernel";
 
 /**
- * Papéis sugeridos (opcionais). Use se fizer sentido para o projeto.
- * Mantido em português para facilitar documentação e consistência.
+ * Papéis sugeridos de uso comum.
+ *
+ * Papéis existem como conveniência de modelagem e UX; a autorização real
+ * continua sendo baseada em permissões.
  */
 export const PAPEIS_PADRAO = {
+  /** Papel global de plataforma. */
   SUPERADMIN: "SUPERADMIN",
-  ADMIN: "ADMIN", // administração geral do locatário
-  GERENTE: "GERENTE", // nível intermediário (ex.: gerente / supervisor)
-  OPERADOR: "OPERADOR", // usuário operacional
-  LEITOR: "LEITOR", // acesso somente leitura
+  /** Papel administrativo geral do locatário. */
+  ADMIN: "ADMIN",
+  /** Papel intermediário de gestão. */
+  GERENTE: "GERENTE",
+  /** Papel operacional padrão. */
+  OPERADOR: "OPERADOR",
+  /** Papel de leitura sem ações mutáveis. */
+  LEITOR: "LEITOR",
 } as const;
 
+/**
+ * União literal dos papéis padrão fornecidos pelo sistema.
+ */
 export type PapelPadrao = (typeof PAPEIS_PADRAO)[keyof typeof PAPEIS_PADRAO];
 
 /**
- * "Papel" é um rótulo (apelido) que pode variar por locatário.
- * Ex.: "ADMIN_LOCATARIO", "GERENTE", "OPERADOR".
+ * Rótulo de papel atribuído a um usuário.
  *
- * Papel ajuda na UX e organização, mas o motor real de autorização usa permissões.
+ * Papéis podem variar por locatário e servem como agrupadores semânticos
+ * e de UX. O motor de autorização não deve depender apenas deles.
  */
 export type Papel = string;
 
 /**
- * Permissões oficiais do sistema.
+ * Catálogo canônico de permissões do sistema.
  *
- * Regra de ouro:
- * - Backend, Core e Frontend compartilham ESTE contrato.
- * - Nunca usar strings mágicas fora daqui.
- * - Mudanças aqui são mudanças de domínio.
+ * Este objeto é o contrato oficial de permissões e deve evitar o uso de
+ * strings mágicas espalhadas pelo sistema.
  */
-
 export const Permissoes = {
   PLATAFORMA_LOCATARIO_CRIAR: "plataforma.locatario.criar",
   PLATAFORMA_LOCATARIO_LISTAR: "plataforma.locatario.listar",
@@ -57,49 +62,48 @@ export const Permissoes = {
   AUTH_SESSAO_REVOGAR: "auth.sessao.revogar",
 } as const;
 
+/**
+ * União literal das permissões oficiais do sistema.
+ */
 export type Permissao = (typeof Permissoes)[keyof typeof Permissoes];
 
 /**
- * 
- */
-export interface ContextoExecucaoRbac {
-  locatarioId: LocatarioId;
-  usuarioId?: UsuarioId;
-  papeis?: Papel[];
-  permissoes?: Permissao[];
-  agora?: () => Date;
-}
-
-/**
- * 
+ * Entrada da operação que resolve papéis e permissões de um contexto.
  */
 export interface ResolverPermissoesInput {
-  ctx: ContextoExecucaoRbac;
+  /** Contexto base sobre o qual a resolução será feita. */
+  ctx: ContextoExecucao;
 }
 
 /**
- * 
+ * Saída da resolução de autorização.
+ *
+ * Retorna o contexto usado na operação e os conjuntos de papéis/permissões
+ * efetivamente resolvidos.
  */
 export interface ResolverPermissoesOutput {
-  ctx: ContextoExecucaoRbac;
-  permissoes: Permissao[];
-  papeis: Papel[];
+  /** Contexto utilizado ou enriquecido durante a resolução. */
+  ctx: ContextoExecucao;
+  /** Permissões finais reconhecidas para o usuário. */
+ // permissoes: Permissao[];
+  /** Papéis finais reconhecidos para o usuário. */
+ // papeis: Papel[];
 }
 
 /**
- * 
+ * Entrada da operação que resolve papéis e permissões de um contexto.
  */
 export interface AutorizarOperacaoInput {
-  ctx: ContextoExecucaoRbac;
+  ctx: ContextoExecucao;
   permissao: Permissao;
 }
 
 /**
- * 
+ * Resultado assíncrono da operação de resolver permissões.
  */
 export type ResultadoResolverPermissoes = Promise< Result<ResolverPermissoesOutput, ErroApp> >;
 
 /**
- * 
+ * Resultado assíncrono da autorização da operação.
  */
 export type ResultadoAutorizarOperacao = Result<void, ErroApp>;

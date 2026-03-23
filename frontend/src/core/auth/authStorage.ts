@@ -1,7 +1,10 @@
 // frontend/src/core/auth/authStorage.ts
 
+import type { SessionUser } from "./types";
+
 const ACCESS_TOKEN_KEY = "app.access_token";
 const REFRESH_TOKEN_KEY = "app.refresh_token";
+const USER_KEY = "app.auth_user";
 
 function safeGet(key: string): string | null {
   try {
@@ -52,8 +55,31 @@ export const authStorage = {
     safeRemove(REFRESH_TOKEN_KEY);
   },
 
+  getUser(): SessionUser | null {
+    const raw = safeGet(USER_KEY);
+
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(raw) as SessionUser;
+    } catch {
+      return null;
+    }
+  },
+
+  setUser(user: SessionUser): void {
+    safeSet(USER_KEY, JSON.stringify(user));
+  },
+
+  removeUser(): void {
+    safeRemove(USER_KEY);
+  },
+
   clear(): void {
     safeRemove(ACCESS_TOKEN_KEY);
     safeRemove(REFRESH_TOKEN_KEY);
+    safeRemove(USER_KEY);
   },
 };
