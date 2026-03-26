@@ -91,6 +91,11 @@ export interface ResolverPermissoesOutput {
 }
 
 /**
+ * Resultado assíncrono da operação de resolver permissões.
+ */
+export type ResolverPermissoesResult = Promise< Result<ResolverPermissoesOutput, ErroApp> >;
+
+/**
  * Entrada da operação que resolve papéis e permissões de um contexto.
  */
 export interface AutorizarOperacaoInput {
@@ -99,11 +104,6 @@ export interface AutorizarOperacaoInput {
 }
 
 /**
- * Resultado assíncrono da operação de resolver permissões.
- */
-export type ResultadoResolverPermissoes = Promise< Result<ResolverPermissoesOutput, ErroApp> >;
-
-/**
  * Resultado assíncrono da autorização da operação.
  */
-export type ResultadoAutorizarOperacao = Result<void, ErroApp>;
+export type AutorizarOperacaoResult = Result<void, ErroApp>;

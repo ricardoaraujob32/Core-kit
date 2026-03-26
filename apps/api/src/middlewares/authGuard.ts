@@ -1,90 +1,76 @@
 // apps/api/src/middlewares/authGuard.ts
 
-import { LocatarioId, Papel, Permissao } from "@core-kit/core";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { createFnValidarSessao } from "@core-kit/core";
+import { sendHttpError } from "../http/serializarErroApp";
+import { createAuthHttpRuntime } from "../infra/auth";
 
-interface JwtPayloadApp {
-  sub: string;
-  locatarioId?: LocatarioId | null;
-  papeis?: Papel[];
-  permissoes?: Permissao[];
+/**
+ * Extrai o bearer token bruto do header Authorization.
+ *
+ * Regras:
+ * - o header deve seguir o formato `Bearer <token>`;
+ * - se o header estiver ausente ou malformado, retorna `null`.
+ *
+ * @param request Requisição Fastify recebida na borda HTTP.
+ * @returns Token JWT bruto ou `null`.
+ */
+function extrairBearerToken(request: FastifyRequest): string | null {
+  const raw = request.headers.authorization;
+  if (!raw) return null;
+
+  const [scheme, token] = raw.split(" ");
+  if (scheme?.toLowerCase() !== "bearer" || !token?.trim()) {
+    return null;
+  }
+
+  return token.trim();
 }
 
-function normalizarLista(values: unknown): string[] {
-  if (!Array.isArray(values)) return [];
-
-  return values.filter((value): value is string => typeof value === "string");
-}
-
+/**
+ * Middleware de autenticação HTTP.
+ *
+ * Responsabilidades:
+ * - extrair o bearer token da requisição;
+ * - validar a sessão usando o caso de uso do Core;
+ * - traduzir a sessão validada para `request.usuario`;
+ * - devolver erro HTTP padronizado quando a autenticação falhar.
+ *
+ * Observação:
+ * - este middleware não resolve permissões;
+ * - ele apenas autentica e propaga identidade + metadados da sessão.
+ *
+ * @param request Requisição Fastify atual.
+ * @param reply Resposta Fastify usada para serializar erros.
+ * @returns `void` em caso de sucesso ou resposta HTTP de erro em caso de falha.
+ */
 export async function authGuard(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const payload = await request.jwtVerify<JwtPayloadApp>();
+  const accessToken = extrairBearerToken(request);
 
-    request.usuario = {
-      usuarioId: payload.sub,
-      locatarioId: payload.locatarioId ?? null,
-      papeis: normalizarLista(payload.papeis),
-      permissoes: normalizarLista(payload.permissoes),
-    };
-  } catch {
-    return reply.status(401).send({
-      erro: {
-        codigo: "NAO_AUTENTICADO",
-        mensagem: "Token inválido ou ausente.",
-      },
+  if (!accessToken) {
+    return sendHttpError(reply, {
+      codigo: "NAO_AUTENTICADO",
+      mensagem: "Bearer token ausente.",
     });
   }
+
+  const authRuntime = createAuthHttpRuntime();
+  const validarSessao = createFnValidarSessao(authRuntime.validarSessaoDeps);
+
+  const resultado = validarSessao({
+    accessToken,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  request.usuario = {
+    usuarioId: resultado.value.sessao.usuarioId,
+    locatarioId: resultado.value.sessao.locatarioId,
+    papeis: [],
+    permissoes: [],
+    sessionId: resultado.value.sessao.sessionId,
+    expiraEm: resultado.value.sessao.expiraEm,
+  };
 }
-
-
-//     return responderErro(
-//       reply,
-//       {
-//         codigo: "NAO_AUTENTICADO",
-//         mensagem: "Token inválido, expirado ou ausente.",
-//       },
-//       request,
-//     );
-//   }
-// }
-
-
-
-
-
-
-// apps/api/src/middlewares/authGuard.ts
-
-// import type { FastifyReply, FastifyRequest } from "fastify";
-// import { sendHttpError } from "./serializarErroApp";
-
-// interface JwtPayloadApp {
-//   sub: string;
-//   loc?: string | null;
-//   iss?: string;
-// }
-
-// declare module "fastify" {
-//   interface FastifyRequest {
-//     usuario?: {
-//       usuarioId: string;
-//       locatarioId: string | null;
-//     };
-//   }
-// }
-
-// export async function authGuard(request: FastifyRequest, reply: FastifyReply) {
-//   try {
-//     const payload = await request.jwtVerify<JwtPayloadApp>();
-
-//     request.usuario = {
-//       usuarioId: payload.sub,
-//       locatarioId: payload.loc ?? null,
-//     };
-//   } catch {
-//     return sendHttpError(reply, {
-//       codigo: "NAO_AUTENTICADO",
-//       mensagem: "Token inválido ou ausente.",
-//     });
-//   }
-// }

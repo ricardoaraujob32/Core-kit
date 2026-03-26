@@ -1,9 +1,8 @@
 // packages/core/src/auth/usecases/rotacionarRefresh.ts
 
-import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
-import { EventosSegurancaPorta } from "../portasRepositorio";
-import { JwtAuthPorta, TokensAuthPorta } from "../portasServico";
-import { ResultadoRotacionarRefresh, RotacionarRefreshInput, Sessao } from "../tipos";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+import { EventosSegurancaPorta, JwtAuthPorta, TokensAuthPorta } from "../portasServico";
+import { RotacionarRefreshResult, RotacionarRefreshInput, Sessao, RotacionarRefreshOutput } from "../tipos";
 import { validarLocatarioIdAuth, validarTokenNaoVazio } from "../validadores";
 
 /**
@@ -36,6 +35,7 @@ export function createFnRotacionarRefresh(deps: {
   jwtPorta: JwtAuthPorta;
   relogio: RelogioPorta;
   idPorta: IdPorta;
+  transacao?: TransacaoPorta;
   eventos?: EventosSegurancaPorta;
   ttlAccessSegundos?: number;
   ttlRefreshMs?: number;
@@ -57,7 +57,7 @@ export function createFnRotacionarRefresh(deps: {
    * @param input Dados do refresh a ser rotacionado.
    * @returns `Ok(sessao)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function rotacionarRefresh(input: RotacionarRefreshInput): ResultadoRotacionarRefresh {
+  return async function rotacionarRefresh(input: RotacionarRefreshInput): RotacionarRefreshResult {
     const locatarioId = validarLocatarioIdAuth(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -85,19 +85,24 @@ export function createFnRotacionarRefresh(deps: {
     });
     if (!accessRes.ok) return accessRes;
 
-    const novoRefresh = await deps.tokensPorta.criarRefresh({
-      locatarioId: locatarioId.value,
-      usuarioId: refreshValido.value.usuarioId,
-      agora,
-      ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
-    });
-    if (!novoRefresh.ok) return novoRefresh;
+    const persistenciaRes = await executarEmTransacao(deps.transacao, async () => {
+      const novoRefresh = await deps.tokensPorta.criarRefresh({
+        locatarioId: locatarioId.value,
+        usuarioId: refreshValido.value.usuarioId,
+        agora,
+        ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
+      });
+      if (!novoRefresh.ok) return novoRefresh;
 
-    const revogar = await deps.tokensPorta.revogar({
-      tokenId: refreshValido.value.tokenId,
-      agora,
+      const revogar = await deps.tokensPorta.revogar({
+        tokenId: refreshValido.value.tokenId,
+        agora,
+      });
+      if (!revogar.ok) return revogar;
+
+      return wrapOk(novoRefresh.value);
     });
-    if (!revogar.ok) return revogar;
+    if (!persistenciaRes.ok) return persistenciaRes;
 
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.refresh",
@@ -112,11 +117,13 @@ export function createFnRotacionarRefresh(deps: {
 
     const sessao: Sessao = {
       accessToken: accessRes.value.token,
-      refreshToken: novoRefresh.value.tokenBruto,
+      refreshToken: persistenciaRes.value.tokenBruto,
       accessExpiraEm: new Date(accessRes.value.payload.exp * 1000),
-      refreshExpiraEm: novoRefresh.value.expiraEm,
+      refreshExpiraEm: persistenciaRes.value.expiraEm,
     };
 
-    return wrapOk(sessao);
+    return wrapOk<RotacionarRefreshOutput>({
+      sessao,
+    });
   };
 }

@@ -28,8 +28,8 @@ export {
 
 // Repositório
 export type { ModulosHabilitadosRepositorio } from "./portasRepositorio";
-export { criarModulosHabilitadosRepositorioMemoria, EstadoModulosHabilitadosMemoria } from "./repositorioMemoria";
 
-// Serviços
-export type { ModulosHabilitadosService, CriarModulosHabilitadosServiceDeps } from "./usecases/modulosHabilitadosService";
-export { createFnListarModulosHabilitados } from "./usecases/modulosHabilitadosService";
+// Casos de uso
+export { createFnListarModulosHabilitados } from "./usecases/listarModulosHabilitados";
+export { createFnModuloEstaHabilitado } from "./usecases/moduloEstaHabilitado";
+export { createFnExigirModuloHabilitado } from "./usecases/exigirModuloHabilitado";

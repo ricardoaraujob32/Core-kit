@@ -8,12 +8,18 @@ import { TokenId, TokenPersistido, TokenTipo } from "./tipos";
 /**
  * Porta de persistência do domínio de tokens.
  *
- * Esta interface abstrai armazenamento, busca, revogação, listagem e
- * operações de encadeamento de rotação de tokens persistidos.
+ * Esta interface abstrai:
+ * - criação de tokens persistidos;
+ * - leitura por id e por hash;
+ * - atualização integral do snapshot persistido;
+ * - revogação explícita;
+ * - listagem por usuário;
+ * - encadeamento opcional de rotação.
  *
- * Observação:
- * o arquivo atual contém assinaturas duplicadas de `buscarPorId` e `buscarPorHash`,
- * o que deve ser revisto em etapa posterior semântica/estrutural.
+ * Observação arquitetural:
+ * o contrato atual ainda contém sobreposição entre buscas com e sem escopo
+ * explícito de locatário. Isso está tolerado por compatibilidade, mas deve ser
+ * consolidado em etapa posterior de limpeza estrutural.
  */
 export interface TokensRepositorio {
   /**
@@ -30,7 +36,11 @@ export interface TokensRepositorio {
    * @param params Escopo do locatário e hash do token.
    * @returns `Ok(token | null)` quando a consulta é bem-sucedida.
    */
-  buscarPorHash(params: {locatarioId: LocatarioId; hashToken: string;}): Promise<Result<TokenPersistido | null, ErroApp>>;
+  buscarPorHash(params: {
+    locatarioId: LocatarioId; 
+    usuarioId: UsuarioId;
+    hashToken: string;
+  }): Promise<Result<TokenPersistido | null, ErroApp>>;
 
   /**
    * Busca token por identificador no escopo do locatário.
@@ -38,7 +48,11 @@ export interface TokensRepositorio {
    * @param params Escopo do locatário e identificador do token.
    * @returns `Ok(token | null)` quando a consulta é bem-sucedida.
    */
-  buscarPorId(params: {locatarioId: LocatarioId; tokenId: TokenId;}): Promise<Result<TokenPersistido | null, ErroApp>>;
+  buscarPorId(params: {
+    locatarioId: LocatarioId;
+    usuarioId: UsuarioId; 
+    tokenId: TokenId;
+  }): Promise<Result<TokenPersistido | null, ErroApp>>;
 
   /**
    * Revoga um token persistido.
@@ -98,26 +112,6 @@ export interface TokensRepositorio {
    * @returns `Ok(tokenAtualizado)` quando a persistência é bem-sucedida.
    */
   atualizar(token: TokenPersistido): Promise<Result<TokenPersistido, ErroApp>>;
-
-  /**
-   * Busca token por identificador sem escopo explícito de locatário.
-   *
-   * @param params Identificador do token.
-   * @returns `Ok(token | null)` quando a consulta é bem-sucedida.
-   */
-  buscarPorId(params: {
-    tokenId: TokenId;
-  }): Promise<Result<TokenPersistido | null, ErroApp>>;
-
-  /**
-   * Busca token por hash sem escopo explícito de locatário.
-   *
-   * @param params Hash do token.
-   * @returns `Ok(token | null)` quando a consulta é bem-sucedida.
-   */
-  buscarPorHash(params: {
-    hashToken: string;
-  }): Promise<Result<TokenPersistido | null, ErroApp>>;
 
   /**
    * Lista tokens persistidos de um usuário em um locatário.

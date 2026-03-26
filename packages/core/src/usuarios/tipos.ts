@@ -26,6 +26,16 @@ export type StatusUsuario =
   | "ENCERRADO";
 
 /**
+ * Eventos formais da máquina de estados de usuários.
+ */
+export type EventoUsuario =
+  | "OPERAR"
+  | "INATIVAR"
+  | "REATIVAR"
+  | "SUSPENDER"
+  | "ENCERRAR";
+
+/**
  * Entidade de domínio que representa um usuário.
  *
  * O campo `locatarioId` pode ser nulo para acomodar cenários de identidade
@@ -77,17 +87,36 @@ export interface CriarUsuarioOutput {
 }
 
 /**
+ * Resultado assíncrono da criação de usuário.
+ */
+export type CriarUsuarioResult = Promise<Result<CriarUsuarioOutput, ErroApp>>;
+
+/**
  * Entrada para obter um usuário específico.
  */
 export interface ObterUsuarioInput {
+  locatarioId: LocatarioId;
   /** Identificador do usuário desejado. */
   usuarioId: UsuarioId;
 }
 
 /**
+ * Saída para obter um usuário específico.
+ */
+export interface ObterUsuarioOutput {
+  usuario: Usuario;
+}
+
+/**
+ * Resultado assíncrono da obtenção de usuário.
+ */
+export type ObterUsuarioResult = Promise<Result<ObterUsuarioOutput, ErroApp>>;
+
+/**
  * Entrada para atualização parcial de dados cadastrais do usuário.
  */
 export interface AtualizarUsuarioInput {
+  locatarioId: LocatarioId;
   /** Usuário a ser atualizado. */
   usuarioId: UsuarioId;
   /** Novo nome, quando houver alteração. */
@@ -97,20 +126,58 @@ export interface AtualizarUsuarioInput {
 }
 
 /**
+ * Saída para atualização parcial de dados cadastrais do usuário.
+ */
+export interface AtualizarUsuarioOutput {
+  usuario: Usuario;
+}
+
+/**
+ * Resultado assíncrono da atualização de usuário.
+ */
+export type AtualizarUsuarioResult = Promise<Result<AtualizarUsuarioOutput, ErroApp>>;
+
+/**
  * Entrada para inativação de usuário.
  */
 export interface InativarUsuarioInput {
+  locatarioId: LocatarioId;
   /** Usuário que será inativado. */
   usuarioId: UsuarioId;
 }
 
 /**
+ * Saída para inativação de usuário.
+ */
+export interface InativarUsuarioOutput {
+  usuario: Usuario;
+}
+
+/**
+ * Resultado assíncrono da inativação de usuário.
+ */
+export type InativarUsuarioResult = Promise<Result<InativarUsuarioOutput, ErroApp>>;
+
+/**
  * Entrada para reativação de usuário.
  */
 export interface ReativarUsuarioInput {
+  locatarioId: LocatarioId;
   /** Usuário que será reativado. */
   usuarioId: UsuarioId;
 }
+
+/**
+ * Saída para reativação de usuário.
+ */
+export interface ReativarUsuarioOutput {
+  usuario: Usuario;
+}
+
+/**
+ * Resultado assíncrono da reativação de usuário.
+ */
+export type ReativarUsuarioResult = Promise<Result<ReativarUsuarioOutput, ErroApp>>;
 
 /**
  * Entrada para listar usuários de um locatário.
@@ -129,31 +196,6 @@ export interface ListarUsuariosPorLocatarioOutput {
 }
 
 /**
- * Resultado assíncrono da criação de usuário.
- */
-export type ResultadoCriarUsuario = Promise<Result<CriarUsuarioOutput, ErroApp>>;
-
-/**
- * Resultado assíncrono da obtenção de usuário.
- */
-export type ResultadoObterUsuario = Promise<Result<Usuario, ErroApp>>;
-
-/**
- * Resultado assíncrono da atualização de usuário.
- */
-export type ResultadoAtualizarUsuario = Promise<Result<Usuario, ErroApp>>;
-
-/**
- * Resultado assíncrono da inativação de usuário.
- */
-export type ResultadoInativarUsuario = Promise<Result<Usuario, ErroApp>>;
-
-/**
- * Resultado assíncrono da reativação de usuário.
- */
-export type ResultadoReativarUsuario = Promise<Result<Usuario, ErroApp>>;
-
-/**
  * Resultado assíncrono da listagem de usuários por locatário.
  */
-export type ResultadoListarUsuariosPorLocatario = Promise<Result<ListarUsuariosPorLocatarioOutput, ErroApp>>;
+export type ListarUsuariosPorLocatarioResult = Promise<Result<ListarUsuariosPorLocatarioOutput, ErroApp>>;

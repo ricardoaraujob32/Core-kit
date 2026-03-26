@@ -5,18 +5,6 @@ import type { LocatarioId } from "../locatarios";
 import type { UsuarioId } from "../usuarios";
 
 /**
- * Entrada necessária para emissão de uma nova sessão autenticada.
- */
-export interface EmitirSessaoInput {
-  /** Locatário no qual o login será realizado. */
-  locatarioId: LocatarioId;
-  /** E-mail informado pelo usuário. */
-  email: string;
-  /** Senha em texto puro recebida na borda e validada pela operação. */
-  senha: string;
-}
-
-/**
  * Conjunto de tokens e metadados temporais que materializam uma sessão.
  */
 export interface Sessao {
@@ -28,6 +16,20 @@ export interface Sessao {
   accessExpiraEm: Date;
   /** Data/hora de expiração do refresh token. */
   refreshExpiraEm: Date;
+}
+
+/**
+ * Resultado de uma validação bem-sucedida de sessão.
+ */
+export interface SessaoValidada {
+  /** Locatário reconhecido a partir da sessão. */
+  locatarioId: LocatarioId;
+  /** Usuário autenticado na sessão. */
+  usuarioId: UsuarioId;
+  /** Identificador lógico da sessão. */
+  sessionId: string;
+  /** Data/hora de expiração do access token validado. */
+  expiraEm: Date;
 }
 
 /**
@@ -52,6 +54,30 @@ export interface JwtPayloadAuth {
 }
 
 /**
+ * Entrada necessária para emissão de uma nova sessão autenticada.
+ */
+export interface EmitirSessaoInput {
+  /** Locatário no qual o login será realizado. */
+  locatarioId: LocatarioId;
+  /** E-mail informado pelo usuário. */
+  email: string;
+  /** Senha em texto puro recebida na borda e validada pela operação. */
+  senha: string;
+}
+
+/**
+ * Saída da emissão de sessão.
+ */
+export interface EmitirSessaoOutput {
+  sessao: Sessao;
+}
+
+/**
+ * Resultado assíncrono da emissão de sessão.
+ */
+export type EmitirSessaoResult = Promise<Result<EmitirSessaoOutput, ErroApp>>;
+
+/**
  * Entrada para validação de uma sessão de acesso.
  */
 export interface ValidarSessaoInput {
@@ -60,18 +86,16 @@ export interface ValidarSessaoInput {
 }
 
 /**
- * Resultado de uma validação bem-sucedida de sessão.
+ * Saída da validação de sessão.
  */
-export interface SessaoValidada {
-  /** Locatário reconhecido a partir da sessão. */
-  locatarioId: LocatarioId;
-  /** Usuário autenticado na sessão. */
-  usuarioId: UsuarioId;
-  /** Identificador lógico da sessão. */
-  sessionId: string;
-  /** Data/hora de expiração do access token validado. */
-  expiraEm: Date;
+export interface ValidarSessaoOutput {
+  sessao: SessaoValidada;
 }
+
+/**
+ * Resultado síncrono da validação de sessão.
+ */
+export type ValidarSessaoResult = Result<ValidarSessaoOutput, ErroApp>;
 
 /**
  * Entrada para rotação de refresh token.
@@ -83,6 +107,19 @@ export interface RotacionarRefreshInput {
   refreshToken: string;
 }
 
+
+/**
+ * Saída da rotação de refresh token.
+ */
+export interface RotacionarRefreshOutput {
+  sessao: Sessao;
+}
+
+/**
+ * Resultado assíncrono da rotação de refresh token.
+ */
+export type RotacionarRefreshResult = Promise<Result<RotacionarRefreshOutput, ErroApp>>;
+
 /**
  * Entrada para resolver o contexto autorizado a partir de uma sessão válida.
  */
@@ -92,30 +129,13 @@ export interface ResolverContextoAutorizadoInput {
 }
 
 /**
- * Contexto autorizado resolvido pelo fluxo de autenticação.
- *
- * Observação arquitetural:
- * hoje este alias reutiliza o contexto local do RBAC, mas tende a convergir
- * para o contexto oficial do kernel para evitar duplicidade contratual.
+ * Saída da resolução do contexto autorizado.
  */
-export type ContextoAutorizado = ContextoExecucao;
-
-/**
- * Resultado assíncrono da emissão de sessão.
- */
-export type ResultadoEmitirSessao = Promise<Result<Sessao, ErroApp>>;
-
-/**
- * Resultado síncrono da validação de sessão.
- */
-export type ResultadoValidarSessao = Result<SessaoValidada, ErroApp>;
-
-/**
- * Resultado assíncrono da rotação de refresh token.
- */
-export type ResultadoRotacionarRefresh = Promise<Result<Sessao, ErroApp>>;
+export interface ResolverContextoAutorizadoOutput {
+  ctx: ContextoExecucao;
+}
 
 /**
  * Resultado assíncrono da resolução do contexto autorizado.
  */
-export type ResultadoResolverContextoAutorizado = Promise<Result<ContextoAutorizado, ErroApp>>;
+export type ResolverContextoAutorizadoResult = Promise<Result<ResolverContextoAutorizadoOutput, ErroApp>>;

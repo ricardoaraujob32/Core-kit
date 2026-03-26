@@ -1,9 +1,9 @@
 // packages/core/src/assinaturas/usecases/criarAssinatura.ts
 
-import { ErroApp, IdPorta, RelogioPorta, Result, wrapOk } from "../../kernel";
+import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaJaExisteParaLocatario, erroPlanoInvalido } from "../erros";
 import { AssinaturasRepositorio, PlanosConsultaRepositorio } from "../portasRepositorio";
-import { CriarAssinaturaInput, CriarAssinaturaOutput } from "../tipos";
+import { CriarAssinaturaInput, CriarAssinaturaOutput, CriarAssinaturaResult } from "../tipos";
 import { validarCriarAssinaturaInput } from "../validadores";
 
 /**
@@ -39,7 +39,7 @@ export function createFnCriarAssinatura(deps: {
  * @param input Dados da assinatura a ser criada.
  * @returns `Ok({ assinatura })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
  */
-  return async function criarAssinatura(input: CriarAssinaturaInput): Promise<Result<CriarAssinaturaOutput, ErroApp>> {
+  return async function criarAssinatura(input: CriarAssinaturaInput): CriarAssinaturaResult {
     const validacao = validarCriarAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -65,6 +65,6 @@ export function createFnCriarAssinatura(deps: {
 
     if (!criada.ok) return criada;
 
-    return wrapOk({ assinatura: criada.value });
+    return wrapOk<CriarAssinaturaOutput>({ assinatura: criada.value });
   };
 }

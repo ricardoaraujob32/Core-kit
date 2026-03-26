@@ -1,7 +1,7 @@
 // packages/core/src/rbac/usecases/resolverPermissoes.ts
 
 import { comPapeis, comPermissoes, exigirUsuario, wrapOk } from "../../kernel";
-import type { Papel, Permissao, ResolverPermissoesInput, ResolverPermissoesOutput, ResultadoResolverPermissoes } from "../tipos";
+import type { Papel, Permissao, ResolverPermissoesInput, ResolverPermissoesOutput, ResolverPermissoesResult } from "../tipos";
 import type { RbacRepositorio } from "../portasRepositorio";
 
 /**
@@ -57,7 +57,7 @@ export function createFnResolverPermissoes(deps: { rbacRepo: RbacRepositorio }) 
    * @param input Contexto base usado para resolver autorização.
    * @returns `Ok({ ctx, permissoes, papeis })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function resolverPermissoes(input: ResolverPermissoesInput): ResultadoResolverPermissoes {
+  return async function resolverPermissoes(input: ResolverPermissoesInput): ResolverPermissoesResult {
     const ctxAutenticado = exigirUsuario(input.ctx);
     if (!ctxAutenticado.ok) return ctxAutenticado;
 

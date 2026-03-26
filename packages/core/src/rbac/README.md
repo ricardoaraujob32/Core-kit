@@ -2,11 +2,13 @@
 
 ## Objetivo
 
-Responsável pela resolução de papéis e permissões e pela autorização de operações.
+Responsável por resolver papéis, permissões e autorizar operações.
 
 ## Natureza
 
 Este é um pacote base especializado.
+
+Ele não autentica — apenas autoriza.
 
 ## Dependências permitidas
 
@@ -19,26 +21,37 @@ Este é um pacote base especializado.
 
 - tokens
 - auth
-- outros pacotes de domínio não necessários
+- outros pacotes de domínio
 
-## Escopo atual
+## Escopo
 
-- resolver permissões do usuário
 - resolver papéis do usuário
-- autorizar operação com base no contexto
+- resolver permissões do usuário
+- autorizar operações
 
-## Regras
+## Contrato dos casos de uso
 
-- RBAC depende de usuário autenticado
-- permissões devem ser resolvidas por locatário e usuário
-- autorização não depende de sessão/token
-- contexto enriquecido com permissões e papéis deve permanecer imutável no sentido lógico
+Todos os casos seguem o padrão:
 
-## Observação
+- `XInput`
+- `XOutput`
+- `XResult`
 
-Este pacote não trata:
-- login
-- senha
-- emissão de token
-- sessão
-- autenticação completa
+## Modelo conceitual
+
+RBAC opera sobre:
+
+- `ContextoExecucao` (kernel)
+- `usuarioId`
+- `locatarioId`
+
+## Enriquecimento de contexto
+
+O RBAC não retorna DTO paralelo.
+
+Ele transforma:
+
+Contexto base → Contexto autorizado
+
+```ts
+ContextoExecucao -> ContextoExecucao (enriquecido)

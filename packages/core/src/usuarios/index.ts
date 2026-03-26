@@ -6,12 +6,22 @@ export type {
   Usuario,
   CriarUsuarioInput,
   CriarUsuarioOutput,
+  CriarUsuarioResult,
   ObterUsuarioInput,
+  ObterUsuarioOutput,
+  ObterUsuarioResult,
   AtualizarUsuarioInput,
+  AtualizarUsuarioOutput,
+  AtualizarUsuarioResult,
   InativarUsuarioInput,
+  InativarUsuarioOutput,
+  InativarUsuarioResult,
   ReativarUsuarioInput,
+  ReativarUsuarioOutput,
+  ReativarUsuarioResult,
   ListarUsuariosPorLocatarioInput,
   ListarUsuariosPorLocatarioOutput,
+  ListarUsuariosPorLocatarioResult
 } from "./tipos";
 
 export {

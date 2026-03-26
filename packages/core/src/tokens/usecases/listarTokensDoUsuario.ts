@@ -1,7 +1,7 @@
 // packages/core/src/tokens/usecases/listarTokensDoUsuario.ts
 
 import { wrapOk } from "../../kernel";
-import type { ListarTokensDoUsuarioInput, ListarTokensDoUsuarioOutput, ResultadoListarTokensDoUsuario } from "../tipos";
+import type { ListarTokensDoUsuarioInput, ListarTokensDoUsuarioOutput, ListarTokensDoUsuarioResult } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarUsuarioId } from "../../usuarios";
 import { validarLocatarioId } from "../../locatarios";
@@ -33,7 +33,7 @@ export function createFnListarTokensDoUsuario(deps: { tokensRepo: TokensReposito
    * @param input Usuário e locatário alvo da consulta.
    * @returns `Ok({ itens })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function listarTokensDoUsuario(input: ListarTokensDoUsuarioInput): ResultadoListarTokensDoUsuario {
+  return async function listarTokensDoUsuario(input: ListarTokensDoUsuarioInput): ListarTokensDoUsuarioResult {
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 

@@ -63,7 +63,7 @@ export interface UsuariosRepositorio {
    */
    listarPorLocatario(params: {
     locatarioId: LocatarioId;
-    limite: number;
+    limite?: number;
     cursor?: string;
   }): Promise<Result<Usuario[], ErroApp>>;
 

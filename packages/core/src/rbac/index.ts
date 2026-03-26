@@ -5,7 +5,9 @@ export type {
   Permissao,
   ResolverPermissoesInput,
   ResolverPermissoesOutput,
+  ResolverPermissoesResult,
   AutorizarOperacaoInput,
+  AutorizarOperacaoResult
 } from "./tipos";
 
 export {

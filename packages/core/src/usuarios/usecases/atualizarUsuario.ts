@@ -3,8 +3,10 @@
 import { validarEmailUsuario, validarNomeUsuario, validarUsuarioId } from "../validadores";
 import { usuarioNaoEncontrado, emailUsuarioJaExiste } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { AtualizarUsuarioInput, ResultadoAtualizarUsuario } from "../tipos";
-import type { RelogioPorta } from "../../kernel";
+import type { AtualizarUsuarioInput, AtualizarUsuarioOutput, AtualizarUsuarioResult } from "../tipos";
+import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
+import { validarLocatarioId } from "../../locatarios";
+import { transicionarEstadoUsuario } from "../maquinaEstados";
 
 /**
  * Cria a função de caso de uso responsável por atualizar dados cadastrais
@@ -30,6 +32,7 @@ import type { RelogioPorta } from "../../kernel";
 export function createFnAtualizarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
   relogio: RelogioPorta;
+  transacao?: TransacaoPorta;
 }) {
   /**
    * Executa o caso de uso de atualização de usuário.
@@ -45,52 +48,70 @@ export function createFnAtualizarUsuario(deps: {
    * @param input Dados parciais para atualização do usuário.
    * @returns `Ok(usuarioAtualizado)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function atualizarUsuario(input: AtualizarUsuarioInput): ResultadoAtualizarUsuario {
+  return async function atualizarUsuario(input: AtualizarUsuarioInput): AtualizarUsuarioResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 
-    const atual = await deps.usuariosRepo.buscarPorId({
-      usuarioId: usuarioId.value,
-    });
-    if (!atual.ok) return atual;
-    if (!atual.value || atual.value.excluidoEm) {
-      return usuarioNaoEncontrado(usuarioId.value);
-    }
-
-    let nome = atual.value.nome;
-    let email = atual.value.email;
-
-    if (input.nome !== undefined) {
-      const nomeValidado = validarNomeUsuario(input.nome);
-      if (!nomeValidado.ok) return nomeValidado;
-      nome = nomeValidado.value;
-    }
-
-    if (input.email !== undefined) {
-      const emailValidado = validarEmailUsuario(input.email);
-      if (!emailValidado.ok) return emailValidado;
-
-      const existente = await deps.usuariosRepo.buscarPorEmailNoLocatario({
-        locatarioId: atual.value.locatarioId,
-        emailNormalizado: emailValidado.value,
+    return executarEmTransacao(deps.transacao, async () => {
+      const atual = await deps.usuariosRepo.buscarPorId({
+        locatarioId: locatarioId.value,
+        usuarioId: usuarioId.value,
       });
-      if (!existente.ok) return existente;
-
-      if (existente.value && existente.value.usuarioId !== atual.value.usuarioId) {
-        return emailUsuarioJaExiste(
-          emailValidado.value,
-          atual.value.locatarioId,
-        );
+      if (!atual.ok) return atual;
+      if (!atual.value || atual.value.excluidoEm) {
+        return usuarioNaoEncontrado(usuarioId.value);
       }
 
-      email = emailValidado.value;
-    }
+      const transicao = transicionarEstadoUsuario({
+        usuarioId: atual.value.usuarioId,
+        statusAtual: atual.value.status,
+        evento: "OPERAR",
+      });
+      if (!transicao.ok) return transicao;
 
-    return deps.usuariosRepo.atualizar({
-      ...atual.value,
-      nome,
-      email,
-      atualizadoEm: deps.relogio.agora(),
+      let nome = atual.value.nome;
+      let email = atual.value.email;
+
+      if (input.nome !== undefined) {
+        const nomeValidado = validarNomeUsuario(input.nome);
+        if (!nomeValidado.ok) return nomeValidado;
+        nome = nomeValidado.value;
+      }
+
+      if (input.email !== undefined) {
+        const emailValidado = validarEmailUsuario(input.email);
+        if (!emailValidado.ok) return emailValidado;
+
+        const existente = await deps.usuariosRepo.buscarPorEmailNoLocatario({
+          locatarioId: atual.value.locatarioId,
+          emailNormalizado: emailValidado.value,
+        });
+        if (!existente.ok) return existente;
+
+        if (existente.value && existente.value.usuarioId !== atual.value.usuarioId) {
+          return emailUsuarioJaExiste(
+            emailValidado.value,
+            atual.value.locatarioId,
+          );
+        }
+
+        email = emailValidado.value;
+      }
+
+      const atualizado = await deps.usuariosRepo.atualizar({
+        ...atual.value,
+        nome,
+        email,
+        atualizadoEm: deps.relogio.agora(),
+      });
+      if (!atualizado.ok) return atualizado;
+
+      return wrapOk<AtualizarUsuarioOutput>({
+        usuario: atualizado.value,
+      });
     });
   };
 }

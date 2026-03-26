@@ -9,8 +9,6 @@
  * - Em testes, podemos trocar por outra estratégia.
  */
 
-// apps/api/src/infra/prisma/client.ts
-
 import { PrismaClient } from "@prisma/client";
 
 declare global {

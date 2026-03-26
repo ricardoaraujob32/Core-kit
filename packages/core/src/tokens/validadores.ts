@@ -112,7 +112,7 @@ export function validarHashToken(hashToken: string): Result<string, ErroApp> {
  * @returns `Ok(tipo)` quando o tipo pertence ao conjunto permitido.
  */
 export function validarTokenTipo(tipo: TokenTipo): Result<TokenTipo, ErroApp> {
-  if (!["ACESSO", "REFRESH", "API", "RESET_SENHA"].includes(tipo)) {
+  if (!["ACESSO","REFRESH","RECUPERACAO_SENHA","CONFIRMACAO_EMAIL",].includes(tipo)) {
     return tokenInvalido({ campo: "tipo" });
   }
 

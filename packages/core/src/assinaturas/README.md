@@ -58,7 +58,7 @@ JWT
 
 ## Integração esperada com BD
 
-Tabelas esperadas no schema v15:
+Tabelas esperadas no schema v16:
 
 - `assinaturas`
 - `modulos`
@@ -78,3 +78,32 @@ o Core mantém tudo encapsulado no pacote `assinaturas`.
 - `MODULO_INVALIDO`
 - `MODULO_ASSINATURA_JA_VINCULADO`
 - `MODULO_ASSINATURA_NAO_VINCULADO`
+
+## Contrato dos casos de uso
+
+Cada caso de uso do módulo segue o padrão:
+
+- `XInput`
+- `XOutput`
+- `XResult`
+
+## Máquina de estados
+
+O ciclo de vida da assinatura possui máquina de estados formal.
+
+Estados:
+
+- `RASCUNHO`
+- `ATIVA`
+- `SUSPENSA`
+- `CANCELADA`
+- `ENCERRADA`
+
+Eventos formais:
+
+- `ATIVAR`
+- `SUSPENDER`
+- `CANCELAR`
+- `ENCERRAR`
+
+As transições inválidas produzem erro semântico do módulo.

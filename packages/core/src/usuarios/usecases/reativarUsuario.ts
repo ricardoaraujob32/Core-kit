@@ -3,8 +3,10 @@
 import { validarUsuarioId } from "../validadores";
 import { usuarioNaoEncontrado } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { ReativarUsuarioInput, ResultadoReativarUsuario } from "../tipos";
-import type { RelogioPorta } from "../../kernel";
+import type { ReativarUsuarioInput, ReativarUsuarioOutput, ReativarUsuarioResult } from "../tipos";
+import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
+import { validarLocatarioId } from "../../locatarios";
+import { transicionarEstadoUsuario } from "../maquinaEstados";
 
 /**
  * Cria a função de caso de uso responsável por reativar um usuário.
@@ -27,6 +29,7 @@ import type { RelogioPorta } from "../../kernel";
 export function createFnReativarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
   relogio: RelogioPorta;
+  transacao?: TransacaoPorta;
 }) {
   /**
    * Executa o caso de uso de reativação de usuário.
@@ -41,22 +44,40 @@ export function createFnReativarUsuario(deps: {
    * @param input Identificador do usuário a ser reativado.
    * @returns `Ok(usuarioAtualizado)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function reativarUsuario(input: ReativarUsuarioInput): ResultadoReativarUsuario {
+  return async function reativarUsuario(input: ReativarUsuarioInput): ReativarUsuarioResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 
-    const atual = await deps.usuariosRepo.buscarPorId({
-      usuarioId: usuarioId.value,
-    });
-    if (!atual.ok) return atual;
-    if (!atual.value || atual.value.excluidoEm) {
-      return usuarioNaoEncontrado(usuarioId.value);
-    }
+    return executarEmTransacao(deps.transacao, async () => {
+      const atual = await deps.usuariosRepo.buscarPorId({
+        locatarioId: locatarioId.value,
+        usuarioId: usuarioId.value,
+      });
+      if (!atual.ok) return atual;
+      if (!atual.value || atual.value.excluidoEm) {
+        return usuarioNaoEncontrado(usuarioId.value);
+      }
 
-    return deps.usuariosRepo.atualizar({
-      ...atual.value,
-      status: "ATIVO",
-      atualizadoEm: deps.relogio.agora(),
+      const transicao = transicionarEstadoUsuario({
+        usuarioId: atual.value.usuarioId,
+        statusAtual: atual.value.status,
+        evento: "REATIVAR",
+      });
+      if (!transicao.ok) return transicao;
+
+      const atualizado = await deps.usuariosRepo.atualizar({
+        ...atual.value,
+        status: transicao.value,
+        atualizadoEm: deps.relogio.agora(),
+      });
+      if (!atualizado.ok) return atualizado;
+
+      return wrapOk<ReativarUsuarioOutput>({
+        usuario: atualizado.value,
+      });
     });
   };
 }

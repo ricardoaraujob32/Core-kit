@@ -4,11 +4,13 @@ export type {
   Locatario,
   CriarLocatarioInput,
   CriarLocatarioOutput,
+  CriarLocatarioResult,
+  ListarLocatariosInput,
   ListarLocatariosOutput,
+  ListarLocatariosResult,
   ObterLocatarioInput,
-  ResultadoObterLocatario,
-  ResultadoCriarLocatario,
-  ResultadoListarLocatarios,
+  ObterLocatarioOutput,
+  ObterLocatarioResult  
 } from "./tipos";
 
 export {

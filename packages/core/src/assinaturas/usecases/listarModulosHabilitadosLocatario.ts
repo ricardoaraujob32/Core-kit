@@ -1,8 +1,8 @@
 // packages/core/src/assinaturas/usecases/listarModulosHabilitadosLocatario.ts
 
-import { ErroApp, Result, wrapOk } from "../../kernel";
+import { wrapOk } from "../../kernel";
 import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio";
-import { ListarModulosHabilitadosLocatarioInput, ListarModulosHabilitadosLocatarioOutput, ModuloHabilitadoLocatario } from "../tipos";
+import { ListarModulosHabilitadosLocatarioInput, ListarModulosHabilitadosLocatarioOutput, ListarModulosHabilitadosLocatarioResult, ModuloHabilitadoLocatario } from "../tipos";
 
 /**
  * Propósito do arquivo:
@@ -37,7 +37,7 @@ export function createFnListarModulosHabilitadosLocatario(deps: {
  * @returns `Ok({ locatarioId, assinaturaAtiva, modulos })` em caso de sucesso,
  * ou `Err(ErroApp)` em caso de falha.
  */
-  return async function listarModulosHabilitadosLocatario(input: ListarModulosHabilitadosLocatarioInput): Promise<Result<ListarModulosHabilitadosLocatarioOutput, ErroApp>> {
+  return async function listarModulosHabilitadosLocatario(input: ListarModulosHabilitadosLocatarioInput): ListarModulosHabilitadosLocatarioResult {
     const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
       input.locatarioId,
     );
@@ -71,7 +71,7 @@ export function createFnListarModulosHabilitadosLocatario(deps: {
       }
     }
 
-    return wrapOk({
+    return wrapOk<ListarModulosHabilitadosLocatarioOutput>({
       locatarioId: input.locatarioId,
       assinaturaAtiva: assinaturaAtiva.value,
       modulos: [...modulos.values()],

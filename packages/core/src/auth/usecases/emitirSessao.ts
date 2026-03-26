@@ -1,10 +1,10 @@
 // packages/core/src/auth/usecases/emitirSessao.ts
 
-import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
 import { credenciaisInvalidas, locatarioNaoPodeAutenticar, usuarioNaoPodeAutenticar } from "../erros";
-import { EventosSegurancaPorta } from "../portasRepositorio";
-import { HashAuthPorta, JwtAuthPorta, LocatariosAuthPorta, TokensAuthPorta, UsuariosAuthPorta } from "../portasServico";
-import { EmitirSessaoInput, ResultadoEmitirSessao, Sessao } from "../tipos";
+import { LocatariosRepositorioAuth, UsuariosRepositorioAuth } from "../portasRepositorio";
+import { EventosSegurancaPorta, HashAuthPorta, JwtAuthPorta, TokensAuthPorta } from "../portasServico";
+import { EmitirSessaoInput, EmitirSessaoOutput, EmitirSessaoResult, Sessao } from "../tipos";
 import { validarEmailAuth, validarLocatarioIdAuth, validarSenha } from "../validadores";
 
 /**
@@ -37,13 +37,14 @@ import { validarEmailAuth, validarLocatarioIdAuth, validarSenha } from "../valid
  * @returns Função `emitirSessao` pronta para receber a entrada do caso de uso.
  */
 export function createFnEmitirSessao(deps: {
-  usuariosPorta: UsuariosAuthPorta;
-  locatariosPorta?: LocatariosAuthPorta;
+  usuariosRepo: UsuariosRepositorioAuth;
+  locatariosRepo?: LocatariosRepositorioAuth;
   tokensPorta: TokensAuthPorta;
   hashPorta: HashAuthPorta;
   jwtPorta: JwtAuthPorta;
   relogio: RelogioPorta;
   idPorta: IdPorta;
+  transacao?: TransacaoPorta;
   eventos?: EventosSegurancaPorta;
   ttlAccessSegundos?: number;
   ttlRefreshMs?: number;
@@ -68,7 +69,7 @@ export function createFnEmitirSessao(deps: {
    * @param input Credenciais e escopo do login.
    * @returns `Ok(sessao)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function emitirSessao(input: EmitirSessaoInput): ResultadoEmitirSessao {
+  return async function emitirSessao(input: EmitirSessaoInput): EmitirSessaoResult {
     const locatarioId = validarLocatarioIdAuth(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -80,8 +81,8 @@ export function createFnEmitirSessao(deps: {
 
     const agora = deps.relogio.agora();
 
-    if (deps.locatariosPorta) {
-      const locRes = await deps.locatariosPorta.buscarPorId({
+    if (deps.locatariosRepo) {
+      const locRes = await deps.locatariosRepo.buscarPorId({
         locatarioId: locatarioId.value,
       });
       if (!locRes.ok) return locRes;
@@ -93,7 +94,7 @@ export function createFnEmitirSessao(deps: {
       }
     }
 
-    const usuarioRes = await deps.usuariosPorta.buscarPorEmail({
+    const usuarioRes = await deps.usuariosRepo.buscarPorEmail({
       locatarioId: locatarioId.value,
       email: email.value,
     });
@@ -151,15 +152,17 @@ export function createFnEmitirSessao(deps: {
     });
     if (!accessRes.ok) return accessRes;
 
-    const refreshRes = await deps.tokensPorta.criarRefresh({
-      locatarioId: locatarioId.value,
-      usuarioId: usuario.usuarioId,
-      agora,
-      ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
+    const refreshRes = await executarEmTransacao(deps.transacao, async () => {
+      return deps.tokensPorta.criarRefresh({
+        locatarioId: locatarioId.value,
+        usuarioId: usuario.usuarioId,
+        agora,
+        ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
+      });
     });
     if (!refreshRes.ok) return refreshRes;
 
-    const ultimoLogin = await deps.usuariosPorta.atualizarUltimoLogin({
+    const ultimoLogin = await deps.usuariosRepo.atualizarUltimoLogin({
       usuarioId: usuario.usuarioId,
       quando: agora,
     });
@@ -174,7 +177,7 @@ export function createFnEmitirSessao(deps: {
       detalhes: { sessionId },
       quando: agora,
     });
-
+    
     const sessao: Sessao = {
       accessToken: accessRes.value.token,
       refreshToken: refreshRes.value.tokenBruto,
@@ -182,6 +185,8 @@ export function createFnEmitirSessao(deps: {
       refreshExpiraEm: refreshRes.value.expiraEm,
     };
 
-    return wrapOk(sessao);
+    return wrapOk<EmitirSessaoOutput>({
+      sessao,
+    });
   };
 }

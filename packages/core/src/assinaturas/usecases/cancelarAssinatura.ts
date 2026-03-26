@@ -1,9 +1,10 @@
 // packages/core/src/assinaturas/usecases/cancelarAssinatura.ts
 
-import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel";
-import { erroAssinaturaNaoEncontrada, erroTransicaoStatusInvalida } from "../erros";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
+import { erroAssinaturaNaoEncontrada } from "../erros";
+import { transicionarEstadoAssinatura } from "../maquinaEstados";
 import { AssinaturasRepositorio } from "../portasRepositorio";
-import { Assinatura, CancelarAssinaturaInput } from "../tipos";
+import { CancelarAssinaturaInput, CancelarAssinaturaOutput, CancelarAssinaturaResult } from "../tipos";
 import { validarCancelarAssinaturaInput } from "../validadores";
 
 /**
@@ -36,7 +37,7 @@ export function createFnCancelarAssinatura(deps: {
  * @param input Dados do cancelamento da assinatura.
  * @returns `Ok(assinaturaAtualizada)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
  */
-  return async function cancelarAssinatura(input: CancelarAssinaturaInput): Promise<Result<Assinatura, ErroApp>> {
+  return async function cancelarAssinatura(input: CancelarAssinaturaInput): CancelarAssinaturaResult {
     const validacao = validarCancelarAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -45,21 +46,25 @@ export function createFnCancelarAssinatura(deps: {
       if (!atual.ok) return atual;
       if (!atual.value) return erroAssinaturaNaoEncontrada(input.assinaturaId);
 
-      if (["ENCERRADA", "CANCELADA"].includes(atual.value.status)) {
-        return erroTransicaoStatusInvalida(
-          atual.value.assinaturaId,
-          atual.value.status,
-          "CANCELADA",
-        );
-      }
+      const proximoStatus = transicionarEstadoAssinatura({
+        assinaturaId: atual.value.assinaturaId,
+        statusAtual: atual.value.status,
+        evento: "CANCELAR",
+      });
+      if (!proximoStatus.ok) return proximoStatus;
 
       const instante = deps.relogio.agora();
 
-      return deps.assinaturasRepositorio.atualizarAssinatura({
+      const atualizada = await deps.assinaturasRepositorio.atualizarAssinatura({
         ...atual.value,
-        status: "CANCELADA",
+        status: proximoStatus.value,
         encerradaEm: input.encerradaEm ?? instante,
         atualizadaEm: instante,
+      });
+      if (!atualizada.ok) return atualizada;
+
+      return wrapOk<CancelarAssinaturaOutput>({
+        assinatura: atualizada.value,
       });
     });
   };

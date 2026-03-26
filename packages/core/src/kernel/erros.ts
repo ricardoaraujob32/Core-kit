@@ -27,6 +27,7 @@ export type CodigoErroApp =
   | "LOCATARIO_NAO_ENCONTRADO"
   | "LOCATARIO_SUSPENSO"
   | "LOCATARIO_ENCERRADO"
+  | "LOCATARIO_OBRIGATORIO"
 
   // usuários
   | "USUARIO_INVALIDO"
@@ -129,6 +130,8 @@ export function mapCodigoErroToMensagemErro(codigo: CodigoErroApp): string {
       return "Locatário suspenso.";
     case "LOCATARIO_ENCERRADO":
       return "Locatário encerrado.";
+    case "LOCATARIO_OBRIGATORIO":
+      return "Locatário ausente no contexto autenticado.";
 
     case "USUARIO_INVALIDO":
       return "Dados do usuário inválidos.";

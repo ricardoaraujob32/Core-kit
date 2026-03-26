@@ -1,9 +1,9 @@
 // packages/core/src/assinaturas/usecases/vincularModuloNaAssinatura.ts
 
-import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result, wrapOk } from "../../kernel";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaNaoEncontrada, erroModuloInvalido, erroModuloJaVinculado } from "../erros";
 import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio";
-import { VincularModuloNaAssinaturaInput } from "../tipos";
+import { VincularModuloNaAssinaturaInput, VincularModuloNaAssinaturaOutput, VincularModuloNaAssinaturaResult } from "../tipos";
 import { validarVincularModuloNaAssinaturaInput } from "../validadores";
 
 /**
@@ -42,7 +42,7 @@ export function createFnVincularModuloNaAssinatura(deps: {
  * @param input Dados do vínculo entre assinatura e módulo.
  * @returns `Ok(void)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
  */
-  return async function vincularModuloNaAssinatura(input: VincularModuloNaAssinaturaInput): Promise<Result<void, ErroApp>> {
+  return async function vincularModuloNaAssinatura(input: VincularModuloNaAssinaturaInput): VincularModuloNaAssinaturaResult {
     const validacao = validarVincularModuloNaAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -64,17 +64,26 @@ export function createFnVincularModuloNaAssinatura(deps: {
         return erroModuloJaVinculado(input.assinaturaId, input.moduloId);
       }
 
+      const habilitadoEm = deps.relogio.agora();
+
       const vinculo = await deps.assinaturasModulosRepositorio.vincularModulo({
         assinaturaId: input.assinaturaId,
         moduloId: input.moduloId,
         gratuito: false,
         origem: "ASSINATURA",
-        habilitadoEm: deps.relogio.agora(),
+        habilitadoEm,
         desabilitadoEm: null,
       });
 
       if (!vinculo.ok) return vinculo;
-      return wrapOk(undefined);
+
+      return wrapOk<VincularModuloNaAssinaturaOutput>({
+        assinaturaId: input.assinaturaId,
+        moduloId: input.moduloId,
+        habilitadoEm,
+        origem: "ASSINATURA",
+        gratuito: false,
+      });
     });
   };
 }

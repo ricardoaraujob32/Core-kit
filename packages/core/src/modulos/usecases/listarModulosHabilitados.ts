@@ -2,7 +2,7 @@
 
 import { ErroApp, Result, wrapOk } from "../../kernel";
 import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
-import { ListarModulosHabilitadosInput, ListarModulosHabilitadosOutput } from "../tipos";
+import { ListarModulosHabilitadosInput, ListarModulosHabilitadosOutput, ListarModulosHabilitadosResult } from "../tipos";
 import { validarListarModulosHabilitadosInput } from "../validadores";
 
 /**
@@ -35,14 +35,14 @@ export function createFnListarModulosHabilitados(deps: {
  * @returns `Ok({ locatarioId, modulos })` em caso de sucesso,
  * ou `Err(ErroApp)` em caso de falha.
  */
-  return async function listarModulosHabilitados(input: ListarModulosHabilitadosInput): Promise<Result<ListarModulosHabilitadosOutput, ErroApp>> {
+  return async function listarModulosHabilitados(input: ListarModulosHabilitadosInput): ListarModulosHabilitadosResult {
     const validado = validarListarModulosHabilitadosInput(input);
     if (!validado.ok) return validado;
 
     const modulosResult = await deps.repositorio.listarPorLocatario(validado.value.locatarioId);
     if (!modulosResult.ok) return modulosResult;
 
-    return wrapOk({
+    return wrapOk<ListarModulosHabilitadosOutput>({
       locatarioId: validado.value.locatarioId,
       modulos: modulosResult.value,
     });

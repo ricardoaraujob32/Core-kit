@@ -1,12 +1,19 @@
 export type {
-  EmitirSessaoInput,
   Sessao,
-  JwtPayloadAuth,
-  ValidarSessaoInput,
   SessaoValidada,
+  JwtPayloadAuth,
+  EmitirSessaoInput,
+  EmitirSessaoOutput,
+  EmitirSessaoResult,
+  ValidarSessaoInput,
+  ValidarSessaoOutput,
+  ValidarSessaoResult,
   RotacionarRefreshInput,
+  RotacionarRefreshOutput,
+  RotacionarRefreshResult,
   ResolverContextoAutorizadoInput,
-  ContextoAutorizado,
+  ResolverContextoAutorizadoOutput,
+  ResolverContextoAutorizadoResult
 } from "./tipos";
 
 export {
@@ -26,13 +33,11 @@ export {
 } from "./validadores";
 
 export type {
-  UsuarioAuth,
-  UsuariosAuthPorta,
-  LocatariosAuthPorta,
   HashAuthPorta,
   JwtAuthPorta,
   TokensAuthPorta,
   RbacAuthPorta,
+  EventosSegurancaPorta
 } from "./portasServico";
 
 export { createFnEmitirSessao } from "./usecases/emitirSessao";

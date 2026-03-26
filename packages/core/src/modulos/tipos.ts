@@ -1,5 +1,6 @@
 // packages/core/src/modulos/tipos.ts
 
+import { ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 
 /**
@@ -36,7 +37,7 @@ export type ModuloHabilitado = {
 /**
  * Entrada da operação que lista módulos habilitados de um locatário.
  */
-export type ListarModulosHabilitadosInput = {
+export interface ListarModulosHabilitadosInput {
   /** Locatário alvo da consulta. */
   locatarioId: LocatarioId;
 };
@@ -44,12 +45,17 @@ export type ListarModulosHabilitadosInput = {
 /**
  * Saída da listagem de módulos habilitados.
  */
-export type ListarModulosHabilitadosOutput = {
+export interface ListarModulosHabilitadosOutput {
   /** Locatário consultado. */
   locatarioId: LocatarioId;
   /** Módulos reconhecidos como habilitados. */
   modulos: ModuloHabilitado[];
 };
+
+/**
+ * retorno padronizado de módulos habilitados
+ */
+export type ListarModulosHabilitadosResult = Promise<Result<ListarModulosHabilitadosOutput, ErroApp>>;
 
 /**
  * Entrada da operação que verifica se um módulo específico está habilitado.
@@ -74,3 +80,5 @@ export type ModuloEstaHabilitadoOutput = {
   /** Origem da habilitação, quando o módulo estiver habilitado. */
   origem?: OrigemModuloHabilitado;
 };
+
+export type ModuloEstaHabilitadoResult = Promise<Result<ModuloEstaHabilitadoOutput, ErroApp>>;

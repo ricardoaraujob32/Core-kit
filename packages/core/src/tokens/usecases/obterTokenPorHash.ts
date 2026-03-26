@@ -1,10 +1,12 @@
 // packages/core/src/tokens/usecases/obterTokenPorHash.ts
 
 import { RelogioPorta, wrapOk } from "../../kernel";
-import type { ObterTokenPorHashInput, ResultadoObterTokenPorHash } from "../tipos";
+import type { ObterTokenPorHashInput, ObterTokenPorHashOutput, ObterTokenPorHashResult } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarHashToken } from "../validadores";
 import { tokenExpirado, tokenNaoEncontrado, tokenRevogado } from "../erros";
+import { validarLocatarioId } from "../../locatarios";
+import { validarUsuarioId } from "../../usuarios";
 
 /**
  * Cria a função de caso de uso responsável por obter um token a partir de seu hash.
@@ -26,7 +28,7 @@ import { tokenExpirado, tokenNaoEncontrado, tokenRevogado } from "../erros";
  */
 export function createFnObterTokenPorHash(deps: {
   tokensRepo: TokensRepositorio;
-  agora: RelogioPorta;
+  relogio: RelogioPorta;
 }) {
   /**
    * Executa o caso de uso de obtenção de token por hash.
@@ -42,11 +44,19 @@ export function createFnObterTokenPorHash(deps: {
    * @param input Hash do token a ser consultado.
    * @returns `Ok(token)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function obterTokenPorHash(input: ObterTokenPorHashInput): ResultadoObterTokenPorHash {
+  return async function obterTokenPorHash(input: ObterTokenPorHashInput): ObterTokenPorHashResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+
+    const usuarioId = validarUsuarioId(input.usuarioId);
+    if (!usuarioId.ok) return usuarioId;
+
     const hashToken = validarHashToken(input.hashToken);
     if (!hashToken.ok) return hashToken;
 
     const res = await deps.tokensRepo.buscarPorHash({
+      locatarioId: locatarioId.value,
+      usuarioId: usuarioId.value,
       hashToken: hashToken.value,
     });
     if (!res.ok) return res;
@@ -58,10 +68,12 @@ export function createFnObterTokenPorHash(deps: {
       return tokenRevogado(token.tokenId);
     }
 
-    if (token.expiraEm.getTime() <= deps.agora().getTime()) {
+    if (token.expiraEm.getTime() <= deps.relogio.agora().getTime()) {
       return tokenExpirado(token.tokenId);
     }
 
-    return wrapOk(token);
+    return wrapOk<ObterTokenPorHashOutput>({
+      token,
+    });
   };
 }

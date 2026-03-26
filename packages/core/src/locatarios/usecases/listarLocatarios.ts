@@ -1,6 +1,6 @@
 // packages/core/src/locatarios/usecases/listarLocatarios.ts
 
-import type { ListarLocatariosOutput, ResultadoListarLocatarios } from "../tipos";
+import type { ListarLocatariosInput, ListarLocatariosOutput, ListarLocatariosResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { wrapOk } from "../../kernel";
 
@@ -28,7 +28,7 @@ export function createFnListarLocatarios(deps: { locRepo: LocatariosRepositorio 
    *
    * @returns `Ok({ itens })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function listarLocatarios(): ResultadoListarLocatarios {
+  return async function listarLocatarios(input: ListarLocatariosInput): ListarLocatariosResult {
     const res = await deps.locRepo.listar();
     if (!res.ok) return res;
 

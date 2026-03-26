@@ -1,5 +1,6 @@
 // packages/core/src/assinaturas/tipos.ts
 
+import { ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 import { ModuloId } from "../modulos";
 
@@ -23,6 +24,15 @@ export type StatusAssinatura =
   | "CANCELADA"
   | "ENCERRADA";
 
+/**
+ * Eventos formais da máquina de estados da assinatura.
+ */
+export type EventoAssinatura =
+  | "CRIAR"
+  | "ATIVAR"
+  | "SUSPENDER"
+  | "CANCELAR"
+  | "ENCERRAR";
 
 /**
  * Entidade de domínio que representa a assinatura vigente ou histórica de um locatário.
@@ -65,6 +75,50 @@ export interface ModuloHabilitadoAssinatura {
 }
 
 /**
+ * Entrada para ativar uma assinatura.
+ */
+export interface AtivarAssinaturaInput {
+  /** Assinatura a ser ativada. */
+  assinaturaId: AssinaturaId;
+}
+
+/**
+ * Saída da ativação de assinatura.
+ */
+export interface AtivarAssinaturaOutput {
+  assinatura: Assinatura;
+}
+
+/**
+ * Resultado da ativação de assinatura.
+ */
+export type AtivarAssinaturaResult = Promise<Result<AtivarAssinaturaOutput, ErroApp>>;
+
+/**
+ * Entrada para cancelar uma assinatura.
+ */
+export interface CancelarAssinaturaInput {
+  /** Assinatura a ser cancelada. */
+  assinaturaId: AssinaturaId;
+  /** Data de encerramento efetiva, quando explicitada. */
+  encerradaEm?: Date;
+  /** Motivo opcional do cancelamento. */
+  motivo?: string | null;
+}
+
+/**
+ * Saída do cancelamento de assinatura.
+ */
+export interface CancelarAssinaturaOutput {
+  assinatura: Assinatura;
+}
+
+/**
+ * Resultado do cancelamento de assinatura.
+ */
+export type CancelarAssinaturaResult = Promise<Result<CancelarAssinaturaOutput, ErroApp>>;
+
+/**
  * Entrada para criação de uma nova assinatura.
  */
 export interface CriarAssinaturaInput {
@@ -85,44 +139,9 @@ export interface CriarAssinaturaOutput {
 }
 
 /**
- * Entrada para ativar uma assinatura.
+ * Resultado da criação de assinatura.
  */
-export interface AtivarAssinaturaInput {
-  /** Assinatura a ser ativada. */
-  assinaturaId: AssinaturaId;
-}
-
-/**
- * Entrada para suspender uma assinatura.
- */
-export interface SuspenderAssinaturaInput {
-  /** Assinatura a ser suspensa. */
-  assinaturaId: AssinaturaId;
-  /** Motivo opcional da suspensão. */
-  motivo?: string | null;
-}
-
-/**
- * Entrada para cancelar uma assinatura.
- */
-export interface CancelarAssinaturaInput {
-  /** Assinatura a ser cancelada. */
-  assinaturaId: AssinaturaId;
-  /** Data de encerramento efetiva, quando explicitada. */
-  encerradaEm?: Date;
-  /** Motivo opcional do cancelamento. */
-  motivo?: string | null;
-}
-
-/**
- * Entrada para vincular um módulo a uma assinatura.
- */
-export interface VincularModuloNaAssinaturaInput {
-  /** Assinatura alvo. */
-  assinaturaId: AssinaturaId;
-  /** Módulo a ser vinculado. */
-  moduloId: ModuloId;
-}
+export type CriarAssinaturaResult = Promise<Result<CriarAssinaturaOutput, ErroApp>>;
 
 /**
  * Entrada para desvincular um módulo de uma assinatura.
@@ -135,23 +154,25 @@ export interface DesvincularModuloDaAssinaturaInput {
 }
 
 /**
+ * Saída do desvínculo de módulo na assinatura.
+ */
+export interface DesvincularModuloDaAssinaturaOutput {
+  assinaturaId: AssinaturaId;
+  moduloId: ModuloId;
+  desabilitadoEm: Date;
+}
+
+/**
+ * Resultado do desvínculo de módulo na assinatura.
+ */
+export type DesvincularModuloDaAssinaturaResult = Promise<Result<DesvincularModuloDaAssinaturaOutput, ErroApp>>;
+
+/**
  * Entrada para listar módulos habilitados para um locatário no contexto de assinaturas.
  */
 export interface ListarModulosHabilitadosLocatarioInput {
   /** Locatário consultado. */
   locatarioId: LocatarioId;
-}
-
-/**
- * Visão consolidada de um módulo habilitado para o locatário.
- */
-export interface ModuloHabilitadoLocatario {
-  /** Módulo habilitado. */
-  moduloId: ModuloId;
-  /** Origem da habilitação no contexto da assinatura. */
-  origem: "ASSINATURA" | "GRATUITO";
-  /** Indica se a habilitação é gratuita. */
-  gratuito: boolean;
 }
 
 /**
@@ -164,6 +185,71 @@ export interface ListarModulosHabilitadosLocatarioOutput {
   assinaturaAtiva: Assinatura | null;
   /** Módulos habilitados para o locatário. */
   modulos: ModuloHabilitadoLocatario[];
+}
+
+/**
+ * Resultado da listagem de módulos habilitados do locatário.
+ */
+export type ListarModulosHabilitadosLocatarioResult = Promise<Result<ListarModulosHabilitadosLocatarioOutput, ErroApp>>;
+
+/**
+ * Entrada para suspender uma assinatura.
+ */
+export interface SuspenderAssinaturaInput {
+  /** Assinatura a ser suspensa. */
+  assinaturaId: AssinaturaId;
+  /** Motivo opcional da suspensão. */
+  motivo?: string | null;
+}
+
+/**
+ * Saída da suspensão de assinatura.
+ */
+export interface SuspenderAssinaturaOutput {
+  assinatura: Assinatura;
+}
+
+/**
+ * Resultado da suspensão de assinatura.
+ */
+export type SuspenderAssinaturaResult = Promise<Result<SuspenderAssinaturaOutput, ErroApp>>;
+
+/**
+ * Entrada para vincular um módulo a uma assinatura.
+ */
+export interface VincularModuloNaAssinaturaInput {
+  /** Assinatura alvo. */
+  assinaturaId: AssinaturaId;
+  /** Módulo a ser vinculado. */
+  moduloId: ModuloId;
+}
+
+/**
+ * Saída do vínculo de módulo na assinatura.
+ */
+export interface VincularModuloNaAssinaturaOutput {
+  assinaturaId: AssinaturaId;
+  moduloId: ModuloId;
+  habilitadoEm: Date;
+  origem: "ASSINATURA";
+  gratuito: false;
+}
+
+/**
+ * Resultado do vínculo de módulo na assinatura.
+ */
+export type VincularModuloNaAssinaturaResult = Promise<Result<VincularModuloNaAssinaturaOutput, ErroApp>>;
+
+/**
+ * Visão consolidada de um módulo habilitado para o locatário.
+ */
+export interface ModuloHabilitadoLocatario {
+  /** Módulo habilitado. */
+  moduloId: ModuloId;
+  /** Origem da habilitação no contexto da assinatura. */
+  origem: "ASSINATURA" | "GRATUITO";
+  /** Indica se a habilitação é gratuita. */
+  gratuito: boolean;
 }
 
 /**

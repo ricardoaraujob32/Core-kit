@@ -2,40 +2,40 @@
 
 import type { FastifyPluginAsync } from "fastify";
 import { authGuard } from "../middlewares/authGuard";
-import { sendHttpError } from "../http/serializarErroApp";
-import {
-  listarLocatariosController,
-  obterLocatarioController,
-} from "../modules/locatarios/locatarios.controller";
+import { listarLocatariosSuperAdminController, obterLocatarioSuperAdminController, obterMeuLocatarioController } from "../modules/locatarios/locatarios.controller";
 
+/**
+ * 
+ * @param app 
+ */
 export const locatariosRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/locatarios", { preHandler: [authGuard] }, async (req, reply) => {
-    if (!req.usuario?.locatarioId) {
-      return sendHttpError(reply, {
-        codigo: "NAO_AUTORIZADO",
-        mensagem: "A listagem global de locatários é restrita ao fluxo superadmin.",
-      });
-    }
+  /**
+   * Fluxo do próprio locatário:
+   * admin do tenant consulta somente o próprio locatário.
+   */
+  app.get(
+    "/locatarios/:id",
+    { preHandler: [authGuard] },
+    obterMeuLocatarioController,
+  );
 
-    return obterLocatarioController(req, reply);
-  });
+  /**
+   * Fluxo de superadmin:
+   * listagem global de locatários.
+   */
+  app.get(
+    "/superadmin/locatarios",
+    { preHandler: [authGuard] },
+    listarLocatariosSuperAdminController,
+  );
 
-  app.get("/locatarios/:id", { preHandler: [authGuard] }, async (req, reply) => {
-    if (!req.usuario?.locatarioId) {
-      return sendHttpError(reply, {
-        codigo: "NAO_AUTORIZADO",
-        mensagem: "Consulta global de locatários é restrita ao fluxo superadmin.",
-      });
-    }
-
-    const params = req.params as { id?: string };
-    if (params.id !== req.usuario.locatarioId) {
-      return sendHttpError(reply, {
-        codigo: "NAO_AUTORIZADO",
-        mensagem: "Admin do locatário só pode consultar o próprio locatário.",
-      });
-    }
-
-    return obterLocatarioController(req, reply);
-  });
+  /**
+   * Fluxo de superadmin:
+   * consulta global de locatário por id.
+   */
+  app.get(
+    "/superadmin/locatarios/:id",
+    { preHandler: [authGuard] },
+    obterLocatarioSuperAdminController,
+  );
 };

@@ -1,7 +1,7 @@
 // packages/core/src/usuarios/usecases/listarUsuariosPorLocatario.ts
 
 import { wrapOk } from "../../kernel";
-import type { ListarUsuariosPorLocatarioInput, ListarUsuariosPorLocatarioOutput, ResultadoListarUsuariosPorLocatario } from "../tipos";
+import type { ListarUsuariosPorLocatarioInput, ListarUsuariosPorLocatarioOutput, ListarUsuariosPorLocatarioResult } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import { validarLocatarioId } from "../../locatarios";
 
@@ -33,7 +33,7 @@ export function createFnListarUsuariosPorLocatario(deps: {
    * @param input Locatário alvo da consulta.
    * @returns `Ok({ itens })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function listarUsuariosPorLocatario(input: ListarUsuariosPorLocatarioInput): ResultadoListarUsuariosPorLocatario {
+  return async function listarUsuariosPorLocatario(input: ListarUsuariosPorLocatarioInput): ListarUsuariosPorLocatarioResult {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 

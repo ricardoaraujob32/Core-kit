@@ -1,8 +1,8 @@
 // packages/core/src/modulos/usecases/moduloEstaHabilitado.ts
 
-import { ErroApp, Result, wrapOk } from "../../kernel";
+import { wrapOk } from "../../kernel";
 import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
-import { ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput } from "../tipos";
+import { ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput, ModuloEstaHabilitadoResult } from "../tipos";
 import { validarModuloEstaHabilitadoInput } from "../validadores";
 
 /**
@@ -36,7 +36,7 @@ export function createFnModuloEstaHabilitado(deps: {
  * @returns `Ok({ locatarioId, codigo, habilitado, origem? })` em caso de sucesso,
  * ou `Err(ErroApp)` em caso de falha.
  */
-  return async function moduloEstaHabilitado(input: ModuloEstaHabilitadoInput): Promise<Result<ModuloEstaHabilitadoOutput, ErroApp>> {
+  return async function moduloEstaHabilitado(input: ModuloEstaHabilitadoInput): ModuloEstaHabilitadoResult {
     const validado = validarModuloEstaHabilitadoInput(input);
     if (!validado.ok) return validado;
 
@@ -47,7 +47,7 @@ export function createFnModuloEstaHabilitado(deps: {
       (item) => item.codigo === validado.value.codigo,
     );
 
-    return wrapOk({
+    return wrapOk<ModuloEstaHabilitadoOutput>({
       locatarioId: validado.value.locatarioId,
       codigo: validado.value.codigo,
       habilitado: Boolean(encontrado),

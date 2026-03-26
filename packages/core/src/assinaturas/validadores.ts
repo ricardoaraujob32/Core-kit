@@ -30,7 +30,7 @@ function mapearErro(resultado: Result<string | Date, ErroApp>, campo: string, va
  * @param input Entrada recebida para criação.
  * @returns `Ok(input)` quando os campos mínimos são válidos.
  */
-export function validarCriarAssinaturaInput(input: CriarAssinaturaInput): Result<CriarAssinaturaInput, unknown> {
+export function validarCriarAssinaturaInput(input: CriarAssinaturaInput): Result<CriarAssinaturaInput, ErroApp> {
   const locatarioId = mapearErro( validarIdGenerico(input.locatarioId, "locatarioId"), "locatarioId", input.locatarioId );
   if (!locatarioId.ok) return locatarioId;
 
@@ -51,7 +51,7 @@ export function validarCriarAssinaturaInput(input: CriarAssinaturaInput): Result
  * @param input Entrada recebida para ativação.
  * @returns `Ok(input)` quando `assinaturaId` é válido.
  */
-export function validarAtivarAssinaturaInput(input: AtivarAssinaturaInput): Result<AtivarAssinaturaInput, unknown> {
+export function validarAtivarAssinaturaInput(input: AtivarAssinaturaInput): Result<AtivarAssinaturaInput, ErroApp> {
   const assinaturaId = mapearErro( validarIdGenerico(input.assinaturaId, "assinaturaId"), "assinaturaId", input.assinaturaId );
   if (!assinaturaId.ok) return assinaturaId;
 
@@ -64,7 +64,7 @@ export function validarAtivarAssinaturaInput(input: AtivarAssinaturaInput): Resu
  * @param input Entrada recebida para suspensão.
  * @returns `Ok(input)` quando `assinaturaId` é válido.
  */
-export function validarSuspenderAssinaturaInput(input: SuspenderAssinaturaInput): Result<SuspenderAssinaturaInput, unknown> {
+export function validarSuspenderAssinaturaInput(input: SuspenderAssinaturaInput): Result<SuspenderAssinaturaInput, ErroApp> {
   const assinaturaId = mapearErro( validarIdGenerico(input.assinaturaId, "assinaturaId"), "assinaturaId", input.assinaturaId );
   if (!assinaturaId.ok) return assinaturaId;
 
@@ -81,7 +81,7 @@ export function validarSuspenderAssinaturaInput(input: SuspenderAssinaturaInput)
  * @param input Entrada recebida para cancelamento.
  * @returns `Ok(input)` quando os campos suportados são válidos.
  */
-export function validarCancelarAssinaturaInput(input: CancelarAssinaturaInput): Result<CancelarAssinaturaInput, unknown> {
+export function validarCancelarAssinaturaInput(input: CancelarAssinaturaInput): Result<CancelarAssinaturaInput, ErroApp> {
   const assinaturaId = mapearErro( validarIdGenerico(input.assinaturaId, "assinaturaId"), "assinaturaId", input.assinaturaId );
   if (!assinaturaId.ok) return assinaturaId;
 
@@ -100,7 +100,7 @@ export function validarCancelarAssinaturaInput(input: CancelarAssinaturaInput): 
  * @returns `Ok(input)` quando `assinaturaId` e `moduloId` são válidos.
  */
 export function validarVincularModuloNaAssinaturaInput(input: VincularModuloNaAssinaturaInput,
-): Result<VincularModuloNaAssinaturaInput, unknown> {
+): Result<VincularModuloNaAssinaturaInput, ErroApp> {
   const assinaturaId = mapearErro( validarIdGenerico(input.assinaturaId, "assinaturaId"), "assinaturaId", input.assinaturaId );
   if (!assinaturaId.ok) return assinaturaId;
 
@@ -116,9 +116,8 @@ export function validarVincularModuloNaAssinaturaInput(input: VincularModuloNaAs
  * @param input Entrada recebida para desvinculação.
  * @returns `Ok(input)` quando `assinaturaId` e `moduloId` são válidos.
  */
-export function validarDesvincularModuloDaAssinaturaInput(
-  input: DesvincularModuloDaAssinaturaInput,
-): Result<DesvincularModuloDaAssinaturaInput, unknown> {
+export function validarDesvincularModuloDaAssinaturaInput(input: DesvincularModuloDaAssinaturaInput,
+): Result<DesvincularModuloDaAssinaturaInput, ErroApp> {
   const assinaturaId = mapearErro( validarIdGenerico(input.assinaturaId, "assinaturaId"), "assinaturaId", input.assinaturaId );
   if (!assinaturaId.ok) return assinaturaId;
 

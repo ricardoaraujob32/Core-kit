@@ -2,7 +2,7 @@
 
 import { createContextoExecucao, wrapOk } from "../../kernel";
 import { RbacAuthPorta } from "../portasServico";
-import { ResolverContextoAutorizadoInput, ResultadoResolverContextoAutorizado } from "../tipos";
+import { ResolverContextoAutorizadoInput, ResolverContextoAutorizadoOutput, ResolverContextoAutorizadoResult } from "../tipos";
 
 /**
  * Cria o caso de uso responsável por resolver o contexto autorizado
@@ -31,7 +31,7 @@ export function createFnResolverContextoAutorizado(deps: {rbacPorta: RbacAuthPor
    * @param input Sessão já validada e pronta para enriquecimento de autorização.
    * @returns `Ok(ctx)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function resolverContextoAutorizado(input: ResolverContextoAutorizadoInput): ResultadoResolverContextoAutorizado {
+  return async function resolverContextoAutorizado(input: ResolverContextoAutorizadoInput): ResolverContextoAutorizadoResult {
     const ctx = createContextoExecucao({
       locatarioId: input.sessao.locatarioId,
       usuarioId: input.sessao.usuarioId,
@@ -40,6 +40,8 @@ export function createFnResolverContextoAutorizado(deps: {rbacPorta: RbacAuthPor
     const ctxRes = await deps.rbacPorta.resolverPermissoes(ctx);
     if (!ctxRes.ok) return ctxRes;
 
-    return wrapOk(ctxRes.value.ctx);
+    return wrapOk<ResolverContextoAutorizadoOutput>({
+      ctx: ctxRes.value,
+    });
   };
 }

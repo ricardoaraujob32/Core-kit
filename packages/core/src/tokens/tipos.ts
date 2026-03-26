@@ -21,6 +21,16 @@ export type TokenTipo =
   | "CONFIRMACAO_EMAIL";
 
 /**
+ * Estado lógico derivado de um token persistido.
+ */
+export type StatusToken = "ATIVO" | "REVOGADO" | "EXPIRADO";
+
+/**
+ * Eventos formais da máquina de estados de tokens.
+ */
+export type EventoToken = "REVOGAR" | "ROTACIONAR";
+
+/**
  * Representação de um token persistido no domínio.
  *
  * Este contrato modela tokens que precisam ser rastreados pelo backend,
@@ -99,12 +109,53 @@ export interface EmitirTokenOutput {
 }
 
 /**
+ * Resultado assíncrono da emissão/persistência de um token.
+ */
+export type EmitirTokenResult = Promise<Result<EmitirTokenOutput, ErroApp>>;
+
+/**
+ * Entrada para listar tokens de um usuário dentro de um locatário.
+ */
+export interface ListarTokensDoUsuarioInput {
+  /** Usuário alvo da listagem. */
+  usuarioId: UsuarioId;
+  /** Locatário alvo da listagem. */
+  locatarioId: LocatarioId;
+}
+
+/**
+ * Saída padronizada da listagem de tokens do usuário.
+ */
+export interface ListarTokensDoUsuarioOutput {
+  /** Coleção de tokens encontrados. */
+  itens: TokenPersistido[];
+}
+
+/**
+ * Retorno da listagem de tokens do usuário.
+ */
+export type ListarTokensDoUsuarioResult = Promise<Result<ListarTokensDoUsuarioOutput, ErroApp>>;
+
+/**
  * Entrada usada para localizar um token persistido pelo hash.
  */
 export interface ObterTokenPorHashInput {
-  /** Hash do token bruto. */
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
   hashToken: string;
 }
+
+/**
+ * Saída de um token persistido pelo hash.
+ */
+export interface ObterTokenPorHashOutput {
+  token: TokenPersistido;
+}
+
+/**
+ * Resultado da saída de um token persistido pelo hash.
+ */
+export type ObterTokenPorHashResult = Promise<Result<ObterTokenPorHashOutput, ErroApp>>;
 
 /**
  * Entrada para revogação explícita de token.
@@ -121,6 +172,53 @@ export type RevogarTokenInput = {
   /** Motivo textual da revogação, quando informado. */
   motivo?: string;
 };
+
+/**
+ * Saída da revogação explícita de token.
+ */
+export interface RevogarTokenOutput {
+  token: TokenPersistido;
+}
+
+/**
+ * Resultado da revogação de um token persistido.
+ */
+export type RevogarTokenResult = Promise<Result<RevogarTokenOutput, ErroApp>>;
+
+
+/**
+ * Entrada para rotação encadeada de token.
+ *
+ * A rotação substitui o token anterior por um novo hash/token persistido.
+ */
+export interface RotacionarTokenInput {
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+  /** Token atual que será rotacionado. */
+  tokenId: TokenId;
+  /** Hash do novo token bruto. */
+  novoHashToken: string;
+  /** Expiração do novo token. */
+  novoExpiraEm: Date;
+  /** User-agent do novo token, quando disponível. */
+  agenteUsuario?: string | null;
+  /** Endereço IP do novo token, quando disponível. */
+  enderecoIp?: string | null;
+}
+
+/**
+ * Saída da rotação encadeada de token, com o token novo
+ */
+export interface RotacionarTokenOutput {
+  tokenAnterior: TokenPersistido;
+  tokenNovo: TokenPersistido;
+}
+
+/**
+ * Retorno da rotação de token no formato padronizado
+ */
+export type RotacionarTokenResult = Promise<Result<RotacionarTokenOutput, ErroApp>>;
+
 
 /**
  * Resultado material da criação de um refresh token.
@@ -161,57 +259,13 @@ export type RefreshValido = {
 };
 
 /**
- * Entrada para rotação encadeada de token.
- *
- * A rotação substitui o token anterior por um novo hash/token persistido.
- */
-export interface RotacionarTokenInput {
-  /** Token atual que será rotacionado. */
-  tokenId: TokenId;
-  /** Hash do novo token bruto. */
-  novoHashToken: string;
-  /** Expiração do novo token. */
-  novoExpiraEm: Date;
-  /** User-agent do novo token, quando disponível. */
-  agenteUsuario?: string | null;
-  /** Endereço IP do novo token, quando disponível. */
-  enderecoIp?: string | null;
-}
-
-/**
- * Entrada para listar tokens de um usuário dentro de um locatário.
- */
-export interface ListarTokensDoUsuarioInput {
-  /** Usuário alvo da listagem. */
-  usuarioId: UsuarioId;
-  /** Locatário alvo da listagem. */
-  locatarioId: LocatarioId;
-}
-
-/**
- * Saída padronizada da listagem de tokens do usuário.
- */
-export interface ListarTokensDoUsuarioOutput {
-  /** Coleção de tokens encontrados. */
-  itens: TokenPersistido[];
-}
-
-/**
  * Resultado assíncrono da criação de refresh token.
  */
-export type ResultadoCriarRefresh = Promise<Result<RefreshCriado, ErroApp>>;
+export type CriarRefreshResult = Promise<Result<RefreshCriado, ErroApp>>;
 
 /**
  * Resultado assíncrono da validação de refresh token.
  */
-export type ResultadoValidarRefresh = Promise<Result<RefreshValido, ErroApp>>;
+export type ValidarRefreshResult = Promise<Result<RefreshValido, ErroApp>>;
 
-/**
- * Resultado da revogação de um token persistido.
- */
-export type ResultadoRevogarToken = Result<TokenPersistido, ErroApp>;
 
-/**
- * Resultado assíncrono da emissão/persistência de um token.
- */
-export type ResultadoEmitirToken = Promise<Result<EmitirTokenOutput, ErroApp>>;

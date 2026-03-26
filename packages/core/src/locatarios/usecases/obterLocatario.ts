@@ -1,10 +1,11 @@
 // packages/core/src/locatarios/usecases/obterLocatario.ts
 
-import type { ObterLocatarioInput, ResultadoObterLocatario } from "../tipos";
+import type { ObterLocatarioInput, ObterLocatarioOutput, ObterLocatarioResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { validarLocatarioId } from "../validadores";
-import { locatarioEncerrado, locatarioNaoEncontrado, locatarioSuspenso } from "../erros";
+import { locatarioNaoEncontrado } from "../erros";
 import { wrapOk } from "../../kernel";
+import { transicionarEstadoLocatario } from "../maquinaEstados";
 
 /**
  * Cria a função de caso de uso responsável por obter um locatário por ID.
@@ -36,9 +37,7 @@ export function createFnObterLocatario(deps: { locRepo: LocatariosRepositorio })
    * @param input Identificador do locatário a ser consultado.
    * @returns `Ok(locatario)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function obterLocatario(
-    input: ObterLocatarioInput,
-  ): ResultadoObterLocatario {
+  return async function obterLocatario(input: ObterLocatarioInput): ObterLocatarioResult {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -50,14 +49,15 @@ export function createFnObterLocatario(deps: { locRepo: LocatariosRepositorio })
     const loc = res.value;
     if (!loc) return locatarioNaoEncontrado(locatarioId.value);
 
-    if (loc.status === "SUSPENSO") {
-      return locatarioSuspenso(loc.locatarioId);
-    }
+    const transicao = transicionarEstadoLocatario({
+      locatarioId: loc.locatarioId,
+      statusAtual: loc.status,
+      evento: "OPERAR",
+    });
+    if (!transicao.ok) return transicao;
 
-    if (loc.status === "ENCERRADO") {
-      return locatarioEncerrado(loc.locatarioId);
-    }
-
-    return wrapOk(loc);
+    return wrapOk<ObterLocatarioOutput>({
+      locatario: loc,
+    });
   };
 }

@@ -1,10 +1,13 @@
 // packages/core/src/tokens/usecases/rotacionarToken.ts
 
-import type { IdPorta, RelogioPorta } from "../../kernel";
+import { executarEmTransacao, wrapOk, type IdPorta, type RelogioPorta, type TransacaoPorta } from "../../kernel";
 import { tokenInvalido, tokenNaoEncontrado, tokenRevogado, hashTokenJaExiste } from "../erros";
-import type { ResultadoRotacionarToken, RotacionarTokenInput } from "../tipos";
+import type { RotacionarTokenInput, RotacionarTokenResult } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarExpiraEm, validarHashToken, validarTokenId } from "../validadores";
+import { obterStatusToken, transicionarEstadoToken } from "../maquinaEstados";
+import { validarLocatarioId } from "../../locatarios";
+import { validarUsuarioId } from "../../usuarios";
 
 /**
  * Cria a função de caso de uso responsável por rotacionar um token persistido.
@@ -32,6 +35,7 @@ export function createFnRotacionarToken(deps: {
   tokensRepo: TokensRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
+  transacao?: TransacaoPorta;
 }) {
   /**
    * Executa o caso de uso de rotação de token.
@@ -50,7 +54,13 @@ export function createFnRotacionarToken(deps: {
    * @param input Dados necessários para rotacionar o token.
    * @returns `Ok({ tokenAnterior, tokenNovo })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function rotacionarToken(input: RotacionarTokenInput): ResultadoRotacionarToken {
+  return async function rotacionarToken(input: RotacionarTokenInput): RotacionarTokenResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+
+    const usuarioId = validarUsuarioId(input.usuarioId);
+    if (!usuarioId.ok) return usuarioId;
+
     const tokenId = validarTokenId(input.tokenId);
     if (!tokenId.ok) return tokenId;
 
@@ -60,61 +70,74 @@ export function createFnRotacionarToken(deps: {
     const novoExpiraEm = validarExpiraEm(input.novoExpiraEm);
     if (!novoExpiraEm.ok) return novoExpiraEm;
 
-    const agora = deps.relogio.agora();
+    return executarEmTransacao(deps.transacao, async () => {
+      const agora = deps.relogio.agora();
 
-    if (novoExpiraEm.value.getTime() <= agora.getTime()) {
-      return tokenInvalido({ campo: "novoExpiraEm", regra: "deve_ser_futuro" });
-    }
+      if (novoExpiraEm.value.getTime() <= agora.getTime()) {
+        return tokenInvalido({ campo: "novoExpiraEm", regra: "deve_ser_futuro" });
+      }
 
-    const atual = await deps.tokensRepo.buscarPorId({
-      tokenId: tokenId.value,
-    });
-    if (!atual.ok) return atual;
-    if (!atual.value) return tokenNaoEncontrado(tokenId.value);
-    if (atual.value.revogadoEm) return tokenRevogado(tokenId.value);
+      const atual = await deps.tokensRepo.buscarPorId({
+        locatarioId: locatarioId.value,
+        usuarioId: usuarioId.value,
+        tokenId: tokenId.value,
+      });
+      if (!atual.ok) return atual;
+      if (!atual.value) return tokenNaoEncontrado(tokenId.value);
+      if (atual.value.revogadoEm) return tokenRevogado(tokenId.value);
 
-    const existente = await deps.tokensRepo.buscarPorHash({
-      hashToken: novoHashToken.value,
-    });
-    if (!existente.ok) return existente;
-    if (existente.value) return hashTokenJaExiste(novoHashToken.value);
+      const statusAtual = obterStatusToken(atual.value, agora);
+      const transicao = transicionarEstadoToken({
+        tokenId: atual.value.tokenId,
+        statusAtual,
+        evento: "ROTACIONAR",
+      });
+      if (!transicao.ok) return transicao;
 
-    const novoTokenId = deps.idPorta.gerarId();
+      const existente = await deps.tokensRepo.buscarPorHash({
+        locatarioId: locatarioId.value,
+        usuarioId: usuarioId.value,
+        hashToken: novoHashToken.value,
+      });
+      if (!existente.ok) return existente;
+      if (existente.value) return hashTokenJaExiste(novoHashToken.value);
 
-    const tokenAnterior = await deps.tokensRepo.atualizar({
-      ...atual.value,
-      revogadoEm: agora,
-      proximoTokenId: novoTokenId,
-    });
-    if (!tokenAnterior.ok) return tokenAnterior;
+      const novoTokenId = deps.idPorta.gerarId();
 
-    const tokenNovoCriado = await deps.tokensRepo.criar({
-      tokenId: novoTokenId,
-      usuarioId: atual.value.usuarioId,
-      locatarioId: atual.value.locatarioId,
-      hashToken: novoHashToken.value,
-      tipo: atual.value.tipo,
-      emitidoEm: agora,
-      expiraEm: novoExpiraEm.value,
-      revogadoEm: null,
-      proximoTokenId: null,
-      agenteUsuario: input.agenteUsuario ?? atual.value.agenteUsuario,
-      enderecoIp: input.enderecoIp ?? atual.value.enderecoIp,
-    });
-    if (!tokenNovoCriado.ok) return tokenNovoCriado;
+      const tokenAnterior = await deps.tokensRepo.atualizar({
+        ...atual.value,
+        revogadoEm: agora,
+        proximoTokenId: novoTokenId,
+      });
+      if (!tokenAnterior.ok) return tokenAnterior;
 
-    const tokenNovo = await deps.tokensRepo.buscarPorId({
-      tokenId: tokenNovoCriado.value.tokenId,
-    });
-    if (!tokenNovo.ok) return tokenNovo;
-    if (!tokenNovo.value) return tokenNaoEncontrado(tokenNovoCriado.value.tokenId);
+      const tokenNovoCriado = await deps.tokensRepo.criar({
+        tokenId: novoTokenId,
+        usuarioId: atual.value.usuarioId,
+        locatarioId: atual.value.locatarioId,
+        hashToken: novoHashToken.value,
+        tipo: atual.value.tipo,
+        emitidoEm: agora,
+        expiraEm: novoExpiraEm.value,
+        revogadoEm: null,
+        proximoTokenId: null,
+        agenteUsuario: input.agenteUsuario ?? atual.value.agenteUsuario,
+        enderecoIp: input.enderecoIp ?? atual.value.enderecoIp,
+      });
+      if (!tokenNovoCriado.ok) return tokenNovoCriado;
 
-    return {
-      ok: true,
-      value: {
+      const tokenNovo = await deps.tokensRepo.buscarPorId({
+        locatarioId: locatarioId.value,
+        usuarioId: usuarioId.value,
+        tokenId: tokenNovoCriado.value.tokenId,
+      });
+      if (!tokenNovo.ok) return tokenNovo;
+      if (!tokenNovo.value) return tokenNaoEncontrado(tokenNovoCriado.value.tokenId);
+
+      return wrapOk({
         tokenAnterior: tokenAnterior.value,
         tokenNovo: tokenNovo.value,
-      },
-    };
+      });
+    });
   };
 }

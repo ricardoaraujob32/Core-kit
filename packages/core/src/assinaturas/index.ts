@@ -1,7 +1,5 @@
 // packages/core/src/assinaturas/index.ts
 
-export { criarAssinaturasService } from "./usecases/assinaturasService";
-
 export type {
   Assinatura,
   AssinaturaId,
@@ -9,13 +7,25 @@ export type {
   StatusAssinatura,
   CriarAssinaturaInput,
   CriarAssinaturaOutput,
+  CriarAssinaturaResult,
   AtivarAssinaturaInput,
+  AtivarAssinaturaOutput,
+  AtivarAssinaturaResult,
   SuspenderAssinaturaInput,
+  SuspenderAssinaturaOutput,
+  SuspenderAssinaturaResult,
   CancelarAssinaturaInput,
+  CancelarAssinaturaOutput,
+  CancelarAssinaturaResult,
   VincularModuloNaAssinaturaInput,
+  VincularModuloNaAssinaturaOutput,
+  VincularModuloNaAssinaturaResult,
   DesvincularModuloDaAssinaturaInput,
+  DesvincularModuloDaAssinaturaOutput,
+  DesvincularModuloDaAssinaturaResult,
   ListarModulosHabilitadosLocatarioInput,
   ListarModulosHabilitadosLocatarioOutput,
+  ListarModulosHabilitadosLocatarioResult
 } from "./tipos";
 
 export type {

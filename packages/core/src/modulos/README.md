@@ -1,37 +1,95 @@
-# modulosHabilitados
+# Módulo Modulos
 
-Módulo do core responsável por resolver os módulos habilitados de um locatário.
+## Objetivo
 
-## Responsabilidades
+Responsável pela resolução de módulos habilitados por locatário.
 
-- listar módulos habilitados do locatário
-- verificar se um módulo específico está habilitado
-- exigir módulo habilitado antes da execução de um usecase
+Este módulo representa a camada de:
 
-## Regras
+→ feature flags  
+→ habilitação por plano  
+→ controle de disponibilidade funcional  
 
-- o core não autoriza por plano diretamente
-- a autorização funcional usa módulos resolvidos por locatário
-- a fonte preferencial no banco é a view `vw_modulos_habilitados_locatario`
-- a regra final do backend tende a ser:
+## Natureza
 
-`tenant válido && módulo habilitado && permissão autorizada`
+Este é um pacote base especializado.
 
-## Operações
+## Dependências permitidas
 
+- kernel
+- transversal
+- locatarios
+
+## Dependências proibidas
+
+- usuarios
+- tokens
+- rbac
+- auth
+
+## Escopo
+
+- listar módulos habilitados
+- verificar habilitação de módulo
+- exigir habilitação de módulo
+
+## Contrato dos casos de uso
+
+Todos os casos seguem o padrão:
+
+- `XInput`
+- `XOutput`
+- `XResult`
+
+## Modelo conceitual
+
+O módulo opera sobre:
+
+- `locatarioId`
+- `ModuloCodigo`
+
+E retorna:
+
+- disponibilidade (boolean)
+- origem da habilitação
+
+## Origens possíveis
+
+- `SISTEMA` → habilitação nativa
+- `PLANO` → via assinatura
+- `MANUAL` → override administrativo
+
+## Tipos de operação
+
+### 1. Consulta
 - `listarModulosHabilitados`
 - `moduloEstaHabilitado`
+
+### 2. Enforcement
 - `exigirModuloHabilitado`
 
-## Integração esperada com BD
+## Regra de uso (importante)
 
-A camada infra deve consultar a view resolvida por locatário, unindo:
+- validação → `moduloEstaHabilitado`
+- bloqueio → `exigirModuloHabilitado`
 
-- módulos gratuitos do núcleo
-- módulos efetivamente habilitados em `modulos_locatario`
+Nunca misturar responsabilidade.
 
-## Erros importantes
+## Papel no sistema
 
-- `INVALIDO` para entradas obrigatórias inválidas
-- `NAO_AUTORIZADO` quando o módulo não estiver habilitado
-- `ERRO_INTERNO` quando houver falha de infraestrutura
+- base para controle de features
+- integração direta com assinaturas
+- usado por auth, serviços e regras de domínio
+
+## Observações
+
+Este pacote não trata:
+
+- autenticação
+- autorização RBAC
+- sessão
+- tokens
+
+Ele apenas define:
+
+→ disponibilidade funcional

@@ -8,13 +8,21 @@ import { TokenId } from "./tipos";
 /**
  * Porta de serviço do domínio de tokens.
  *
- * Diferentemente do repositório, esta interface representa capacidades
- * operacionais de mais alto nível: criação de refresh bruto, validação
- * de refresh e revogação orquestrada.
+ * Diferentemente do repositório, esta interface representa operações
+ * de mais alto nível do módulo, usadas principalmente por autenticação:
+ * - criação de refresh token bruto + persistência associada;
+ * - validação de refresh token bruto;
+ * - revogação orquestrada de refresh token.
  */
 export interface TokensServicePorta {
   /**
-   * Cria um refresh token completo, incluindo valor bruto e metadados.
+   * /**
+   * Cria um refresh token completo.
+   *
+   * O resultado inclui:
+   * - valor bruto a ser devolvido para a borda;
+   * - identificador lógico persistido;
+   * - data de expiração calculada.
    *
    * @param params Contexto de emissão do refresh token.
    * @returns `Ok` com token bruto, identificador persistido e expiração.
@@ -44,10 +52,13 @@ export interface TokensServicePorta {
 }
 
 /**
- * Porta de serviço criptográfico para o módulo de tokens.
+ * Porta criptográfica auxiliar do módulo de tokens.
  *
- * Esta interface abstrai geração de token seguro e hashing do valor bruto,
- * sem expor ao Core bibliotecas criptográficas concretas.
+ * Esta interface abstrai:
+ * - geração de token bruto seguro;
+ * - derivação do hash persistível correspondente.
+ *
+ * O Core não conhece bibliotecas concretas de criptografia.
  */
 export interface CriptoTokensPorta {
   /**

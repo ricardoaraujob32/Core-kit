@@ -1,7 +1,7 @@
 // packages/core/src/usuarios/usecases/criarUsuario.ts
 
-import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
-import type { CriarUsuarioInput, CriarUsuarioOutput, ResultadoCriarUsuario } from "../tipos";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+import type { CriarUsuarioInput, CriarUsuarioOutput, CriarUsuarioResult } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import { validarEmailUsuario, validarNomeUsuario, validarSenhaHash } from "../validadores";
 import { emailUsuarioJaExiste } from "../erros";
@@ -30,6 +30,7 @@ export function createFnCriarUsuario(deps: {
   usuariosRepo: UsuariosRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
+  transacao?: TransacaoPorta;
 }) {
   /**
    * Executa o caso de uso de criação de usuário.
@@ -45,7 +46,7 @@ export function createFnCriarUsuario(deps: {
    * @param input Dados necessários para criar o usuário.
    * @returns `Ok({ usuarioId })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function criarUsuario(input: CriarUsuarioInput): ResultadoCriarUsuario {
+  return async function criarUsuario(input: CriarUsuarioInput): CriarUsuarioResult {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -58,34 +59,36 @@ export function createFnCriarUsuario(deps: {
     const senhaHash = validarSenhaHash(input.senhaHash);
     if (!senhaHash.ok) return senhaHash;
 
-    const existente = await deps.usuariosRepo.buscarPorEmailNoLocatario({
-      locatarioId: locatarioId.value,
-      emailNormalizado: email.value,
-    });
-    if (!existente.ok) return existente;
-    if (existente.value) {
-      return emailUsuarioJaExiste(email.value, locatarioId.value);
-    }
+    return executarEmTransacao(deps.transacao, async () => {
+      const existente = await deps.usuariosRepo.buscarPorEmailNoLocatario({
+        locatarioId: locatarioId.value,
+        emailNormalizado: email.value,
+      });
+      if (!existente.ok) return existente;
+      if (existente.value) {
+        return emailUsuarioJaExiste(email.value, locatarioId.value);
+      }
 
-    const usuarioId = deps.idPorta.gerarId();
-    const agora = deps.relogio.agora();
+      const usuarioId = deps.idPorta.gerarId();
+      const agora = deps.relogio.agora();
 
-    const criado = await deps.usuariosRepo.criar({
-      usuarioId,
-      locatarioId: locatarioId.value,
-      email: email.value,
-      nome: nome.value,
-      senhaHash: senhaHash.value,
-      status: "ATIVO",
-      ultimoLoginEm: null,
-      criadoEm: agora,
-      atualizadoEm: agora,
-      excluidoEm: null,
-    });
-    if (!criado.ok) return criado;
+      const criado = await deps.usuariosRepo.criar({
+        usuarioId,
+        locatarioId: locatarioId.value,
+        email: email.value,
+        nome: nome.value,
+        senhaHash: senhaHash.value,
+        status: "ATIVO",
+        ultimoLoginEm: null,
+        criadoEm: agora,
+        atualizadoEm: agora,
+        excluidoEm: null,
+      });
+      if (!criado.ok) return criado;
 
-    return wrapOk<CriarUsuarioOutput>({
-      usuarioId: criado.value.usuarioId,
+      return wrapOk<CriarUsuarioOutput>({
+        usuarioId: criado.value.usuarioId,
+      });
     });
   };
 }

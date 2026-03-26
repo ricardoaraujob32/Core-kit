@@ -1,9 +1,10 @@
 // packages/core/src/assinaturas/usecases/suspenderAssinatura.ts
 
-import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel";
-import { erroAssinaturaNaoEncontrada, erroTransicaoStatusInvalida } from "../erros";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
+import { erroAssinaturaNaoEncontrada } from "../erros";
+import { transicionarEstadoAssinatura } from "../maquinaEstados";
 import { AssinaturasRepositorio } from "../portasRepositorio";
-import { Assinatura, SuspenderAssinaturaInput } from "../tipos";
+import { SuspenderAssinaturaInput, SuspenderAssinaturaOutput, SuspenderAssinaturaResult } from "../tipos";
 import { validarSuspenderAssinaturaInput } from "../validadores";
 
 /**
@@ -35,7 +36,7 @@ export function createFnSuspenderAssinatura(deps: {
  * @param input Dados da suspensão da assinatura.
  * @returns `Ok(assinaturaAtualizada)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
  */
-  return async function suspenderAssinatura(input: SuspenderAssinaturaInput): Promise<Result<Assinatura, ErroApp>> {
+  return async function suspenderAssinatura(input: SuspenderAssinaturaInput): SuspenderAssinaturaResult{
     const validacao = validarSuspenderAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -44,18 +45,22 @@ export function createFnSuspenderAssinatura(deps: {
       if (!atual.ok) return atual;
       if (!atual.value) return erroAssinaturaNaoEncontrada(input.assinaturaId);
 
-      if (atual.value.status !== "ATIVA") {
-        return erroTransicaoStatusInvalida(
-          atual.value.assinaturaId,
-          atual.value.status,
-          "SUSPENSA",
-        );
-      }
+      const proximoStatus = transicionarEstadoAssinatura({
+        assinaturaId: atual.value.assinaturaId,
+        statusAtual: atual.value.status,
+        evento: "SUSPENDER",
+      });
+      if (!proximoStatus.ok) return proximoStatus;
 
-      return deps.assinaturasRepositorio.atualizarAssinatura({
+      const atualizada = await deps.assinaturasRepositorio.atualizarAssinatura({
         ...atual.value,
-        status: "SUSPENSA",
+        status: proximoStatus.value,
         atualizadaEm: deps.relogio.agora(),
+      });
+      if (!atualizada.ok) return atualizada;
+
+      return wrapOk<SuspenderAssinaturaOutput>({
+        assinatura: atualizada.value,
       });
     });
   };

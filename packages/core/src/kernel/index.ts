@@ -24,3 +24,6 @@ export { executarEmTransacao } from "./executarEmTransacao";
 export type { HashPorta, IdPorta, RelogioPorta, TokenPorta, TransacaoPorta } from "./portasGenericas";
 
 export type { StatusJob } from "./tipos";
+
+export type { TabelaTransicoes, TransicionarEstadoInput } from "./maquinaEstados";
+export { transicionarEstado } from "./maquinaEstados";

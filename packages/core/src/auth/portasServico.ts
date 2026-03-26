@@ -1,76 +1,10 @@
 // packages/core/src/auth/portasServico.ts
 
-import { ErroApp, Result } from "../kernel";
+import { ContextoExecucao, ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
-import { ContextoExecucaoRbac, ResolverPermissoesOutput } from "../rbac";
+import { ResolverPermissoesOutput } from "../rbac";
 import { TokenId } from "../tokens";
 import { UsuarioId } from "../usuarios";
-
-/**
- * Projeção mínima de usuário usada pelos serviços de autenticação.
- *
- * Este tipo contém apenas os campos necessários para localizar o usuário,
- * validar credenciais e decidir se ele pode autenticar.
- */
-export interface UsuarioAuth {
-  /** Identificador do usuário. */
-  usuarioId: UsuarioId;
-  /** Locatário do usuário; `null` representa escopo de plataforma. */
-  locatarioId: LocatarioId | null;
-  /** E-mail de autenticação. */
-  email: string;
-  /** Hash persistido da senha. */
-  senhaHash: string;
-  /** Estado do usuário para fins de autenticação. */
-  status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO";
-}
-
-/**
- * Porta de consulta/atualização de usuários usada por serviços de autenticação.
- *
- * Embora o nome seja de serviço, esta interface tem semântica próxima de
- * repositório de leitura/escrita focado em `auth`.
- */
-export interface UsuariosAuthPorta {
-  /**
-   * Busca usuário por e-mail no locatário.
-   *
-   * @param params Escopo do locatário e e-mail consultado.
-   * @returns `Ok(usuario | null)` quando a consulta é bem-sucedida.
-   */
-  buscarPorEmail(params: { locatarioId: LocatarioId; email: string; }): Promise<Result<UsuarioAuth | null, ErroApp>>;
-
-  /**
-   * Atualiza o instante do último login do usuário.
-   *
-   * @param params Usuário autenticado e instante da atualização.
-   * @returns `Ok(void)` quando a operação é concluída.
-   */
-  atualizarUltimoLogin(params: { usuarioId: UsuarioId; quando: Date; }): Promise<Result<void, ErroApp>>;
-}
-
-/**
- * Porta de consulta de locatários usada por serviços de autenticação.
- */
-export interface LocatariosAuthPorta {
-  /**
-   * Busca locatário por identificador.
-   *
-   * @param params Identificador do locatário.
-   * @returns `Ok(locatario | null)` quando a consulta é bem-sucedida.
-   */
-  buscarPorId(params: {
-    locatarioId: LocatarioId;
-  }): Promise<
-    Result<
-      {
-        locatarioId: LocatarioId;
-        status: "ATIVO" | "SUSPENSO" | "ENCERRADO";
-      } | null,
-      ErroApp
-    >
-  >;
-}
 
 /**
  * Porta de hashing/comparação de senha usada por `auth`.
@@ -108,8 +42,7 @@ export interface JwtAuthPorta {
     agora: Date;
     ttlSegundos: number;
     issuer: string;
-  }): Promise<
-    Result<
+  }): Promise<Result<
       {
         token: string;
         payload: {
@@ -119,9 +52,7 @@ export interface JwtAuthPorta {
           exp: number;
         };
       },
-      ErroApp
-    >
-  >;
+      ErroApp> >;
 
   /**
    * Valida um access token e devolve seu payload lógico.
@@ -138,8 +69,7 @@ export interface JwtAuthPorta {
       session: string;
       exp: number;
     },
-    ErroApp
-  >;
+    ErroApp>;
 }
 
 /**
@@ -217,5 +147,31 @@ export interface RbacAuthPorta {
    * @param ctx Contexto base usado na resolução.
    * @returns `Ok` com papéis, permissões e contexto resultante.
    */
-  resolverPermissoes(ctx: ContextoExecucaoRbac): Promise<Result<ResolverPermissoesOutput, ErroApp>>;
+  resolverPermissoes(ctx: ContextoExecucao): Promise<Result<ContextoExecucao, ErroApp>>;
+}
+
+/**
+ * Porta opcional para registro de eventos de segurança.
+ *
+ * Esta dependência não representa persistência principal do domínio de `auth`,
+ * mas sim emissão de rastro operacional e auditoria de segurança.
+ */
+export interface EventosSegurancaPorta {
+  /**
+   * Registra um evento relevante de segurança/autenticação.
+   *
+   * @param params Tipo do evento, contexto envolvido e instante da ocorrência.
+   * @returns `Promise<void>` porque o registro pode ser best-effort.
+   */
+  registrarEvento?(params: {
+    tipo:
+      | "auth.login.sucesso"
+      | "auth.login.falha"
+      | "auth.refresh"
+      | "auth.logout";
+    usuarioId?: UsuarioId | null;
+    locatarioId?: LocatarioId | null;
+    detalhes?: Record<string, unknown>;
+    quando: Date;
+  }): Promise<void>;
 }

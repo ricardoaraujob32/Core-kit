@@ -38,4 +38,10 @@ export interface LocatariosRepositorio {
    * @returns `Ok` com a coleção de locatários encontrados.
    */
   listar(): Promise<Result<Locatario[], ErroApp>>;
+
+  /**
+   * Atualiza integralmente o snapshot persistido do locatário.
+   * Necessário para futuros casos de uso de transição de estado.
+   */
+  atualizar(locatario: Locatario): Promise<Result<Locatario, ErroApp>>;
 }

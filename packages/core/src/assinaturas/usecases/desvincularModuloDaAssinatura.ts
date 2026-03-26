@@ -1,9 +1,9 @@
 // packages/core/src/assinaturas/usecases/desvincularModuloDaAssinatura.ts
 
-import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaNaoEncontrada, erroModuloNaoVinculado } from "../erros";
 import { AssinaturasModulosRepositorio, AssinaturasRepositorio } from "../portasRepositorio";
-import { DesvincularModuloDaAssinaturaInput } from "../tipos";
+import { DesvincularModuloDaAssinaturaInput, DesvincularModuloDaAssinaturaOutput, DesvincularModuloDaAssinaturaResult } from "../tipos";
 import { validarDesvincularModuloDaAssinaturaInput } from "../validadores";
 
 /**
@@ -40,7 +40,7 @@ export function createFnDesvincularModuloDaAssinatura(deps: {
  * @param input Dados do desvínculo entre assinatura e módulo.
  * @returns `Ok(void)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
  */
-  return async function desvincularModuloDaAssinatura(input: DesvincularModuloDaAssinaturaInput): Promise<Result<void, ErroApp>> {
+  return async function desvincularModuloDaAssinatura(input: DesvincularModuloDaAssinaturaInput): DesvincularModuloDaAssinaturaResult {
     const validacao = validarDesvincularModuloDaAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -58,11 +58,20 @@ export function createFnDesvincularModuloDaAssinatura(deps: {
         return erroModuloNaoVinculado(input.assinaturaId, input.moduloId);
       }
 
-      return deps.assinaturasModulosRepositorio.desvincularModulo(
+      const desabilitadoEm = deps.relogio.agora();
+
+      const desvinculo = await deps.assinaturasModulosRepositorio.desvincularModulo(
         input.assinaturaId,
         input.moduloId,
-        deps.relogio.agora(),
+        desabilitadoEm,
       );
+      if (!desvinculo.ok) return desvinculo;
+
+      return wrapOk<DesvincularModuloDaAssinaturaOutput>({
+        assinaturaId: input.assinaturaId,
+        moduloId: input.moduloId,
+        desabilitadoEm,
+      });
     });
   };
 }

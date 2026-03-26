@@ -24,6 +24,14 @@ export type LocatarioStatus =
   | "ENCERRADO";
 
 /**
+ * Eventos formais da máquina de estados de locatários.
+ */
+export type EventoLocatario =
+  | "OPERAR"
+  | "SUSPENDER"
+  | "REATIVAR"
+  | "ENCERRAR";
+/**
  * Entidade de domínio que representa um locatário da plataforma.
  *
  * Este tipo modela apenas a visão do Core. Não deve ser confundido com a
@@ -57,12 +65,29 @@ export interface CriarLocatarioOutput {
 }
 
 /**
+ * Resultado assíncrono da criação de locatário.
+ */
+export type CriarLocatarioResult = Promise<Result<CriarLocatarioOutput, ErroApp>>;
+
+/**
+ * Entrada da listagem de locatários.
+ *
+ * Mantida como objeto vazio para padronização do contrato.
+ */
+export interface ListarLocatariosInput {}
+
+/**
  * Saída padronizada para listagem de locatários.
  */
 export interface ListarLocatariosOutput {
   /** Coleção de locatários retornados pela operação. */
   itens: Locatario[];
 }
+
+/**
+ * Resultado assíncrono da listagem de locatários.
+ */
+export type ListarLocatariosResult = Promise<Result<ListarLocatariosOutput, ErroApp>>;
 
 /**
  * Entrada usada para buscar um locatário específico por identidade.
@@ -73,16 +98,13 @@ export interface ObterLocatarioInput {
 }
 
 /**
- * Resultado assíncrono da criação de locatário.
+ * Saída da obtenção de locatário.
  */
-export type ResultadoCriarLocatario = Promise<Result<CriarLocatarioOutput, ErroApp>>;
-
-/**
- * Resultado assíncrono da listagem de locatários.
- */
-export type ResultadoListarLocatarios = Promise<Result<ListarLocatariosOutput, ErroApp>>;
+export interface ObterLocatarioOutput {
+  locatario: Locatario;
+}
 
 /**
  * Resultado assíncrono da obtenção de um locatário.
  */
-export type ResultadoObterLocatario = Promise<Result<Locatario, ErroApp>>;
+export type ObterLocatarioResult = Promise<Result<ObterLocatarioOutput, ErroApp>>;

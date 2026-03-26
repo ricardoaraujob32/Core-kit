@@ -6,11 +6,19 @@ export type {
   TokenPersistido,
   EmitirTokenInput,
   EmitirTokenOutput,
+  EmitirTokenResult,
   ObterTokenPorHashInput,
+  ObterTokenPorHashOutput,
+  ObterTokenPorHashResult,
   RevogarTokenInput,
+  RevogarTokenOutput,
+  RevogarTokenResult,
   RotacionarTokenInput,
+  RotacionarTokenOutput,
+  RotacionarTokenResult,
   ListarTokensDoUsuarioInput,
   ListarTokensDoUsuarioOutput,
+  ListarTokensDoUsuarioResult
 } from "./tipos";
 
 export {

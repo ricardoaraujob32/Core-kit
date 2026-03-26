@@ -1,9 +1,10 @@
 // packages/core/src/assinaturas/usecases/ativarAssinatura.ts
 
-import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel";
-import { erroAssinaturaNaoEncontrada, erroTransicaoStatusInvalida } from "../erros";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
+import { erroAssinaturaNaoEncontrada } from "../erros";
+import { transicionarEstadoAssinatura } from "../maquinaEstados";
 import { AssinaturasRepositorio } from "../portasRepositorio";
-import { Assinatura, AtivarAssinaturaInput } from "../tipos";
+import { AtivarAssinaturaInput, AtivarAssinaturaOutput, AtivarAssinaturaResult } from "../tipos";
 import { validarAtivarAssinaturaInput } from "../validadores";
 
 /**
@@ -35,7 +36,7 @@ export function createFnAtivarAssinatura(deps: {
  * @param input Dados da ativação da assinatura.
  * @returns `Ok(assinaturaAtualizada)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
  */
-  return async function ativarAssinatura(input: AtivarAssinaturaInput): Promise<Result<Assinatura, ErroApp>> {
+  return async function ativarAssinatura(input: AtivarAssinaturaInput): AtivarAssinaturaResult {
     const validacao = validarAtivarAssinaturaInput(input);
     if (!validacao.ok) return validacao;
 
@@ -44,18 +45,22 @@ export function createFnAtivarAssinatura(deps: {
       if (!atual.ok) return atual;
       if (!atual.value) return erroAssinaturaNaoEncontrada(input.assinaturaId);
 
-      if (!["RASCUNHO", "SUSPENSA"].includes(atual.value.status)) {
-        return erroTransicaoStatusInvalida(
-          atual.value.assinaturaId,
-          atual.value.status,
-          "ATIVA",
-        );
-      }
+      const proximoStatus = transicionarEstadoAssinatura({
+        assinaturaId: atual.value.assinaturaId,
+        statusAtual: atual.value.status,
+        evento: "ATIVAR",
+      });
+      if (!proximoStatus.ok) return proximoStatus;
 
-      return deps.assinaturasRepositorio.atualizarAssinatura({
+      const atualizada = await deps.assinaturasRepositorio.atualizarAssinatura({
         ...atual.value,
-        status: "ATIVA",
+        status: proximoStatus.value,
         atualizadaEm: deps.relogio.agora(),
+      });
+      if (!atualizada.ok) return atualizada;
+
+      return wrapOk<AtivarAssinaturaOutput>({
+        assinatura: atualizada.value,
       });
     });
   };

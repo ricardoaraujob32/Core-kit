@@ -1,9 +1,9 @@
 // packages/core/src/locatarios/usecases/criarLocatario.ts
 
-import type { CriarLocatarioInput, CriarLocatarioOutput, ResultadoCriarLocatario } from "../tipos";
+import type { CriarLocatarioInput, CriarLocatarioOutput, CriarLocatarioResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { validarNomeLocatario } from "../validadores";
-import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
 
 /**
  * Cria a função de caso de uso responsável por registrar um novo locatário.
@@ -27,6 +27,7 @@ export function createFnCriarLocatario(deps: {
   locRepo: LocatariosRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
+  transacao?: TransacaoPorta;
 }) {
   /**
    * Executa o caso de uso de criação de locatário.
@@ -41,23 +42,25 @@ export function createFnCriarLocatario(deps: {
    * @param input Dados mínimos necessários para criar o locatário.
    * @returns `Ok({ locatarioId })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function criarLocatario(input: CriarLocatarioInput): ResultadoCriarLocatario {
+  return async function criarLocatario(input: CriarLocatarioInput): CriarLocatarioResult {
     const nome = validarNomeLocatario(input.nome);
     if (!nome.ok) return nome;
 
-    const locatarioId = deps.idPorta.gerarId();
-    const criadoEm = deps.relogio.agora();
+    return executarEmTransacao(deps.transacao, async () => {
+      const locatarioId = deps.idPorta.gerarId();
+      const criadoEm = deps.relogio.agora();
 
-    const res = await deps.locRepo.criar({
-      locatarioId,
-      nome: nome.value,
-      status: "ATIVO",
-      criadoEm,
-    });
-    if (!res.ok) return res;
+      const res = await deps.locRepo.criar({
+        locatarioId,
+        nome: nome.value,
+        status: "ATIVO",
+        criadoEm,
+      });
+      if (!res.ok) return res;
 
-    return wrapOk<CriarLocatarioOutput>({
-      locatarioId: res.value.locatarioId,
+      return wrapOk<CriarLocatarioOutput>({
+        locatarioId: res.value.locatarioId,
+      });
     });
   };
 }

@@ -3,7 +3,7 @@
 import { ErroApp, Result, wrapOk } from "../../kernel";
 import { erroModuloNaoHabilitado } from "../erros";
 import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
-import { ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput } from "../tipos";
+import { ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput, ModuloEstaHabilitadoResult } from "../tipos";
 import { createFnModuloEstaHabilitado } from "./moduloEstaHabilitado";
 
 /**
@@ -36,7 +36,7 @@ export function createFnExigirModuloHabilitado(deps: {repositorio: ModulosHabili
  * @returns `Ok(status)` quando o módulo está habilitado,
  * ou `Err(ErroApp)` em caso de falha.
  */
-  return async function exigirModuloHabilitado(input: ModuloEstaHabilitadoInput): Promise<Result<ModuloEstaHabilitadoOutput, ErroApp>> {
+  return async function exigirModuloHabilitado(input: ModuloEstaHabilitadoInput): ModuloEstaHabilitadoResult {
     const statusResult = await moduloEstaHabilitado(input);
     if (!statusResult.ok) return statusResult;
 
@@ -47,6 +47,6 @@ export function createFnExigirModuloHabilitado(deps: {repositorio: ModulosHabili
       );
     }
 
-    return wrapOk(statusResult.value);
+    return wrapOk<ModuloEstaHabilitadoOutput>(statusResult.value);
   };
 }

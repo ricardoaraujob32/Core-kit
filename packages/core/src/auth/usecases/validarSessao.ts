@@ -3,7 +3,7 @@
 import { wrapOk } from "../../kernel";
 import { sessaoInvalida } from "../erros";
 import { JwtAuthPorta } from "../portasServico";
-import { ResultadoValidarSessao, SessaoValidada, ValidarSessaoInput } from "../tipos";
+import { ValidarSessaoResult, SessaoValidada, ValidarSessaoInput, ValidarSessaoOutput } from "../tipos";
 import { validarTokenNaoVazio } from "../validadores";
 
 /**
@@ -35,7 +35,7 @@ export function createFnValidarSessao(deps: {jwtPorta: JwtAuthPorta}) {
    * @param input Access token a ser validado.
    * @returns `Ok(sessaoValidada)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return function validarSessao(input: ValidarSessaoInput): ResultadoValidarSessao {
+  return function validarSessao(input: ValidarSessaoInput): ValidarSessaoResult {
     const token = validarTokenNaoVazio(input.accessToken);
     if (!token.ok) return token;
 
@@ -44,13 +44,13 @@ export function createFnValidarSessao(deps: {jwtPorta: JwtAuthPorta}) {
 
     const payload = payloadRes.value;
 
-    const sessao: SessaoValidada = {
-      usuarioId: payload.sub,
-      locatarioId: payload.loc,
-      sessionId: payload.session,
-      expiraEm: new Date(payload.exp * 1000),
-    };
-
-    return wrapOk(sessao);
+    return wrapOk<ValidarSessaoOutput>({
+      sessao: {
+        usuarioId: payload.sub,
+        locatarioId: payload.loc,
+        sessionId: payload.session,
+        expiraEm: new Date(payload.exp * 1000),
+      },
+    });
   };
 }

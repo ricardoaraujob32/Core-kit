@@ -1,7 +1,20 @@
-// backend/src/infra/prisma/errors.ts
-import { Prisma } from "@prisma/client";
-import { createErroApp } from "../../../core/src/kernel/ROPHelpers";
+// apps/api/src/infra/prisma/erros.ts
 
+import { Prisma } from "@prisma/client";
+import { createErroApp } from "@core-kit/core"; 
+
+/**
+ * Mapeia erros conhecidos do Prisma para `ErroApp`.
+ *
+ * Regras atuais:
+ * - `P2002` -> `CONFLITO`
+ * - `P2025` -> `NAO_ENCONTRADO`
+ * - demais casos -> `ERRO_INTERNO`
+ *
+ * @param causa Erro técnico original.
+ * @param contexto Metadados da operação para diagnóstico.
+ * @returns `Err(ErroApp)` padronizado.
+ */
 export function mapearErroInfra(
   causa: unknown,
   contexto: {
