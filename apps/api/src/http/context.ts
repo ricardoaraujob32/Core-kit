@@ -3,7 +3,7 @@
 import type { FastifyRequest } from "fastify";
 import { comModulosHabilitados, createContextoExecucao, createFnResolverContextoAutorizado, createErroApp, wrapOk } from "@core-kit/core";
 import type { ContextoExecucao, ErroApp, LocatarioId, ModuloCodigo, Result } from "@core-kit/core";
-import { createAuthHttpRuntime } from "../infra/auth";
+import { createAuthHttpRuntime } from "../infra/prisma/auth";
 
 /**
  * Dependências opcionais do builder de contexto HTTP.

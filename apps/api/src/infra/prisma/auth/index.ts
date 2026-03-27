@@ -8,9 +8,9 @@ export type { jwtPorta } from "./jwtPorta";
 
 export type { createTransacaoPorta } from "./TransacaoPorta";
 
-export { createUsuariosRepositorioAuthPrisma } from "./usuarios/usuariosRepositorioAuthPrisma";
+export { createUsuariosRepositorioAuth as createUsuariosRepositorioAuthPrisma } from "./usuarios/usuariosRepositorioAuthPrisma";
 
-export { createLocatariosRepositorioAuthPrisma } from "./locatarios/locatariosRepositorioAuthPrisma";
+export { createLocatariosRepositorioAuth as createLocatariosRepositorioAuthPrisma } from "./locatarios/locatariosRepositorioAuthPrisma";
 
 export { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma";
 

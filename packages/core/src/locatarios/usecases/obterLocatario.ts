@@ -23,7 +23,7 @@ import { transicionarEstadoLocatario } from "../maquinaEstados";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `obterLocatario` pronta para receber a entrada do caso de uso.
  */
-export function createFnObterLocatario(deps: { locRepo: LocatariosRepositorio }) {
+export function createFnObterLocatario(deps: { locatarioRepositorio: LocatariosRepositorio }) {
   /**
    * Executa o caso de uso de obtenção de locatário.
    *
@@ -41,7 +41,7 @@ export function createFnObterLocatario(deps: { locRepo: LocatariosRepositorio })
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
-    const res = await deps.locRepo.buscarPorId({
+    const res = await deps.locatarioRepositorio.buscarPorId({
       locatarioId: locatarioId.value,
     });
     if (!res.ok) return res;

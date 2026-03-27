@@ -4,10 +4,10 @@ import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, Relog
 import { createFnEmitirSessao, createFnResolverContextoAutorizado, createFnRotacionarRefresh, createFnValidarSessao } from "@core-kit/core";
 import { hashPorta } from "./hashPorta";
 import { jwtPorta } from "./jwtPorta";
-import { clientePrisma } from "../prisma/client";
+import { clientePrisma } from "../client";
 import { randomUUID } from "node:crypto";
-import { createUsuariosRepositorioAuthPrisma } from "./usuarios/usuariosRepositorioAuthPrisma";
-import { createLocatariosRepositorioAuthPrisma } from "./locatarios/locatariosRepositorioAuthPrisma";
+import { createUsuariosRepositorioAuth } from "./usuarios/usuariosRepositorioAuthPrisma";
+import { createLocatariosRepositorioAuth } from "./locatarios/locatariosRepositorioAuthPrisma";
 import { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma";
 import { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma";
 import { createTransacaoPorta } from "./TransacaoPorta";
@@ -78,15 +78,15 @@ export function createAuthDeps(params: CreateAuthDepsParams) {
       gerarId: () => randomUUID(),
     } satisfies IdPorta);
 
-  const usuariosRepo = createUsuariosRepositorioAuthPrisma(prisma);
-  const locatariosRepo = createLocatariosRepositorioAuthPrisma(prisma);
+  const usuariosRepo = createUsuariosRepositorioAuth(prisma);
+  const locatariosRepo = createLocatariosRepositorioAuth(prisma);
   const tokensPorta = createTokensAuthPorta(prisma, idPorta);
   const rbacPorta = createRbacAuthPorta(prisma);
   const transacao = createTransacaoPorta(prisma);
 
   const emitirSessaoDeps = {
-    usuariosRepo,
-    locatariosRepo,
+    usuariosRepositorio: usuariosRepo,
+    locatariosRepositorio: locatariosRepo,
     tokensPorta,
     hashPorta: params.hashPorta,
     jwtPorta: params.jwtPorta,

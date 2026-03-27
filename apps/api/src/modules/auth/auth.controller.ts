@@ -3,7 +3,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createFnEmitirSessao, createFnRotacionarRefresh, type LocatarioId } from "@core-kit/core";
 import { sendHttpError } from "../../http/serializarErroApp";
-import { createAuthHttpRuntime } from "../../infra/auth";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 
 /**
  * Payload HTTP esperado no endpoint de login.

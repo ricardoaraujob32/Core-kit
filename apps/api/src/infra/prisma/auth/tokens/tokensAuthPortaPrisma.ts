@@ -1,9 +1,9 @@
-// apps/api/src/infra/auth/tokens/tokensAuthPortaPrisma.ts
+// apps/api/src/infra/prisma/auth/tokens/tokensAuthPortaPrisma.ts
 
 import { createErroApp, IdPorta, TokenId, TokensAuthPorta, wrapOk } from "@core-kit/core";
 import { gerarRefreshTokenBruto, hashRefreshToken } from "./tokenHash";
-import { erroInfraAuth } from "../compartilhado/errosInfraAuth";
-import { PrismaDb } from "../../prisma/tipos";
+import { erroInfraAuth } from "../errosInfraAuth";
+import { PrismaDb } from "../../tipos";
 
 /**
  * Adapter Prisma -> TokensAuthPorta.

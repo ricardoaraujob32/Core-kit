@@ -3,7 +3,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { createFnBuildContextFromRequest } from "../../http/context";
 import { sendHttpError } from "../../http/serializarErroApp";
-import { createLocatariosRepositorioAuthPrisma } from "../../infra/auth";
+import { createLocatariosRepositorioAuthPrisma } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createFnListarLocatarios, createFnObterLocatario } from "@core-kit/core";
 
@@ -57,8 +57,8 @@ export async function obterMeuLocatarioController(request: FastifyRequest<{ Para
     });
   }
 
-  const repo = createLocatariosRepositorioAuthPrisma(clientePrisma);
-  const obterLocatario = createFnObterLocatario({ locRepo: repo });
+  const repositorio = createLocatariosRepositorioAuthPrisma(clientePrisma);
+  const obterLocatario = createFnObterLocatario({ locatarioRepositorio: repositorio });
 
   const resultado = await obterLocatario({
     locatarioId: request.params.id,
@@ -88,8 +88,8 @@ export async function listarLocatariosSuperAdminController(request: FastifyReque
     });
   }
 
-  const repo = createLocatariosRepositorioAuthPrisma(clientePrisma);
-  const listarLocatarios = createFnListarLocatarios({ locRepo: repo });
+  const repositorio = createLocatariosRepositorioAuthPrisma(clientePrisma);
+  const listarLocatarios = createFnListarLocatarios({ locatarioRepositorio: repositorio });
 
   const resultado = await listarLocatarios({});
 
@@ -116,8 +116,8 @@ export async function obterLocatarioSuperAdminController(request: FastifyRequest
     });
   }
 
-  const repo = createLocatariosRepositorioAuthPrisma(clientePrisma);
-  const obterLocatario = createFnObterLocatario({ locRepo: repo });
+  const repositorio = createLocatariosRepositorioAuthPrisma(clientePrisma);
+  const obterLocatario = createFnObterLocatario({ locatarioRepositorio: repositorio });
 
   const resultado = await obterLocatario({
     locatarioId: request.params.id,

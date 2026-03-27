@@ -3,7 +3,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createFnValidarSessao } from "@core-kit/core";
 import { sendHttpError } from "../http/serializarErroApp";
-import { createAuthHttpRuntime } from "../infra/auth";
+import { createAuthHttpRuntime } from "../infra/prisma/auth";
 
 /**
  * Extrai o bearer token bruto do header Authorization.

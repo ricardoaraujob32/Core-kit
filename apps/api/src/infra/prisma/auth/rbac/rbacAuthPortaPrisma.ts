@@ -1,8 +1,8 @@
-// apps/api/src/infra/auth/rbac/rbacAuthPortaPrisma.ts
+// apps/api/src/infra/prisma/auth/rbac/rbacAuthPortaPrisma.ts
 
 import { RbacAuthPorta, ContextoExecucao, Result, ErroApp, createContextoExecucao, wrapOk, Permissao, Papel } from "@core-kit/core";
-import { erroInfraAuth } from "../compartilhado/errosInfraAuth";
-import { PrismaDb } from "../../prisma/tipos";
+import { erroInfraAuth } from "../errosInfraAuth";
+import { PrismaDb } from "../../tipos";
 
 /**
  * Adapter Prisma -> RbacAuthPorta.

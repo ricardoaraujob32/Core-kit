@@ -1,4 +1,4 @@
-// apps/api/src/infra/auth/tokens/tokenHash.ts
+// apps/api/src/infra/prisma/auth/tokens/tokenHash.ts
 
 import { createHash, randomBytes } from "node:crypto";
 

@@ -1,20 +1,10 @@
-// apps/api/src/infra/auth/usuarios/usuariosRepositorioAuthPrisma.ts
+// apps/api/src/infra/prisma/auth/usuarios/usuariosRepositorioAuthPrisma.ts
 
 import { wrapOk } from "@core-kit/core";
 import type { LocatarioId, Result, ErroApp, UsuarioId } from "@core-kit/core";
-import { erroInfraAuth } from "../compartilhado/errosInfraAuth";
-import { PrismaDb } from "../../prisma/tipos";
-
-/**
- * 
- */
-type UsuarioAuth = {
-  usuarioId: UsuarioId;
-  locatarioId: LocatarioId;
-  email: string;
-  senhaHash: string;
-  status: "ATIVO" | "INATIVO";
-};
+import { erroInfraAuth } from "../errosInfraAuth";
+import { PrismaDb } from "../../tipos";
+import { UsuariosRepositorioAuth } from "packages/core/src/auth/portasRepositorio";
 
 /**
  * Repositório de usuários para autenticação (Auth).
@@ -28,7 +18,7 @@ type UsuarioAuth = {
  * - não deve conter lógica de autenticação;
  * - apenas acesso a dados persistidos.
  */
-export function createUsuariosRepositorioAuthPrisma(db: PrismaDb) {
+export function createUsuariosRepositorioAuth(db: PrismaDb): UsuariosRepositorioAuth {
   return {
      /**
      * Busca um usuário pelo e-mail dentro de um locatário.

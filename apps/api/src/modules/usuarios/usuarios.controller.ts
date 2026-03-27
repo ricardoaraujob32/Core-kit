@@ -3,7 +3,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { createFnBuildContextFromRequest } from "../../http/context";
 import { sendHttpError } from "../../http/serializarErroApp";
-import { createUsuariosRepositorioAuthPrisma } from "../../infra/auth";
+import { createUsuariosRepositorioAuthPrisma } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createFnListarUsuariosPorLocatario } from "@core-kit/core";
 

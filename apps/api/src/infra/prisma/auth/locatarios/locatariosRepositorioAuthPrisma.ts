@@ -1,16 +1,8 @@
-// apps/api/src/infra/auth/locatarios/locatariosRepositorioAuthPrisma.ts
+// apps/api/src/infra/prisma/auth/locatarios/locatariosRepositorioAuthPrisma.ts
 
-import { ErroApp, LocatarioId, Result, wrapOk } from "@core-kit/core";
-import { erroInfraAuth } from "../compartilhado/errosInfraAuth";
-import { PrismaDb } from "../../prisma/tipos";
-
-/**
- * 
- */
-type LocatarioAuth = {
-  locatarioId: LocatarioId;
-  status: "ATIVO" | "INATIVO";
-};
+import { ErroApp, LocatarioAuth, LocatarioId, LocatariosRepositorioAuth, Result, wrapOk } from "@core-kit/core";
+import { erroInfraAuth } from "../errosInfraAuth";
+import { PrismaDb } from "../../tipos";
 
 /**
  * Repositório de locatários para autenticação.
@@ -23,7 +15,7 @@ type LocatarioAuth = {
  * - fluxo de login;
  * - validação de escopo de autenticação.
  */
-export function createLocatariosRepositorioAuthPrisma(db: PrismaDb) {
+export function createLocatariosRepositorioAuth(db: PrismaDb): LocatariosRepositorioAuth {
   return {
     /**
      * Busca um locatário pelo ID.
@@ -39,7 +31,6 @@ export function createLocatariosRepositorioAuthPrisma(db: PrismaDb) {
           },
           select: {
             locatario_id: true,
-            ativo: true,
           },
         });
 
@@ -49,7 +40,7 @@ export function createLocatariosRepositorioAuthPrisma(db: PrismaDb) {
 
         return wrapOk({
           locatarioId: row.locatario_id,
-          status: row.ativo ? "ATIVO" : "INATIVO",
+          status: "ATIVO"
         });
       } catch (causa) {
         return erroInfraAuth("Falha ao buscar locatário.", causa, {

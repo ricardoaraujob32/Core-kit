@@ -37,8 +37,8 @@ import { validarEmailAuth, validarLocatarioIdAuth, validarSenha } from "../valid
  * @returns Função `emitirSessao` pronta para receber a entrada do caso de uso.
  */
 export function createFnEmitirSessao(deps: {
-  usuariosRepo: UsuariosRepositorioAuth;
-  locatariosRepo?: LocatariosRepositorioAuth;
+  usuariosRepositorio: UsuariosRepositorioAuth;
+  locatariosRepositorio?: LocatariosRepositorioAuth;
   tokensPorta: TokensAuthPorta;
   hashPorta: HashAuthPorta;
   jwtPorta: JwtAuthPorta;
@@ -81,8 +81,8 @@ export function createFnEmitirSessao(deps: {
 
     const agora = deps.relogio.agora();
 
-    if (deps.locatariosRepo) {
-      const locRes = await deps.locatariosRepo.buscarPorId({
+    if (deps.locatariosRepositorio) {
+      const locRes = await deps.locatariosRepositorio.buscarPorId({
         locatarioId: locatarioId.value,
       });
       if (!locRes.ok) return locRes;
@@ -94,7 +94,7 @@ export function createFnEmitirSessao(deps: {
       }
     }
 
-    const usuarioRes = await deps.usuariosRepo.buscarPorEmail({
+    const usuarioRes = await deps.usuariosRepositorio.buscarPorEmail({
       locatarioId: locatarioId.value,
       email: email.value,
     });
@@ -162,7 +162,7 @@ export function createFnEmitirSessao(deps: {
     });
     if (!refreshRes.ok) return refreshRes;
 
-    const ultimoLogin = await deps.usuariosRepo.atualizarUltimoLogin({
+    const ultimoLogin = await deps.usuariosRepositorio.atualizarUltimoLogin({
       usuarioId: usuario.usuarioId,
       quando: agora,
     });

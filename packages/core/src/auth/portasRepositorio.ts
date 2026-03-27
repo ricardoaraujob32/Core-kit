@@ -11,16 +11,19 @@ import { UsuarioId } from "../usuarios";
  * validação de credenciais e materialização de sessão.
  */
 export type UsuarioAuth = {
-  /** Identificador do usuário autenticado. */
   usuarioId: UsuarioId;
-  /** Locatário do usuário; `null` representa escopo de plataforma. */
   locatarioId: LocatarioId | null; // NULL = plataforma (superadmin)
-  /** E-mail de autenticação do usuário. */
   email: string;
-  /** Hash da senha persistida. */
   senhaHash: string;
-  /** Estado atual do usuário para fins de autenticação. */
   status: "ATIVO" | "INATIVO" | "BLOQUEADO"; // conforme enum do BD
+};
+
+/**
+ * 
+ */
+export type LocatarioAuth = {
+  locatarioId: LocatarioId;
+  status: "ATIVO" | "SUSPENSO" | "ENCERRADO";
 };
 
 /**
@@ -60,5 +63,5 @@ export interface LocatariosRepositorioAuth {
    * @param params Identificador do locatário.
    * @returns `Ok(locatario | null)` quando a consulta é bem-sucedida.
    */
-  buscarPorId(params: { locatarioId: LocatarioId }): Promise<Result<{ locatarioId: LocatarioId; status: "ATIVO" | "SUSPENSO" | "ENCERRADO" } | null, ErroApp>>;
+  buscarPorId(params: { locatarioId: LocatarioId }): Promise<Result<LocatarioAuth | null, ErroApp>>;
 }

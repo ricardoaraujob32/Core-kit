@@ -17,7 +17,7 @@ import { wrapOk } from "../../kernel";
  * @param deps Dependências externas necessárias para o caso de uso.
  * @returns Função `listarLocatarios` pronta para execução.
  */
-export function createFnListarLocatarios(deps: { locRepo: LocatariosRepositorio }) {
+export function createFnListarLocatarios(deps: { locatarioRepositorio: LocatariosRepositorio }) {
   /**
    * Executa o caso de uso de listagem de locatários.
    *
@@ -29,7 +29,7 @@ export function createFnListarLocatarios(deps: { locRepo: LocatariosRepositorio 
    * @returns `Ok({ itens })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function listarLocatarios(input: ListarLocatariosInput): ListarLocatariosResult {
-    const res = await deps.locRepo.listar();
+    const res = await deps.locatarioRepositorio.listar();
     if (!res.ok) return res;
 
     return wrapOk<ListarLocatariosOutput>({
