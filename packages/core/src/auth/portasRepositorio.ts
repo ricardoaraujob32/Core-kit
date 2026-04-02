@@ -1,30 +1,9 @@
 // packages/core/src/auth/portasRepositorio.ts
 
 import { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
+import { LocatarioId, LocatarioSlug } from "../locatarios";
 import { UsuarioId } from "../usuarios";
-
-/**
- * Projeção mínima de usuário usada pelos fluxos de autenticação.
- *
- * Este tipo representa apenas os campos necessários para login,
- * validação de credenciais e materialização de sessão.
- */
-export type UsuarioAuth = {
-  usuarioId: UsuarioId;
-  locatarioId: LocatarioId | null; // NULL = plataforma (superadmin)
-  email: string;
-  senhaHash: string;
-  status: "ATIVO" | "INATIVO" | "BLOQUEADO"; // conforme enum do BD
-};
-
-/**
- * 
- */
-export type LocatarioAuth = {
-  locatarioId: LocatarioId;
-  status: "ATIVO" | "SUSPENSO" | "ENCERRADO";
-};
+import { LocatarioAuth, UsuarioAuth } from "./tipos";
 
 /**
  * Porta de consulta e atualização de usuários para o fluxo de autenticação.
@@ -63,5 +42,5 @@ export interface LocatariosRepositorioAuth {
    * @param params Identificador do locatário.
    * @returns `Ok(locatario | null)` quando a consulta é bem-sucedida.
    */
-  buscarPorId(params: { locatarioId: LocatarioId }): Promise<Result<LocatarioAuth | null, ErroApp>>;
+  buscarPorSlug(params: { locatarioSlug: LocatarioSlug }): Promise<Result<LocatarioAuth | null, ErroApp>>;
 }

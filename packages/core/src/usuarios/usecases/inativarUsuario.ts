@@ -27,7 +27,7 @@ import { transicionarEstadoUsuario } from "../maquinaEstados";
  * @returns Função `inativarUsuario` pronta para receber a entrada do caso de uso.
  */
 export function createFnInativarUsuario(deps: {
-  usuariosRepo: UsuariosRepositorio;
+  usuariosRepositorio: UsuariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
 }) {

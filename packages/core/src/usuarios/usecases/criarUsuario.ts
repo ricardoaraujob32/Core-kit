@@ -27,7 +27,7 @@ import { validarLocatarioId } from "../../locatarios";
  * @returns Função `criarUsuario` pronta para receber a entrada do caso de uso.
  */
 export function createFnCriarUsuario(deps: {
-  usuariosRepo: UsuariosRepositorio;
+  usuariosRepositorio: UsuariosRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;

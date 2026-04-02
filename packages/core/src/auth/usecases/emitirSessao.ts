@@ -1,11 +1,12 @@
 // packages/core/src/auth/usecases/emitirSessao.ts
 
 import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+import { validarLocatarioSlug } from "../../locatarios/validadores";
 import { credenciaisInvalidas, locatarioNaoPodeAutenticar, usuarioNaoPodeAutenticar } from "../erros";
 import { LocatariosRepositorioAuth, UsuariosRepositorioAuth } from "../portasRepositorio";
 import { EventosSegurancaPorta, HashAuthPorta, JwtAuthPorta, TokensAuthPorta } from "../portasServico";
 import { EmitirSessaoInput, EmitirSessaoOutput, EmitirSessaoResult, Sessao } from "../tipos";
-import { validarEmailAuth, validarLocatarioIdAuth, validarSenha } from "../validadores";
+import { validarEmailAuth, validarSenha } from "../validadores";
 
 /**
  * Cria o caso de uso responsável por autenticar um usuário e emitir uma nova sessão.
@@ -70,8 +71,8 @@ export function createFnEmitirSessao(deps: {
    * @returns `Ok(sessao)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function emitirSessao(input: EmitirSessaoInput): EmitirSessaoResult {
-    const locatarioId = validarLocatarioIdAuth(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
+     const locatarioSlug = validarLocatarioSlug(input.locatarioSlug);
+    if (!locatarioSlug.ok) return locatarioSlug;
 
     const email = validarEmailAuth(input.email);
     if (!email.ok) return email;
@@ -81,21 +82,26 @@ export function createFnEmitirSessao(deps: {
 
     const agora = deps.relogio.agora();
 
-    if (deps.locatariosRepositorio) {
-      const locRes = await deps.locatariosRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
-      });
-      if (!locRes.ok) return locRes;
-
-      const locatario = locRes.value;
-      if (!locatario) return credenciaisInvalidas();
-      if (locatario.status !== "ATIVO") {
-        return locatarioNaoPodeAutenticar(locatario.status);
-      }
+    if (!deps.locatariosRepositorio) {
+      return credenciaisInvalidas();
     }
 
+    const locRes = await deps.locatariosRepositorio.buscarPorSlug({
+      locatarioSlug: locatarioSlug.value,
+    });
+    if (!locRes.ok) return locRes;
+
+    const locatario = locRes.value;
+    if (!locatario) return credenciaisInvalidas();
+
+    if (locatario.status !== "ATIVO") {
+      return locatarioNaoPodeAutenticar(locatario.status);
+    }
+
+    const locatarioId = locatario.locatarioId;
+
     const usuarioRes = await deps.usuariosRepositorio.buscarPorEmail({
-      locatarioId: locatarioId.value,
+      locatarioId,
       email: email.value,
     });
     if (!usuarioRes.ok) return usuarioRes;
@@ -105,10 +111,15 @@ export function createFnEmitirSessao(deps: {
       await deps.eventos?.registrarEvento?.({
         tipo: "auth.login.falha",
         usuarioId: null,
-        locatarioId: locatarioId.value,
-        detalhes: { motivo: "usuario_nao_encontrado", email: email.value },
+        locatarioId,
+        detalhes: {
+          motivo: "usuario_nao_encontrado",
+          email: email.value,
+          locatarioSlug: locatarioSlug.value,
+        },
         quando: agora,
       });
+
       return credenciaisInvalidas();
     }
 
@@ -116,10 +127,15 @@ export function createFnEmitirSessao(deps: {
       await deps.eventos?.registrarEvento?.({
         tipo: "auth.login.falha",
         usuarioId: usuario.usuarioId,
-        locatarioId: locatarioId.value,
-        detalhes: { motivo: "status_invalido", status: usuario.status },
+        locatarioId,
+        detalhes: {
+          motivo: "status_invalido",
+          status: usuario.status,
+          locatarioSlug: locatarioSlug.value,
+        },
         quando: agora,
       });
+
       return usuarioNaoPodeAutenticar(usuario.status);
     }
 
@@ -133,10 +149,14 @@ export function createFnEmitirSessao(deps: {
       await deps.eventos?.registrarEvento?.({
         tipo: "auth.login.falha",
         usuarioId: usuario.usuarioId,
-        locatarioId: locatarioId.value,
-        detalhes: { motivo: "senha_incorreta" },
+        locatarioId,
+        detalhes: {
+          motivo: "senha_incorreta",
+          locatarioSlug: locatarioSlug.value,
+        },
         quando: agora,
       });
+
       return credenciaisInvalidas();
     }
 
@@ -144,7 +164,7 @@ export function createFnEmitirSessao(deps: {
 
     const accessRes = await deps.jwtPorta.emitirAccessToken({
       usuarioId: usuario.usuarioId,
-      locatarioId: locatarioId.value,
+      locatarioId,
       sessionId,
       agora,
       ttlSegundos: deps.ttlAccessSegundos ?? 600,
@@ -154,7 +174,7 @@ export function createFnEmitirSessao(deps: {
 
     const refreshRes = await executarEmTransacao(deps.transacao, async () => {
       return deps.tokensPorta.criarRefresh({
-        locatarioId: locatarioId.value,
+        locatarioId,
         usuarioId: usuario.usuarioId,
         agora,
         ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
@@ -173,11 +193,14 @@ export function createFnEmitirSessao(deps: {
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.login.sucesso",
       usuarioId: usuario.usuarioId,
-      locatarioId: locatarioId.value,
-      detalhes: { sessionId },
+      locatarioId,
+      detalhes: {
+        sessionId,
+        locatarioSlug: locatarioSlug.value,
+      },
       quando: agora,
     });
-    
+
     const sessao: Sessao = {
       accessToken: accessRes.value.token,
       refreshToken: refreshRes.value.tokenBruto,

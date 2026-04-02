@@ -12,16 +12,21 @@ import type { ErroApp, Result } from "../kernel";
 export type LocatarioId = string;
 
 /**
+ * Identificador único usado pelo usuário final
+ */
+export type LocatarioSlug = string;
+
+/**
  * Estados possíveis do ciclo de vida de um locatário.
  *
  * - `ATIVO`: locatário operacional e apto a usar o sistema.
  * - `SUSPENSO`: locatário temporariamente impedido de operar.
- * - `ENCERRADO`: locatário encerrado do ponto de vista de negócio.
+ * - `EXCLUIDO`: locatário excluído do ponto de vista de negócio.
  */
 export type LocatarioStatus =
   | "ATIVO"
   | "SUSPENSO"
-  | "ENCERRADO";
+  | "EXCLUIDO";
 
 /**
  * Eventos formais da máquina de estados de locatários.

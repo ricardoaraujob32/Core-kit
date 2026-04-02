@@ -1,20 +1,60 @@
 // apps/api/src/http/context.ts
 
 import type { FastifyRequest } from "fastify";
-import { comModulosHabilitados, createContextoExecucao, createFnResolverContextoAutorizado, createErroApp, wrapOk } from "@core-kit/core";
+import { comModulosHabilitados, createContextoExecucao, createFnResolverContextoAutorizado, createErroApp, wrapOk, createFnListarModulosHabilitados } from "@core-kit/core";
 import type { ContextoExecucao, ErroApp, LocatarioId, ModuloCodigo, Result } from "@core-kit/core";
 import { createAuthHttpRuntime } from "../infra/prisma/auth";
+import { createModulosHabilitadosRepositorio } from "../infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma";
+import { clientePrisma } from "../infra/prisma/client";
+
+/**
+ * Tipo da função responsável por resolver o contexto autorizado.
+ */
+type ResolverContextoAutorizadoFn =
+  ReturnType<typeof createAuthHttpRuntime>["resolverContextoAutorizado"];
 
 /**
  * Dependências opcionais do builder de contexto HTTP.
  *
  * Uso atual:
- * - permitir enriquecimento do contexto com módulos habilitados
- *   após a resolução de autorização.
+ * - resolver RBAC/contexto autorizado a partir da sessão já validada;
+ * - opcionalmente enriquecer o contexto com módulos habilitados.
  */
 type BuildContextDeps = {
-  listarModulosHabilitados?: (input: { locatarioId: LocatarioId }) => Promise<Result<{ modulos: Array<{ codigo: ModuloCodigo }> }, ErroApp>>;
-};
+  /**
+   * Função responsável por transformar contexto base em contexto autorizado.
+   */
+  resolverContextoAutorizado: ResolverContextoAutorizadoFn;
+
+  /**
+   * Função opcional para buscar módulos habilitados do locatário.
+   */
+  listarModulosHabilitados: ReturnType<typeof createFnListarModulosHabilitados>;
+}
+
+/**
+ * Runtime oficial de autenticação usado na composição padrão do builder.
+ */
+const authRuntime = createAuthHttpRuntime();
+
+/**
+ * Caso de uso oficial de módulos habilitados usado pelo builder.
+ */
+const listarModulosHabilitados = createFnListarModulosHabilitados({
+  repositorio: createModulosHabilitadosRepositorio(clientePrisma),
+});
+
+
+/**
+ * Builder padrão de contexto HTTP usado pela aplicação.
+ *
+ * Observação:
+ * - a factory continua disponível para testes ou composições alternativas;
+ * - este export fornece a versão oficial já montada para a API.
+ */
+export const buildContextFromRequest = createFnBuildContextFromRequest({
+  resolverContextoAutorizado: authRuntime.resolverContextoAutorizado, listarModulosHabilitados,
+});
 
 /**
  * Extrai o usuário autenticado previamente anexado ao request.
@@ -85,7 +125,7 @@ function criarCtxBase(usuario: NonNullable<FastifyRequest["usuario"]>): Result<C
  * @param deps Dependências opcionais de enriquecimento do contexto.
  * @returns Função `buildContextFromRequest`.
  */
-export function createFnBuildContextFromRequest(deps: BuildContextDeps = {}) {
+export function createFnBuildContextFromRequest(deps: BuildContextDeps) {
   /**
    * Constrói o contexto final do Core a partir do request autenticado.
    *
@@ -105,11 +145,6 @@ export function createFnBuildContextFromRequest(deps: BuildContextDeps = {}) {
     const ctxBase = criarCtxBase(usuario);
     if (!ctxBase.ok) return ctxBase;
 
-    const authRuntime = createAuthHttpRuntime();
-    const resolverContextoAutorizado = createFnResolverContextoAutorizado(
-      authRuntime.resolverContextoAutorizadoDeps,
-    );
-
     if (!usuario.sessionId || !usuario.expiraEm) {
       return createErroApp({
         codigo: "NAO_AUTENTICADO",
@@ -117,31 +152,27 @@ export function createFnBuildContextFromRequest(deps: BuildContextDeps = {}) {
       });
     }
 
-    const contextoAutorizado = await resolverContextoAutorizado({
-  sessao: {
-    locatarioId: ctxBase.value.locatarioId,
-    usuarioId: ctxBase.value.usuarioId,
-    sessionId: usuario.sessionId,
-    expiraEm: usuario.expiraEm,
-  },
-});
+  const contextoAutorizado = await deps.resolverContextoAutorizado({
+      sessao: {
+        locatarioId: ctxBase.value.locatarioId,
+        usuarioId: ctxBase.value.usuarioId,
+        sessionId: usuario.sessionId,
+        expiraEm: usuario.expiraEm,
+      },
+  });
 
     if (!contextoAutorizado.ok) return contextoAutorizado;
 
-    let ctxFinal = contextoAutorizado.value.ctx;
+    const modulosResult = await deps.listarModulosHabilitados({
+      locatarioId: contextoAutorizado.value.ctx.locatarioId,
+    });
 
-    if (deps.listarModulosHabilitados) {
-      const modulosResult = await deps.listarModulosHabilitados({
-        locatarioId: ctxFinal.locatarioId,
-      });
+    if (!modulosResult.ok) return modulosResult;
 
-      if (!modulosResult.ok) return modulosResult;
-
-      ctxFinal = comModulosHabilitados(
-        ctxFinal,
-        modulosResult.value.modulos.map((m) => m.codigo),
-      );
-    }
+    const ctxFinal = comModulosHabilitados(
+      contextoAutorizado.value.ctx,
+      modulosResult.value.modulos.map((m) => m.codigo),
+    );
 
     return wrapOk(ctxFinal);
   };

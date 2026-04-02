@@ -40,7 +40,7 @@ type CacheEntry = {
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `resolverPermissoes` pronta para receber a entrada do caso de uso.
  */
-export function createFnResolverPermissoes(deps: { rbacRepo: RbacRepositorio }) {
+export function createFnResolverPermissoes(deps: { rbacRepositorio: RbacRepositorio }) {
   const cache = new WeakMap<object, CacheEntry>();
 
   /**
@@ -66,19 +66,22 @@ export function createFnResolverPermissoes(deps: { rbacRepo: RbacRepositorio }) 
       const ctxComPermissoes = comPermissoes(input.ctx, cacheHit.permissoes);
       const ctxFinal = comPapeis(ctxComPermissoes, cacheHit.papeis);
 
-      return wrapOk({ctx: ctxFinal});
+      return wrapOk<ResolverPermissoesOutput>({
+        ctx: ctxFinal,
+        permissoes: [...cacheHit.permissoes],
+        papeis: [...cacheHit.papeis],
+      });
     }
 
     const { locatarioId, usuarioId } = ctxAutenticado.value;
 
-    const permissoesRes =
-      await deps.rbacRepo.listarPermissoesEfetivasDoUsuario({
+    const permissoesRes = await deps.rbacRepositorio.listarPermissoesEfetivasDoUsuario({
         locatarioId,
         usuarioId,
       });
     if (!permissoesRes.ok) return permissoesRes;
 
-    const papeisRes = await deps.rbacRepo.listarPapeisDoUsuario({
+    const papeisRes = await deps.rbacRepositorio.listarPapeisDoUsuario({
       locatarioId,
       usuarioId,
     });
@@ -92,6 +95,10 @@ export function createFnResolverPermissoes(deps: { rbacRepo: RbacRepositorio }) 
     const ctxComPermissoes = comPermissoes(input.ctx, permissoes);
     const ctxFinal = comPapeis(ctxComPermissoes, papeis);
 
-    return wrapOk({ctx: ctxFinal});
+    return wrapOk<ResolverPermissoesOutput>({
+      ctx: ctxFinal,
+      permissoes,
+      papeis,
+    });
   };
 }

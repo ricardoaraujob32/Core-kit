@@ -1,6 +1,6 @@
 // packages/core/src/modulos/tipos.ts
 
-import { ErroApp, Result } from "../kernel";
+import { ContextoExecucao, ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 
 /**
@@ -81,4 +81,27 @@ export type ModuloEstaHabilitadoOutput = {
   origem?: OrigemModuloHabilitado;
 };
 
+/**
+ * 
+ */
 export type ModuloEstaHabilitadoResult = Promise<Result<ModuloEstaHabilitadoOutput, ErroApp>>;
+
+/**
+ * 
+ */
+export type ResolverModulosHabilitadosInput = {
+  ctx: ContextoExecucao;
+};
+
+/**
+ * 
+ */
+export type ResolverModulosHabilitadosOutput = {
+  ctx: ContextoExecucao;
+  modulos: ModuloHabilitado[];
+};
+
+/**
+ * 
+ */
+export type ResolverModulosHabilitadosResult = Promise<Result<ResolverModulosHabilitadosOutput, ErroApp>>;

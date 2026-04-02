@@ -2,7 +2,7 @@
 
 import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio } from "../kernel";
 import { locatarioInvalido } from "./erros";
-import { LocatarioId } from "./tipos";
+import { LocatarioId, LocatarioSlug } from "./tipos";
 
 /**
  * Converte erro genérico de validação transversal em erro específico do
@@ -43,4 +43,13 @@ export function validarNomeLocatario(nome: string): Result<string, ErroApp> {
  */
 export function validarLocatarioId(locatarioId: LocatarioId): Result<string, ErroApp> {
   return mapearErro( validarIdGenerico(locatarioId, "locatarioId"), "locatarioId", locatarioId );
+}
+
+/**
+ * Valida o slug de um locatário
+ * @param slug identificador único de URL do locatário
+ * @returns `Ok(string)` com slug normalizado ou erro específico do módulo.
+ */
+export function validarLocatarioSlug(slug: LocatarioSlug): Result<string, ErroApp>{
+  return mapearErro( validarTextoObrigatorio(slug, "slug", 2), "slug", slug );
 }

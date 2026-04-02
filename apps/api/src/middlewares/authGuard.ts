@@ -1,9 +1,36 @@
 // apps/api/src/middlewares/authGuard.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { createFnValidarSessao } from "@core-kit/core";
 import { sendHttpError } from "../http/serializarErroApp";
 import { createAuthHttpRuntime } from "../infra/prisma/auth";
+
+/**
+ * Dependências necessárias para criar o middleware de autenticação.
+ */
+type AuthGuardDeps = {
+  /**
+   * Função responsável por validar a sessão a partir do access token.
+   */
+  validarSessao: ReturnType<typeof createAuthHttpRuntime>["validarSessao"];
+};
+
+/**
+ * Runtime oficial de autenticação usado pela borda HTTP.
+ */
+const authRuntime = createAuthHttpRuntime();
+
+/**
+ * Middleware oficial de autenticação HTTP.
+ *
+ * Este middleware:
+ * - extrai bearer token;
+ * - valida a sessão;
+ * - popula `request.usuario`;
+ * - não resolve permissões nem aplica autorização fina.
+ */
+export const authGuard = createFnAuthGuard({
+  validarSessao: authRuntime.validarSessao,
+});
 
 /**
  * Extrai o bearer token bruto do header Authorization.
@@ -44,33 +71,37 @@ function extrairBearerToken(request: FastifyRequest): string | null {
  * @param reply Resposta Fastify usada para serializar erros.
  * @returns `void` em caso de sucesso ou resposta HTTP de erro em caso de falha.
  */
-export async function authGuard(request: FastifyRequest, reply: FastifyReply) {
-  const accessToken = extrairBearerToken(request);
+export function createFnAuthGuard(deps: AuthGuardDeps) {
+  /**
+   * Middleware concreto de autenticação.
+   *
+   * @param request Requisição Fastify atual.
+   * @param reply Resposta Fastify.
+   * @returns `void` em caso de sucesso ou resposta HTTP de erro em caso de falha.
+   */
+  return async function authGuard(request: FastifyRequest, reply: FastifyReply) {
+    const accessToken = extrairBearerToken(request);
 
-  if (!accessToken) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTENTICADO",
-      mensagem: "Bearer token ausente.",
+    if (!accessToken) {
+      return sendHttpError(reply, {
+        codigo: "NAO_AUTENTICADO",
+        mensagem: "Bearer token ausente.",
+      });
+    }
+
+    const resultado = deps.validarSessao({
+      accessToken,
     });
-  }
 
-  const authRuntime = createAuthHttpRuntime();
-  const validarSessao = createFnValidarSessao(authRuntime.validarSessaoDeps);
+    if (!resultado.ok) {
+      return sendHttpError(reply, resultado.error);
+    }
 
-  const resultado = validarSessao({
-    accessToken,
-  });
-
-  if (!resultado.ok) {
-    return sendHttpError(reply, resultado.error);
-  }
-
-  request.usuario = {
-    usuarioId: resultado.value.sessao.usuarioId,
-    locatarioId: resultado.value.sessao.locatarioId,
-    papeis: [],
-    permissoes: [],
-    sessionId: resultado.value.sessao.sessionId,
-    expiraEm: resultado.value.sessao.expiraEm,
+    request.usuario = {
+      usuarioId: resultado.value.sessao.usuarioId,
+      locatarioId: resultado.value.sessao.locatarioId,
+      sessionId: resultado.value.sessao.sessionId,
+      expiraEm: resultado.value.sessao.expiraEm,
+    };
   };
 }

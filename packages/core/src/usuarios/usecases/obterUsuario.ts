@@ -4,7 +4,7 @@ import { wrapOk } from "../../kernel";
 import type { ObterUsuarioInput, ObterUsuarioOutput, ObterUsuarioResult } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import { validarUsuarioId } from "../validadores";
-import { usuarioEncerrado, usuarioInativo, usuarioNaoEncontrado, usuarioSuspenso } from "../erros";
+import { usuarioNaoEncontrado } from "../erros";
 import { validarLocatarioId } from "../../locatarios";
 import { transicionarEstadoUsuario } from "../maquinaEstados";
 
@@ -24,7 +24,7 @@ import { transicionarEstadoUsuario } from "../maquinaEstados";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `obterUsuario` pronta para receber a entrada do caso de uso.
  */
-export function createFnObterUsuario(deps: { usuariosRepo: UsuariosRepositorio }) {
+export function createFnObterUsuario(deps: { usuariosRepositorio: UsuariosRepositorio }) {
   /**
    * Executa o caso de uso de obtenção de usuário.
    *
@@ -45,7 +45,7 @@ export function createFnObterUsuario(deps: { usuariosRepo: UsuariosRepositorio }
     const usuarioId = validarUsuarioId(input.usuarioId);
     if (!usuarioId.ok) return usuarioId;
 
-    const res = await deps.usuariosRepo.buscarPorId({
+    const res = await deps.usuariosRepositorio.buscarPorId({
       locatarioId: locatarioId.value,
       usuarioId: usuarioId.value,
     });

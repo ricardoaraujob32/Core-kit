@@ -1,35 +1,68 @@
 // apps/api/src/modules/auth/auth.controller.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { createFnEmitirSessao, createFnRotacionarRefresh, type LocatarioId } from "@core-kit/core";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { createAuthHttpRuntime } from "../../infra/prisma/auth";
+import { LoginBody, RefreshBody } from "./auth.dto";
+import { criarContextoAuditoria } from "../helpers";
+import { auditar } from "../auditoria/auditoria.dispatcher.instance";
+import { metaAcao } from "@core-kit/core";
 
 /**
- * Payload HTTP esperado no endpoint de login.
+ * Serializa a sessão materializada no formato HTTP da API.
  *
- * Campos:
- * - `locatarioId`: escopo do login;
- * - `email`: credencial do usuário;
- * - `senha`: segredo em texto puro recebido da borda.
+ * @param sessao Sessão retornada pelo Core.
+ * @returns Payload HTTP de sucesso.
  */
-type LoginBody = {
-  locatarioId: LocatarioId;
-  email: string;
-  senha: string;
-};
-
-/**
- * Payload HTTP esperado no endpoint de refresh.
- *
- * Campos:
- * - `locatarioId`: locatário esperado para o refresh;
- * - `refreshToken`: token bruto enviado pelo cliente.
- */
-type RefreshBody = {
-  locatarioId: LocatarioId;
+function serializarSessaoHttp(sessao: {
+  accessToken: string;
   refreshToken: string;
-};
+  accessExpiraEm: Date;
+  refreshExpiraEm: Date;
+}) {
+  return {
+    accessToken: sessao.accessToken,
+    refreshToken: sessao.refreshToken,
+    accessExpiraEm: sessao.accessExpiraEm,
+    refreshExpiraEm: sessao.refreshExpiraEm,
+  };
+}
+
+/**
+ * Cria contexto de auditoria para fluxos de auth não autenticados ou
+ * semi-autenticados.
+ *
+ * Observação:
+ * - login ainda pode ocorrer sem `usuarioId` resolvido na borda;
+ * - refresh também pode falhar antes da materialização completa da nova sessão.
+ *
+ * @param request Requisição atual.
+ * @param params Dados complementares do fluxo.
+ * @returns Contexto compatível com o dispatcher.
+ */
+function criarContextoAuditoriaAuth(
+  request: FastifyRequest,
+  params?: {
+    locatarioId?: string | null;
+    agenteTipo?: string | null;
+  },
+) {
+  return criarContextoAuditoria(request, {
+    usuarioId: null,
+    locatarioId: params?.locatarioId ?? null,
+    agenteTipo: params?.agenteTipo ?? "USUARIO_ANONIMO",
+    origem: "API",
+  });
+}
+
+/**
+ * Runtime oficial de autenticação usado pela borda HTTP.
+ *
+ * Observação:
+ * - centraliza a composição da auth;
+ * - evita wiring repetido em cada controller.
+ */
+const authRuntime = createAuthHttpRuntime();
 
 /**
  * Controller HTTP de login.
@@ -49,14 +82,25 @@ type RefreshBody = {
  * @returns Resposta HTTP de sucesso ou erro.
  */
 export async function loginController(request: FastifyRequest<{ Body: LoginBody }>, reply: FastifyReply) {
-  const authRuntime = createAuthHttpRuntime();
-  const emitirSessao = createFnEmitirSessao(authRuntime.emitirSessaoDeps);
-
-  const resultado = await emitirSessao({
-    locatarioId: request.body.locatarioId,
+  const resultado = await authRuntime.emitirSessao({
+    locatarioSlug: request.body.locatarioSlug,
     email: request.body.email,
     senha: request.body.senha,
   });
+
+  await auditar(criarContextoAuditoriaAuth(request),
+    {
+      evento: resultado.ok ? "auth.login.sucesso" : "auth.login.falha",
+      sucesso: resultado.ok,
+      entidadeTipo: "sessao",
+      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+      metadados: metaAcao({
+        locatarioSlug: request.body.locatarioSlug,
+        email: request.body.email,
+      }),
+    },
+  );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -84,13 +128,23 @@ export async function loginController(request: FastifyRequest<{ Body: LoginBody 
  * @returns Resposta HTTP de sucesso ou erro.
  */
 export async function refreshController(request: FastifyRequest<{ Body: RefreshBody }>, reply: FastifyReply) {
-  const authRuntime = createAuthHttpRuntime();
-  const rotacionarRefresh = createFnRotacionarRefresh(authRuntime.rotacionarRefreshDeps);
-
-  const resultado = await rotacionarRefresh({
+  const resultado = await authRuntime.rotacionarRefresh({
     locatarioId: request.body.locatarioId,
     refreshToken: request.body.refreshToken,
   });
+
+  await auditar(criarContextoAuditoriaAuth(request, { locatarioId: request.body.locatarioId, agenteTipo: "TOKEN_REFRESH", }),
+    {
+      evento: resultado.ok ? "auth.refresh.sucesso" : "auth.refresh.falha",
+      sucesso: resultado.ok,
+      entidadeTipo: "sessao",
+      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+      metadados: metaAcao({
+        locatarioId: request.body.locatarioId,
+      }),
+    },
+  );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);

@@ -1,44 +1,43 @@
-// packages/core/src/auditoria/portasRepositorio
+// packages/core/src/auditoria/portasRepositorio.ts
 
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
-
-/**
- * Evento mínimo de auditoria emitido pelo domínio.
- *
- * Este tipo representa um rastro estruturado de ação de negócio,
- * independente da tecnologia concreta de armazenamento ou entrega.
- */
-export type EventoAuditoria = {
-  /** Locatário ao qual o evento pertence. */
-  locatarioId: LocatarioId;
-  /** Usuário responsável pela ação, quando identificado. */
-  usuarioId: UsuarioId | null;
-  /** Ação lógica registrada na trilha de auditoria. */
-  acao: string;
-  /** Entidade principal afetada pela ação. */
-  entidade: string;
-  /** Identificador da entidade afetada, quando houver. */
-  entidadeId?: string | null;
-  /** Metadados estruturados adicionais do evento. */
-  dados?: Record<string, unknown>;
-  /** Instante de criação do evento. */
-  criadoEm: Date;
-};
+import type { ErroApp, Result } from "../kernel";
+import type { EventoAuditoriaAtivaLocatario, EventoAuditoriaInterna, ListarAuditoriaAtivaLocatarioInput, ListarAuditoriaInternaInput,
+   RegistrarEventoAuditoriaInternaInput } from "./tipos";
 
 /**
- * Porta de escrita de auditoria.
+ * Porta de persistência da auditoria interna da plataforma.
  *
- * Diferentemente de um repositório de domínio principal, esta interface
- * representa a capacidade de registrar rastros de operação para fins de
- * observabilidade, trilha histórica e compliance.
+ * Esta é a trilha canônica do sistema.
  */
-export type AuditoriaWriter = {
+export interface AuditoriaInternaRepositorio {
   /**
-   * Registra um evento de auditoria.
+   * Registra um evento na trilha interna.
    *
-   * @param evento Evento estruturado a ser persistido ou encaminhado.
-   * @returns `Promise<void>` porque a auditoria pode ser tratada como side effect.
+   * @param input Dados do evento a persistir.
+   * @returns `Ok(eventoPersistido)` ou `Err(ErroApp)`.
    */
-  registrar(evento: EventoAuditoria): Promise<void>;
-};
+  registrarEvento(input: RegistrarEventoAuditoriaInternaInput): Promise<Result<EventoAuditoriaInterna, ErroApp>>;
+
+  /**
+   * Lista eventos da auditoria interna com filtros avançados.
+   *
+   * @param input Filtros de consulta.
+   * @returns `Ok(eventos)` ou `Err(ErroApp)`.
+   */
+  listarEventos(input: ListarAuditoriaInternaInput): Promise<Result<EventoAuditoriaInterna[], ErroApp>>;
+}
+
+/**
+ * Porta de leitura da auditoria ativa do locatário.
+ *
+ * Esta porta representa o produto visível ao cliente.
+ */
+export interface AuditoriaAtivaLocatarioRepositorio {
+  /**
+   * Lista eventos visíveis ao locatário.
+   *
+   * @param input Filtros de consulta.
+   * @returns `Ok(eventos)` ou `Err(ErroApp)`.
+   */
+  listarEventos(input: ListarAuditoriaAtivaLocatarioInput): Promise<Result<EventoAuditoriaAtivaLocatario[], ErroApp>>;
+}

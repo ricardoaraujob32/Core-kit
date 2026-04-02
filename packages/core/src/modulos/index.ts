@@ -8,8 +8,13 @@ export type {
   ModuloHabilitado,
   ListarModulosHabilitadosInput,
   ListarModulosHabilitadosOutput,
+  ListarModulosHabilitadosResult,
   ModuloEstaHabilitadoInput,
   ModuloEstaHabilitadoOutput,
+  ModuloEstaHabilitadoResult,
+  ResolverModulosHabilitadosInput,
+  ResolverModulosHabilitadosOutput,
+  ResolverModulosHabilitadosResult,
 } from "./tipos";
 
 // Erros
@@ -33,3 +38,4 @@ export type { ModulosHabilitadosRepositorio } from "./portasRepositorio";
 export { createFnListarModulosHabilitados } from "./usecases/listarModulosHabilitados";
 export { createFnModuloEstaHabilitado } from "./usecases/moduloEstaHabilitado";
 export { createFnExigirModuloHabilitado } from "./usecases/exigirModuloHabilitado";
+export { createFnResolverModulosHabilitados } from "./usecases/resolverModulosHabilitados";

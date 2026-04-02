@@ -52,9 +52,12 @@ export const Permissoes = {
   TENANT_USUARIO_ATRIBUIR_PAPEIS: "tenant.usuario.atribuirPapeis",
 
   TENANT_RBAC_PAPEL_CRIAR: "tenant.rbac.papel.criar",
+  TENANT_RBAC_PAPEL_ATUALIZAR: "tenant.rbac.papel.atualizar",
   TENANT_RBAC_PAPEL_LISTAR: "tenant.rbac.papel.listar",
   TENANT_RBAC_PERMISSAO_ATRIBUIR: "tenant.rbac.permissao.atribuir",
+  TENANT_RBAC_PERMISSAO_REMOVER: "tenant.rbac.permissao.remover",
   TENANT_RBAC_PERMISSAO_LISTAR: "tenant.rbac.permissao.listar",
+  TENANT_RBAC_USUARIO_PAPEIS_ATUALIZAR: "tenant.rbac.usuario.papeis.atualizar",
 
   TENANT_AUDITORIA_LER: "tenant.auditoria.ler",
 
@@ -85,9 +88,9 @@ export interface ResolverPermissoesOutput {
   /** Contexto utilizado ou enriquecido durante a resolução. */
   ctx: ContextoExecucao;
   /** Permissões finais reconhecidas para o usuário. */
- // permissoes: Permissao[];
+  permissoes: Permissao[];
   /** Papéis finais reconhecidos para o usuário. */
- // papeis: Papel[];
+  papeis: Papel[];
 }
 
 /**

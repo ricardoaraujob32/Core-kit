@@ -1,6 +1,8 @@
 export type {
   Sessao,
   SessaoValidada,
+  UsuarioAuth, 
+  LocatarioAuth, 
   JwtPayloadAuth,
   EmitirSessaoInput,
   EmitirSessaoOutput,
@@ -29,7 +31,7 @@ export { validarEmailAuth, validarSenha, validarLocatarioIdAuth, validarTokenNao
 
 export type { HashAuthPorta, JwtAuthPorta, TokensAuthPorta, RbacAuthPorta, EventosSegurancaPorta } from "./portasServico";
 
-export type { LocatariosRepositorioAuth, UsuariosRepositorioAuth, UsuarioAuth, LocatarioAuth } from "./portasRepositorio";
+export type { LocatariosRepositorioAuth, UsuariosRepositorioAuth } from "./portasRepositorio";
 
 export { createFnEmitirSessao } from "./usecases/emitirSessao";
 export { createFnValidarSessao } from "./usecases/validarSessao";

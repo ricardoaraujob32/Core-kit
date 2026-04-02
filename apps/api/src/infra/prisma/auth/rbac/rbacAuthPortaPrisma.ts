@@ -24,26 +24,49 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
      */
     async resolverPermissoes(ctxBase: ContextoExecucao): Promise<Result<ContextoExecucao, ErroApp>> {
       try {
-        const rows = await db.usuarios_permissoes.findMany({
+        if (!ctxBase.usuarioId) {
+          return wrapOk(ctxBase);
+        }
+
+        const rows = await db.usuarios_papeis.findMany({
           where: {
             locatario_id: ctxBase.locatarioId,
             usuario_id: ctxBase.usuarioId,
           },
           select: {
-            permissao: true,
+            papeis: {
+              select: {
+                codigo: true,
+                papel_permissoes: {
+                  select: {
+                    permissoes: {
+                      select: {
+                        codigo: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           orderBy: {
-            permissao: "asc",
+            papel_id: "asc",
           },
         });
 
-        const permissoes = rows.map((r) => r.permissao as Permissao);
+        const papeis = Array.from(
+          new Set(rows.map((row) => row.papeis.codigo as Papel)),
+        );
 
-        /**
-         * Quando a estrutura de papéis estiver consolidada na API/BD,
-         * encaixe a resolução real aqui.
-         */
-        const papeis: Papel[] = [];
+        const permissoes = Array.from(
+          new Set(
+            rows.flatMap((row) =>
+              row.papeis.papel_permissoes.map(
+                (pp) => pp.permissoes.codigo as Permissao,
+              ),
+            ),
+          ),
+        ).sort();
 
         const ctx = createContextoExecucao({
           locatarioId: ctxBase.locatarioId,
@@ -56,10 +79,14 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
 
         return wrapOk(ctx);
       } catch (causa) {
-        return erroInfraAuth("Falha ao resolver permissões de autenticação.", causa, {
+        return erroInfraAuth({
+          mensagem:"Falha ao resolver permissões de autenticação.",
           operacao: "auth.rbac.resolverPermissoes",
-          locatarioId: ctxBase.locatarioId,
-          usuarioId: ctxBase.usuarioId,
+          causa,
+          detalhes: {
+            locatarioId: ctxBase.locatarioId,
+            usuarioId: ctxBase.usuarioId,
+          }
         });
       }
     },

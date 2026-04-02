@@ -1,5 +1,6 @@
 export type {
   LocatarioId,
+  LocatarioSlug,
   LocatarioStatus,
   Locatario,
   CriarLocatarioInput,
@@ -23,6 +24,7 @@ export {
 export {
   validarNomeLocatario,
   validarLocatarioId,
+  validarLocatarioSlug
 } from "./validadores";
 
 export type { LocatariosRepositorio } from "./portasRepositorio";

@@ -19,9 +19,7 @@ import { validarLocatarioId } from "../../locatarios";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `listarUsuariosPorLocatario` pronta para receber a entrada do caso de uso.
  */
-export function createFnListarUsuariosPorLocatario(deps: {
-  usuariosRepo: UsuariosRepositorio;
-}) {
+export function createFnListarUsuariosPorLocatario(deps: { usuariosRepositorio: UsuariosRepositorio; }) {
   /**
    * Executa o caso de uso de listagem de usuários por locatário.
    *
@@ -37,7 +35,7 @@ export function createFnListarUsuariosPorLocatario(deps: {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
-    const res = await deps.usuariosRepo.listarPorLocatario({
+    const res = await deps.usuariosRepositorio.listarPorLocatario({
       locatarioId: locatarioId.value,
     });
     if (!res.ok) return res;

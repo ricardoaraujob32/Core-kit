@@ -1,175 +1,321 @@
 // packages/core/src/auditoria/tipos.ts
 
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
+import { ErroApp, Result } from "../kernel";
+import type { LocatarioId } from "../locatarios";
+import type { UsuarioId } from "../usuarios";
 
 /**
- * Identificador lógico de um evento de auditoria persistido.
+ * Identificador lógico de um registro de auditoria.
  */
 export type AuditoriaId = string;
 
 /**
- * Estrutura base compartilhada por comandos de auditoria.
+ * Tipo de escopo real do evento auditado.
  *
- * Contém os campos semânticos comuns a eventos de locatário e de plataforma.
+ * Observação:
+ * - o escopo descreve onde o fato aconteceu;
+ * - ele não define sozinho quem pode consultar o evento.
+ */
+export type EscopoAuditoria = "PLATAFORMA" | "LOCATARIO";
+
+/**
+ * Política de visibilidade do evento.
+ *
+ * Regras:
+ * - `INTERNA`: somente a plataforma pode consultar;
+ * - `CLIENTE`: somente o locatário pode consultar;
+ * - `AMBOS`: visível internamente e também na auditoria ativa do cliente.
+ */
+export type VisibilidadeAuditoria = "INTERNA" | "CLIENTE" | "AMBOS";
+
+/**
+ * Categoria semântica do evento auditado.
+ *
+ * Ajuda a separar:
+ * - operação de negócio;
+ * - segurança;
+ * - falha técnica;
+ * - compliance.
+ */
+export type CategoriaAuditoria =
+  | "OPERACAO"
+  | "SEGURANCA"
+  | "ERRO"
+  | "COMPLIANCE";
+
+/**
+ * Estrutura base comum a todos os eventos de auditoria.
  */
 export interface EventoAuditoriaBase {
-  /** Nome/código do evento auditado. */
+  /** Nome/código estável do evento. Ex.: `usuario.criado`. */
   evento: string;
-  /** Indica se a operação auditada foi bem-sucedida. */
+
+  /** Categoria semântica do evento. */
+  categoria: CategoriaAuditoria;
+
+  /** Indica se a operação principal foi bem-sucedida. */
   sucesso: boolean;
+
   /** Código de erro associado, quando houver falha. */
   erroCodigo?: string | null;
+
   /** Mensagem de erro associada, quando houver falha. */
   erroMensagem?: string | null;
-  /** Nome amigável da entidade afetada, quando aplicável. */
+
+  /** Nome amigável da entidade afetada. */
   entidadeNome?: string | null;
-  /** Tipo da entidade afetada, quando aplicável. */
+
+  /** Tipo da entidade afetada. Ex.: `usuario`, `locatario`, `token`. */
   entidadeTipo?: string | null;
-  /** Identificador da entidade afetada, quando aplicável. */
+
+  /** Identificador da entidade afetada. */
   entidadeId?: string | null;
-  /** Origem lógica do evento, como API, job ou integração. */
+
+  /** Origem lógica do evento. Ex.: `API`, `JOB`, `INTEGRACAO`. */
   origem?: string | null;
-  /** Identificador de correlação/requisição, quando disponível. */
+
+  /** Identificador de correlação/requisição. */
   requisicaoId?: string | null;
-  /** Endereço IP associado ao evento, quando disponível. */
+
+  /** Endereço IP associado ao evento. */
   enderecoIp?: string | null;
-  /** User-agent ou agente textual associado ao evento. */
+
+  /** User-agent ou identificador textual do agente. */
   agenteUsuario?: string | null;
-  /** Tipo do agente que originou a ação. */
+
+  /** Tipo do agente executor. Ex.: `USUARIO_AUTENTICADO`, `SUPERADMIN`, `JOB`. */
   agenteTipo?: string | null;
-  /** Metadados livres e serializáveis do evento. */
+
+  /** Metadados livres, serializáveis e seguros. */
   metadados?: Record<string, unknown>;
 }
 
 /**
- * Evento de auditoria pertencente ao contexto de um locatário.
+ * Registro interno de auditoria da plataforma.
+ *
+ * Este é o modelo canônico do domínio de auditoria.
+ * Toda trilha nasce aqui, independentemente de depois ser exposta ao cliente ou não.
  */
-export interface EventoAuditoriaLocatario {
-  /** Identificador do evento persistido. */
+export interface EventoAuditoriaInterna {
+  /** Identificador persistido do evento. */
   auditoriaId: AuditoriaId;
-  /** Locatário no qual o evento ocorreu. */
-  locatarioId: LocatarioId;
-  /** Usuário responsável pela ação auditada. */
-  usuarioId: UsuarioId;
+
+  /** Escopo onde o fato ocorreu. */
+  escopo: EscopoAuditoria;
+
+  /** Locatário do evento, quando o escopo for `LOCATARIO`. */
+  locatarioId: LocatarioId | null;
+
+  /** Usuário executor da ação, quando identificado. */
+  usuarioId: UsuarioId | null;
+
   /** Nome/código do evento. */
   evento: string;
-  /** Indica sucesso ou falha da operação. */
+
+  /** Categoria semântica do evento. */
+  categoria: CategoriaAuditoria;
+
+  /** Resultado da operação. */
   sucesso: boolean;
-  /** Código de erro registrado, quando houver. */
+
+  /** Política de visibilidade do registro. */
+  visibilidade: VisibilidadeAuditoria;
+
+  /** Código de erro registrado. */
   erroCodigo: string | null;
-  /** Mensagem de erro registrada, quando houver. */
+
+  /** Mensagem de erro registrada. */
   erroMensagem: string | null;
+
   /** Nome amigável da entidade afetada. */
   entidadeNome: string | null;
+
   /** Tipo da entidade afetada. */
   entidadeTipo: string | null;
+
   /** Identificador da entidade afetada. */
   entidadeId: string | null;
+
   /** Origem lógica do evento. */
   origem: string | null;
+
   /** Identificador de correlação/requisição. */
   requisicaoId: string | null;
+
   /** Endereço IP associado. */
   enderecoIp: string | null;
+
   /** User-agent ou identificador do agente. */
   agenteUsuario: string | null;
-  /** Tipo do agente que executou a ação. */
+
+  /** Tipo do agente executor. */
   agenteTipo: string | null;
+
   /** Metadados adicionais do evento. */
   metadados: Record<string, unknown>;
-  /** Data/hora de criação do registro de auditoria. */
+
+  /** Timestamp de criação do registro. */
   criadoEm: Date;
 }
 
 /**
- * Evento de auditoria pertencente ao contexto de plataforma.
+ * Visão de auditoria ativa do locatário.
+ *
+ * É uma projeção consultável pelo cliente, sempre derivada da auditoria interna
+ * e restrita ao que for marcado como `CLIENTE` ou `AMBOS`.
  */
-export interface EventoAuditoriaPlataforma {
-  /** Identificador do evento persistido. */
+export interface EventoAuditoriaAtivaLocatario {
   auditoriaId: AuditoriaId;
-  /** Usuário responsável pela ação auditada. */
-  usuarioId: UsuarioId;
-  /** Locatário alvo da ação, quando houver escopo de locatário. */
-  locatarioAlvoId: LocatarioId | null;
-  /** Nome/código do evento. */
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId | null;
   evento: string;
-  /** Indica sucesso ou falha da operação. */
+  categoria: CategoriaAuditoria;
   sucesso: boolean;
-  /** Código de erro registrado, quando houver. */
   erroCodigo: string | null;
-  /** Mensagem de erro registrada, quando houver. */
   erroMensagem: string | null;
-  /** Nome amigável da entidade afetada. */
   entidadeNome: string | null;
-  /** Tipo da entidade afetada. */
   entidadeTipo: string | null;
-  /** Identificador da entidade afetada. */
   entidadeId: string | null;
-  /** Origem lógica do evento. */
   origem: string | null;
-  /** Identificador de correlação/requisição. */
   requisicaoId: string | null;
-  /** Endereço IP associado. */
   enderecoIp: string | null;
-  /** User-agent ou identificador do agente. */
   agenteUsuario: string | null;
-  /** Tipo do agente que executou a ação. */
   agenteTipo: string | null;
-  /** Metadados adicionais do evento. */
   metadados: Record<string, unknown>;
-  /** Data/hora de criação do registro. */
   criadoEm: Date;
 }
 
 /**
- * Entrada para registrar evento de auditoria no escopo de locatário.
+ * Entrada para registrar um evento na auditoria interna.
+ *
+ * Observação:
+ * - esta é a única operação de escrita do domínio;
+ * - a auditoria ativa do cliente não registra eventos por conta própria.
  */
-export interface RegistrarEventoLocatarioInput extends EventoAuditoriaBase {
-  /** Locatário ao qual o evento pertence. */
-  locatarioId: LocatarioId;
-  /** Usuário responsável pelo evento. */
-  usuarioId: UsuarioId;
+export interface RegistrarEventoAuditoriaInternaInput extends EventoAuditoriaBase {
+  /** Escopo real do evento. */
+  escopo: EscopoAuditoria;
+
+  /** Locatário do evento, obrigatório quando `escopo === "LOCATARIO"`. */
+  locatarioId?: LocatarioId | null;
+
+  /** Usuário executor da ação, quando identificado. */
+  usuarioId?: UsuarioId | null;
+
+  /** Política de visibilidade do registro. */
+  visibilidade?: VisibilidadeAuditoria;
 }
 
 /**
- * Entrada para registrar evento de auditoria no escopo de plataforma.
+ * Saída do caso de uso registrarEventoAuditoriaInterna
  */
-export interface RegistrarEventoPlataformaInput extends EventoAuditoriaBase {
-  /** Usuário responsável pelo evento. */
-  usuarioId: UsuarioId;
-  /** Locatário alvo, quando a ação da plataforma afetar um locatário. */
-  locatarioAlvoId?: LocatarioId | null;
+export interface RegistrarEventoAuditoriaInternaOutput {
+  evento: EventoAuditoriaInterna;
 }
 
 /**
- * Filtros de consulta para auditoria de locatário.
+ * 
  */
-export interface ListarAuditoriaLocatarioInput {
-  /** Locatário cuja trilha será consultada. */
-  locatarioId: LocatarioId;
-  /** Filtro opcional por tipo de entidade. */
-  entidadeTipo?: string;
-  /** Filtro opcional por identificador de entidade. */
-  entidadeId?: string;
-  /** Filtro opcional por nome/código do evento. */
+export type RegistrarEventoAuditoriaInternaResult = Promise<Result<RegistrarEventoAuditoriaInternaOutput, ErroApp>>;
+
+/**
+ * Filtros compartilhados para consultas de auditoria.
+ */
+export interface FiltrosAuditoriaBase {
+  /** Filtro exato por nome/código do evento. */
   evento?: string;
-  /** Limite máximo de itens retornados. */
+
+  /** Prefixo do evento. Ex.: `usuario.` */
+  eventoPrefixo?: string;
+
+  /** Filtro por categoria. */
+  categoria?: CategoriaAuditoria;
+
+  /** Filtro por sucesso/falha. */
+  sucesso?: boolean;
+
+  /** Filtro por código de erro. */
+  erroCodigo?: string;
+
+  /** Filtro por nome da entidade afetada. */
+  entidadeNome?: string;
+
+  /** Filtro por tipo da entidade afetada. */
+  entidadeTipo?: string;
+
+  /** Filtro por identificador da entidade. */
+  entidadeId?: string;
+
+  /** Filtro por usuário executor. */
+  usuarioId?: UsuarioId;
+
+  /** Filtro por origem lógica. */
+  origem?: string;
+
+  /** Filtro por identificador de requisição. */
+  requisicaoId?: string;
+
+  /** Filtro por tipo do agente executor. */
+  agenteTipo?: string;
+
+  /** Filtro por data/hora inicial. */
+  criadoDe?: Date;
+
+  /** Filtro por data/hora final. */
+  criadoAte?: Date;
+
+  /** Busca textual simples em campos indexáveis/projetáveis. */
+  textoLivre?: string;
+
+  /** Cursor para paginação. */
+  cursor?: string;
+
+  /** Limite máximo de resultados. */
   limite?: number;
 }
 
 /**
- * Filtros de consulta para auditoria de plataforma.
+ * Filtros para consulta da auditoria interna.
+ *
+ * A plataforma pode consultar qualquer escopo, inclusive filtrar por visibilidade.
  */
-export interface ListarAuditoriaPlataformaInput {
-  /** Locatário alvo, quando a pesquisa for restringida a um locatário. */
-  locatarioAlvoId?: LocatarioId | null;
-  /** Filtro opcional por tipo de entidade. */
-  entidadeTipo?: string;
-  /** Filtro opcional por identificador de entidade. */
-  entidadeId?: string;
-  /** Filtro opcional por nome/código do evento. */
-  evento?: string;
-  /** Limite máximo de itens retornados. */
-  limite?: number;
+export interface ListarAuditoriaInternaInput extends FiltrosAuditoriaBase {
+  escopo?: EscopoAuditoria;
+  locatarioId?: LocatarioId;
+  visibilidade?: VisibilidadeAuditoria;
 }
+
+/**
+ * Saída do caso de uso listarAuditoriInterna
+ */
+export interface ListarAuditoriaInternaOutput {
+  itens: EventoAuditoriaInterna[];
+}
+
+/**
+ * 
+ */
+export type ListarAuditoriaInternaResult = Promise<Result<ListarAuditoriaInternaOutput, ErroApp>>;
+
+/**
+ * Filtros para consulta da auditoria ativa do locatário.
+ *
+ * Regras:
+ * - `locatarioId` é obrigatório;
+ * - o repositório só deve expor eventos visíveis ao cliente.
+ */
+export interface ListarAuditoriaAtivaLocatarioInput extends FiltrosAuditoriaBase {
+  locatarioId: LocatarioId;
+}
+
+/**
+ * Saída do caso de uso listarAuditoriaAtivaLocatario
+ */
+export interface ListarAuditoriaAtivaLocatarioOutput {
+  itens: EventoAuditoriaAtivaLocatario[];
+}
+
+/**
+ * 
+ */
+export type ListarAuditoriaAtivaLocatarioResult = Promise<Result<ListarAuditoriaAtivaLocatarioOutput, ErroApp>>;

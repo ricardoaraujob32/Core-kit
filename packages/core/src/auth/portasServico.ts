@@ -2,7 +2,6 @@
 
 import { ContextoExecucao, ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
-import { ResolverPermissoesOutput } from "../rbac";
 import { TokenId } from "../tokens";
 import { UsuarioId } from "../usuarios";
 
@@ -12,6 +11,11 @@ import { UsuarioId } from "../usuarios";
  * Esta interface abstrai a verificação criptográfica do segredo do usuário.
  */
 export interface HashAuthPorta {
+  /**
+   * 
+   * @param senha 
+   */
+  gerarHashSenha(senha: string): Promise<Result<string, ErroApp>>;
   /**
    * Compara senha em texto puro com hash persistido.
    *

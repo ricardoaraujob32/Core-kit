@@ -1,68 +1,66 @@
 // apps/api/src/modules/locatarios/locatarios.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { createFnBuildContextFromRequest } from "../../http/context";
 import { sendHttpError } from "../../http/serializarErroApp";
-import { createLocatariosRepositorioAuthPrisma } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
-import { createFnListarLocatarios, createFnObterLocatario } from "@core-kit/core";
+import { createFnListarLocatarios, createFnObterLocatario, metaAcao } from "@core-kit/core";
+import { exigirMesmoLocatarioHttp } from "../../http/routeGuards";
+import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma";
+import { criarContextoAuditoria, exigirSuperAdminOuResponderErro, obterCtxAutorizadoOuResponderErro, obterCtxOuResponderErro } from "../helpers";
+import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 
 /**
- * 
- * 
- */
-const buildContextFromRequest = createFnBuildContextFromRequest();
-
-/**
- * 
- * @param request 
- * @param reply 
- * @returns 
- */
-async function obterCtxOuResponderErro(request: FastifyRequest, reply: FastifyReply) {
-  const ctxRes = await buildContextFromRequest(request);
-
-  if (!ctxRes.ok) {
-    sendHttpError(reply, ctxRes.error);
-    return null;
-  }
-
-  return ctxRes.value;
-}
-
-/**
- * Regra temporária/operacional:
- * o fluxo superadmin atual é reconhecido pelo escopo de plataforma.
+ * Builder oficial de contexto HTTP para este módulo.
  *
- * Quando o catálogo de permissões de superadmin estiver consolidado
- * para a borda HTTP, substitua esta verificação por guard baseado
- * em permissão explícita do Core.
+ * Observação:
+ * - permanece explícito no controller para manter consistência com a borda atual;
+ * - usa a factory oficial já alinhada ao runtime.
  */
-function isFluxoSuperAdmin(ctx: { locatarioId: string }): boolean {
-  return ctx.locatarioId === "plataforma";
-}
 
 /**
  * Controller do tenant admin:
  * só permite consultar o próprio locatário.
+ *
+ * @param request Requisição Fastify com `id` do locatário.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP padronizada.
  */
 export async function obterMeuLocatarioController(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-  const ctx = await obterCtxOuResponderErro(request, reply);
+  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+    locatarioIdAlvo: request.params.id,
+  });
   if (!ctx) return;
 
-  if (request.params.id !== ctx.locatarioId) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "Admin do locatário só pode consultar o próprio locatário.",
-    });
+  const erroMesmoLocatario = exigirMesmoLocatarioHttp(
+    ctx,
+    request.params.id,
+  );
+
+  if (erroMesmoLocatario) {
+    return sendHttpError(reply, erroMesmoLocatario);
   }
 
-  const repositorio = createLocatariosRepositorioAuthPrisma(clientePrisma);
-  const obterLocatario = createFnObterLocatario({ locatarioRepositorio: repositorio });
+  const repositorio = createLocatariosRepositorio(clientePrisma);
+  const obterLocatario = createFnObterLocatario({
+    locatarioRepositorio: repositorio,
+  });
 
   const resultado = await obterLocatario({
     locatarioId: request.params.id,
   });
+
+  await auditar(criarContextoAuditoria(request, { usuarioId: ctx.usuarioId, locatarioId: ctx.locatarioId, }),
+    {
+      evento: "locatario.obtido",
+      sucesso: resultado.ok,
+      entidadeTipo: "locatario",
+      entidadeId: request.params.id,
+      entidadeNome: resultado.ok ? resultado.value.locatario : null,
+      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+      metadados: metaAcao(),
+    },
+  );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -75,23 +73,46 @@ export async function obterMeuLocatarioController(request: FastifyRequest<{ Para
 
 /**
  * Controller de listagem global de locatários.
- * Uso exclusivo do fluxo superadmin.
+ *
+ * Uso restrito ao fluxo superadmin da borda HTTP.
+ *
+ * @param request Requisição Fastify autenticada.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP padronizada.
  */
 export async function listarLocatariosSuperAdminController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await obterCtxOuResponderErro(request, reply);
+  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+    exigeSuperadmin: true,
+  });
   if (!ctx) return;
 
-  if (!isFluxoSuperAdmin(ctx)) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "A listagem global de locatários é restrita ao fluxo superadmin.",
-    });
+  if (!exigirSuperAdminOuResponderErro(ctx, reply)) {
+    return;
   }
 
-  const repositorio = createLocatariosRepositorioAuthPrisma(clientePrisma);
-  const listarLocatarios = createFnListarLocatarios({ locatarioRepositorio: repositorio });
+  const repositorio = createLocatariosRepositorio(clientePrisma);
+  const listarLocatarios = createFnListarLocatarios({
+    locatarioRepositorio: repositorio,
+  });
 
   const resultado = await listarLocatarios({});
+
+  await auditar(criarContextoAuditoria(request, { usuarioId: ctx.usuarioId, isSuperadmin: true, }),
+  {
+    evento: "plataforma.locatario.listado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      quantidadeResultados: resultado.ok
+        ? (Array.isArray(resultado.value)
+            ? resultado.value.length
+            : resultado.value.itens?.length ?? 0)
+        : 0,
+    }),
+  },
+);
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -103,25 +124,45 @@ export async function listarLocatariosSuperAdminController(request: FastifyReque
 }
 
 /**
- * Controller de consulta global de locatário por superadmin.
+ * Controller de consulta global de locatário.
+ *
+ * Uso restrito ao fluxo superadmin da borda HTTP.
+ *
+ * @param request Requisição Fastify com `id` do locatário.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP padronizada.
  */
 export async function obterLocatarioSuperAdminController(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-  const ctx = await obterCtxOuResponderErro(request, reply);
+  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+    exigeSuperadmin: true,
+  });
   if (!ctx) return;
 
-  if (!isFluxoSuperAdmin(ctx)) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "Consulta global de locatários é restrita ao fluxo superadmin.",
-    });
+  if (!exigirSuperAdminOuResponderErro(ctx, reply)) {
+    return;
   }
 
-  const repositorio = createLocatariosRepositorioAuthPrisma(clientePrisma);
-  const obterLocatario = createFnObterLocatario({ locatarioRepositorio: repositorio });
+  const repositorio = createLocatariosRepositorio(clientePrisma);
+  const obterLocatario = createFnObterLocatario({
+    locatarioRepositorio: repositorio,
+  });
 
   const resultado = await obterLocatario({
     locatarioId: request.params.id,
   });
+
+  await auditar(criarContextoAuditoria(request, { usuarioId: ctx.usuarioId, isSuperadmin: true, locatarioAlvoId: request.params.id, }),
+    {
+      evento: "plataforma.locatario.obtido",
+      sucesso: resultado.ok,
+      entidadeTipo: "locatario",
+      entidadeId: request.params.id,
+      entidadeNome: resultado.ok ? resultado.value.nome : null,
+      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+      metadados: metaAcao(),
+    },
+  );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);

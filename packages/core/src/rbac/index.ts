@@ -2,7 +2,10 @@
 
 export type {
   Papel,
+  PAPEIS_PADRAO,
   Permissao,
+  Permissoes,
+  PapelPadrao,
   ResolverPermissoesInput,
   ResolverPermissoesOutput,
   ResolverPermissoesResult,

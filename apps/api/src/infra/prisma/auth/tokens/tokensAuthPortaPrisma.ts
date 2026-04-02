@@ -27,21 +27,25 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
      * 1. gera token bruto aleatório;
      * 2. gera hash do token;
      * 3. persiste apenas o hash;
-     * 4. retorna token bruto ao cliente.
+     * 4. retorna token bruto ao chamador.
+     *
+     * @param params Dados necessários para materializar o token.
+     * @returns `Ok({ tokenId, tokenBruto, expiraEm })` em caso de sucesso.
      */
     async criarRefresh(params) {
       try {
         const tokenBruto = gerarRefreshTokenBruto();
-        const tokenHash = hashRefreshToken(tokenBruto);
+        const hashToken = hashRefreshToken(tokenBruto);
         const tokenId = idPorta.gerarId() as TokenId;
         const expiraEm = new Date(params.agora.getTime() + params.ttlMs);
 
         await db.tokens.create({
           data: {
             token_id: tokenId,
-            locatario_id: params.locatarioId,
             usuario_id: params.usuarioId,
-            token_hash: tokenHash,
+            locatario_id: params.locatarioId,
+            hash_token: hashToken,
+            tipo: "REFRESH",
             expira_em: expiraEm,
           },
         });
@@ -52,33 +56,38 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
           expiraEm,
         });
       } catch (causa) {
-        return erroInfraAuth("Falha ao criar refresh token.", causa, {
+        return erroInfraAuth({
+          mensagem: "Falha ao criar refresh token.",
           operacao: "auth.tokens.criarRefresh",
-          locatarioId: params.locatarioId,
-          usuarioId: params.usuarioId,
+          causa,
+          detalhes: {
+            locatarioId: params.locatarioId,
+            usuarioId: params.usuarioId,
+          },
         });
       }
     },
 
     /**
-     * Valida refresh token recebido do cliente.
+     * Valida o refresh token recebido do cliente.
      *
      * Fluxo:
-     * 1. aplica hash no token recebido;
+     * 1. aplica hash ao token recebido;
      * 2. busca no banco;
-     * 3. valida:
-     *    - existência
-     *    - não revogado
-     *    - não expirado
+     * 3. valida existência, revogação e expiração.
+     *
+     * @param params Token bruto, locatário e relógio da operação.
+     * @returns `Ok(...)` quando o refresh é válido.
      */
     async validarRefresh(params) {
       try {
-        const tokenHash = hashRefreshToken(params.tokenBruto);
+        const hashToken = hashRefreshToken(params.tokenBruto);
 
         const row = await db.tokens.findFirst({
           where: {
             locatario_id: params.locatarioId,
-            token_hash: tokenHash,
+            hash_token: hashToken,
+            tipo: "REFRESH",
           },
           select: {
             token_id: true,
@@ -89,7 +98,7 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
           },
         });
 
-        if (!row) {
+        if (!row || !row.locatario_id) {
           return createErroApp({
             codigo: "NAO_AUTENTICADO",
             mensagem: "Refresh token inválido.",
@@ -129,9 +138,13 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
           locatarioId: row.locatario_id,
         });
       } catch (causa) {
-        return erroInfraAuth("Falha ao validar refresh token.", causa, {
+        return erroInfraAuth({
+          mensagem: "Falha ao validar refresh token.",
           operacao: "auth.tokens.validarRefresh",
-          locatarioId: params.locatarioId,
+          causa,
+          detalhes: {
+            locatarioId: params.locatarioId,
+          },
         });
       }
     },
@@ -140,15 +153,19 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
      * Revoga um refresh token existente.
      *
      * @param params.tokenId Identificador do token.
+     * @param params.agora Timestamp da revogação.
+     * @returns `Ok(void)` quando a operação é concluída.
      */
     async revogar(params) {
       try {
         const token = await db.tokens.findFirst({
           where: {
             token_id: params.tokenId,
+            tipo: "REFRESH",
           },
           select: {
             token_id: true,
+            usuario_id: true,
             locatario_id: true,
           },
         });
@@ -166,9 +183,9 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
 
         await db.tokens.update({
           where: {
-            locatario_id_token_id: {
-              locatario_id: token.locatario_id,
+            token_id_usuario_id: {
               token_id: token.token_id,
+              usuario_id: token.usuario_id,
             },
           },
           data: {
@@ -178,9 +195,13 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
 
         return wrapOk(undefined);
       } catch (causa) {
-        return erroInfraAuth("Falha ao revogar refresh token.", causa, {
+        return erroInfraAuth({
+          mensagem: "Falha ao revogar refresh token.",
           operacao: "auth.tokens.revogar",
-          tokenId: params.tokenId,
+          causa,
+          detalhes: {
+            tokenId: params.tokenId,
+          },
         });
       }
     },

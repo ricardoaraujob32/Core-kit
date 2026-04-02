@@ -1,40 +1,35 @@
 // packages/core/src/auditoria/validadores.ts
 
-import { ErroApp, Result, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel";
+import { type ErroApp, type Result, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel";
 import { erroAuditoriaInvalida } from "./erros";
-import { ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoLocatarioInput,
-  RegistrarEventoPlataformaInput } from "./tipos";
+import type { ListarAuditoriaAtivaLocatarioInput, ListarAuditoriaInternaInput, RegistrarEventoAuditoriaInternaInput } from "./tipos";
 
 /**
- * Converte falhas dos validadores transversais em erro específico
- * do domínio de auditoria.
+ * Converte erro de validação transversal em erro específico de auditoria.
  *
- * @param resultado Resultado da validação compartilhada.
- * @param campo Nome lógico do campo validado.
+ * @param resultado Resultado bruto do validador compartilhado.
+ * @param campo Nome lógico do campo.
  * @param valor Valor rejeitado.
- * @returns `Ok` original ou `Err` específico do módulo `auditoria`.
+ * @returns Resultado mapeado para o domínio de auditoria.
  */
-function mapearErro(resultado: Result<string | number, ErroApp>, campo: string, valor?: unknown): any {
+function mapearErro<T>(resultado: Result<T, ErroApp>, campo: string, valor?: unknown): Result<T, ErroApp> {
   if (resultado.ok) return resultado;
   return erroAuditoriaInvalida({ campo, valor });
 }
 
 /**
- * Valida o limite opcional usado em consultas de auditoria.
+ * Valida limite opcional de paginação.
  *
- * Regras atuais:
+ * Regras:
  * - `undefined` é aceito;
- * - quando informado, deve ser número positivo;
- * - deve ser inteiro;
- * - não pode ultrapassar 500.
+ * - deve ser inteiro positivo;
+ * - máximo de 500.
  *
- * @param limite Limite opcional recebido na consulta.
- * @returns `Ok(undefined)` quando ausente, ou `Ok(limite)` quando válido.
+ * @param limite Limite recebido.
+ * @returns `Ok(undefined)` ou `Ok(limite)`.
  */
 function validarLimiteOpcional(limite?: number): Result<number | undefined, ErroApp> {
-  if (limite === undefined) {
-    return wrapOk(undefined);
-  }
+  if (limite === undefined) return wrapOk(undefined);
 
   const res = validarNumeroPositivo(limite, "limite");
   if (!res.ok) return erroAuditoriaInvalida({ campo: "limite", valor: limite });
@@ -47,80 +42,123 @@ function validarLimiteOpcional(limite?: number): Result<number | undefined, Erro
 }
 
 /**
- * Valida a entrada de registro de evento de auditoria no escopo de locatário.
+ * Valida coerência básica do intervalo de datas.
  *
- * Regras atuais:
- * - `locatarioId` válido;
- * - `usuarioId` válido;
- * - `evento` obrigatório.
+ * @param criadoDe Data inicial.
+ * @param criadoAte Data final.
+ * @returns `Ok(void)` quando o intervalo é válido.
+ */
+function validarIntervaloDatas(criadoDe?: Date, criadoAte?: Date): Result<void, ErroApp> {
+  if (criadoDe && Number.isNaN(criadoDe.getTime())) {
+    return erroAuditoriaInvalida({ campo: "criadoDe", valor: criadoDe });
+  }
+
+  if (criadoAte && Number.isNaN(criadoAte.getTime())) {
+    return erroAuditoriaInvalida({ campo: "criadoAte", valor: criadoAte });
+  }
+
+  if (criadoDe && criadoAte && criadoDe.getTime() > criadoAte.getTime()) {
+    return erroAuditoriaInvalida({
+      campo: "intervaloDatas",
+      criadoDe,
+      criadoAte,
+    });
+  }
+
+  return wrapOk(undefined);
+}
+
+/**
+ * Valida a entrada de registro da auditoria interna.
+ *
+ * Regras:
+ * - `evento` obrigatório;
+ * - `escopo` obrigatório;
+ * - `locatarioId` obrigatório quando escopo for `LOCATARIO`;
+ * - `usuarioId`, quando informado, deve ser válido.
  *
  * @param input Evento recebido para registro.
- * @returns `Ok(input)` quando os campos mínimos são válidos.
+ * @returns `Ok(input)` quando a estrutura mínima for válida.
  */
-export function validarRegistrarEventoLocatarioInput(input: RegistrarEventoLocatarioInput): Result<RegistrarEventoLocatarioInput, ErroApp> {
-  const locatarioId = mapearErro( validarIdGenerico(input.locatarioId, "locatarioId"), "locatarioId", input.locatarioId );
-  if (!locatarioId.ok) return locatarioId;
-
-  const usuarioId = mapearErro( validarIdGenerico(input.usuarioId, "usuarioId"), "usuarioId", input.usuarioId );
-  if (!usuarioId.ok) return usuarioId;
-
-  const evento = mapearErro( validarTextoObrigatorio(input.evento, "evento", 1), "evento", input.evento );
+export function validarRegistrarEventoAuditoriaInternaInput(input: RegistrarEventoAuditoriaInternaInput): Result<RegistrarEventoAuditoriaInternaInput, ErroApp> {
+  const evento = mapearErro(validarTextoObrigatorio(input.evento, "evento", 1), "evento", input.evento);
   if (!evento.ok) return evento;
+
+  if (input.escopo !== "PLATAFORMA" && input.escopo !== "LOCATARIO") {
+    return erroAuditoriaInvalida({
+      campo: "escopo",
+      valor: input.escopo,
+    });
+  }
+
+  if (input.escopo === "LOCATARIO") {
+    const locatarioId = mapearErro(validarIdGenerico(input.locatarioId ?? "", "locatarioId"), "locatarioId", input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+  }
+
+  if (input.usuarioId !== undefined && input.usuarioId !== null) {
+    const usuarioId = mapearErro(validarIdGenerico(input.usuarioId, "usuarioId"), "usuarioId", input.usuarioId);
+    if (!usuarioId.ok) return usuarioId;
+  }
 
   return wrapOk(input);
 }
 
 /**
- * Valida a entrada de registro de evento de auditoria no escopo de plataforma.
+ * Valida a entrada de listagem da auditoria interna.
  *
- * Regras atuais:
- * - `usuarioId` válido;
- * - `evento` obrigatório.
- *
- * @param input Evento recebido para registro.
- * @returns `Ok(input)` quando os campos mínimos são válidos.
+ * @param input Filtros recebidos.
+ * @returns `Ok(input)` quando válidos.
  */
-export function validarRegistrarEventoPlataformaInput(input: RegistrarEventoPlataformaInput): Result<RegistrarEventoPlataformaInput, ErroApp> {
-  const usuarioId = mapearErro( validarIdGenerico(input.usuarioId, "usuarioId"), "usuarioId",  input.usuarioId );
-  if (!usuarioId.ok) return usuarioId;
+export function validarListarAuditoriaInternaInput(input: ListarAuditoriaInternaInput): Result<ListarAuditoriaInternaInput, ErroApp> {
+  const limite = validarLimiteOpcional(input.limite);
+  if (!limite.ok) return limite;
 
-  const evento = mapearErro( validarTextoObrigatorio(input.evento, "evento", 1), "evento", input.evento );
-  if (!evento.ok) return evento;
+  const datas = validarIntervaloDatas(input.criadoDe, input.criadoAte);
+  if (!datas.ok) return datas;
+
+  if (input.locatarioId !== undefined) {
+    const locatarioId = mapearErro(
+      validarIdGenerico(input.locatarioId, "locatarioId"),
+      "locatarioId",
+      input.locatarioId,
+    );
+    if (!locatarioId.ok) return locatarioId;
+  }
+
+  if (input.usuarioId !== undefined) {
+    const usuarioId = mapearErro(validarIdGenerico(input.usuarioId, "usuarioId"), "usuarioId", input.usuarioId);
+    if (!usuarioId.ok) return usuarioId;
+  }
 
   return wrapOk(input);
 }
 
 /**
- * Valida a entrada de listagem de auditoria de locatário.
+ * Valida a entrada de listagem da auditoria ativa do locatário.
  *
- * Regras atuais:
- * - `locatarioId` válido;
- * - `limite`, quando informado, deve respeitar a política do módulo.
+ * Regras:
+ * - `locatarioId` obrigatório;
+ * - datas válidas;
+ * - limite dentro da política do módulo.
  *
- * @param input Filtro de consulta recebido.
- * @returns `Ok(input)` quando a estrutura mínima é válida.
+ * @param input Filtros recebidos.
+ * @returns `Ok(input)` quando válidos.
  */
-export function validarListarAuditoriaLocatarioInput(input: ListarAuditoriaLocatarioInput): Result<ListarAuditoriaLocatarioInput, ErroApp> {
-  const locatarioId = mapearErro( validarIdGenerico(input.locatarioId, "locatarioId"), "locatarioId", input.locatarioId );
+export function validarListarAuditoriaAtivaLocatarioInput(input: ListarAuditoriaAtivaLocatarioInput): Result<ListarAuditoriaAtivaLocatarioInput, ErroApp> {
+  const locatarioId = mapearErro(validarIdGenerico(input.locatarioId, "locatarioId"), "locatarioId", input.locatarioId);
   if (!locatarioId.ok) return locatarioId;
 
   const limite = validarLimiteOpcional(input.limite);
   if (!limite.ok) return limite;
 
-  return wrapOk(input);
-}
+  const datas = validarIntervaloDatas(input.criadoDe, input.criadoAte);
+  if (!datas.ok) return datas;
 
-/**
- * Valida a entrada de listagem de auditoria de plataforma.
- *
- * No estado atual, apenas o `limite` opcional é validado localmente.
- *
- * @param input Filtro de consulta recebido.
- * @returns `Ok(input)` quando os campos suportados são válidos.
- */
-export function validarListarAuditoriaPlataformaInput(input: ListarAuditoriaPlataformaInput): Result<ListarAuditoriaPlataformaInput, ErroApp> {
-  const limite = validarLimiteOpcional(input.limite);
-  if (!limite.ok) return limite;
+  if (input.usuarioId !== undefined) {
+    const usuarioId = mapearErro(validarIdGenerico(input.usuarioId, "usuarioId"), "usuarioId", input.usuarioId);
+    if (!usuarioId.ok) return usuarioId;
+  }
 
   return wrapOk(input);
 }

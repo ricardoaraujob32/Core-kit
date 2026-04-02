@@ -1,7 +1,7 @@
 // packages/core/src/auth/tipos.ts
 
 import type { ContextoExecucao, ErroApp, Result } from "../kernel";
-import type { LocatarioId } from "../locatarios";
+import type { LocatarioId, LocatarioSlug } from "../locatarios";
 import type { UsuarioId } from "../usuarios";
 
 /**
@@ -33,6 +33,28 @@ export interface SessaoValidada {
 }
 
 /**
+ * Projeção mínima de usuário usada pelos fluxos de autenticação.
+ *
+ * Este tipo representa apenas os campos necessários para login,
+ * validação de credenciais e materialização de sessão.
+ */
+export type UsuarioAuth = {
+  usuarioId: UsuarioId;
+  locatarioId: LocatarioId | null; // NULL = plataforma (superadmin)
+  email: string;
+  senhaHash: string;
+  status: "ATIVO" | "INATIVO" | "BLOQUEADO"; // conforme enum do BD
+};
+
+/**
+ * Dados mínimos de um locatário retornados pelo serviço de autenticação
+ */
+export type LocatarioAuth = {
+  locatarioId: LocatarioId;
+  status: "ATIVO" | "SUSPENSO" | "EXCLUIDO";
+};
+
+/**
  * Payload esperado do JWT de autenticação.
  *
  * Este contrato representa a visão do domínio sobre os claims essenciais,
@@ -58,7 +80,7 @@ export interface JwtPayloadAuth {
  */
 export interface EmitirSessaoInput {
   /** Locatário no qual o login será realizado. */
-  locatarioId: LocatarioId;
+  locatarioSlug: LocatarioSlug;
   /** E-mail informado pelo usuário. */
   email: string;
   /** Senha em texto puro recebida na borda e validada pela operação. */

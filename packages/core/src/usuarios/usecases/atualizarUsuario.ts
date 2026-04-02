@@ -30,7 +30,7 @@ import { transicionarEstadoUsuario } from "../maquinaEstados";
  * @returns Função `atualizarUsuario` pronta para receber a entrada do caso de uso.
  */
 export function createFnAtualizarUsuario(deps: {
-  usuariosRepo: UsuariosRepositorio;
+  usuariosRepositorio: UsuariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
 }) {

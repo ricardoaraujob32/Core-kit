@@ -1,146 +1,220 @@
-// apps/api/src/infra/locatarios/locatariosRepositorioPrisma.ts
+// apps/api/src/infra/prisma/locatarios/locatariosRepositorioPrisma.ts
 
-import { createErroApp, fromThrowableAsync, Locatario, LocatarioId, LocatariosRepositorio, wrapOk } from "@core-kit/core";
-import { Prisma, PrismaClient } from "@prisma/client";
+import type { ErroApp, Locatario, LocatarioId, LocatariosRepositorio, Result } from "@core-kit/core";
+import { createErroApp, wrapOk } from "@core-kit/core";
+import { PrismaDb } from "../tipos";
+import { erroInfraAuth } from "../auth/errosInfraAuth";
+import { mapearErroInfra } from "../erros";
 
 /**
- * 
- * @param row 
- * @returns 
+ * Mapeia o status persistido do banco para o contrato do domínio de locatários.
+ *
+ * Banco:
+ * - `ATIVO`
+ * - `SUSPENSO`
+ * - `EXCLUIDO`
+ *
+ * Domínio:
+ * - `ATIVO`
+ * - `SUSPENSO`
+ * - `ENCERRADO`
+ *
+ * @param status Status persistido no banco.
+ * @returns Status adaptado para o contrato do domínio.
  */
-function mapPrismaLocatarioParaDominio(
-  row: {
-    locatario_id: LocatarioId;
-    nome: string;
-    slug: string;
-    ativo: boolean;
-    criado_em: Date;
-    atualizado_em: Date;
+function mapStatusLocatarioDbParaDominio(status: "ATIVO" | "SUSPENSO" | "EXCLUIDO"): Locatario["status"] {
+  switch (status) {
+    case "ATIVO":
+      return "ATIVO";
+    case "SUSPENSO":
+      return "SUSPENSO";
+    case "EXCLUIDO":
+      return "ENCERRADO";
   }
-): Locatario {
+}
+
+/**
+ * Mapeia o status do domínio para o enum persistido no banco.
+ *
+ * @param status Status do domínio.
+ * @returns Status persistido compatível com o banco.
+ */
+function mapStatusLocatarioDominioParaDb(status: Locatario["status"]): "ATIVO" | "SUSPENSO" | "EXCLUIDO" {
+  switch (status) {
+    case "ATIVO":
+      return "ATIVO";
+    case "SUSPENSO":
+      return "SUSPENSO";
+    case "ENCERRADO":
+      return "EXCLUIDO";
+  }
+}
+
+/**
+ * Mapeia uma linha persistida para a entidade de domínio `Locatario`.
+ *
+ * Observação:
+ * - o domínio atual expõe apenas `locatarioId`, `nome`, `status` e `criadoEm`;
+ * - campos adicionais do banco continuam sendo detalhe de infraestrutura.
+ *
+ * @param row Linha retornada pelo Prisma.
+ * @returns Entidade `Locatario` compatível com o Core.
+ */
+function mapLocatario(row: {
+  locatario_id: string;
+  nome: string;
+  status: "ATIVO" | "SUSPENSO" | "EXCLUIDO";
+  criado_em: Date;
+}): Locatario {
   return {
-    id: row.locatario_id,
+    locatarioId: row.locatario_id as LocatarioId,
     nome: row.nome,
-    slug: row.slug,
-    ativo: row.ativo,
+    status: mapStatusLocatarioDbParaDominio(row.status),
     criadoEm: row.criado_em,
-    atualizadoEm: row.atualizado_em,
   };
 }
 
 /**
- * 
- * @param prisma 
- * @returns 
+ * Repositório operacional de locatários.
+ *
+ * Responsabilidades:
+ * - atender casos de uso do domínio de locatários;
+ * - suportar consulta por ID e listagem;
+ * - permanecer separado da infraestrutura de autenticação.
+ *
+ * Observação importante:
+ * - o contrato atual de criação do Core não fornece `slug` nem `email`,
+ *   que são obrigatórios no banco;
+ * - por isso, `criar(...)` não pode ser implementado fielmente sem revisão
+ *   do contrato do domínio ou decisão explícita de defaults.
  */
-export function criarLocatariosRepositorioPrisma(prisma: PrismaClient | Prisma.TransactionClient): LocatariosRepositorio {
+export function createLocatariosRepositorio(
+  db: PrismaDb,
+): LocatariosRepositorio {
   return {
-    async inserir(dados: CriarLocatarioEntrada & { id: LocatarioId }) {
-      return fromThrowableAsync(
-        async () => {
-          const criado = await prisma.locatarios.create({
-            data: {
-              locatario_id: dados.id,
-              nome: dados.nome,
-              slug: dados.slug,
-              ativo: dados.ativo ?? true,
-            },
-          });
-
-          return wrapOk(mapPrismaLocatarioParaDominio(criado));
+    /**
+     * Persiste um novo locatário.
+     *
+     * Observação:
+     * - o schema do banco exige `slug` e `email`;
+     * - o contrato atual do Core não fornece esses campos;
+     * - por isso, esta implementação falha de forma explícita até que o
+     *   contrato seja ampliado.
+     *
+     * @param params Dados recebidos do caso de uso.
+     * @returns `Err(ErroApp)` indicando incompatibilidade entre Core e schema.
+     */
+    async criar(params): Promise<Result<{ locatarioId: LocatarioId }, ErroApp>> {
+      return createErroApp({
+        codigo: "ERRO_INTERNO",
+        mensagem:
+          "Não é possível criar locatário com o contrato atual: faltam campos obrigatórios do schema persistido.",
+        detalhes: {
+          operacao: "locatarios.criar",
+          locatarioId: params.locatarioId,
+          camposObrigatoriosAusentes: ["slug", "email"],
         },
-        (causa) =>
-          createErroApp({
-            codigo: "ERRO_INTERNO",
-            mensagem: "Falha ao inserir locatário.",
-            detalhes: { operacao: "locatarios.inserir" },
-            causa,
-          })
-      )();
+      });
     },
 
-    async buscarPorId(id: LocatarioId) {
-      return fromThrowableAsync(
-        async () => {
-          const row = await prisma.locatarios.findUnique({
-            where: { locatario_id: id },
-          });
+    /**
+     * Busca um locatário por sua identidade lógica.
+     *
+     * @param params Identificador do locatário desejado.
+     * @returns `Ok(locatario | null)` quando a consulta é concluída.
+     */
+    async buscarPorId(params): Promise<Result<Locatario | null, ErroApp>> {
+      try {
+        const row = await db.locatarios.findUnique({
+          where: {
+            locatario_id: params.locatarioId,
+          },
+          select: {
+            locatario_id: true,
+            nome: true,
+            status: true,
+            criado_em: true,
+          },
+        });
 
-          return wrapOk(row ? mapPrismaLocatarioParaDominio(row) : null);
-        },
-        (causa) =>
-          createErroApp({
-            codigo: "ERRO_INTERNO",
-            mensagem: "Falha ao buscar locatário por id.",
-            detalhes: { operacao: "locatarios.buscarPorId", id },
-            causa,
-          })
-      )();
+        if (!row) {
+          return wrapOk(null);
+        }
+
+        return wrapOk(mapLocatario(row));
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "locatarios",
+          operacao: "locatarios.buscarPorId",
+          detalhes: {
+            locatarioId: params.locatarioId,
+          },
+        });
+      }
     },
 
-    async buscarPorSlug(slug: string) {
-      return fromThrowableAsync(
-        async () => {
-          const row = await prisma.locatarios.findUnique({
-            where: { slug },
-          });
+    /**
+     * Lista todos os locatários visíveis à implementação atual.
+     *
+     * @returns `Ok(locatarios)` quando a consulta é concluída.
+     */
+    async listar(): Promise<Result<Locatario[], ErroApp>> {
+      try {
+        const rows = await db.locatarios.findMany({
+          orderBy: {
+            criado_em: "asc",
+          },
+          select: {
+            locatario_id: true,
+            nome: true,
+            status: true,
+            criado_em: true,
+          },
+        });
 
-          return wrapOk(row ? mapPrismaLocatarioParaDominio(row) : null);
-        },
-        (causa) =>
-          createErroApp({
-            codigo: "ERRO_INTERNO",
-            mensagem: "Falha ao buscar locatário por slug.",
-            detalhes: { operacao: "locatarios.buscarPorSlug", slug },
-            causa,
-          })
-      )();
+        return wrapOk(rows.map(mapLocatario));
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "locatarios",
+          operacao: "locatarios.listar",
+        });
+      }
     },
 
-    async listar() {
-      return fromThrowableAsync(
-        async () => {
-          const rows = await prisma.locatarios.findMany({
-            orderBy: { criado_em: "asc" },
-          });
+    /**
+     * Atualiza parcialmente a projeção de domínio do locatário.
+     *
+     * Observação:
+     * - como o domínio atual não expõe `slug`, `email` nem `atualizadoEm`,
+     *   esta implementação atualiza apenas os campos representados no domínio
+     *   e materializa `atualizado_em` na infraestrutura.
+     *
+     * @param locatario Entidade de domínio já validada.
+     * @returns `Ok(locatario)` quando a persistência é concluída.
+     */
+    async atualizar(locatario): Promise<Result<Locatario, ErroApp>> {
+      try {
+        await db.locatarios.update({
+          where: {
+            locatario_id: locatario.locatarioId,
+          },
+          data: {
+            nome: locatario.nome,
+            status: mapStatusLocatarioDominioParaDb(locatario.status),
+            atualizado_em: new Date(),
+          },
+        });
 
-          return wrapOk(rows.map(mapPrismaLocatarioParaDominio));
-        },
-        (causa) =>
-          createErroApp({
-            codigo: "ERRO_INTERNO",
-            mensagem: "Falha ao listar locatários.",
-            detalhes: { operacao: "locatarios.listar" },
-            causa,
-          })
-      )();
+        return wrapOk(locatario);
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "locatarios",
+          operacao: "locatarios.atualizar",
+          detalhes: {
+            locatarioId: locatario.locatarioId,
+          },
+        });
+      }
     },
   };
-}
-
-/**
- * 
- * @param causa 
- * @param contexto 
- * @returns 
- */
-function mapearErroPrismaLocatarios(causa: unknown, contexto: Record<string, unknown>) {
-  if (
-    causa instanceof Prisma.PrismaClientKnownRequestError &&
-    causa.code === "P2002"
-  ) {
-    return createErroApp({
-      codigo: "CONFLITO",
-      mensagem: "Já existe locatário com esse identificador único.",
-      detalhes: { ...contexto, prismaCode: causa.code, target: causa.meta?.target },
-      causa,
-    });
-  }
-
-  return createErroApp({
-    codigo: "ERRO_INTERNO",
-    mensagem: "Erro de infraestrutura em locatários.",
-    detalhes: contexto,
-    causa,
-  });
 }

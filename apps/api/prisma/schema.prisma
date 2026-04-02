@@ -229,7 +229,6 @@ model tokens {
   usuario_id         String      @db.Uuid
   locatario_id       String?     @db.Uuid
   hash_token         String      @unique
-  tipo               tipo_token
   emitido_em         DateTime    @default(now()) @db.Timestamptz(6)
   expira_em          DateTime    @db.Timestamptz(6)
   revogado_em        DateTime?   @db.Timestamptz(6)
@@ -237,6 +236,7 @@ model tokens {
   proximo_usuario_id String?     @db.Uuid
   agente_usuario     String?
   endereco_ip        String?     @db.Inet
+  tipo               tipo_token?
   tokens             tokens?     @relation("tokensTotokens", fields: [proximo_token_id, proximo_usuario_id], references: [token_id, usuario_id], map: "fk_proximo_token_id")
   other_tokens       tokens[]    @relation("tokensTotokens")
   usuarios           usuarios    @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "fk_tokens_usuarios")
