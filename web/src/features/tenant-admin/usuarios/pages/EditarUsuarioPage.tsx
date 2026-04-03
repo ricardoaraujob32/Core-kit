@@ -1,7 +1,9 @@
+// web/src/features/tenant-admin/usuarios/pages/EditarUsuarioPage.tsx
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usuariosApi } from "../api/usuariosApi";
+import { UsuarioActionGuard } from "../components/UsuarioActionGuard";
 import { UsuarioForm } from "../components/UsuarioForm";
 import { useSalvarUsuario } from "../hooks/useSalvarUsuario";
 import type { AtualizarUsuarioInput, Usuario } from "../types";
@@ -16,7 +18,7 @@ export default function EditarUsuarioPage() {
   const { salvar, isSaving, erro } = useSalvarUsuario({
     mode: "edit",
     usuarioId,
-    onSuccess: () => navigate(`/tenant/usuarios/${usuarioId}`),
+    onSuccess: () => navigate(`/app/usuarios/${usuarioId}`),
   });
 
   useEffect(() => {
@@ -66,21 +68,30 @@ export default function EditarUsuarioPage() {
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Editar usuário</h1>
-        <p className="text-sm text-slate-600">
-          Atualize nome e e-mail do usuário.
-        </p>
-      </div>
+    <UsuarioActionGuard
+      action="editar"
+      fallback={
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Você não possui permissão para editar usuários.
+        </div>
+      }
+    >
+      <div className="grid gap-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Editar usuário</h1>
+          <p className="text-sm text-slate-600">
+            Atualize nome e e-mail do usuário.
+          </p>
+        </div>
 
-      <UsuarioForm
-        mode="edit"
-        initialData={usuario}
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
-    </div>
+        <UsuarioForm
+          mode="edit"
+          initialData={usuario}
+          isSaving={isSaving}
+          erro={erro}
+          onSubmit={handleSubmit}
+        />
+      </div>
+    </UsuarioActionGuard>
   );
 }

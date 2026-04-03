@@ -1,5 +1,6 @@
 // frontend/src/features/superadmin/pages/Dashboard.tsx
 
+import { JSX } from "react";
 import { useAuth } from "../../../core/auth/useAuth";
 
 export default function Dashboard(): JSX.Element {
@@ -13,10 +14,11 @@ export default function Dashboard(): JSX.Element {
       <pre>
         {JSON.stringify(
           {
-            id: user?.id,
+            usuarioId: user?.usuarioId,
             locatarioId: user?.locatarioId,
             papeis: user?.papeis,
             permissoes: user?.permissoes,
+            modulosHabilitados: user?.modulosHabilitados,
           },
           null,
           2,

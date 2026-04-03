@@ -1,12 +1,16 @@
+// web/src/features/tenant-admin/usuarios/pages/UsuariosListPage.tsx
 
 import { useNavigate } from "react-router-dom";
 import { UsuariosFilters } from "../components/UsuariosFilters";
 import { UsuariosTable } from "../components/UsuariosTable";
+import { UsuarioActionGuard } from "../components/UsuarioActionGuard";
 import { useUsuarios } from "../hooks/useUsuarios";
 import { useUsuarioActions } from "../hooks/useUsuarioActions";
+import { useUsuariosPermissions } from "../hooks/useUsuariosPermissions";
 
 export default function UsuariosListPage() {
   const navigate = useNavigate();
+  const permissions = useUsuariosPermissions();
   const {
     usuariosFiltrados,
     isLoading,
@@ -20,6 +24,14 @@ export default function UsuariosListPage() {
     onSuccess: recarregar,
   });
 
+  if (!permissions.canList) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        Você não possui acesso ao módulo de usuários.
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -30,12 +42,14 @@ export default function UsuariosListPage() {
           </p>
         </div>
 
-        <button
-          className="rounded-xl border px-4 py-2 font-medium"
-          onClick={() => navigate("/tenant/usuarios/novo")}
-        >
-          Novo usuário
-        </button>
+        <UsuarioActionGuard action="criar">
+          <button
+            className="rounded-xl border px-4 py-2 font-medium"
+            onClick={() => navigate("/app/usuarios/novo")}
+          >
+            Novo usuário
+          </button>
+        </UsuarioActionGuard>
       </div>
 
       <UsuariosFilters filtro={filtro} onChange={setFiltro} />
@@ -57,8 +71,8 @@ export default function UsuariosListPage() {
       ) : (
         <UsuariosTable
           usuarios={usuariosFiltrados}
-          onView={(usuarioId) => navigate(`/tenant/usuarios/${usuarioId}`)}
-          onEdit={(usuarioId) => navigate(`/tenant/usuarios/${usuarioId}/editar`)}
+          onView={(usuarioId) => navigate(`/app/usuarios/${usuarioId}`)}
+          onEdit={(usuarioId) => navigate(`/app/usuarios/${usuarioId}/editar`)}
           onInativar={(usuarioId) => void inativar(usuarioId)}
           onReativar={(usuarioId) => void reativar(usuarioId)}
         />

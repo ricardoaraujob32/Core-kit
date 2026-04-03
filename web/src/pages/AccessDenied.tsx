@@ -1,8 +1,9 @@
-// frontend/src/pages/AccessDenied.tsx
+// web/src/pages/AccessDenied.tsx
 
 import { Link } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
 import { isSuperAdmin } from "../core/auth/types";
+import { JSX } from "react";
 
 export default function AccessDenied(): JSX.Element {
   const { user } = useAuth();

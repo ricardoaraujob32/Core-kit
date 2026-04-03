@@ -1,8 +1,9 @@
-// frontend/src/layouts/TenantLayout.tsx
+// web/src/layouts/TenantLayout.tsx
 
 import { Outlet, NavLink } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
 import { useTenant } from "../core/tenant/useTenant";
+import { JSX } from "react";
 
 export default function TenantLayout(): JSX.Element {
   const { user, logout } = useAuth();
@@ -55,9 +56,10 @@ export default function TenantLayout(): JSX.Element {
 
           <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
             <NavLink to="/app">Dashboard</NavLink>
+            <NavLink to="/app/usuarios">Usuários</NavLink>
 
             <span style={{ fontSize: 14, color: "#6b7280" }}>
-              {user?.email ?? user?.nome ?? user?.id ?? "Usuário autenticado"}
+              {user?.email ?? user?.nome ?? user?.usuarioId ?? "Usuário autenticado"}
             </span>
 
             <button type="button" onClick={handleLogout}>

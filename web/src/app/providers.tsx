@@ -1,6 +1,6 @@
-// frontend/src/app/providers.tsx
+// web/src/app/providers.tsx
 
-import type { PropsWithChildren } from "react";
+import type { JSX, PropsWithChildren } from "react";
 import { AuthProvider } from "../core/auth/AuthContext";
 import { TenantThemeProvider } from "../core/tenant/TenantThemeProvider";
 import { TenantProvider } from "../core/tenant/TenantContext";

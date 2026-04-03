@@ -1,13 +1,15 @@
-// frontend/src/core/auth/types.ts
+// web/src/core/auth/types.ts
 
 export type Permissao = string;
 export type Papel = string;
+export type ModuloHabilitado = string;
 
 export type SessionUser = {
-  id: string;
-  locatarioId?: string | null;
+  usuarioId: string;
+  locatarioId: string | null;
   papeis: Papel[];
   permissoes: Permissao[];
+  modulosHabilitados?: ModuloHabilitado[];
   nome?: string;
   email?: string;
 };
@@ -20,7 +22,7 @@ export type LoginInput = {
 
 export type LoginResponse = {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   usuario: SessionUser;
 };
 
@@ -30,7 +32,11 @@ export type RefreshInput = {
 
 export type RefreshResponse = {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
+};
+
+export type MeResponse = {
+  usuario: SessionUser;
 };
 
 export type AuthStatus =

@@ -16,6 +16,8 @@ import TenantAdminDashboard from "../features/tenant-admin/pages/Dashboard";
 
 import AccessDenied from "../pages/AccessDenied";
 import NotFound from "../pages/NotFound";
+import UsuariosListPage from "../features/tenant-admin/pages/UsuariosListPage.com-permissoes.exemplo";
+import { EditarUsuarioPage, NovoUsuarioPage, UsuarioDetailsPage } from "../features/tenant-admin/usuarios";
 
 export const router = createBrowserRouter([
   {
@@ -65,6 +67,22 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: <TenantAdminDashboard />,
+          },
+          {
+            path: "usuarios",
+            element: <UsuariosListPage />,
+          },
+          {
+            path: "usuarios/novo",
+            element: <NovoUsuarioPage />,
+          },
+          {
+            path: "usuarios/:usuarioId",
+            element: <UsuarioDetailsPage />,
+          },
+          {
+            path: "usuarios/:usuarioId/editar",
+            element: <EditarUsuarioPage />,
           },
         ],
       },

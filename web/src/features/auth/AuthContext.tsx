@@ -1,5 +1,3 @@
-// frontend/src/core/auth/AuthContext.tsx
-
 import {
   createContext,
   useCallback,
@@ -22,7 +20,7 @@ import {
   logout as logoutRequest,
   me as meRequest,
   refresh as refreshRequest,
-} from "./api/authApi";
+} from "../../features/auth/api/authApi";
 
 import type {
   AuthContextValue,
@@ -31,6 +29,18 @@ import type {
 } from "./types";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function normalizeUser(user: SessionUser): SessionUser {
+  return {
+    ...user,
+    locatarioId: user.locatarioId ?? null,
+    papeis: Array.isArray(user.papeis) ? user.papeis : [],
+    permissoes: Array.isArray(user.permissoes) ? user.permissoes : [],
+    modulosHabilitados: Array.isArray(user.modulosHabilitados)
+      ? user.modulosHabilitados
+      : [],
+  };
+}
 
 export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   const [status, setStatus] = useState<AuthContextValue["status"]>("idle");
@@ -52,7 +62,7 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
         await logoutRequest();
       }
     } catch {
-      // Mesmo com falha remota, encerramos sessão local.
+      // Mesmo com falha remota, encerramos a sessão local.
     } finally {
       clearSession();
     }
@@ -95,8 +105,11 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
 
     try {
       const response = await meRequest();
+      const normalizedUser = normalizeUser(response.usuario);
+
+      authStorage.setUser(normalizedUser);
       setAccessToken(authStorage.getAccessToken());
-      setUser(response.usuario);
+      setUser(normalizedUser);
       setStatus("authenticated");
     } catch (error) {
       if (error instanceof HttpError && error.status === 401) {
@@ -109,8 +122,11 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
 
         try {
           const retryResponse = await meRequest();
+          const normalizedUser = normalizeUser(retryResponse.usuario);
+
+          authStorage.setUser(normalizedUser);
           setAccessToken(authStorage.getAccessToken());
-          setUser(retryResponse.usuario);
+          setUser(normalizedUser);
           setStatus("authenticated");
           return;
         } catch {
@@ -127,6 +143,7 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     setStatus("loading");
 
     const response = await loginRequest(input);
+    const normalizedUser = normalizeUser(response.usuario);
 
     authStorage.setAccessToken(response.accessToken);
 
@@ -134,11 +151,13 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       authStorage.setRefreshToken(response.refreshToken);
     }
 
+    authStorage.setUser(normalizedUser);
+
     setAccessToken(response.accessToken);
-    setUser(response.usuario);
+    setUser(normalizedUser);
     setStatus("authenticated");
 
-    return response.usuario;
+    return normalizedUser;
   }, []);
 
   useEffect(() => {
