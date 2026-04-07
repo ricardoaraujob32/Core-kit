@@ -13,7 +13,7 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * Fluxo do próprio locatário:
    * admin do tenant consulta somente o próprio locatário.
    */
-  app.get(
+  app.get<{ Params: { id: string } }>(
     "/locatarios/:id",
     { preHandler: [authGuard] },
     obterMeuLocatarioController,
@@ -24,7 +24,7 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * listagem global de locatários.
    */
   app.get(
-    "/superadmin/locatarios",
+    "/plataforma/locatarios",
     { preHandler: [authGuard] },
     listarLocatariosSuperAdminController,
   );
@@ -33,8 +33,8 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * Fluxo de superadmin:
    * consulta global de locatário por id.
    */
-  app.get(
-    "/superadmin/locatarios/:id",
+  app.get<{ Params: { id: string } }>(
+    "/plataforma/locatarios/:id",
     { preHandler: [authGuard] },
     obterLocatarioSuperAdminController,
   );

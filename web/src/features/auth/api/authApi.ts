@@ -6,7 +6,7 @@ import type {
   MeResponse,
   RefreshInput,
   RefreshResponse,
-} from "../../../core/auth/types";
+} from "../../../core/auth/tipos";
 import { httpClient } from "../../../core/api/httpClient";
 
 export async function login(input: LoginInput): Promise<LoginResponse> {

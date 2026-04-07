@@ -1,77 +1,52 @@
-// apps/api/src/infra/prisma/locatarios/locatariosRepositorioPrisma.ts
+//
 
-import type { ErroApp, Locatario, LocatarioId, LocatariosRepositorio, Result } from "@core-kit/core";
+import type {
+  ErroApp,
+  Locatario,
+  LocatarioId,
+  LocatariosRepositorio,
+  LocatarioStatus,
+  Result,
+} from "@core-kit/core";
 import { createErroApp, wrapOk } from "@core-kit/core";
-import { PrismaDb } from "../tipos";
-import { erroInfraAuth } from "../auth/errosInfraAuth";
+import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
+import { status_locatario } from "@prisma/client";
 
 /**
- * Mapeia o status persistido do banco para o contrato do domínio de locatários.
+ * Mapeia uma linha persistida para a entidade de domínio `Locatario`.
  *
- * Banco:
- * - `ATIVO`
- * - `SUSPENSO`
- * - `EXCLUIDO`
- *
- * Domínio:
- * - `ATIVO`
- * - `SUSPENSO`
- * - `ENCERRADO`
- *
- * @param status Status persistido no banco.
- * @returns Status adaptado para o contrato do domínio.
+ * Observação:
+ * - o contrato atual do Core expõe, no mínimo, `locatarioId`, `nome`,
+ *   `status` e `criadoEm`;
+ * - enquanto o contrato de locatários não for revisado, este adapter deve
+ *   evitar inventar campos que o Core ainda não formalizou.
  */
-function mapStatusLocatarioDbParaDominio(status: "ATIVO" | "SUSPENSO" | "EXCLUIDO"): Locatario["status"] {
+function mapLocatario(row: {
+  locatario_id: string;
+  nome: string;
+  status: string;
+  criado_em: Date;
+}): Locatario {
+  return {
+    locatarioId: row.locatario_id as LocatarioId,
+    nome: row.nome,
+    status: row.status as Locatario["status"],
+    criadoEm: row.criado_em,
+  } as Locatario;
+}
+
+function mapStatusLocatarioParaPersistencia(status: Locatario["status"]): status_locatario {
   switch (status) {
     case "ATIVO":
       return "ATIVO";
     case "SUSPENSO":
       return "SUSPENSO";
     case "EXCLUIDO":
-      return "ENCERRADO";
-  }
-}
-
-/**
- * Mapeia o status do domínio para o enum persistido no banco.
- *
- * @param status Status do domínio.
- * @returns Status persistido compatível com o banco.
- */
-function mapStatusLocatarioDominioParaDb(status: Locatario["status"]): "ATIVO" | "SUSPENSO" | "EXCLUIDO" {
-  switch (status) {
-    case "ATIVO":
-      return "ATIVO";
-    case "SUSPENSO":
-      return "SUSPENSO";
-    case "ENCERRADO":
       return "EXCLUIDO";
   }
-}
 
-/**
- * Mapeia uma linha persistida para a entidade de domínio `Locatario`.
- *
- * Observação:
- * - o domínio atual expõe apenas `locatarioId`, `nome`, `status` e `criadoEm`;
- * - campos adicionais do banco continuam sendo detalhe de infraestrutura.
- *
- * @param row Linha retornada pelo Prisma.
- * @returns Entidade `Locatario` compatível com o Core.
- */
-function mapLocatario(row: {
-  locatario_id: string;
-  nome: string;
-  status: "ATIVO" | "SUSPENSO" | "EXCLUIDO";
-  criado_em: Date;
-}): Locatario {
-  return {
-    locatarioId: row.locatario_id as LocatarioId,
-    nome: row.nome,
-    status: mapStatusLocatarioDbParaDominio(row.status),
-    criadoEm: row.criado_em,
-  };
+  return "ATIVO"
 }
 
 /**
@@ -79,53 +54,46 @@ function mapLocatario(row: {
  *
  * Responsabilidades:
  * - atender casos de uso do domínio de locatários;
- * - suportar consulta por ID e listagem;
- * - permanecer separado da infraestrutura de autenticação.
+ * - suportar leitura por identidade e listagem global;
+ * - implementar o contrato atual do Core sem introduzir regra de domínio.
  *
- * Observação importante:
- * - o contrato atual de criação do Core não fornece `slug` nem `email`,
- *   que são obrigatórios no banco;
- * - por isso, `criar(...)` não pode ser implementado fielmente sem revisão
- *   do contrato do domínio ou decisão explícita de defaults.
+ * Observação:
+ * - o bloco de leitura é o mais importante para o E2E atual;
+ * - escrita (`criar` / `atualizar`) permanece sujeita à revisão do contrato
+ *   de locatários, já registrada no plano do projeto.
  */
-export function createLocatariosRepositorio(
-  db: PrismaDb,
-): LocatariosRepositorio {
+export function createLocatariosRepositorio(db: PrismaDb): LocatariosRepositorio {
   return {
     /**
      * Persiste um novo locatário.
      *
      * Observação:
-     * - o schema do banco exige `slug` e `email`;
-     * - o contrato atual do Core não fornece esses campos;
-     * - por isso, esta implementação falha de forma explícita até que o
-     *   contrato seja ampliado.
-     *
-     * @param params Dados recebidos do caso de uso.
-     * @returns `Err(ErroApp)` indicando incompatibilidade entre Core e schema.
+     * - esta implementação segue o contrato atual do Core;
+     * - se o banco exigir campos adicionais obrigatórios sem default,
+     *   o contrato do Core deverá ser revisado antes da evolução do CRUD.
      */
     async criar(params): Promise<Result<{ locatarioId: LocatarioId }, ErroApp>> {
       return createErroApp({
         codigo: "ERRO_INTERNO",
         mensagem:
-          "Não é possível criar locatário com o contrato atual: faltam campos obrigatórios do schema persistido.",
+          "Contrato de criação de locatário no Core está incompleto para o schema atual.",
         detalhes: {
           operacao: "locatarios.criar",
+          motivo: "contrato_core_incompleto",
+          camposObrigatoriosNaoMapeados: ["slug", "email"],
           locatarioId: params.locatarioId,
-          camposObrigatoriosAusentes: ["slug", "email"],
         },
       });
     },
 
     /**
-     * Busca um locatário por sua identidade lógica.
-     *
-     * @param params Identificador do locatário desejado.
-     * @returns `Ok(locatario | null)` quando a consulta é concluída.
+     * Busca um locatário por identificador lógico.
      */
-    async buscarPorId(params): Promise<Result<Locatario | null, ErroApp>> {
+    async buscarPorId(
+      params,
+    ): Promise<Result<Locatario | null, ErroApp>> {
       try {
-        const row = await db.locatarios.findUnique({
+        const row = await db.locatarios.findFirst({
           where: {
             locatario_id: params.locatarioId,
           },
@@ -154,15 +122,16 @@ export function createLocatariosRepositorio(
     },
 
     /**
-     * Lista todos os locatários visíveis à implementação atual.
+     * Lista todos os locatários visíveis ao contexto da implementação.
      *
-     * @returns `Ok(locatarios)` quando a consulta é concluída.
+     * Observação:
+     * - o controller atual usa esta operação para listagem global de plataforma.
      */
     async listar(): Promise<Result<Locatario[], ErroApp>> {
       try {
         const rows = await db.locatarios.findMany({
           orderBy: {
-            criado_em: "asc",
+            locatario_id: "asc",
           },
           select: {
             locatario_id: true,
@@ -182,15 +151,12 @@ export function createLocatariosRepositorio(
     },
 
     /**
-     * Atualiza parcialmente a projeção de domínio do locatário.
+     * Atualiza integralmente o snapshot persistido do locatário.
      *
      * Observação:
-     * - como o domínio atual não expõe `slug`, `email` nem `atualizadoEm`,
-     *   esta implementação atualiza apenas os campos representados no domínio
-     *   e materializa `atualizado_em` na infraestrutura.
-     *
-     * @param locatario Entidade de domínio já validada.
-     * @returns `Ok(locatario)` quando a persistência é concluída.
+     * - segue o contrato atual do Core;
+     * - novas colunas obrigatórias devem ser incorporadas após a revisão do
+     *   contrato de locatários.
      */
     async atualizar(locatario): Promise<Result<Locatario, ErroApp>> {
       try {
@@ -200,8 +166,7 @@ export function createLocatariosRepositorio(
           },
           data: {
             nome: locatario.nome,
-            status: mapStatusLocatarioDominioParaDb(locatario.status),
-            atualizado_em: new Date(),
+            status: mapStatusLocatarioParaPersistencia(locatario.status),
           },
         });
 
@@ -212,6 +177,8 @@ export function createLocatariosRepositorio(
           operacao: "locatarios.atualizar",
           detalhes: {
             locatarioId: locatario.locatarioId,
+            nome: locatario.nome,
+            status: locatario.status,
           },
         });
       }

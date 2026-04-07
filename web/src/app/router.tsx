@@ -2,22 +2,21 @@
 
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
-import ProtectedRoute from "../core/routing/ProtectedRoute";
-import SuperAdminRoute from "../core/routing/SuperAdminRoute";
-import TenantRoute from "../core/routing/TenantRoute";
+import ProtectedRoute from "../core/routing/protectedRoute";
+import SuperAdminRoute from "../core/routing/superAdminRoute";
+import TenantRoute from "../core/routing/tenantRoute";
 
-import AuthLayout from "../layouts/AuthLayout";
-import SuperAdminLayout from "../layouts/SuperAdminLayout";
-import TenantLayout from "../layouts/TenantLayout";
+import AuthLayout from "../layouts/authLayout";
+import SuperAdminLayout from "../layouts/superAdminLayout";
+import TenantLayout from "../layouts/tenantLayout";
 
-import LoginPage from "../features/auth/pages/LoginPage";
-import SuperAdminDashboard from "../features/superadmin/pages/Dashboard";
-import TenantAdminDashboard from "../features/tenant-admin/pages/Dashboard";
+import LoginPage from "../features/auth/pages/loginPage";
+import SuperAdminDashboard from "../features/superadmin/pages/dashboard";
+import TenantAdminDashboard from "../features/tenant-admin/pages/dashboard";
 
-import AccessDenied from "../pages/AccessDenied";
-import NotFound from "../pages/NotFound";
-import UsuariosListPage from "../features/tenant-admin/pages/UsuariosListPage.com-permissoes.exemplo";
-import { EditarUsuarioPage, NovoUsuarioPage, UsuarioDetailsPage } from "../features/tenant-admin/usuarios";
+import AccessDenied from "../pages/accessDenied";
+import NotFound from "../pages/notFound";
+import { EditarUsuarioPage, NovoUsuarioPage, UsuarioDetailsPage, UsuariosListPage } from "../features/tenant-admin/usuarios";
 
 export const router = createBrowserRouter([
   {

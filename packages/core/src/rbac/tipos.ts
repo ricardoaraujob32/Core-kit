@@ -1,6 +1,9 @@
 // packages/core/src/rbac/tipos.ts
 
 import { ContextoExecucao, ErroApp, Result } from "../kernel";
+import { LocatarioId } from "../locatarios";
+import { ModuloCodigo } from "../modulos";
+import { UsuarioId } from "../usuarios";
 
 /**
  * Papéis sugeridos de uso comum.
@@ -71,6 +74,17 @@ export const Permissoes = {
 export type Permissao = (typeof Permissoes)[keyof typeof Permissoes];
 
 /**
+ * 
+ */
+export type AutorizacaoSnapshot = {
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+  papeis: Papel[];
+  permissoes: Permissao[];
+  modulos: ModuloCodigo[];
+};
+
+/**
  * Entrada da operação que resolve papéis e permissões de um contexto.
  */
 export interface ResolverPermissoesInput {
@@ -110,3 +124,22 @@ export interface AutorizarOperacaoInput {
  * Resultado assíncrono da autorização da operação.
  */
 export type AutorizarOperacaoResult = Result<void, ErroApp>;
+
+/**
+ * 
+ */
+export interface ResolverAutorizacaoInput {
+  ctx: ContextoExecucao;
+}
+
+/**
+ * 
+ */
+export interface ResolverAutorizacaoOutput {
+  ctx: ContextoExecucao;
+}
+
+/**
+ * 
+ */
+export type ResolverAutorizacaoResult = Promise<Result<ResolverAutorizacaoOutput, ErroApp>>

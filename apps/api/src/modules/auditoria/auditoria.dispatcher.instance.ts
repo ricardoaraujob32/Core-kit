@@ -1,8 +1,8 @@
 // apps/api/src/modules/auditoria/auditoria.dispatcher.instance.ts
 
 import { createAuditoriaDispatcher } from "./auditoria.dispatcher";
-import { tentarAuditarLocatario } from "./auditoriaLocatario.helpers";
-import { tentarAuditarPlataforma } from "./auditoriaPlataforma.helpers";
+import { tentarAuditarLocatario } from "./auditoria.helpers";
+import { tentarAuditarPlataforma } from "./auditoria.helpers";
 
 /**
  * Dispatcher oficial de auditoria da API.

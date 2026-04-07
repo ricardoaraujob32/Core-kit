@@ -1,9 +1,9 @@
 // web/src/app/providers.tsx
 
 import type { JSX, PropsWithChildren } from "react";
-import { AuthProvider } from "../core/auth/AuthContext";
-import { TenantThemeProvider } from "../core/tenant/TenantThemeProvider";
-import { TenantProvider } from "../core/tenant/TenantContext";
+import { AuthProvider } from "../core/auth/authContext";
+import { TenantThemeProvider } from "../core/tenant/tenantThemeProvider";
+import { TenantProvider } from "../core/tenant/tenantContext";
 
 export function AppProviders({ children }: PropsWithChildren): JSX.Element {
   return (

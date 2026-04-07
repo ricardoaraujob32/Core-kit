@@ -1,17 +1,18 @@
 // apps/api/src/http/context.ts
 
 import type { FastifyRequest } from "fastify";
-import { comModulosHabilitados, createContextoExecucao, createFnResolverContextoAutorizado, createErroApp, wrapOk, createFnListarModulosHabilitados } from "@core-kit/core";
-import type { ContextoExecucao, ErroApp, LocatarioId, ModuloCodigo, Result } from "@core-kit/core";
-import { createAuthHttpRuntime } from "../infra/prisma/auth";
-import { createModulosHabilitadosRepositorio } from "../infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma";
-import { clientePrisma } from "../infra/prisma/client";
+import { createContextoExecucao, createErroApp, wrapOk } from "@core-kit/core";
+import type { ContextoExecucao, ErroApp, Result } from "@core-kit/core";
+import { getAuthorizationBootstrap } from "../bootstrap/authorizationBootstrap";
 
 /**
- * Tipo da função responsável por resolver o contexto autorizado.
+ * Tipo da função oficial de resolução de contexto autorizado.
+ *
+ * Observação:
+ * - o runtime concreto é fornecido pelo bootstrap da aplicação;
+ * - esta tipagem existe apenas para manter a factory testável.
  */
-type ResolverContextoAutorizadoFn =
-  ReturnType<typeof createAuthHttpRuntime>["resolverContextoAutorizado"];
+type ResolverContextoAutorizadoFn = ReturnType<typeof getAuthorizationBootstrap>["runtime"]["resolverContextoAutorizado"];
 
 /**
  * Dependências opcionais do builder de contexto HTTP.
@@ -25,35 +26,19 @@ type BuildContextDeps = {
    * Função responsável por transformar contexto base em contexto autorizado.
    */
   resolverContextoAutorizado: ResolverContextoAutorizadoFn;
-
-  /**
-   * Função opcional para buscar módulos habilitados do locatário.
-   */
-  listarModulosHabilitados: ReturnType<typeof createFnListarModulosHabilitados>;
 }
 
 /**
- * Runtime oficial de autenticação usado na composição padrão do builder.
- */
-const authRuntime = createAuthHttpRuntime();
-
-/**
- * Caso de uso oficial de módulos habilitados usado pelo builder.
- */
-const listarModulosHabilitados = createFnListarModulosHabilitados({
-  repositorio: createModulosHabilitadosRepositorio(clientePrisma),
-});
-
-
-/**
- * Builder padrão de contexto HTTP usado pela aplicação.
+ * Builder oficial de contexto HTTP da aplicação.
  *
  * Observação:
- * - a factory continua disponível para testes ou composições alternativas;
- * - este export fornece a versão oficial já montada para a API.
+ * - a composição oficial vem do bootstrap já inicializado no startup;
+ * - este arquivo não recompõe runtime localmente.
  */
 export const buildContextFromRequest = createFnBuildContextFromRequest({
-  resolverContextoAutorizado: authRuntime.resolverContextoAutorizado, listarModulosHabilitados,
+  get resolverContextoAutorizado() {
+    return getAuthorizationBootstrap().runtime.resolverContextoAutorizado;
+  },
 });
 
 /**
@@ -86,6 +71,9 @@ function criarCtxBase(usuario: NonNullable<FastifyRequest["usuario"]>): Result<C
     return createErroApp({
       codigo: "LOCATARIO_OBRIGATORIO",
       mensagem: "Locatário ausente no contexto autenticado.",
+      detalhes: {
+        operacao: "http.contexto.criarBase",
+      },
     });
   }
 
@@ -103,6 +91,7 @@ function criarCtxBase(usuario: NonNullable<FastifyRequest["usuario"]>): Result<C
       codigo: "ERRO_INTERNO",
       mensagem: "Falha ao criar contexto base.",
       detalhes: {
+        operacao: "http.contexto.criarBase",
         usuarioId: usuario.usuarioId,
         locatarioId: usuario.locatarioId,
       },
@@ -139,6 +128,9 @@ export function createFnBuildContextFromRequest(deps: BuildContextDeps) {
       return createErroApp({
         codigo: "NAO_AUTENTICADO",
         mensagem: "Usuário autenticado ausente na requisição.",
+        detalhes: {
+          operacao: "http.contexto.build",
+        },
       });
     }
 
@@ -149,31 +141,25 @@ export function createFnBuildContextFromRequest(deps: BuildContextDeps) {
       return createErroApp({
         codigo: "NAO_AUTENTICADO",
         mensagem: "Metadados da sessão ausentes no request autenticado.",
+        detalhes: {
+          operacao: "http.contexto.build",
+        },
       });
     }
 
-  const contextoAutorizado = await deps.resolverContextoAutorizado({
+    const contextoAutorizado = await deps.resolverContextoAutorizado({
       sessao: {
         locatarioId: ctxBase.value.locatarioId,
         usuarioId: ctxBase.value.usuarioId,
         sessionId: usuario.sessionId,
         expiraEm: usuario.expiraEm,
       },
-  });
-
-    if (!contextoAutorizado.ok) return contextoAutorizado;
-
-    const modulosResult = await deps.listarModulosHabilitados({
-      locatarioId: contextoAutorizado.value.ctx.locatarioId,
     });
 
-    if (!modulosResult.ok) return modulosResult;
+    if (!contextoAutorizado.ok) {
+      return contextoAutorizado;
+    }
 
-    const ctxFinal = comModulosHabilitados(
-      contextoAutorizado.value.ctx,
-      modulosResult.value.modulos.map((m) => m.codigo),
-    );
-
-    return wrapOk(ctxFinal);
-  };
+    return wrapOk(contextoAutorizado.value.ctx);
+  }
 }

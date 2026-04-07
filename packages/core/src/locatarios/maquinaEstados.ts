@@ -18,6 +18,7 @@ const TRANSICOES_LOCATARIO: TabelaTransicoes<LocatarioStatus, EventoLocatario> =
     ENCERRAR: "ENCERRADO",
   },
   ENCERRADO: {},
+  EXCLUIDO: {},
 };
 
 /**

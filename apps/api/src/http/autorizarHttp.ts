@@ -109,10 +109,7 @@ export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply
   }
 
   if (politica.locatarioIdAlvo) {
-    const erroMesmoLocatario = exigirMesmoLocatarioHttp(
-      ctx,
-      politica.locatarioIdAlvo,
-    );
+    const erroMesmoLocatario = exigirMesmoLocatarioHttp(ctx, politica.locatarioIdAlvo);
 
     if (erroMesmoLocatario) {
       sendHttpError(reply, erroMesmoLocatario);
@@ -121,10 +118,7 @@ export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply
   }
 
   if (politica.permissao) {
-    const autorizacao = autorizarOperacao({
-      ctx,
-      permissao: politica.permissao,
-    });
+    const autorizacao = autorizarOperacao({ ctx, permissao: politica.permissao });
 
     if (!autorizacao.ok) {
       sendHttpError(reply, autorizacao.error);

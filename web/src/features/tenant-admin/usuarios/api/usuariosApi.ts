@@ -1,45 +1,39 @@
+// web/src/features/tenant-admin/usuarios/api/usuariosApi.ts
 
 import { httpClient } from "../../../../core/api/httpClient";
-import type {
-  AcaoUsuarioResponse,
-  AtualizarUsuarioInput,
-  AtualizarUsuarioResponse,
-  CriarUsuarioInput,
-  CriarUsuarioResponse,
-  ListarUsuariosResponse,
-  ObterUsuarioResponse,
-} from "../types";
+import type { AcaoUsuarioResponse, AtualizarUsuarioInput, AtualizarUsuarioResponse, CriarUsuarioInput, CriarUsuarioResponse, ListarUsuariosResponse, 
+  ObterUsuarioResponse } from "../tipos";
 
-const BASE = "/api/usuarios";
+const BASE = "/usuarios";
 
+/**
+ * 
+ */
 export const usuariosApi = {
-  async listar(): Promise<ListarUsuariosResponse> {
-    const { data } = await httpClient.get<ListarUsuariosResponse>(BASE);
-    return data;
+  listar(): Promise<ListarUsuariosResponse> {
+    return httpClient.get<ListarUsuariosResponse>(BASE);
   },
 
-  async obter(usuarioId: string): Promise<ObterUsuarioResponse> {
-    const { data } = await httpClient.get<ObterUsuarioResponse>(`${BASE}/${usuarioId}`);
-    return data;
+  obter(usuarioId: string): Promise<ObterUsuarioResponse> {
+    return httpClient.get<ObterUsuarioResponse>(`${BASE}/${usuarioId}`);
   },
 
-  async criar(input: CriarUsuarioInput): Promise<CriarUsuarioResponse> {
-    const { data } = await httpClient.post<CriarUsuarioResponse>(BASE, input);
-    return data;
+  criar(input: CriarUsuarioInput): Promise<CriarUsuarioResponse> {
+    return httpClient.post<CriarUsuarioResponse, CriarUsuarioInput>(BASE, input);
   },
 
-  async atualizar(usuarioId: string, input: AtualizarUsuarioInput): Promise<AtualizarUsuarioResponse> {
-    const { data } = await httpClient.patch<AtualizarUsuarioResponse>(`${BASE}/${usuarioId}`, input);
-    return data;
+  atualizar(usuarioId: string, input: AtualizarUsuarioInput): Promise<AtualizarUsuarioResponse> {
+    return httpClient.patch<AtualizarUsuarioResponse, AtualizarUsuarioInput>(
+      `${BASE}/${usuarioId}`,
+      input,
+    );
   },
 
-  async inativar(usuarioId: string): Promise<AcaoUsuarioResponse> {
-    const { data } = await httpClient.post<AcaoUsuarioResponse>(`${BASE}/${usuarioId}/inativar`);
-    return data;
+  inativar(usuarioId: string): Promise<AcaoUsuarioResponse> {
+    return httpClient.post<AcaoUsuarioResponse>(`${BASE}/${usuarioId}/inativar`);
   },
 
-  async reativar(usuarioId: string): Promise<AcaoUsuarioResponse> {
-    const { data } = await httpClient.post<AcaoUsuarioResponse>(`${BASE}/${usuarioId}/reativar`);
-    return data;
+  reativar(usuarioId: string): Promise<AcaoUsuarioResponse> {
+    return httpClient.post<AcaoUsuarioResponse>(`${BASE}/${usuarioId}/reativar`);
   },
 };

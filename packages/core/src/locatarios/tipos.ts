@@ -21,11 +21,13 @@ export type LocatarioSlug = string;
  *
  * - `ATIVO`: locatário operacional e apto a usar o sistema.
  * - `SUSPENSO`: locatário temporariamente impedido de operar.
+ * - `ENCERRADO`: locatário em processo de encerramento.
  * - `EXCLUIDO`: locatário excluído do ponto de vista de negócio.
  */
 export type LocatarioStatus =
   | "ATIVO"
   | "SUSPENSO"
+  | "ENCERRADO"
   | "EXCLUIDO";
 
 /**

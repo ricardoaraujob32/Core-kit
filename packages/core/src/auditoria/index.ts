@@ -10,12 +10,15 @@ export type { AuditoriaAtivaLocatarioRepositorio, AuditoriaInternaRepositorio } 
 
 export { createFnListarAuditoriaAtivaLocatario } from "./usecases/listarAuditoriaAtivaLocatario";
 
-export { createFnListarAuditoriaInterna } from "./usecases/listarAuditoriaInterna";
+// export { createFnListarAuditoriaInterna } from "./usecases/listarAuditoriaInterna";
 
-export { createFnRegistrarEventoAuditoriaInterna } from "./usecases/registrarEventoAuditoriaInterna";
+// export { createFnRegistrarEventoAuditoriaInterna } from "./usecases/registrarEventoAuditoriaInterna";
+
+// export { createFnListarAuditoriaPlataforma } from "./usecases/listarAuditoriaPlataforma";
 
 export { EVENTOS_AUDITORIA } from "./eventos";
 
-export { MetadadosAuditoria, metaAcao, metaAtualizacao, metaCriacao, metaImpersonacao } from "./metadados";
+export type { MetadadosAuditoria } from "./metadados";
+export { metaAcao, metaAtualizacao, metaCriacao, metaImpersonacao } from "./metadados";
 
 export { resolverEventoAuditoria } from "./resolverEventoAuditoria";

@@ -52,7 +52,7 @@ export function createFnInativarUsuario(deps: {
     if (!usuarioId.ok) return usuarioId;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.usuariosRepo.buscarPorId({
+      const atual = await deps.usuariosRepositorio.buscarPorId({
         locatarioId: locatarioId.value,
         usuarioId: usuarioId.value,
       });
@@ -68,7 +68,7 @@ export function createFnInativarUsuario(deps: {
       });
       if (!transicao.ok) return transicao;
 
-      const atualizado = await deps.usuariosRepo.atualizar({
+      const atualizado = await deps.usuariosRepositorio.atualizar({
         ...atual.value,
         status: transicao.value,
         atualizadoEm: deps.relogio.agora(),

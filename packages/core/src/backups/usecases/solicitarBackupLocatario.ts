@@ -62,7 +62,7 @@ export function createFnSolicitarBackupLocatario(deps: {
         exportacaoId: deps.idPorta.gerarId(),
         locatarioId: input.locatarioId,
         criadoPorUsuarioId: input.solicitadoPorUsuarioId,
-        formato: "ZIP",
+        formato: "JSON",
         status: "PENDENTE",
         parametros: {
           tipo: "BACKUP_LOCATARIO",

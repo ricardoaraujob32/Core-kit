@@ -1,9 +1,6 @@
 // packages/core/src/importacoes/index.ts
 
-export {
-  ImportacoesRepositorioMemoria,
-  ItensImportacaoRepositorioMemoria,
-} from "./repositorioMemoria";
+
 
 export type {
   Importacao,

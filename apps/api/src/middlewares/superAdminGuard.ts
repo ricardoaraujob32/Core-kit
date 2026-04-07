@@ -1,9 +1,7 @@
 // apps/api/src/middlewares/superAdminGuard.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { buildContextFromRequest } from "../http/context";
-import { sendHttpError } from "../http/serializarErroApp";
-import { exigirSuperAdminHttp } from "../http/routeGuards";
+import { autorizarHttp } from "../http/autorizarHttp";
 
 /**
  * Middleware HTTP de autorização para operações de superadmin.
@@ -23,15 +21,11 @@ import { exigirSuperAdminHttp } from "../http/routeGuards";
  * @returns `void` quando autorizado ou resposta HTTP de erro.
  */
 export async function superAdminGuard(request: FastifyRequest, reply: FastifyReply) {
-  const ctxResult = await buildContextFromRequest(request);
+  const ctx = await autorizarHttp(request, reply, {
+    exigeSuperadmin: true,
+  });
 
-  if (!ctxResult.ok) {
-    return sendHttpError(reply, ctxResult.error);
-  }
-
-  const erroAuthz = exigirSuperAdminHttp(ctxResult.value);
-
-  if (erroAuthz) {
-    return sendHttpError(reply, erroAuthz);
+  if (!ctx) {
+    return;
   }
 }

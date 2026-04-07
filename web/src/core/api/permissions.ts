@@ -1,6 +1,6 @@
 // web/src/core/api/permissions.ts
 
-import type { StatusUsuario } from "../../features/tenant-admin/usuarios/types";
+import type { StatusUsuario } from "../../features/tenant-admin/usuarios/tipos";
 
 export const USUARIOS_PERMISSIONS = {
   LISTAR: "tenant.usuario.listar",

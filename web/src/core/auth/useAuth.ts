@@ -1,3 +1,3 @@
 // frontend/src/core/auth/useAuth.ts
 
-export { useAuth } from "./AuthContext";
+export { useAuth } from "./authContext";

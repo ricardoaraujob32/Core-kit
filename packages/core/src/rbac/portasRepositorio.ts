@@ -3,7 +3,7 @@
 import { ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 import { UsuarioId } from "../usuarios";
-import { Papel, Permissao } from "./tipos";
+import { AutorizacaoSnapshot, Papel, Permissao } from "./tipos";
 
 /**
  * Porta de leitura de dados de RBAC.
@@ -30,4 +30,19 @@ export interface RbacRepositorio {
    * @returns `Ok` com a coleção de permissões efetivas.
    */
   listarPermissoesEfetivasDoUsuario(params: {locatarioId: LocatarioId; usuarioId: UsuarioId}): Promise<Result<Permissao[], ErroApp>>;
+}
+
+/**
+ * 
+ */
+export interface AutorizacaoRepositorio {
+  /**
+   * 
+   * @param params 
+   */
+  obterSnapshot(params: {
+    locatarioId: LocatarioId;
+    usuarioId: UsuarioId;
+    isPlataforma?: boolean;
+  }): Promise<Result<AutorizacaoSnapshot, ErroApp>>;
 }

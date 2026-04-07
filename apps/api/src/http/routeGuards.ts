@@ -1,6 +1,6 @@
 // apps/api/src/http/routeGuards.ts
 
-import type { ContextoExecucao, ErroApp } from "@core-kit/core";
+import type { ContextoExecucao, ErroApp, Result } from "@core-kit/core";
 import { exigirUsuario } from "@core-kit/core";
 
 /**
@@ -17,7 +17,7 @@ import { exigirUsuario } from "@core-kit/core";
  * @param ctx Contexto atual da requisição.
  * @returns Resultado do Core indicando se há usuário autenticado.
  */
-export function exigirAutenticacaoHttp(ctx: ContextoExecucao) {
+export function exigirAutenticacaoHttp(ctx: ContextoExecucao): Result<ContextoExecucao, ErroApp>  {
   return exigirUsuario(ctx);
 }
 
@@ -38,7 +38,7 @@ export function exigirAutenticacaoHttp(ctx: ContextoExecucao) {
  * @param ctx Contexto atual da requisição.
  * @returns `true` quando o contexto representa o fluxo superadmin provisório.
  */
-export function isFluxoSuperAdminProvisorio(ctx: Pick<ContextoExecucao, "locatarioId" | "papeis">): boolean {
+export function isFluxoSuperAdmin(ctx: Pick<ContextoExecucao, "locatarioId" | "papeis">): boolean {
   if (ctx.locatarioId === "plataforma") {
     return true;
   }
@@ -68,7 +68,7 @@ export function isFluxoSuperAdminProvisorio(ctx: Pick<ContextoExecucao, "locatar
  * @returns `null` quando autorizado; `ErroApp` quando não autorizado.
  */
 export function exigirSuperAdminHttp(ctx: Pick<ContextoExecucao, "locatarioId" | "papeis">): ErroApp | null {
-  if (isFluxoSuperAdminProvisorio(ctx)) {
+  if (isFluxoSuperAdmin(ctx)) {
     return null;
   }
 

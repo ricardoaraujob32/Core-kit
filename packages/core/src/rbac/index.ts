@@ -4,14 +4,19 @@ export type {
   Papel,
   PAPEIS_PADRAO,
   Permissao,
-  Permissoes,
   PapelPadrao,
+  AutorizacaoSnapshot,
   ResolverPermissoesInput,
   ResolverPermissoesOutput,
   ResolverPermissoesResult,
   AutorizarOperacaoInput,
-  AutorizarOperacaoResult
+  AutorizarOperacaoResult,
+  ResolverAutorizacaoInput,
+  ResolverAutorizacaoOutput,
+  ResolverAutorizacaoResult
 } from "./tipos";
+
+export { Permissoes } from "./tipos";
 
 export {
   permissaoInvalida,
@@ -21,10 +26,12 @@ export {
 
 export { validarPermissao } from "./validadores";
 
-export type { RbacRepositorio } from "./portasRepositorio";
+export type { RbacRepositorio, AutorizacaoRepositorio } from "./portasRepositorio";
 
-export { criarRbacRepositorioMemoria } from "./repositorioMemoria";
+// export { criarRbacRepositorioMemoria } from "./repositorioMemoria";
 
 export { createFnResolverPermissoes } from "./usecases/resolverPermissoes";
 
 export { autorizarOperacao } from "./usecases/autorizarOperacao";
+
+export { createFnResolverAutorizacao } from "./usecases/resolverAutorizacao";

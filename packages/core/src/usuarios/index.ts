@@ -42,10 +42,7 @@ export {
 
 export type { UsuariosRepositorio } from "./portasRepositorio";
 
-export {
-  criarUsuariosRepositorioMemoria,
-  criarUsuarioSeed,
-} from "./repositorioMemoria";
+
 
 export { createFnCriarUsuario } from "./usecases/criarUsuario";
 export { createFnObterUsuario } from "./usecases/obterUsuario";

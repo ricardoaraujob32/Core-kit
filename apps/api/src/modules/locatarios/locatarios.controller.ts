@@ -5,9 +5,10 @@ import { sendHttpError } from "../../http/serializarErroApp";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createFnListarLocatarios, createFnObterLocatario, metaAcao } from "@core-kit/core";
 import { exigirMesmoLocatarioHttp } from "../../http/routeGuards";
+//import { auditar } from "../auditoria/auditoria.dispatcher.instance";
+import { obterCtxAutorizadoOuResponderErro } from "../helpers";
+import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma";
-import { criarContextoAuditoria, exigirSuperAdminOuResponderErro, obterCtxAutorizadoOuResponderErro, obterCtxOuResponderErro } from "../helpers";
-import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 
 /**
  * Builder oficial de contexto HTTP para este módulo.
@@ -31,11 +32,7 @@ export async function obterMeuLocatarioController(request: FastifyRequest<{ Para
   });
   if (!ctx) return;
 
-  const erroMesmoLocatario = exigirMesmoLocatarioHttp(
-    ctx,
-    request.params.id,
-  );
-
+  const erroMesmoLocatario = exigirMesmoLocatarioHttp(ctx, request.params.id);
   if (erroMesmoLocatario) {
     return sendHttpError(reply, erroMesmoLocatario);
   }
@@ -49,26 +46,24 @@ export async function obterMeuLocatarioController(request: FastifyRequest<{ Para
     locatarioId: request.params.id,
   });
 
-  await auditar(criarContextoAuditoria(request, { usuarioId: ctx.usuarioId, locatarioId: ctx.locatarioId, }),
-    {
-      evento: "locatario.obtido",
-      sucesso: resultado.ok,
-      entidadeTipo: "locatario",
-      entidadeId: request.params.id,
-      entidadeNome: resultado.ok ? resultado.value.locatario : null,
-      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-      metadados: metaAcao(),
-    },
-  );
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "locatario.obtido",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "locatario",
+  //   entidadeId: request.params.id,
+  //   entidadeNome: resultado.ok
+  //     ? (resultado.value as any).locatario ?? (resultado.value as any).nome ?? null
+  //     : null,
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados: metaAcao(),
+  // });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
 
-  return reply.status(200).send({
-    item: resultado.value,
-  });
+  return reply.status(200).send({ item: resultado.value });
 }
 
 /**
@@ -86,10 +81,6 @@ export async function listarLocatariosSuperAdminController(request: FastifyReque
   });
   if (!ctx) return;
 
-  if (!exigirSuperAdminOuResponderErro(ctx, reply)) {
-    return;
-  }
-
   const repositorio = createLocatariosRepositorio(clientePrisma);
   const listarLocatarios = createFnListarLocatarios({
     locatarioRepositorio: repositorio,
@@ -97,29 +88,29 @@ export async function listarLocatariosSuperAdminController(request: FastifyReque
 
   const resultado = await listarLocatarios({});
 
-  await auditar(criarContextoAuditoria(request, { usuarioId: ctx.usuarioId, isSuperadmin: true, }),
-  {
-    evento: "plataforma.locatario.listado",
-    sucesso: resultado.ok,
-    entidadeTipo: "locatario",
-    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-    metadados: metaAcao({
-      quantidadeResultados: resultado.ok
-        ? (Array.isArray(resultado.value)
-            ? resultado.value.length
-            : resultado.value.itens?.length ?? 0)
-        : 0,
-    }),
-  },
-);
+  // await auditar(criarContextoAuditoria(request, ctx, { isSuperadmin: true }),
+  //   {
+  //     evento: "plataforma.locatario.listado",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "locatario",
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: metaAcao({
+  //       quantidadeResultados: resultado.ok
+  //         ? Array.isArray(resultado.value)
+  //           ? resultado.value.length
+  //           : resultado.value.itens?.length ?? 0
+  //         : 0,
+  //     }),
+  //   },
+  // );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
 
   return reply.status(200).send({
-    itens: resultado.value.itens ?? resultado.value,
+    itens: (resultado.value as any).itens ?? resultado.value,
   });
 }
 
@@ -138,10 +129,6 @@ export async function obterLocatarioSuperAdminController(request: FastifyRequest
   });
   if (!ctx) return;
 
-  if (!exigirSuperAdminOuResponderErro(ctx, reply)) {
-    return;
-  }
-
   const repositorio = createLocatariosRepositorio(clientePrisma);
   const obterLocatario = createFnObterLocatario({
     locatarioRepositorio: repositorio,
@@ -151,24 +138,29 @@ export async function obterLocatarioSuperAdminController(request: FastifyRequest
     locatarioId: request.params.id,
   });
 
-  await auditar(criarContextoAuditoria(request, { usuarioId: ctx.usuarioId, isSuperadmin: true, locatarioAlvoId: request.params.id, }),
-    {
-      evento: "plataforma.locatario.obtido",
-      sucesso: resultado.ok,
-      entidadeTipo: "locatario",
-      entidadeId: request.params.id,
-      entidadeNome: resultado.ok ? resultado.value.nome : null,
-      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-      metadados: metaAcao(),
-    },
-  );
+  // await auditar(criarContextoAuditoria(request, ctx, {
+  //     isSuperadmin: true,
+  //     locatarioAlvoId: request.params.id,
+  //   }),
+  //   {
+  //     evento: "plataforma.locatario.obtido",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "locatario",
+  //     entidadeId: request.params.id,
+  //     entidadeNome: resultado.ok
+  //       ? (resultado.value as any).nome ?? (resultado.value as any).locatario ?? null
+  //       : null,
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: metaAcao(),
+  //   },
+  // );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
 
-  return reply.status(200).send({
-    item: resultado.value,
+  return reply.status(200).send({ 
+    item: resultado.value 
   });
 }

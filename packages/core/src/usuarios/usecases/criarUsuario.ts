@@ -60,7 +60,7 @@ export function createFnCriarUsuario(deps: {
     if (!senhaHash.ok) return senhaHash;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const existente = await deps.usuariosRepo.buscarPorEmailNoLocatario({
+      const existente = await deps.usuariosRepositorio.buscarPorEmailNoLocatario({
         locatarioId: locatarioId.value,
         emailNormalizado: email.value,
       });
@@ -72,7 +72,7 @@ export function createFnCriarUsuario(deps: {
       const usuarioId = deps.idPorta.gerarId();
       const agora = deps.relogio.agora();
 
-      const criado = await deps.usuariosRepo.criar({
+      const criado = await deps.usuariosRepositorio.criar({
         usuarioId,
         locatarioId: locatarioId.value,
         email: email.value,

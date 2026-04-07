@@ -5,6 +5,21 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { autorizarHttp } from "../http/autorizarHttp";
 
 /**
+ * Contexto parcial aceito pelo helper de auditoria.
+ */
+type ContextoAuditoriaInput =
+  | ContextoExecucao
+  | {
+      usuarioId?: string | null;
+      locatarioId?: string | null;
+      isSuperadmin?: boolean;
+      isImpersonando?: boolean;
+      locatarioAlvoId?: string | null;
+      agenteTipo?: string | null;
+      origem?: string | null;
+    };
+
+/**
  * Obtém apenas o contexto autenticado/autorizado base.
  *
  * @param request Requisição atual.

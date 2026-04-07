@@ -1,6 +1,6 @@
 // frontend/src/core/auth/authStorage.ts
 
-import type { SessionUser } from "./types";
+import type { SessionUser } from "./tipos";
 
 const ACCESS_TOKEN_KEY = "app.access_token";
 const REFRESH_TOKEN_KEY = "app.refresh_token";

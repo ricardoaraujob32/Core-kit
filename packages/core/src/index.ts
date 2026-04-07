@@ -5,6 +5,7 @@
  * Tudo que é exportado aqui é considerado estável
  */
 
+export * from "./bootstrap";
 export * from "./rbac";
 export * from "./locatarios";
 export * from "./modulos";

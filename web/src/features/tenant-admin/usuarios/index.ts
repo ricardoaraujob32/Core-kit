@@ -1,15 +1,12 @@
 // web/src/features/tenant-admin/usuarios/index.ts
 
 export { usuariosApi } from "./api/usuariosApi";
-export { useUsuarios } from "./hooks/useUsuarios";
-export { useSalvarUsuario } from "./hooks/useSalvarUsuario";
-export { useUsuarioActions } from "./hooks/useUsuarioActions";
-export { UsuariosFilters } from "./components/UsuariosFilters";
-export { UsuariosTable } from "./components/UsuariosTable";
-export { UsuarioForm } from "./components/UsuarioForm";
-export { UsuarioDetailsCard } from "./components/UsuarioDetailsCard";
-export { default as UsuariosListPage } from "./pages/UsuariosListPage";
-export { default as NovoUsuarioPage } from "./pages/NovoUsuarioPage";
-export { default as UsuarioDetailsPage } from "./pages/UsuarioDetailsPage";
-export { default as EditarUsuarioPage } from "./pages/EditarUsuarioPage";
-export * from "./types";
+export { UsuariosFilters } from "./components/usuariosFilters";
+export { UsuariosTable } from "./components/usuariosTable";
+export { UsuarioForm } from "./components/usuarioForm";
+export { UsuarioDetailsCard } from "./components/usuarioDetailsCard";
+export { default as UsuariosListPage } from "./pages/usuariosListPage";
+export { default as NovoUsuarioPage } from "./pages/novoUsuarioPage";
+export { default as UsuarioDetailsPage } from "./pages/usuarioDetailsPage";
+export { default as EditarUsuarioPage } from "./pages/editarUsuarioPage";
+export * from "./tipos";

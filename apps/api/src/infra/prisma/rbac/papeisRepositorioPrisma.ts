@@ -1,1 +1,0 @@
-// apps/api/src/infra/rbac/papeisRepositorioPrisma.ts

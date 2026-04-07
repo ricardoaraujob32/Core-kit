@@ -1,42 +1,24 @@
 // apps/api/src/infra/prisma/auth/authHttpRuntime.ts
 
-import { randomUUID } from "node:crypto";
-import type {
-  EventosSegurancaPorta,
-  HashAuthPorta,
-  IdPorta,
-  JwtAuthPorta,
-  RelogioPorta,
-  TransacaoPorta,
-} from "@core-kit/core";
-import {
-  createFnEmitirSessao,
-  createFnResolverContextoAutorizado,
-  createFnRotacionarRefresh,
-  createFnValidarSessao,
-} from "@core-kit/core";
-
-import type { PrismaClient } from "@prisma/client";
-import type { PrismaDb } from "../tipos";
+import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, RelogioPorta, TransacaoPorta } from "@core-kit/core";
+import { AuthUseCaseDeps, createAuthUseCaseDeps } from "./authUseCaseDeps";
+import { AuthContextoBanco, executarAuthComContexto } from "./authPrismaContexto";
+import { hashPorta } from "./hashPorta";
+import { jwtPorta } from "./jwtPorta";
+import { createRelogioPorta } from "./relogioPorta";
+import { createIdPorta } from "./idPorta";
+import { PrismaDb } from "../tipos";
+import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters";
+import { PrismaClient } from "@prisma/client"; 
 import { clientePrisma } from "../client";
+import { createTransacaoPorta } from "./TransacaoPorta";
+import { AuthRuntimeTechnicalPorts, createAuthRuntimeFromDeps } from "./authRuntimeFromDeps";
 
-import { hashPorta } from "./hashPorta"; 
-import { jwtPorta } from "./jwtPorta"; 
-import { createTransacaoPorta } from "./TransacaoPorta"; 
-
-import { createUsuariosRepositorioAuth } from "./usuario/usuariosRepositorioAuthPrisma";
-import { createLocatariosRepositorioAuth } from "./locatario/locatariosRepositorioAuthPrisma";
-import { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma";
-import { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma";
-import {
-  executarAuthComContexto,
-  type AuthContextoBanco,
-} from "./createAuthPrismaContexto";
 
 /**
  * Parâmetros opcionais para composição do runtime técnico da borda.
  */
-type CreateAuthDepsParams = {
+export type CreateAuthDepsParams = {
   hashPorta?: HashAuthPorta;
   jwtPorta?: JwtAuthPorta;
   relogio?: RelogioPorta;
@@ -46,78 +28,75 @@ type CreateAuthDepsParams = {
 };
 
 /**
+ * 
+ */
+type ResolvedAuthTechnicalPorts = AuthRuntimeTechnicalPorts & {
+  hashPorta: HashAuthPorta;
+  jwtPorta: JwtAuthPorta;
+  eventos?: EventosSegurancaPorta;
+};
+
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
+function resolveAuthTechnicalPorts(params: CreateAuthDepsParams): ResolvedAuthTechnicalPorts {
+  return {
+    hashPorta: params.hashPorta ?? hashPorta,
+    jwtPorta: params.jwtPorta ?? jwtPorta,
+    relogio: params.relogio ?? createRelogioPorta(),
+    idPorta: params.idPorta ?? createIdPorta(),
+    eventos: params.eventos,
+  };
+}
+
+/**
+ * 
+ * @param adapters 
+ * @param technical 
+ * @returns 
+ */
+function createDepsFromAdapters(adapters: AuthPrismaAdapters, technical: ResolvedAuthTechnicalPorts): AuthUseCaseDeps {
+  return createAuthUseCaseDeps({
+    adapters,
+    hashPorta: technical.hashPorta,
+    jwtPorta: technical.jwtPorta,
+    relogio: technical.relogio,
+    idPorta: technical.idPorta,
+    eventos: technical.eventos,
+  });
+}
+
+/**
+ * /**
  * Runtime base de auth composto sobre um `db` já fornecido.
  *
  * Regra arquitetural:
  * - este runtime NÃO abre contexto SQL;
- * - ele apenas compõe adapters e casos de uso;
+ * - ele apenas orquestra composers;
  * - se o chamador precisar de RLS/contexto, deve abrir isso fora.
  *
  * @param db 
  * @param params 
  * @returns 
  */
-export function createAuthRuntimeBase(db: PrismaDb, params: CreateAuthDepsParams = {}) {
-  const relogio: RelogioPorta =
-    params.relogio ??
-    ({
-      agora: () => new Date(),
-    } satisfies RelogioPorta);
+export function createAuthRuntimeBase(
+  db: PrismaDb,
+  params: CreateAuthDepsParams = {},
+) {
+  const technical = resolveAuthTechnicalPorts(params);
+  const adapters = createAuthPrismaAdapters(db, {
+    idPorta: technical.idPorta,
+  });
+  const deps = createDepsFromAdapters(adapters, technical);
 
-  const idPorta: IdPorta =
-    params.idPorta ??
-    ({
-      gerarId: () => randomUUID(),
-    } satisfies IdPorta);
-
-  const locatariosRepositorio = createLocatariosRepositorioAuth(db);
-  const usuariosRepositorio = createUsuariosRepositorioAuth(db);
-  const tokensPorta = createTokensAuthPorta(db, idPorta);
-  const rbacPorta = createRbacAuthPorta(db);
-
-  const emitirSessaoDeps = {
-    usuariosRepositorio,
-    locatariosRepositorio,
-    tokensPorta,
-    hashPorta: params.hashPorta ?? hashPorta,
-    jwtPorta: params.jwtPorta ?? jwtPorta,
-    relogio,
-    idPorta,
-    eventos: params.eventos,
-  } satisfies Parameters<typeof createFnEmitirSessao>[0];
-
-  const rotacionarRefreshDeps = {
-    tokensPorta,
-    jwtPorta: params.jwtPorta ?? jwtPorta,
-    relogio,
-    idPorta,
-    eventos: params.eventos,
-  } satisfies Parameters<typeof createFnRotacionarRefresh>[0];
-
-  const validarSessaoDeps = {
-    jwtPorta: params.jwtPorta ?? jwtPorta,
-  } satisfies Parameters<typeof createFnValidarSessao>[0];
-
-  const resolverContextoAutorizadoDeps = {
-    rbacPorta,
-  } satisfies Parameters<typeof createFnResolverContextoAutorizado>[0];
-
-  return {
-    db,
-    relogio,
-    idPorta,
-    emitirSessaoDeps,
-    rotacionarRefreshDeps,
-    validarSessaoDeps,
-    resolverContextoAutorizadoDeps,
-    emitirSessao: createFnEmitirSessao(emitirSessaoDeps),
-    rotacionarRefresh: createFnRotacionarRefresh(rotacionarRefreshDeps),
-    validarSessao: createFnValidarSessao(validarSessaoDeps),
-    resolverContextoAutorizado: createFnResolverContextoAutorizado(resolverContextoAutorizadoDeps),
-  };
+  return createAuthRuntimeFromDeps(db, deps, technical);
 }
 
+
 /**
+ * /**
  * Runtime oficial sem contexto explícito.
  *
  * Uso:
@@ -127,12 +106,11 @@ export function createAuthRuntimeBase(db: PrismaDb, params: CreateAuthDepsParams
  * - builders que não precisem abrir RLS manualmente
  *
  * @param params 
+ * @param prisma 
  * @returns 
  */
-export function createAuthHttpRuntime(params: CreateAuthDepsParams = {}) {
-  const prisma = clientePrisma;
+export function createAuthHttpRuntime(params: CreateAuthDepsParams = {}, prisma: PrismaClient = clientePrisma) {
   const transacao = params.transacao ?? createTransacaoPorta(prisma);
-
   const base = createAuthRuntimeBase(prisma, params);
 
   return {
@@ -142,13 +120,14 @@ export function createAuthHttpRuntime(params: CreateAuthDepsParams = {}) {
 }
 
 /**
+ * /**
  * Executa uma operação de auth dentro de contexto SQL/RLS,
  * compondo um runtime sobre o `tx` contextualizado.
  *
  * Regra arquitetural:
  * - o contexto é aberto aqui, uma única vez;
  * - adapters recebem `tx` já pronto;
- * - nenhum adapter de auth deve abrir contexto por conta própria.
+ * - o runtime contextualizado reaproveita os mesmos composers do runtime base.
  *
  * @param contexto 
  * @param fn 
@@ -162,75 +141,12 @@ export async function executarAuthNoContexto<T>(
   params: CreateAuthDepsParams = {},
   prisma: PrismaClient = clientePrisma,
 ): Promise<T> {
-  const idPorta: IdPorta =
-    params.idPorta ??
-    ({
-      gerarId: () => randomUUID(),
-    } satisfies IdPorta);
+  const technical = resolveAuthTechnicalPorts(params);
 
-  return executarAuthComContexto(
-    prisma,
-    contexto,
-    idPorta,
-    async (deps) => {
-      const runtime = createAuthRuntimeBase(
-        {
-          ...("locatariosRepositorioAuth" in deps ? {} : {}),
-          // placeholder apenas para deixar claro que usamos `tx` via adapters abaixo
-        } as never,
-        params,
-      );
-
-      /**
-       * Recompõe o runtime sobre os adapters contextualizados.
-       * Aqui evitamos recriar contexto; só trocamos os adapters pelo conjunto baseado em `tx`.
-       */
-      const relogio: RelogioPorta =
-        params.relogio ??
-        ({
-          agora: () => new Date(),
-        } satisfies RelogioPorta);
-
-      const emitirSessaoDeps = {
-        usuariosRepositorio: deps.usuariosRepositorioAuth,
-        locatariosRepositorio: deps.locatariosRepositorioAuth,
-        tokensPorta: deps.tokensAuthPorta,
-        hashPorta: params.hashPorta ?? hashPorta,
-        jwtPorta: params.jwtPorta ?? jwtPorta,
-        relogio,
-        idPorta,
-        eventos: params.eventos,
-      } satisfies Parameters<typeof createFnEmitirSessao>[0];
-
-      const rotacionarRefreshDeps = {
-        tokensPorta: deps.tokensAuthPorta,
-        jwtPorta: params.jwtPorta ?? jwtPorta,
-        relogio,
-        idPorta,
-        eventos: params.eventos,
-      } satisfies Parameters<typeof createFnRotacionarRefresh>[0];
-
-      const validarSessaoDeps = {
-        jwtPorta: params.jwtPorta ?? jwtPorta,
-      } satisfies Parameters<typeof createFnValidarSessao>[0];
-
-      const resolverContextoAutorizadoDeps = {
-        rbacPorta: deps.rbacAuthPorta,
-      } satisfies Parameters<typeof createFnResolverContextoAutorizado>[0];
-
-      return fn({
-        db: null as never,
-        relogio,
-        idPorta,
-        emitirSessaoDeps,
-        rotacionarRefreshDeps,
-        validarSessaoDeps,
-        resolverContextoAutorizadoDeps,
-        emitirSessao: createFnEmitirSessao(emitirSessaoDeps),
-        rotacionarRefresh: createFnRotacionarRefresh(rotacionarRefreshDeps),
-        validarSessao: createFnValidarSessao(validarSessaoDeps),
-        resolverContextoAutorizado: createFnResolverContextoAutorizado(resolverContextoAutorizadoDeps),
-      });
+  return executarAuthComContexto(prisma, contexto, technical.idPorta, async (adapters) => {
+      const deps = createDepsFromAdapters(adapters, technical);
+      const runtime = createAuthRuntimeFromDeps(null, deps, technical);
+      return fn(runtime);
     },
   );
 }

@@ -4,6 +4,7 @@ import type { ErroApp, LocatarioId, Usuario, UsuarioId, UsuariosRepositorio, Res
 import { wrapOk} from "@core-kit/core";
 import { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
+import { status_usuario } from "@prisma/client";
 
 /**
  * Mapeia o status persistido do banco para o contrato do domínio de usuários.
@@ -16,8 +17,30 @@ function mapStatusUsuario(status: "ATIVO" | "BLOQUEADO"): Usuario["status"] {
     case "ATIVO":
       return "ATIVO";
     case "BLOQUEADO":
+      return "INATIVO";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * Mapeia o status do domínio para o enum persistido no banco.
+ *
+ * Observação:
+ * - o domínio usa `INATIVO`;
+ * - o banco persiste isso como `BLOQUEADO`.
+ */
+function mapStatusUsuarioParaPersistencia(status: Usuario["status"]): status_usuario {
+  switch (status) {
+    case "ATIVO":
+      return "ATIVO";
+    case "INATIVO":
       return "BLOQUEADO";
   }
+
+  return "ATIVO"
 }
 
 /**
@@ -64,9 +87,7 @@ function mapUsuario(row: {
  * - este adapter segue o contrato operacional do Core;
  * - não deve ser reutilizado como adapter de auth.
  */
-export function createUsuariosRepositorio(
-  db: PrismaDb,
-): UsuariosRepositorio {
+export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
   return {
     /**
      * Persiste um novo usuário.
@@ -86,7 +107,7 @@ export function createUsuariosRepositorio(
             email: params.email.toLowerCase(),
             nome: params.nome,
             senha_hash: params.senhaHash,
-            status: params.status,
+            status: mapStatusUsuarioParaPersistencia(params.status),
             ultimo_login_em: params.ultimoLoginEm,
             criado_em: params.criadoEm,
             atualizado_em: params.atualizadoEm,
@@ -286,7 +307,7 @@ export function createUsuariosRepositorio(
             email: usuario.email.toLowerCase(),
             nome: usuario.nome,
             senha_hash: usuario.senhaHash,
-            status: usuario.status,
+            status: mapStatusUsuarioParaPersistencia(usuario.status),
             ultimo_login_em: usuario.ultimoLoginEm,
             criado_em: usuario.criadoEm,
             atualizado_em: usuario.atualizadoEm,

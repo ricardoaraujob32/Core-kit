@@ -6,10 +6,11 @@ import { clientePrisma } from "../../infra/prisma/client";
 import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
 import { createFnAtualizarUsuario, createFnCriarUsuario, createFnInativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
   createFnReativarUsuario, metaAcao, metaAtualizacao, metaCriacao, Permissoes } from "@core-kit/core";
-import { criarContextoAuditoria, obterCtxAutorizadoOuResponderErro, obterCtxComPermissaoOuResponderErro } from "../helpers";
+import { obterCtxAutorizadoOuResponderErro } from "../helpers";
 import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 import { sendHttpError } from "../../http/serializarErroApp";
 import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
+import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 
 /**
  * Runtime técnico central da borda.
@@ -184,7 +185,7 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
   });
   if (!ctx) return;
 
-  const senhaHashRes = await authRuntime.hashPorta.gerarHashSenha(request.body.senha);
+  const senhaHashRes = await authRuntime.emitirSessaoDeps.hashPorta.gerarHashSenha(request.body.senha);
   if (!senhaHashRes.ok) {
     return sendHttpError(reply, senhaHashRes.error);
   }
@@ -254,7 +255,10 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
  * @returns Usuário atualizado.
  */
 export async function atualizarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: AtualizarUsuarioBodyDto; }>, reply: FastifyReply) {
-  const ctx = await obterCtxComPermissaoOuResponderErro(request, reply, Permissoes.TENANT_USUARIO_ATUALIZAR);
+  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
 
   const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
@@ -326,7 +330,10 @@ export async function atualizarUsuarioController(request: FastifyRequest<{ Param
  * @returns Usuário inativado.
  */
 export async function inativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  const ctx = await obterCtxComPermissaoOuResponderErro(request, reply, Permissoes.TENANT_USUARIO_ATUALIZAR);
+  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
 
   const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
@@ -385,7 +392,10 @@ export async function inativarUsuarioController(request: FastifyRequest<{ Params
  * @returns Usuário reativado.
  */
 export async function reativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  const ctx = await obterCtxComPermissaoOuResponderErro(request, reply, Permissoes.TENANT_USUARIO_ATUALIZAR);
+  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
 
   const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();

@@ -38,10 +38,7 @@ export {
 
 export type { TokensRepositorio } from "./portasRepositorio";
 
-export {
-  criarTokensRepositorioMemoria,
-  criarTokenSeed,
-} from "./repositorioMemoria";
+
 
 export { createFnEmitirToken } from "./usecases/emitirToken";
 export { createFnObterTokenPorHash } from "./usecases/obterTokenPorHash";

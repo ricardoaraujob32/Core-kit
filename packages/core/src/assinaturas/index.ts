@@ -35,9 +35,9 @@ export type {
   ModulosConsultaRepositorio,
 } from "./portasRepositorio";
 
-export {
-  AssinaturasRepositorioMemoria,
-  AssinaturasModulosRepositorioMemoria,
-  PlanosConsultaRepositorioMemoria,
-  ModulosConsultaRepositorioMemoria,
-} from "./repositorioMemoria";
+// export {
+//   AssinaturasRepositorioMemoria,
+//   AssinaturasModulosRepositorioMemoria,
+//   PlanosConsultaRepositorioMemoria,
+//   ModulosConsultaRepositorioMemoria,
+// } from "./repositorioMemoria";

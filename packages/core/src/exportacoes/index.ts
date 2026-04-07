@@ -1,6 +1,6 @@
 // packages/core/src/exportacoes/index.ts
 
-export { ExportacoesRepositorioMemoria } from "./repositorioMemoria";
+
 
 export type {
   Exportacao,

@@ -29,10 +29,7 @@ export {
 
 export type { LocatariosRepositorio } from "./portasRepositorio";
 
-export {
-  criarLocatariosRepositorioMemoria,
-  criarLocatarioSeed,
-} from "./repositorioMemoria";
+
 
 export { createFnCriarLocatario } from "./usecases/criarLocatario";
 export { createFnObterLocatario } from "./usecases/obterLocatario";

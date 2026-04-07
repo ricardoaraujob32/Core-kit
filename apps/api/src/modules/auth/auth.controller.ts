@@ -4,8 +4,6 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { LoginBody, RefreshBody } from "./auth.dto";
-import { criarContextoAuditoria } from "../helpers";
-import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 import { metaAcao } from "@core-kit/core";
 
 /**
@@ -40,20 +38,20 @@ function serializarSessaoHttp(sessao: {
  * @param params Dados complementares do fluxo.
  * @returns Contexto compatível com o dispatcher.
  */
-function criarContextoAuditoriaAuth(
-  request: FastifyRequest,
-  params?: {
-    locatarioId?: string | null;
-    agenteTipo?: string | null;
-  },
-) {
-  return criarContextoAuditoria(request, {
-    usuarioId: null,
-    locatarioId: params?.locatarioId ?? null,
-    agenteTipo: params?.agenteTipo ?? "USUARIO_ANONIMO",
-    origem: "API",
-  });
-}
+// function criarContextoAuditoriaAuth(
+//   request: FastifyRequest,
+//   params?: {
+//     locatarioId?: string | null;
+//     agenteTipo?: string | null;
+//   },
+// ) {
+//   return criarContextoAuditoria(request, {
+//     usuarioId: null,
+//     locatarioId: params?.locatarioId ?? null,
+//     agenteTipo: params?.agenteTipo ?? "USUARIO_ANONIMO",
+//     origem: "API",
+//   });
+// }
 
 /**
  * Runtime oficial de autenticação usado pela borda HTTP.
@@ -88,19 +86,19 @@ export async function loginController(request: FastifyRequest<{ Body: LoginBody 
     senha: request.body.senha,
   });
 
-  await auditar(criarContextoAuditoriaAuth(request),
-    {
-      evento: resultado.ok ? "auth.login.sucesso" : "auth.login.falha",
-      sucesso: resultado.ok,
-      entidadeTipo: "sessao",
-      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-      metadados: metaAcao({
-        locatarioSlug: request.body.locatarioSlug,
-        email: request.body.email,
-      }),
-    },
-  );
+  // await auditar(criarContextoAuditoriaAuth(request),
+  //   {
+  //     evento: resultado.ok ? "auth.login.sucesso" : "auth.login.falha",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "sessao",
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: metaAcao({
+  //       locatarioSlug: request.body.locatarioSlug,
+  //       email: request.body.email,
+  //     }),
+  //   },
+  // );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -133,18 +131,18 @@ export async function refreshController(request: FastifyRequest<{ Body: RefreshB
     refreshToken: request.body.refreshToken,
   });
 
-  await auditar(criarContextoAuditoriaAuth(request, { locatarioId: request.body.locatarioId, agenteTipo: "TOKEN_REFRESH", }),
-    {
-      evento: resultado.ok ? "auth.refresh.sucesso" : "auth.refresh.falha",
-      sucesso: resultado.ok,
-      entidadeTipo: "sessao",
-      erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-      erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-      metadados: metaAcao({
-        locatarioId: request.body.locatarioId,
-      }),
-    },
-  );
+  // await auditar(criarContextoAuditoriaAuth(request, { locatarioId: request.body.locatarioId, agenteTipo: "TOKEN_REFRESH", }),
+  //   {
+  //     evento: resultado.ok ? "auth.refresh.sucesso" : "auth.refresh.falha",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "sessao",
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: metaAcao({
+  //       locatarioId: request.body.locatarioId,
+  //     }),
+  //   },
+  // );
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);

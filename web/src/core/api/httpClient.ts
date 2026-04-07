@@ -1,4 +1,4 @@
-// frontend/src/core/api/httpClient.ts
+// web/src/core/api/httpClient.ts
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 

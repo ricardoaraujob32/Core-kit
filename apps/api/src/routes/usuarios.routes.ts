@@ -36,64 +36,52 @@ export const usuariosRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get(
     "/usuarios",
-    {
-      preHandler: [authGuard],
-    },
+    { preHandler: [authGuard], },
     listarUsuariosController,
   );
 
   /**
    * Obtém um usuário específico do locatário autenticado.
    */
-  app.get(
+  app.get<{ Params: { id: string } }>(
     "/usuarios/:id",
-    {
-      preHandler: [authGuard],
-    },
+    { preHandler: [authGuard], },
     obterUsuarioController,
   );
 
   /**
    * Cria um novo usuário no locatário autenticado.
    */
-  app.post(
-    "/usuarios",
-    {
-      preHandler: [authGuard],
-    },
-    criarUsuarioController,
-  );
+  app.post<{ Body: { email: string; nome: string; senha: string } }>(
+  "/usuarios",
+  { preHandler: [authGuard] },
+  criarUsuarioController,
+);
 
   /**
    * Atualiza dados cadastrais de um usuário.
    */
-  app.patch(
-    "/usuarios/:id",
-    {
-      preHandler: [authGuard],
-    },
-    atualizarUsuarioController,
-  );
+  app.patch<{ Params: { id: string }; Body: { email?: string; nome?: string };}>(
+  "/usuarios/:id",
+  { preHandler: [authGuard] },
+  atualizarUsuarioController,
+);
 
   /**
    * Inativa um usuário existente.
    */
-  app.post(
-    "/usuarios/:id/inativar",
-    {
-      preHandler: [authGuard],
-    },
-    inativarUsuarioController,
-  );
+  app.post<{ Params: { id: string } }>(
+  "/usuarios/:id/inativar",
+  { preHandler: [authGuard] },
+  inativarUsuarioController,
+);
 
   /**
    * Reativa um usuário previamente inativado.
    */
-  app.post(
-    "/usuarios/:id/reativar",
-    {
-      preHandler: [authGuard],
-    },
-    reativarUsuarioController,
-  );
+  app.post<{ Params: { id: string } }>(
+  "/usuarios/:id/reativar",
+  { preHandler: [authGuard] },
+  reativarUsuarioController,
+);
 };

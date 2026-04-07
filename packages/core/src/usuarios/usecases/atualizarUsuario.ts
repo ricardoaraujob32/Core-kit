@@ -56,7 +56,7 @@ export function createFnAtualizarUsuario(deps: {
     if (!usuarioId.ok) return usuarioId;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.usuariosRepo.buscarPorId({
+      const atual = await deps.usuariosRepositorio.buscarPorId({
         locatarioId: locatarioId.value,
         usuarioId: usuarioId.value,
       });
@@ -85,7 +85,7 @@ export function createFnAtualizarUsuario(deps: {
         const emailValidado = validarEmailUsuario(input.email);
         if (!emailValidado.ok) return emailValidado;
 
-        const existente = await deps.usuariosRepo.buscarPorEmailNoLocatario({
+        const existente = await deps.usuariosRepositorio.buscarPorEmailNoLocatario({
           locatarioId: atual.value.locatarioId,
           emailNormalizado: emailValidado.value,
         });
@@ -101,7 +101,7 @@ export function createFnAtualizarUsuario(deps: {
         email = emailValidado.value;
       }
 
-      const atualizado = await deps.usuariosRepo.atualizar({
+      const atualizado = await deps.usuariosRepositorio.atualizar({
         ...atual.value,
         nome,
         email,
