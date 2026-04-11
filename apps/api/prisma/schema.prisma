@@ -418,7 +418,9 @@ enum status_modulo_assinatura {
 
 enum status_usuario {
   ATIVO
-  BLOQUEADO
+  INATIVO
+  SUSPENSO
+  ENCERRADO
 
   @@schema("core")
 }

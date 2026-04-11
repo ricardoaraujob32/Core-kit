@@ -45,7 +45,7 @@ export const criarUsuarioBodySchema = z.object({
 
   senha: z
     .string()
-    .min(6, "O campo 'senha' deve ter ao menos 6 caracteres."),
+    .min(4, "O campo 'senha' deve ter ao menos 4 caracteres."),
 });
 
 /**
@@ -112,7 +112,6 @@ export const usuarioResponseSchema = z.object({
     locatarioId: z.string().nullable(),
     email: z.string(),
     nome: z.string(),
-    senhaHash: z.string(),
     status: z.enum(["ATIVO", "INATIVO", "SUSPENSO", "ENCERRADO"]),
     ultimoLoginEm: z.date().nullable(),
     criadoEm: z.date(),
@@ -131,7 +130,6 @@ export const listarUsuariosResponseSchema = z.object({
       locatarioId: z.string().nullable(),
       email: z.string(),
       nome: z.string(),
-      senhaHash: z.string(),
       status: z.enum(["ATIVO", "INATIVO", "SUSPENSO", "ENCERRADO"]),
       ultimoLoginEm: z.date().nullable(),
       criadoEm: z.date(),

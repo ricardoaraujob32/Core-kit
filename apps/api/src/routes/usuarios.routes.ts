@@ -5,7 +5,7 @@ import { authGuard } from "../middlewares/authGuard";
 import {
   atualizarUsuarioController,
   criarUsuarioController,
-  inativarUsuarioController,
+  desativarUsuarioController,
   listarUsuariosController,
   obterUsuarioController,
   reativarUsuarioController,
@@ -73,7 +73,7 @@ export const usuariosRoutes: FastifyPluginAsync = async (app) => {
   app.post<{ Params: { id: string } }>(
   "/usuarios/:id/inativar",
   { preHandler: [authGuard] },
-  inativarUsuarioController,
+  desativarUsuarioController,
 );
 
   /**

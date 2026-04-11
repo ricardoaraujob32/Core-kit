@@ -1,4 +1,4 @@
-// web/src/core/auth/types.ts
+// web/src/core/auth/tipos.ts
 
 export type Permissao = string;
 export type Papel = string;
@@ -23,20 +23,29 @@ export type LoginInput = {
 export type LoginResponse = {
   accessToken: string;
   refreshToken?: string;
-  usuario: SessionUser;
+  accessExpiraEm?: string;
+  refreshExpiraEm?: string;
 };
 
 export type RefreshInput = {
   refreshToken: string;
+  locatarioId: string | null;
 };
 
 export type RefreshResponse = {
   accessToken: string;
   refreshToken?: string;
+  accessExpiraEm?: string;
+  refreshExpiraEm?: string;
 };
 
 export type MeResponse = {
   usuario: SessionUser;
+};
+
+export type LogoutInput = {
+  locatarioId: string | null;
+  refreshToken: string;
 };
 
 export type AuthStatus =

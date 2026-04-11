@@ -1,21 +1,13 @@
 // web/src/core/auth/authContext.tsx
 
-import { createContext, JSX, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from "react";
-import { HttpError, registerAccessTokenGetter, registerUnauthorizedHandler } from "../api/httpClient";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
+import { HttpError, registerAccessTokenGetter, registerRefreshSessionHandler, registerUnauthorizedHandler } from "../api/httpClient";
 import { authStorage } from "./authStorage";
 import { login as loginRequest, logout as logoutRequest, me as meRequest, refresh as refreshRequest } from "../../features/auth/api/authApi";
 import type { AuthContextValue, LoginInput, SessionUser } from "./tipos";
 
-/**
- * 
- */
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-/**
- * 
- * @param user 
- * @returns 
- */
 function normalizeUser(user: SessionUser): SessionUser {
   return {
     ...user,
@@ -28,17 +20,12 @@ function normalizeUser(user: SessionUser): SessionUser {
   };
 }
 
-/**
- * 
- * @param param0 
- * @returns 
- */
 export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   const [status, setStatus] = useState<AuthContextValue["status"]>("idle");
   const [accessToken, setAccessToken] = useState<string | null>(
     authStorage.getAccessToken(),
   );
-  const [user, setUser] = useState<SessionUser | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(authStorage.getUser());
 
   const clearSession = useCallback(() => {
     authStorage.clear();
@@ -47,28 +34,30 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     setStatus("unauthenticated");
   }, []);
 
-  const logout = useCallback(async () => {
-    try {
-      if (authStorage.getAccessToken()) {
-        await logoutRequest();
-      }
-    } catch {
-      // Mesmo com falha remota, encerramos a sessão local.
-    } finally {
-      clearSession();
-    }
-  }, [clearSession]);
+  const carregarUsuarioAutenticado = useCallback(async (): Promise<SessionUser> => {
+    const meResponse = await meRequest();
+    const normalizedUser = normalizeUser(meResponse.usuario);
 
-  const tryRefreshToken = useCallback(async (): Promise<boolean> => {
-    const currentRefreshToken = authStorage.getRefreshToken();
+    authStorage.setUser(normalizedUser);
+    authStorage.setLocatarioId(normalizedUser.locatarioId ?? null);
+    setUser(normalizedUser);
 
-    if (!currentRefreshToken) {
+    return normalizedUser;
+  }, []);
+
+  const refreshTokens = useCallback(async (): Promise<boolean> => {
+    const refreshToken = authStorage.getRefreshToken();
+
+    const locatarioId = authStorage.getLocatarioId() ?? authStorage.getUser()?.locatarioId ?? null;
+
+    if (!refreshToken) {
       return false;
     }
 
     try {
       const response = await refreshRequest({
-        refreshToken: currentRefreshToken,
+        refreshToken,
+        locatarioId,
       });
 
       authStorage.setAccessToken(response.accessToken);
@@ -77,12 +66,34 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
         authStorage.setRefreshToken(response.refreshToken);
       }
 
+      if (locatarioId) {
+        authStorage.setLocatarioId(locatarioId);
+      }
+
       setAccessToken(response.accessToken);
       return true;
     } catch {
       return false;
     }
   }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      const refreshToken = authStorage.getRefreshToken();
+      const locatarioId = user?.locatarioId ?? authStorage.getLocatarioId() ?? authStorage.getUser()?.locatarioId ?? null;
+
+      if (refreshToken) {
+        await logoutRequest({
+          locatarioId,
+          refreshToken,
+        });
+      }
+    } catch {
+      // noop
+    } finally {
+      clearSession();
+    }
+  }, [clearSession, user]);
 
   const refreshSession = useCallback(async () => {
     const storedAccessToken = authStorage.getAccessToken();
@@ -95,16 +106,12 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     setStatus("loading");
 
     try {
-      const response = await meRequest();
-      const normalizedUser = normalizeUser(response.usuario);
-
-      authStorage.setUser(normalizedUser);
+      await carregarUsuarioAutenticado();
       setAccessToken(authStorage.getAccessToken());
-      setUser(normalizedUser);
       setStatus("authenticated");
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof HttpError && error.status === 401) {
-        const refreshed = await tryRefreshToken();
+        const refreshed = await refreshTokens();
 
         if (!refreshed) {
           clearSession();
@@ -112,12 +119,8 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
         }
 
         try {
-          const retryResponse = await meRequest();
-          const normalizedUser = normalizeUser(retryResponse.usuario);
-
-          authStorage.setUser(normalizedUser);
+          await carregarUsuarioAutenticado();
           setAccessToken(authStorage.getAccessToken());
-          setUser(normalizedUser);
           setStatus("authenticated");
           return;
         } catch {
@@ -128,39 +131,46 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
 
       clearSession();
     }
-  }, [clearSession, tryRefreshToken]);
+  }, [carregarUsuarioAutenticado, clearSession, refreshTokens]);
 
   const login = useCallback(async (input: LoginInput): Promise<SessionUser> => {
     setStatus("loading");
 
-    const response = await loginRequest(input);
-    const normalizedUser = normalizeUser(response.usuario);
+    try {
+      const response = await loginRequest(input);
 
-    authStorage.setAccessToken(response.accessToken);
+      authStorage.setAccessToken(response.accessToken);
 
-    if (response.refreshToken) {
-      authStorage.setRefreshToken(response.refreshToken);
+      if (response.refreshToken) {
+        authStorage.setRefreshToken(response.refreshToken);
+      } else {
+        authStorage.removeRefreshToken();
+      }
+
+      setAccessToken(response.accessToken);
+
+      const authenticatedUser = await carregarUsuarioAutenticado();
+      setStatus("authenticated");
+
+      return authenticatedUser;
+    } catch (error) {
+      clearSession();
+      throw error;
     }
-
-    authStorage.setUser(normalizedUser);
-
-    setAccessToken(response.accessToken);
-    setUser(normalizedUser);
-    setStatus("authenticated");
-
-    return normalizedUser;
-  }, []);
+  }, [carregarUsuarioAutenticado, clearSession]);
 
   useEffect(() => {
     registerAccessTokenGetter(() => authStorage.getAccessToken());
+    registerRefreshSessionHandler(() => refreshTokens());
     registerUnauthorizedHandler(() => {
       void logout();
     });
 
     return () => {
+      registerRefreshSessionHandler(null);
       registerUnauthorizedHandler(null);
     };
-  }, [logout]);
+  }, [logout, refreshTokens]);
 
   useEffect(() => {
     void refreshSession();
@@ -183,10 +193,6 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/**
- * 
- * @returns 
- */
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
 

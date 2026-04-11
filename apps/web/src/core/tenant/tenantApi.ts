@@ -11,6 +11,6 @@ export async function getTenantBranding(
   locatarioId: string,
 ): Promise<GetTenantBrandingResponse> {
   return httpClient.get<GetTenantBrandingResponse>(
-    `/api/locatarios/${locatarioId}/branding`,
+    `/locatarios/${locatarioId}/branding`,
   );
 }

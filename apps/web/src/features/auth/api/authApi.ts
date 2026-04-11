@@ -1,12 +1,6 @@
 // web/src/features/auth/api/authApi.ts
 
-import type {
-  LoginInput,
-  LoginResponse,
-  MeResponse,
-  RefreshInput,
-  RefreshResponse,
-} from "../../../core/auth/tipos";
+import type { LoginInput, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "../../../core/auth/tipos";
 import { httpClient } from "../../../core/api/httpClient";
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
@@ -14,7 +8,9 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
 }
 
 export async function me(): Promise<MeResponse> {
-  return httpClient.get<MeResponse>("/auth/me");
+  return httpClient.get<MeResponse>("/auth/me", {
+    skipAuthRetry: true,
+  });
 }
 
 export async function refresh(input: RefreshInput): Promise<RefreshResponse> {
@@ -25,10 +21,16 @@ export async function refresh(input: RefreshInput): Promise<RefreshResponse> {
       headers: {
         Authorization: "",
       },
+      skipAuthRetry: true,
     },
   );
 }
 
-export async function logout(): Promise<void> {
-  return Promise.resolve();
+export async function logout(input: LogoutInput): Promise<void> {
+  return httpClient.post<void, LogoutInput>("/auth/logout", input, {
+    headers: {
+      Authorization: "",
+    },
+    skipAuthRetry: true,
+  });
 }

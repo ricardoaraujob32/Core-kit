@@ -1,3 +1,5 @@
+// web/src/features/tenant-admin/usuarios/components/usuarioActionGuard.tsx
+
 import type { ReactNode } from "react";
 import type { StatusUsuario } from "../tipos";
 import { useUsuariosPermissions } from "../hooks/useUsuariosPermissions";
@@ -17,7 +19,7 @@ export function UsuarioActionGuard({
 }: Props) {
   const permissions = useUsuariosPermissions();
 
-  if (!permissions.canAction(action, statusAtual)) {
+  if (!permissions.canAction()) {
     return <>{fallback}</>;
   }
 

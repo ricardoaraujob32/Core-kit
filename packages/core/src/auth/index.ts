@@ -13,9 +13,6 @@ export type {
   RotacionarRefreshInput,
   RotacionarRefreshOutput,
   RotacionarRefreshResult,
-  ResolverContextoAutorizadoInput,
-  ResolverContextoAutorizadoOutput,
-  ResolverContextoAutorizadoResult
 } from "./tipos";
 
 export {
@@ -37,3 +34,4 @@ export { createFnEmitirSessao } from "./usecases/emitirSessao";
 export { createFnValidarSessao } from "./usecases/validarSessao";
 export { createFnRotacionarRefresh } from "./usecases/rotacionarRefresh";
 export { createFnResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";
+export { createFnLogout } from "./usecases/logout";

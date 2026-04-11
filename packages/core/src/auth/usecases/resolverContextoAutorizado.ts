@@ -2,7 +2,7 @@
 
 import { createContextoExecucao, wrapOk } from "../../kernel";
 import { RbacAuthPorta } from "../portasServico";
-import { ResolverContextoAutorizadoInput, ResolverContextoAutorizadoOutput, ResolverContextoAutorizadoResult } from "../tipos";
+import { ResolverContextoAutorizadoInput, ResolverContextoAutorizadoOutput, ResolverContextoAutorizadoResult } from "../../rbac/tipos";
 
 /**
  * Cria o caso de uso responsável por resolver o contexto autorizado

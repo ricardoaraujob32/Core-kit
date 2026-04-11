@@ -23,10 +23,7 @@ export function mapearErroInfra(
     detalhes?: Record<string, unknown>;
   }
 ) {
-  if (
-    causa instanceof Prisma.PrismaClientKnownRequestError &&
-    causa.code === "P2002"
-  ) {
+  if (causa instanceof Prisma.PrismaClientKnownRequestError && causa.code === "P2002") {
     return createErroApp({
       codigo: "CONFLITO",
       mensagem: `Conflito de unicidade em ${contexto.entidade}.`,
@@ -41,10 +38,7 @@ export function mapearErroInfra(
     });
   }
 
-  if (
-    causa instanceof Prisma.PrismaClientKnownRequestError &&
-    causa.code === "P2025"
-  ) {
+  if (causa instanceof Prisma.PrismaClientKnownRequestError && causa.code === "P2025") {
     return createErroApp({
       codigo: "NAO_ENCONTRADO",
       mensagem: `Registro não encontrado em ${contexto.entidade}.`,

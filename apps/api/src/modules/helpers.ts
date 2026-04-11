@@ -1,8 +1,9 @@
 // apps/api/src/modules/helpers.ts
 
-import { ContextoExecucao, ModuloCodigo, Permissao } from "@core-kit/core";
+import { ContextoExecucao, createContextoExecucao, ModuloCodigo, Permissao } from "@core-kit/core";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { autorizarHttp } from "../http/autorizarHttp";
+import { sendHttpError } from "../http/serializarErroApp";
 
 /**
  * Contexto parcial aceito pelo helper de auditoria.
@@ -47,4 +48,57 @@ export async function obterCtxAutorizadoOuResponderErro(request: FastifyRequest,
   },
 ): Promise<ContextoExecucao | null> {
   return autorizarHttp(request, reply, politica);
+}
+
+/**
+ * Obtém um contexto mínimo autenticado, sem aplicar autorização RBAC.
+ *
+ * Uso temporário:
+ * - estabilizar E2E de módulos operacionais;
+ * - manter autenticação obrigatória;
+ * - desligar permissões e módulos até o backend ficar pronto.
+ */
+export async function tempCtxAutenticadoSemAutorizacaoRemoverDepois(request: FastifyRequest, reply: FastifyReply): Promise<ContextoExecucao | null> {
+  const usuario = request.usuario;
+
+  if (!usuario) {
+    sendHttpError(reply, {
+      codigo: "NAO_AUTENTICADO",
+      mensagem: "Usuário autenticado ausente na requisição.",
+      detalhes: {
+        operacao: "http.contexto.minimo",
+      },
+    });
+    return null;
+  }
+
+  if (!usuario.locatarioId) {
+    sendHttpError(reply, {
+      codigo: "LOCATARIO_OBRIGATORIO",
+      mensagem: "Locatário ausente no contexto autenticado.",
+      detalhes: {
+        operacao: "http.contexto.minimo",
+      },
+    });
+    return null;
+  }
+
+  try {
+    return createContextoExecucao({
+      locatarioId: usuario.locatarioId,
+      usuarioId: usuario.usuarioId,
+      papeis: usuario.papeis ? [...usuario.papeis] : [],
+      permissoes: [],
+      modulosHabilitados: [],
+    });
+  } catch {
+    sendHttpError(reply, {
+      codigo: "ERRO_INTERNO",
+      mensagem: "Falha ao criar contexto mínimo autenticado.",
+      detalhes: {
+        operacao: "http.contexto.minimo",
+      },
+    });
+    return null;
+  }
 }

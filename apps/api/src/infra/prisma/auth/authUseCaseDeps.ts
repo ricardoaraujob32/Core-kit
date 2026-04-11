@@ -1,7 +1,8 @@
-// apps/api/src/infra/prisma/auth/createAuthUseCaseDeps.ts
+// apps/api/src/infra/prisma/auth/authUseCaseDeps.ts
 
 import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, RelogioPorta } from "@core-kit/core";
 import type { AuthPrismaAdapters } from "./authPrismaAdapters";
+import { env } from "../../../env";
 
 /**
  * 
@@ -28,17 +29,28 @@ export type AuthUseCaseDeps = {
     relogio: RelogioPorta;
     idPorta: IdPorta;
     eventos?: EventosSegurancaPorta;
+    issuer: env.JWT_ISSUER,
   };
+
   rotacionarRefreshDeps: {
     tokensPorta: AuthPrismaAdapters["tokensPorta"];
     jwtPorta: JwtAuthPorta;
     relogio: RelogioPorta;
     idPorta: IdPorta;
     eventos?: EventosSegurancaPorta;
+    issuer: env.JWT_ISSUER,
   };
+
   validarSessaoDeps: {
     jwtPorta: JwtAuthPorta;
   };
+
+  logoutDeps: {
+    tokensPorta: AuthPrismaAdapters["tokensPorta"];
+    relogio: RelogioPorta;
+    eventos?: EventosSegurancaPorta;
+  };
+
   resolverContextoAutorizadoDeps: {
     rbacPorta: AuthPrismaAdapters["rbacPorta"];
   };
@@ -81,6 +93,12 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     jwtPorta,
   };
 
+  const logoutDeps = {
+    tokensPorta: adapters.tokensPorta,
+    relogio,
+    eventos,
+  };
+
   const resolverContextoAutorizadoDeps = {
     rbacPorta: adapters.rbacPorta,
   };
@@ -89,6 +107,7 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     emitirSessaoDeps,
     rotacionarRefreshDeps,
     validarSessaoDeps,
+    logoutDeps,
     resolverContextoAutorizadoDeps,
   };
 }

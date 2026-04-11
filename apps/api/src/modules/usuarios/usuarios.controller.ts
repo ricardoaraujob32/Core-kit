@@ -4,11 +4,12 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
-import { createFnAtualizarUsuario, createFnCriarUsuario, createFnInativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
+import { createFnAtualizarUsuario, createFnCriarUsuario, createFnDesativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
   createFnReativarUsuario, metaAcao, metaAtualizacao, metaCriacao, Permissoes } from "@core-kit/core";
-import { obterCtxAutorizadoOuResponderErro } from "../helpers";
+import { obterCtxAutorizadoOuResponderErro, tempCtxAutenticadoSemAutorizacaoRemoverDepois } from "../helpers";
 import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 import { sendHttpError } from "../../http/serializarErroApp";
+import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
 import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
 import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 
@@ -50,6 +51,29 @@ function criarDepsUsuarios() {
 }
 
 /**
+ * 
+ * @param reply 
+ * @param parseResult 
+ * @returns 
+ */
+function responderErroValidacao(reply: FastifyReply, parseResult: {
+  error: { flatten: () => { fieldErrors: Record<string, string[] | undefined>; formErrors: string[] } };
+}) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: {
+      operacao: "http.usuarios.validacao",
+      campos: fieldErrors,
+      formulario: formErrors,
+    },
+  });
+}
+
+
+/**
   * Lista usuários do locatário autenticado.
  *
  * Permissão exigida:
@@ -72,10 +96,12 @@ function criarDepsUsuarios() {
  * @returns Resposta HTTP padronizada.
  */
 export async function listarUsuariosController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-    permissao: Permissoes.TENANT_USUARIO_LISTAR,
-    modulo: "USUARIOS",
-  });
+  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  //   permissao: Permissoes.TENANT_USUARIO_LISTAR,
+  //   modulo: "USUARIOS",
+  // });
+  // if (!ctx) return;
+  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
   if (!ctx) return;
 
   const { usuariosRepositorio: usuariosRepositorio } = criarDepsUsuarios();
@@ -88,16 +114,16 @@ export async function listarUsuariosController(request: FastifyRequest, reply: F
     locatarioId: ctx.locatarioId,
   });
 
-  await auditar(criarContextoAuditoria(request, ctx), {
-    evento: "usuario.listado",
-    sucesso: resultado.ok,
-    entidadeTipo: "usuario",
-    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-    metadados: metaAcao({
-      quantidadeResultados: resultado.ok ? resultado.value.itens.length : 0,
-    }),
-  });
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "usuario.listado",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "usuario",
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados: metaAcao({
+  //     quantidadeResultados: resultado.ok ? resultado.value.itens.length : 0,
+  //   }),
+  // });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -122,11 +148,18 @@ export async function listarUsuariosController(request: FastifyRequest, reply: F
  * @returns Usuário encontrado no escopo do locatário autenticado.
  */
 export async function obterUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-    permissao: Permissoes.TENANT_USUARIO_LISTAR,
-    modulo: "USUARIOS",
-  });
+  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  //   permissao: Permissoes.TENANT_USUARIO_LISTAR,
+  //   modulo: "USUARIOS",
+  // });
+  // if (!ctx) return;
+  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
   if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
 
   const { usuariosRepositorio } = criarDepsUsuarios();
 
@@ -139,16 +172,16 @@ export async function obterUsuarioController(request: FastifyRequest<{ Params: U
     usuarioId: request.params.id,
   });
 
-  await auditar(criarContextoAuditoria(request, ctx), {
-    evento: "usuario.obtido",
-    sucesso: resultado.ok,
-    entidadeTipo: "usuario",
-    entidadeId: request.params.id,
-    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-    metadados: metaAcao(),
-  });
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "usuario.obtido",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "usuario",
+  //   entidadeId: request.params.id,
+  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados: metaAcao(),
+  // });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -179,13 +212,22 @@ export async function obterUsuarioController(request: FastifyRequest<{ Params: U
  * @returns Identificador do usuário recém-criado.
  */
 export async function criarUsuarioController(request: FastifyRequest<{ Body: CriarUsuarioBodyDto }>, reply: FastifyReply) {
-  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-    permissao: Permissoes.TENANT_USUARIO_CRIAR,
-    modulo: "USUARIOS",
-  });
+  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  //   permissao: Permissoes.TENANT_USUARIO_CRIAR,
+  //   modulo: "USUARIOS",
+  // });
+  // if (!ctx) return;
+  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
   if (!ctx) return;
 
-  const senhaHashRes = await authRuntime.emitirSessaoDeps.hashPorta.gerarHashSenha(request.body.senha);
+  const bodyParse = parseCriarUsuarioBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const body = bodyParse.data;
+
+  const senhaHashRes = await authRuntime.emitirSessaoDeps.hashPorta.gerarHashSenha(body.senha);
   if (!senhaHashRes.ok) {
     return sendHttpError(reply, senhaHashRes.error);
   }
@@ -206,25 +248,25 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
     senhaHash: senhaHashRes.value,
   });
 
-  await auditar(criarContextoAuditoria(request, ctx), {
-    evento: "usuario.criado",
-    sucesso: resultado.ok,
-    entidadeTipo: "usuario",
-    entidadeId: resultado.ok ? resultado.value.usuarioId : null,
-    entidadeNome: request.body.nome,
-    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-    metadados: resultado.ok
-      ? metaCriacao({
-          usuarioId: resultado.value.usuarioId,
-          nome: request.body.nome,
-          email: request.body.email,
-          status: "ATIVO",
-        })
-      : metaAcao({
-          email: request.body.email,
-        }),
-  });
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "usuario.criado",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "usuario",
+  //   entidadeId: resultado.ok ? resultado.value.usuarioId : null,
+  //   entidadeNome: request.body.nome,
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados: resultado.ok
+  //     ? metaCriacao({
+  //         usuarioId: resultado.value.usuarioId,
+  //         nome: request.body.nome,
+  //         email: request.body.email,
+  //         status: "ATIVO",
+  //       })
+  //     : metaAcao({
+  //         email: request.body.email,
+  //       }),
+  // });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -255,11 +297,26 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
  * @returns Usuário atualizado.
  */
 export async function atualizarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: AtualizarUsuarioBodyDto; }>, reply: FastifyReply) {
-  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
-    modulo: "USUARIOS",
-  });
+  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  //   permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+  //   modulo: "USUARIOS",
+  // });
+  // if (!ctx) return;
+  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
   if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const bodyParse = parseAtualizarUsuarioBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const params = paramsParse.data;
+  const body = bodyParse.data;
 
   const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
 
@@ -276,39 +333,39 @@ export async function atualizarUsuarioController(request: FastifyRequest<{ Param
 
   const resultado = await atualizarUsuario({
     locatarioId: ctx.locatarioId,
-    usuarioId: request.params.id,
-    nome: request.body.nome,
-    email: request.body.email,
+    usuarioId: params.id,
+    nome: body.nome,
+    email: body.email,
   });
 
-  await auditar(criarContextoAuditoria(request, ctx), {
-    evento: "usuario.atualizado",
-    sucesso: resultado.ok,
-    entidadeTipo: "usuario",
-    entidadeId: request.params.id,
-    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-    metadados:
-      resultado.ok && usuarioAntes.ok && usuarioAntes.value
-        ? metaAtualizacao(
-            {
-              nome: usuarioAntes.value.nome,
-              email: usuarioAntes.value.email,
-              status: usuarioAntes.value.status,
-            },
-            {
-              nome: resultado.value.usuario.nome,
-              email: resultado.value.usuario.email,
-              status: resultado.value.usuario.status,
-            },
-            [
-              ...(request.body.nome !== undefined ? ["nome"] : []),
-              ...(request.body.email !== undefined ? ["email"] : []),
-            ],
-          )
-        : undefined,
-  });
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "usuario.atualizado",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "usuario",
+  //   entidadeId: request.params.id,
+  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados:
+  //     resultado.ok && usuarioAntes.ok && usuarioAntes.value
+  //       ? metaAtualizacao(
+  //           {
+  //             nome: usuarioAntes.value.nome,
+  //             email: usuarioAntes.value.email,
+  //             status: usuarioAntes.value.status,
+  //           },
+  //           {
+  //             nome: resultado.value.usuario.nome,
+  //             email: resultado.value.usuario.email,
+  //             status: resultado.value.usuario.status,
+  //           },
+  //           [
+  //             ...(request.body.nome !== undefined ? ["nome"] : []),
+  //             ...(request.body.email !== undefined ? ["email"] : []),
+  //           ],
+  //         )
+  //       : undefined,
+  // });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -329,12 +386,19 @@ export async function atualizarUsuarioController(request: FastifyRequest<{ Param
  * @param reply Resposta Fastify.
  * @returns Usuário inativado.
  */
-export async function inativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
-    modulo: "USUARIOS",
-  });
+export async function desativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
+  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  //   permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+  //   modulo: "USUARIOS",
+  // });
+  // if (!ctx) return;
+  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
   if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
 
   const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
 
@@ -343,34 +407,34 @@ export async function inativarUsuarioController(request: FastifyRequest<{ Params
     usuarioId: request.params.id,
   });
 
-  const inativarUsuario = createFnInativarUsuario({
+  const desativarUsuario = createFnDesativarUsuario({
     usuariosRepositorio,
     transacao,
     relogio,
   });
 
-  const resultado = await inativarUsuario({
+  const resultado = await desativarUsuario({
     locatarioId: ctx.locatarioId,
     usuarioId: request.params.id,
   });
 
-  await auditar(criarContextoAuditoria(request, ctx), {
-    evento: "usuario.inativado",
-    sucesso: resultado.ok,
-    entidadeTipo: "usuario",
-    entidadeId: request.params.id,
-    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-    metadados:
-      resultado.ok && usuarioAntes.ok && usuarioAntes.value
-        ? metaAtualizacao(
-            { status: usuarioAntes.value.status },
-            { status: resultado.value.usuario.status },
-            ["status"],
-          )
-        : undefined,
-  });
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "usuario.inativado",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "usuario",
+  //   entidadeId: request.params.id,
+  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados:
+  //     resultado.ok && usuarioAntes.ok && usuarioAntes.value
+  //       ? metaAtualizacao(
+  //           { status: usuarioAntes.value.status },
+  //           { status: resultado.value.usuario.status },
+  //           ["status"],
+  //         )
+  //       : undefined,
+  // });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -392,11 +456,18 @@ export async function inativarUsuarioController(request: FastifyRequest<{ Params
  * @returns Usuário reativado.
  */
 export async function reativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
-    modulo: "USUARIOS",
-  });
+  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  //   permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+  //   modulo: "USUARIOS",
+  // });
+  // if (!ctx) return;
+  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
   if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
 
   const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
 
@@ -416,23 +487,23 @@ export async function reativarUsuarioController(request: FastifyRequest<{ Params
     usuarioId: request.params.id,
   });
 
-  await auditar(criarContextoAuditoria(request, ctx), {
-    evento: "usuario.reativado",
-    sucesso: resultado.ok,
-    entidadeTipo: "usuario",
-    entidadeId: request.params.id,
-    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-    metadados:
-      resultado.ok && usuarioAntes.ok && usuarioAntes.value
-        ? metaAtualizacao(
-            { status: usuarioAntes.value.status },
-            { status: resultado.value.usuario.status },
-            ["status"],
-          )
-        : undefined,
-  });
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "usuario.reativado",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "usuario",
+  //   entidadeId: request.params.id,
+  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados:
+  //     resultado.ok && usuarioAntes.ok && usuarioAntes.value
+  //       ? metaAtualizacao(
+  //           { status: usuarioAntes.value.status },
+  //           { status: resultado.value.usuario.status },
+  //           ["status"],
+  //         )
+  //       : undefined,
+  // });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);

@@ -3,7 +3,7 @@
 import { validarUsuarioId } from "../validadores";
 import { usuarioNaoEncontrado } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { InativarUsuarioInput, InativarUsuarioOutput, InativarUsuarioResult } from "../tipos";
+import type { DesativarUsuarioInput as DesativarUsuarioInput, DesativarUsuarioOutput as DesativarUsuarioOutput, DesativarUsuarioResult as DesativarUsuarioResult } from "../tipos";
 import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
 import { validarLocatarioId } from "../../locatarios";
 import { transicionarEstadoUsuario } from "../maquinaEstados";
@@ -26,7 +26,7 @@ import { transicionarEstadoUsuario } from "../maquinaEstados";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `inativarUsuario` pronta para receber a entrada do caso de uso.
  */
-export function createFnInativarUsuario(deps: {
+export function createFnDesativarUsuario(deps: {
   usuariosRepositorio: UsuariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
@@ -44,7 +44,7 @@ export function createFnInativarUsuario(deps: {
    * @param input Identificador do usuário a ser inativado.
    * @returns `Ok(usuarioAtualizado)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
-  return async function inativarUsuario(input: InativarUsuarioInput): InativarUsuarioResult {
+  return async function desativarUsuario(input: DesativarUsuarioInput): DesativarUsuarioResult {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -75,7 +75,7 @@ export function createFnInativarUsuario(deps: {
       });
       if (!atualizado.ok) return atualizado;
 
-      return wrapOk<InativarUsuarioOutput>({
+      return wrapOk<DesativarUsuarioOutput>({
         usuario: atualizado.value,
       });
     });

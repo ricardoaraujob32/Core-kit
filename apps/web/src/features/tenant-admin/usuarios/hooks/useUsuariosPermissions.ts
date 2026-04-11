@@ -11,22 +11,23 @@ import { StatusUsuario } from "../tipos";
  * @returns 
  */
 export function useUsuariosPermissions() {
-  const auth = useAuth();
+  const { user } = useAuth();
 
-  const ctx = useMemo(
-    () => ({
-      permissions: auth.user?.permissoes ?? [],
-      modules: auth.user?.modulosHabilitados ?? [],
-      isSuperAdmin: isSuperAdmin(auth.user),
-    }),
-    [auth.user],
-  );
+  const isAdminLocatario = useMemo(() => {
+    if (!user) return false;
+    return (
+      !!user.locatarioId &&
+      Array.isArray(user.papeis) &&
+      user.papeis.includes("ADMIN")
+    );
+  }, [user]);
+
+  const canUseCrud = isSuperAdmin(user) || isAdminLocatario;
 
   return {
-    canList: canAccessUsuariosModule(ctx),
-    canCreate: canCreateUsuario(ctx),
-    canEdit: canEditUsuario(ctx),
-    canAction: (action: UsuarioAction, statusAtual?: StatusUsuario) =>
-      canRunUsuarioAction(ctx, action, statusAtual),
+    canList: canUseCrud,
+    canCreate: canUseCrud,
+    canEdit: canUseCrud,
+    canAction: () => canUseCrud,
   };
 }

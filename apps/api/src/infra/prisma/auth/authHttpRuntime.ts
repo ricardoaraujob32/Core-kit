@@ -81,10 +81,7 @@ function createDepsFromAdapters(adapters: AuthPrismaAdapters, technical: Resolve
  * @param params 
  * @returns 
  */
-export function createAuthRuntimeBase(
-  db: PrismaDb,
-  params: CreateAuthDepsParams = {},
-) {
+export function createAuthRuntimeBase(db: PrismaDb, params: CreateAuthDepsParams = {}) {
   const technical = resolveAuthTechnicalPorts(params);
   const adapters = createAuthPrismaAdapters(db, {
     idPorta: technical.idPorta,

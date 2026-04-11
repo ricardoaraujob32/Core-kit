@@ -168,7 +168,7 @@ export function createFnEmitirSessao(deps: {
       sessionId,
       agora,
       ttlSegundos: deps.ttlAccessSegundos ?? 600,
-      issuer: deps.issuer ?? "mini-saas-auth",
+      issuer: deps.issuer ?? "mini-saas-api",
     });
     if (!accessRes.ok) return accessRes;
 

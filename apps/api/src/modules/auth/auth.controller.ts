@@ -3,55 +3,10 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { LoginBody, RefreshBody } from "./auth.dto";
-import { metaAcao } from "@core-kit/core";
-
-/**
- * Serializa a sessão materializada no formato HTTP da API.
- *
- * @param sessao Sessão retornada pelo Core.
- * @returns Payload HTTP de sucesso.
- */
-function serializarSessaoHttp(sessao: {
-  accessToken: string;
-  refreshToken: string;
-  accessExpiraEm: Date;
-  refreshExpiraEm: Date;
-}) {
-  return {
-    accessToken: sessao.accessToken,
-    refreshToken: sessao.refreshToken,
-    accessExpiraEm: sessao.accessExpiraEm,
-    refreshExpiraEm: sessao.refreshExpiraEm,
-  };
-}
-
-/**
- * Cria contexto de auditoria para fluxos de auth não autenticados ou
- * semi-autenticados.
- *
- * Observação:
- * - login ainda pode ocorrer sem `usuarioId` resolvido na borda;
- * - refresh também pode falhar antes da materialização completa da nova sessão.
- *
- * @param request Requisição atual.
- * @param params Dados complementares do fluxo.
- * @returns Contexto compatível com o dispatcher.
- */
-// function criarContextoAuditoriaAuth(
-//   request: FastifyRequest,
-//   params?: {
-//     locatarioId?: string | null;
-//     agenteTipo?: string | null;
-//   },
-// ) {
-//   return criarContextoAuditoria(request, {
-//     usuarioId: null,
-//     locatarioId: params?.locatarioId ?? null,
-//     agenteTipo: params?.agenteTipo ?? "USUARIO_ANONIMO",
-//     origem: "API",
-//   });
-// }
+import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshResponse, SessionUserDto } from "./auth.dto";
+import { ContextoExecucao, LocatarioId, metaAcao, UsuarioId } from "@core-kit/core";
+import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap";
+import { obterCtxOuResponderErro } from "../helpers";
 
 /**
  * Runtime oficial de autenticação usado pela borda HTTP.
@@ -61,6 +16,35 @@ function serializarSessaoHttp(sessao: {
  * - evita wiring repetido em cada controller.
  */
 const authRuntime = createAuthHttpRuntime();
+
+/**
+ * Deriva a flag de superadmin a partir dos papéis resolvidos.
+ *
+ * Observação:
+ * - isso evita duplicar estado;
+ * - segue a decisão já consolidada nas lições aprendidas.
+ */
+function isSuperAdminFromContext(ctx: Pick<ContextoExecucao, "papeis" | "locatarioId">): boolean {
+  if (ctx.locatarioId === "plataforma") {
+    return true;
+  }
+
+  return Array.isArray(ctx.papeis) && ctx.papeis.includes("SUPERADMIN" as never);
+}
+
+/**
+ * Serializa o contexto autorizado para o shape de usuário esperado pelo frontend.
+ */
+function serializarUsuarioSessao(ctx: ContextoExecucao): SessionUserDto {
+  return {
+    usuarioId: ctx.usuarioId,
+    locatarioId: ctx.locatarioId,
+    papeis: ctx.papeis ? [...ctx.papeis] : [],
+    permissoes: ctx.permissoes ? [...ctx.permissoes] : [],
+    modulosHabilitados: ctx.modulosHabilitados ? [...ctx.modulosHabilitados] : [],
+    isSuperAdmin: isSuperAdminFromContext(ctx),
+  };
+}
 
 /**
  * Controller HTTP de login.
@@ -104,12 +88,31 @@ export async function loginController(request: FastifyRequest<{ Body: LoginBody 
     return sendHttpError(reply, resultado.error);
   }
 
-  return reply.status(200).send({
+  const payload: LoginResponse = {
     accessToken: resultado.value.sessao.accessToken,
     refreshToken: resultado.value.sessao.refreshToken,
-    accessExpiraEm: resultado.value.sessao.accessExpiraEm,
-    refreshExpiraEm: resultado.value.sessao.refreshExpiraEm,
-  });
+  };
+
+  return reply.status(200).send(payload);
+}
+
+/**
+ * Controller HTTP da sessão atual.
+ *
+ * Fluxo:
+ * - pressupõe autenticação prévia via `authGuard`;
+ * - obtém o contexto já resolvido pela borda;
+ * - serializa o usuário autenticado/autorizado para o frontend.
+ */
+export async function meController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await obterCtxOuResponderErro(request, reply);
+  if (!ctx) return;
+
+  const payload: MeResponse = {
+    usuario: serializarUsuarioSessao(ctx),
+  };
+
+  return reply.status(200).send(payload);
 }
 
 /**
@@ -126,10 +129,10 @@ export async function loginController(request: FastifyRequest<{ Body: LoginBody 
  * @returns Resposta HTTP de sucesso ou erro.
  */
 export async function refreshController(request: FastifyRequest<{ Body: RefreshBody }>, reply: FastifyReply) {
-  const resultado = await authRuntime.rotacionarRefresh({
-    locatarioId: request.body.locatarioId,
-    refreshToken: request.body.refreshToken,
-  });
+  // const resultado = await authRuntime.rotacionarRefresh({
+  //   locatarioId: request.body.locatarioId,
+  //   refreshToken: request.body.refreshToken,
+  // });
 
   // await auditar(criarContextoAuditoriaAuth(request, { locatarioId: request.body.locatarioId, agenteTipo: "TOKEN_REFRESH", }),
   //   {
@@ -144,14 +147,89 @@ export async function refreshController(request: FastifyRequest<{ Body: RefreshB
   //   },
   // );
 
+  // if (!resultado.ok) {
+  //   return sendHttpError(reply, resultado.error);
+  // }
+
+  // const payload: RefreshResponse = {
+  //   accessToken: resultado.value.sessao.accessToken,
+  //   refreshToken: resultado.value.sessao.refreshToken,
+  // };
+
+  // return reply.status(200).send(payload);
+
+  const refreshToken = request.body?.refreshToken ?? "";
+  const locatarioId = request.body?.locatarioId;
+
+  console.info("[auth.refresh] request.received", {
+    locatarioId,
+    hasRefreshToken: typeof refreshToken === "string" && refreshToken.length > 0,
+    refreshTokenLength: typeof refreshToken === "string" ? refreshToken.length : 0,
+  });
+
+  try {
+    const resultado = await authRuntime.rotacionarRefresh({
+      locatarioId,
+      refreshToken,
+    });
+
+    if (!resultado.ok) {
+      console.warn("[auth.refresh] result.error", {
+        locatarioId,
+        codigo: resultado.error.codigo,
+        mensagem: resultado.error.mensagem,
+        detalhes: resultado.error.detalhes ?? null,
+      });
+
+      return sendHttpError(reply, resultado.error);
+    }
+
+    const payload: RefreshResponse = {
+      accessToken: resultado.value.sessao.accessToken,
+      refreshToken: resultado.value.sessao.refreshToken,
+    };
+
+    console.info("[auth.refresh] result.ok", {
+      locatarioId,
+      hasAccessToken: Boolean(payload.accessToken),
+      hasRefreshToken: Boolean(payload.refreshToken),
+    });
+
+    return reply.status(200).send(payload);
+  } catch (causa) {
+    console.error("[auth.refresh] unhandled.exception", {
+      locatarioId,
+      errorName: causa instanceof Error ? causa.name : "UnknownError",
+      errorMessage: causa instanceof Error ? causa.message : String(causa),
+      stack: causa instanceof Error ? causa.stack : undefined,
+    });
+
+    return sendHttpError(reply, {
+      codigo: "ERRO_INTERNO",
+      mensagem: "Falha interna ao rotacionar refresh token.",
+      detalhes: {
+        operacao: "http.auth.refresh",
+      },
+    });
+  }
+}
+
+/**
+ * Controller HTTP de logout.
+ *
+ * Estratégia atual:
+ * - revoga o refresh token atual;
+ * - responde `204 No Content`.
+ */
+export async function logoutController(request: FastifyRequest<{ Body: LogoutBody }>, reply: FastifyReply) {
+  const resultado = await authRuntime.logout({
+    locatarioId: request.body.locatarioId,
+    refreshToken: request.body.refreshToken,
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
 
-  return reply.status(200).send({
-    accessToken: resultado.value.sessao.accessToken,
-    refreshToken: resultado.value.sessao.refreshToken,
-    accessExpiraEm: resultado.value.sessao.accessExpiraEm,
-    refreshExpiraEm: resultado.value.sessao.refreshExpiraEm,
-  });
+  return reply.status(204).send();
 }

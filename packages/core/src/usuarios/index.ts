@@ -13,9 +13,9 @@ export type {
   AtualizarUsuarioInput,
   AtualizarUsuarioOutput,
   AtualizarUsuarioResult,
-  InativarUsuarioInput,
-  InativarUsuarioOutput,
-  InativarUsuarioResult,
+  DesativarUsuarioInput,
+  DesativarUsuarioOutput,
+  DesativarUsuarioResult,
   ReativarUsuarioInput,
   ReativarUsuarioOutput,
   ReativarUsuarioResult,
@@ -48,5 +48,5 @@ export { createFnCriarUsuario } from "./usecases/criarUsuario";
 export { createFnObterUsuario } from "./usecases/obterUsuario";
 export { createFnListarUsuariosPorLocatario } from "./usecases/listarUsuariosPorLocatario";
 export { createFnAtualizarUsuario } from "./usecases/atualizarUsuario";
-export { createFnInativarUsuario } from "./usecases/inativarUsuario";
+export { createFnDesativarUsuario } from "./usecases/desativarUsuario";
 export { createFnReativarUsuario } from "./usecases/reativarUsuario";

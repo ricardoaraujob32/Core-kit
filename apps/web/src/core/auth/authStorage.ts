@@ -1,9 +1,10 @@
-// frontend/src/core/auth/authStorage.ts
+// web/src/core/auth/authStorage.ts
 
 import type { SessionUser } from "./tipos";
 
 const ACCESS_TOKEN_KEY = "app.access_token";
 const REFRESH_TOKEN_KEY = "app.refresh_token";
+const LOCATARIO_ID_KEY = "app.locatario_id";
 const USER_KEY = "app.auth_user";
 
 function safeGet(key: string): string | null {
@@ -53,6 +54,23 @@ export const authStorage = {
 
   removeRefreshToken(): void {
     safeRemove(REFRESH_TOKEN_KEY);
+  },
+
+  getLocatarioId(): string | null {
+    return safeGet(LOCATARIO_ID_KEY);
+  },
+
+  setLocatarioId(locatarioId: string | null): void {
+    if (!locatarioId) {
+      safeRemove(LOCATARIO_ID_KEY);
+      return;
+    }
+
+    safeSet(LOCATARIO_ID_KEY, locatarioId);
+  },
+
+  removeLocatarioId(): void {
+    safeRemove(LOCATARIO_ID_KEY);
   },
 
   getUser(): SessionUser | null {

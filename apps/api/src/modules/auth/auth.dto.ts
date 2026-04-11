@@ -1,6 +1,6 @@
 // apps/api/src/modules/auth/auth.dto.ts
 
-import { LocatarioId, LocatarioSlug } from "@core-kit/core";
+import { LocatarioId, LocatarioSlug, ModuloCodigo, Papel, Permissao, UsuarioId } from "@core-kit/core";
 
 /**
  * Payload HTTP esperado no endpoint de login.
@@ -17,6 +17,14 @@ export type LoginBody = {
 };
 
 /**
+ * Resposta do login.
+ */
+export type LoginResponse = {
+  accessToken: string;
+  refreshToken?: string;
+};
+
+/**
  * Payload HTTP esperado no endpoint de refresh.
  *
  * Campos:
@@ -27,3 +35,43 @@ export type RefreshBody = {
   locatarioId: LocatarioId;
   refreshToken: string;
 };
+
+/**
+ * Resposta do refresh.
+ */
+export type RefreshResponse = {
+  accessToken: string;
+  refreshToken?: string;
+};
+
+/**
+ * Payload HTTP esperado no endpoint de logout.
+ *
+ * Observação:
+ * - o contrato atual de logout usa o refresh token bruto;
+ * - isso combina com o modelo atual de revogação persistida.
+ */
+export type LogoutBody = {
+  locatarioId: LocatarioId;
+  refreshToken: string;
+};
+
+/**
+ * Usuário de sessão serializado para o frontend.
+ */
+export type SessionUserDto = {
+  usuarioId: UsuarioId;
+  locatarioId: string;
+  papeis: Papel[];
+  permissoes: Permissao[];
+  modulosHabilitados: ModuloCodigo[];
+  isSuperAdmin: boolean;
+};
+
+/**
+ * Resposta do endpoint `auth/me`.
+ */
+export type MeResponse = {
+  usuario: SessionUserDto;
+};
+

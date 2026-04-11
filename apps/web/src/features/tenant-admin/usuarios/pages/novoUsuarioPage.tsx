@@ -14,7 +14,7 @@ export default function NovoUsuarioPage() {
   });
 
   async function handleSubmit(input: CriarUsuarioInput) {
-    await salvar(input);
+    await salvar(input as CriarUsuarioInput);
   }
 
   return (

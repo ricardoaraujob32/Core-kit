@@ -1,5 +1,5 @@
-// apps/api/src/infra/prisma/auditoria/index.ts
+// // apps/api/src/infra/prisma/auditoria/index.ts
 
-export { createAuditoriaAtivaLocatarioRepositorio } from "./auditoriaAtivaLocatarioRepositorioPrisma";
+// export { createAuditoriaAtivaLocatarioRepositorio } from "./auditoriaAtivaLocatarioRepositorioPrisma";
 
-export { createAuditoriaInternaRepositorio } from "./auditoriaInternaRepositorioPrisma";
+// export { createAuditoriaInternaRepositorio } from "./auditoriaInternaRepositorioPrisma";

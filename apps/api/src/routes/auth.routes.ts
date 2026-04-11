@@ -1,9 +1,12 @@
 // apps/api/src/routes/auth.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { loginController, refreshController } from "../modules/auth/auth.controller";
+import { loginController, logoutController, meController, refreshController } from "../modules/auth/auth.controller";
+import { authGuard } from "../middlewares/authGuard";
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post("/auth/login", loginController);
+  app.get("/auth/me", { preHandler: [authGuard] }, meController);
   app.post("/auth/refresh", refreshController);
+  app.post("/auth/logout", logoutController);
 };

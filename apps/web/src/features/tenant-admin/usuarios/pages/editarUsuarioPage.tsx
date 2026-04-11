@@ -52,7 +52,7 @@ export default function EditarUsuarioPage() {
   }, [usuarioId]);
 
   async function handleSubmit(input: AtualizarUsuarioInput) {
-    await salvar(input);
+    await salvar(input as AtualizarUsuarioInput);
   }
 
   if (isLoading) {

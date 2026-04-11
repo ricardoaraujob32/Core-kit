@@ -143,21 +143,26 @@ export interface RotacionarRefreshOutput {
 export type RotacionarRefreshResult = Promise<Result<RotacionarRefreshOutput, ErroApp>>;
 
 /**
- * Entrada para resolver o contexto autorizado a partir de uma sessão válida.
+ * Entrada para logout baseado no refresh token atual.
+ *
+ * Observação:
+ * - o modelo atual revoga o refresh persistido;
+ * - o access token já emitido continua válido até expirar;
+ * - o objetivo do logout é impedir renovação futura da sessão.
  */
-export interface ResolverContextoAutorizadoInput {
-  /** Sessão previamente validada. */
-  sessao: SessaoValidada;
+export interface LogoutInput {
+  locatarioId: LocatarioId;
+  refreshToken: string;
 }
 
 /**
- * Saída da resolução do contexto autorizado.
+ * Saída do logout.
+ *
+ * Mantida vazia porque a borda HTTP deve responder com `204 No Content`.
  */
-export interface ResolverContextoAutorizadoOutput {
-  ctx: ContextoExecucao;
-}
+export interface LogoutOutput {}
 
 /**
- * Resultado assíncrono da resolução do contexto autorizado.
+ * Resultado assíncrono do logout.
  */
-export type ResolverContextoAutorizadoResult = Promise<Result<ResolverContextoAutorizadoOutput, ErroApp>>;
+export type LogoutResult = Promise<Result<LogoutOutput, ErroApp>>;

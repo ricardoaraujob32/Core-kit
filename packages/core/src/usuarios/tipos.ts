@@ -140,7 +140,7 @@ export type AtualizarUsuarioResult = Promise<Result<AtualizarUsuarioOutput, Erro
 /**
  * Entrada para inativação de usuário.
  */
-export interface InativarUsuarioInput {
+export interface DesativarUsuarioInput {
   locatarioId: LocatarioId;
   /** Usuário que será inativado. */
   usuarioId: UsuarioId;
@@ -149,14 +149,14 @@ export interface InativarUsuarioInput {
 /**
  * Saída para inativação de usuário.
  */
-export interface InativarUsuarioOutput {
+export interface DesativarUsuarioOutput {
   usuario: Usuario;
 }
 
 /**
  * Resultado assíncrono da inativação de usuário.
  */
-export type InativarUsuarioResult = Promise<Result<InativarUsuarioOutput, ErroApp>>;
+export type DesativarUsuarioResult = Promise<Result<DesativarUsuarioOutput, ErroApp>>;
 
 /**
  * Entrada para reativação de usuário.

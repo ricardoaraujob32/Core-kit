@@ -1,6 +1,6 @@
 // frontend/src/features/auth/pages/LoginPage.tsx
 
-import { useState } from "react";
+import { JSX, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isSuperAdmin } from "../../../core/auth/tipos";
 import { useAuth } from "../../../core/auth/useAuth";

@@ -6,18 +6,48 @@ import { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
 import { status_usuario } from "@prisma/client";
 
+type UsuarioRow = {
+  usuario_id: string;
+  locatario_id: string | null;
+  email: string;
+  nome: string;
+  senha_hash: string;
+  status: status_usuario;
+  ultimo_login_em: Date | null;
+  criado_em: Date;
+  atualizado_em: Date;
+  excluido_em: Date | null;
+};
+
+const usuarioSelect = {
+  usuario_id: true,
+  locatario_id: true,
+  email: true,
+  nome: true,
+  senha_hash: true,
+  status: true,
+  ultimo_login_em: true,
+  criado_em: true,
+  atualizado_em: true,
+  excluido_em: true,
+} as const;
+
 /**
  * Mapeia o status persistido do banco para o contrato do domínio de usuários.
  *
  * @param status Status persistido no banco.
  * @returns Status adaptado para o contrato do domínio.
  */
-function mapStatusUsuario(status: "ATIVO" | "BLOQUEADO"): Usuario["status"] {
+function mapStatusUsuario(status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO"): Usuario["status"] {
   switch (status) {
     case "ATIVO":
       return "ATIVO";
-    case "BLOQUEADO":
+    case "INATIVO":
       return "INATIVO";
+    case "SUSPENSO":
+      return "SUSPENSO";
+    case "ENCERRADO":
+      return "ENCERRADO";
     default: {
       const _exhaustive: never = status;
       return _exhaustive;
@@ -35,12 +65,14 @@ function mapStatusUsuario(status: "ATIVO" | "BLOQUEADO"): Usuario["status"] {
 function mapStatusUsuarioParaPersistencia(status: Usuario["status"]): status_usuario {
   switch (status) {
     case "ATIVO":
-      return "ATIVO";
+      return status_usuario.ATIVO;
     case "INATIVO":
-      return "BLOQUEADO";
+      return status_usuario.INATIVO;
+    case "SUSPENSO":
+      return status_usuario.SUSPENSO;
+    case "ENCERRADO":
+      return status_usuario.ENCERRADO;
   }
-
-  return "ATIVO"
 }
 
 /**
@@ -49,18 +81,7 @@ function mapStatusUsuarioParaPersistencia(status: Usuario["status"]): status_usu
  * @param row Linha retornada pelo Prisma.
  * @returns Entidade `Usuario` compatível com o Core.
  */
-function mapUsuario(row: {
-  usuario_id: string;
-  locatario_id: string | null;
-  email: string;
-  nome: string;
-  senha_hash: string;
-  status: "ATIVO" | "BLOQUEADO";
-  ultimo_login_em: Date | null;
-  criado_em: Date;
-  atualizado_em: Date;
-  excluido_em: Date | null;
-}): Usuario {
+function mapUsuario(row: UsuarioRow): Usuario {
   return {
     usuarioId: row.usuario_id as UsuarioId,
     locatarioId: row.locatario_id as LocatarioId | null,
@@ -111,7 +132,6 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
             ultimo_login_em: params.ultimoLoginEm,
             criado_em: params.criadoEm,
             atualizado_em: params.atualizadoEm,
-            excluido_em: params.excluidoEm,
           },
         });
 
@@ -121,7 +141,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
       } catch (causa) {
         return mapearErroInfra(causa, {
           entidade: "usuarios",
-          operacao: "usuarios.criar",
+          operacao: "infra.usuarios.criar",
           detalhes: {
             usuarioId: params.usuarioId,
             locatarioId: params.locatarioId,
@@ -148,18 +168,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
             usuario_id: params.usuarioId,
             locatario_id: params.locatarioId,
           },
-          select: {
-            usuario_id: true,
-            locatario_id: true,
-            email: true,
-            nome: true,
-            senha_hash: true,
-            status: true,
-            ultimo_login_em: true,
-            criado_em: true,
-            atualizado_em: true,
-            excluido_em: true,
-          },
+          select: usuarioSelect,
         });
 
         if (!row) {
@@ -170,7 +179,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
       } catch (causa) {
         return mapearErroInfra(causa, {
           entidade: "usuarios",
-          operacao: "usuarios.buscarPorId",
+          operacao: "infra.usuarios.buscarPorId",
           detalhes: {
             usuarioId: params.usuarioId,
             locatarioId: params.locatarioId,
@@ -189,9 +198,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      * @param params Escopo do locatário e e-mail normalizado.
      * @returns `Ok(usuario | null)` quando a consulta é concluída.
      */
-    async buscarPorEmailNoLocatario(
-      params,
-    ): Promise<Result<Usuario | null, ErroApp>> {
+    async buscarPorEmailNoLocatario(params): Promise<Result<Usuario | null, ErroApp>> {
       try {
         const emailNormalizado = params.emailNormalizado.toLowerCase();
 
@@ -201,18 +208,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
             email: emailNormalizado,
             excluido_em: null,
           },
-          select: {
-            usuario_id: true,
-            locatario_id: true,
-            email: true,
-            nome: true,
-            senha_hash: true,
-            status: true,
-            ultimo_login_em: true,
-            criado_em: true,
-            atualizado_em: true,
-            excluido_em: true,
-          },
+          select: usuarioSelect,
         });
 
         if (!row) {
@@ -262,25 +258,14 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
               }
             : {}),
           ...(params.limite ? { take: params.limite } : {}),
-          select: {
-            usuario_id: true,
-            locatario_id: true,
-            email: true,
-            nome: true,
-            senha_hash: true,
-            status: true,
-            ultimo_login_em: true,
-            criado_em: true,
-            atualizado_em: true,
-            excluido_em: true,
-          },
+          select: usuarioSelect,
         });
 
         return wrapOk(rows.map(mapUsuario));
       } catch (causa) {
         return mapearErroInfra(causa, {
           entidade: "usuarios",
-          operacao: "usuarios.listarPorLocatario",
+          operacao: "infra.usuarios.listarPorLocatario",
           detalhes: {
             locatarioId: params.locatarioId,
             limite: params.limite,
@@ -298,9 +283,10 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      */
     async atualizar(usuario): Promise<Result<Usuario, ErroApp>> {
       try {
-        await db.usuarios.update({
+        await db.usuarios.updateMany({
           where: {
             usuario_id: usuario.usuarioId,
+            locatario_id: usuario.locatarioId,
           },
           data: {
             locatario_id: usuario.locatarioId,
@@ -322,7 +308,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
       } catch (causa) {
         return mapearErroInfra(causa, {
           entidade: "usuarios",
-          operacao: "usuarios.atualizar",
+          operacao: "infra.usuarios.atualizar",
           detalhes: {
             usuarioId: usuario.usuarioId,
             locatarioId: usuario.locatarioId,
@@ -358,7 +344,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
       } catch (causa) {
         return mapearErroInfra(causa, {
           entidade: "usuarios",
-          operacao: "usuarios.atualizarUltimoLogin",
+          operacao: "infra.usuarios.atualizarUltimoLogin",
           detalhes: {
             usuarioId: params.usuarioId,
             locatarioId: params.locatarioId,
