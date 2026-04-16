@@ -11,11 +11,16 @@ import { PrismaDb } from "../../tipos";
  * @param status Status persistido no banco.
  * @returns Status adaptado para o contrato de autenticação.
  */
-function mapStatusUsuarioAuth(status: "ATIVO" | "BLOQUEADO"): UsuarioAuth["status"] {
+function mapStatusUsuarioAuth(
+  status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO",
+): UsuarioAuth["status"] {
   switch (status) {
     case "ATIVO":
       return "ATIVO";
-    case "BLOQUEADO":
+    case "INATIVO":
+      return "INATIVO";
+    case "SUSPENSO":
+    case "ENCERRADO":
       return "BLOQUEADO";
   }
 }

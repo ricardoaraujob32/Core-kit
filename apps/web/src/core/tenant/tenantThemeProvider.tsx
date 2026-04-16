@@ -13,7 +13,7 @@ const DEFAULT_THEME = {
 
 export function TenantThemeProvider({
   children,
-}: PropsWithChildren): JSX.Element {
+}: PropsWithChildren) {
   const { branding } = useTenant();
 
   useEffect(() => {

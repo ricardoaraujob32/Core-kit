@@ -22,9 +22,11 @@ export async function criarApp() {
   const app = Fastify({ logger: true });
 
   await app.register(cors, {
-    origin: true,
-    credentials: true,
-  });
+  origin: true,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+});
 
   await app.register(requestIdPlugin);
   await app.register(authPlugin);

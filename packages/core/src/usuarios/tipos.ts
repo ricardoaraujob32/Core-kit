@@ -199,3 +199,46 @@ export interface ListarUsuariosPorLocatarioOutput {
  * Resultado assíncrono da listagem de usuários por locatário.
  */
 export type ListarUsuariosPorLocatarioResult = Promise<Result<ListarUsuariosPorLocatarioOutput, ErroApp>>;
+
+/**
+ * 
+ */
+export interface AlterarSenhaUsuarioInput {
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+  senhaAtual: string;
+  novaSenha: string;
+}
+
+/**
+ * 
+ */
+export interface AlterarSenhaUsuarioOutput {
+  usuarioId: UsuarioId;
+}
+
+/**
+ * 
+ */
+export type AlterarSenhaUsuarioResult = Promise<Result<AlterarSenhaUsuarioOutput, ErroApp>>;
+
+/**
+ * 
+ */
+export interface RedefinirSenhaUsuarioInput {
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+  novaSenha: string;
+}
+
+/**
+ * 
+ */
+export interface RedefinirSenhaUsuarioOutput {
+  usuarioId: UsuarioId;
+}
+
+/**
+ * 
+ */
+export type RedefinirSenhaUsuarioResult = Promise<Result<RedefinirSenhaUsuarioOutput, ErroApp>>;

@@ -1,4 +1,4 @@
-// web/src/layouts/TenantLayout.tsx
+// apps/web/src/layouts/tenantLayout.tsx
 
 import { Outlet, NavLink } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
@@ -57,6 +57,9 @@ export default function TenantLayout(): JSX.Element {
           <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
             <NavLink to="/app">Dashboard</NavLink>
             <NavLink to="/app/usuarios">Usuários</NavLink>
+            <NavLink to="/app/locatario">Locatário</NavLink>
+            <NavLink to="/app/locatario/configuracoes">Configurações</NavLink>
+
 
             <span style={{ fontSize: 14, color: "#6b7280" }}>
               {user?.email ?? user?.nome ?? user?.usuarioId ?? "Usuário autenticado"}
@@ -75,3 +78,4 @@ export default function TenantLayout(): JSX.Element {
     </div>
   );
 }
+

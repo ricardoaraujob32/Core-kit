@@ -36,7 +36,7 @@ export function TenantRoute({
   requireAllPermissions = true,
   loginPath = "/login",
   forbiddenPath = "/acesso-negado",
-}: TenantRouteProps): JSX.Element {
+}: TenantRouteProps) {
   const location = useLocation();
   const { isLoading, isAuthenticated, user } = useAuth();
 

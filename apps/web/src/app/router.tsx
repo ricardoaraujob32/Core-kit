@@ -1,4 +1,4 @@
-// frontend/src/app/router.tsx
+// apps/web/src/app/router.tsx
 
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
@@ -17,6 +17,9 @@ import TenantAdminDashboard from "../features/tenant-admin/pages/dashboard";
 import AccessDenied from "../pages/accessDenied";
 import NotFound from "../pages/notFound";
 import { EditarUsuarioPage, NovoUsuarioPage, UsuarioDetailsPage, UsuariosListPage } from "../features/tenant-admin/usuarios";
+
+import { EditarLocatarioPage, LocatarioDetailsPage, LocatariosListPage, NovoLocatarioPage } from "../features/superadmin/locatarios";
+import { ConfiguracoesLocatarioPage, MeuLocatarioPage } from "../features/tenant-admin/locatario";
 
 export const router = createBrowserRouter([
   {
@@ -52,6 +55,22 @@ export const router = createBrowserRouter([
             index: true,
             element: <SuperAdminDashboard />,
           },
+          {
+            path: "locatarios",
+            element: <LocatariosListPage />,
+          },
+          {
+            path: "locatarios/novo",
+            element: <NovoLocatarioPage />,
+          },
+          {
+            path: "locatarios/:locatarioId",
+            element: <LocatarioDetailsPage />,
+          },
+          {
+            path: "locatarios/:locatarioId/editar",
+            element: <EditarLocatarioPage />,
+          },
         ],
       },
     ],
@@ -66,6 +85,14 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: <TenantAdminDashboard />,
+          },
+          {
+            path: "locatario",
+            element: <MeuLocatarioPage />,
+          },
+          {
+            path: "locatario/configuracoes",
+            element: <ConfiguracoesLocatarioPage />,
           },
           {
             path: "usuarios",

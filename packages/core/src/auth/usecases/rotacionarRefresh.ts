@@ -108,14 +108,14 @@ export function createFnRotacionarRefresh(deps: {
 
     console.info("[core.auth.refresh] refresh.validated", {
       locatarioId: locatarioId.value,
-      usuarioId: refreshValido.value.usuarioId,
-      tokenId: refreshValido.value.tokenId,
+      usuarioId: refreshValido.value.chave.usuarioId,
+      tokenId: refreshValido.value.chave.tokenId,
     });
 
     const sessionId = deps.idPorta.gerarId();
 
     const accessRes = await deps.jwtPorta.emitirAccessToken({
-      usuarioId: refreshValido.value.usuarioId,
+      usuarioId: refreshValido.value.chave.usuarioId,
       locatarioId: locatarioId.value,
       sessionId,
       agora,
@@ -126,7 +126,7 @@ export function createFnRotacionarRefresh(deps: {
     if (!accessRes.ok) {
       console.warn("[core.auth.refresh] access.emit.error", {
         locatarioId: locatarioId.value,
-        usuarioId: refreshValido.value.usuarioId,
+        usuarioId: refreshValido.value.chave.usuarioId,
         codigo: accessRes.error.codigo,
         mensagem: accessRes.error.mensagem,
         detalhes: accessRes.error.detalhes ?? null,
@@ -137,15 +137,16 @@ export function createFnRotacionarRefresh(deps: {
     const persistenciaRes = await executarEmTransacao(deps.transacao, async () => {
       const novoRefresh = await deps.tokensPorta.criarRefresh({
         locatarioId: locatarioId.value,
-        usuarioId: refreshValido.value.usuarioId,
+        usuarioId: refreshValido.value.chave.usuarioId,
         agora,
         ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60 * 24 * 14,
       });
       if (!novoRefresh.ok) return novoRefresh;
 
       const revogar = await deps.tokensPorta.revogar({
-        tokenId: refreshValido.value.tokenId,
+        chave: refreshValido.value.chave,
         agora,
+        proximo: novoRefresh.value.chave,
       });
       if (!revogar.ok) return revogar;
 
@@ -155,7 +156,7 @@ export function createFnRotacionarRefresh(deps: {
     if (!persistenciaRes.ok) {
       console.warn("[core.auth.refresh] persistence.error", {
         locatarioId: locatarioId.value,
-        usuarioId: refreshValido.value.usuarioId,
+        usuarioId: refreshValido.value.chave.usuarioId,
         codigo: persistenciaRes.error.codigo,
         mensagem: persistenciaRes.error.mensagem,
         detalhes: persistenciaRes.error.detalhes ?? null,
@@ -165,10 +166,11 @@ export function createFnRotacionarRefresh(deps: {
 
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.refresh",
-      usuarioId: refreshValido.value.usuarioId,
+      usuarioId: refreshValido.value.chave.usuarioId,
       locatarioId: locatarioId.value,
       detalhes: {
-        tokenIdAntigo: refreshValido.value.tokenId,
+        tokenIdAntigo: refreshValido.value.chave.tokenId,
+        tokenIdNovo: persistenciaRes.value.chave.tokenId,
         sessionId,
       },
       quando: agora,
@@ -183,7 +185,7 @@ export function createFnRotacionarRefresh(deps: {
 
     console.info("[core.auth.refresh] success", {
       locatarioId: locatarioId.value,
-      usuarioId: refreshValido.value.usuarioId,
+      usuarioId: refreshValido.value.chave.usuarioId,
       sessionId,
       hasAccessToken: Boolean(sessao.accessToken),
       hasRefreshToken: Boolean(sessao.refreshToken),

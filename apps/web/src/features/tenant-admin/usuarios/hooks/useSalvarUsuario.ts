@@ -1,4 +1,4 @@
-// web/src/features/tenant-admin/usuarios/hooks/useSalvarUsuario.ts
+// apps/web/src/features/tenant-admin/usuarios/hooks/useSalvarUsuario.ts
 
 import { useState } from "react";
 import { AtualizarUsuarioInput, CriarUsuarioInput, UsuarioFormMode, usuariosApi } from "..";
@@ -35,10 +35,17 @@ export function useSalvarUsuario({ mode, usuarioId, onSuccess }: Params) {
       if (mode === "create") {
         await usuariosApi.criar(input as CriarUsuarioInput);
       } else {
-        if (!usuarioId) {
-          throw new Error("usuarioId ausente para edição.");
+        const usuarioIdNormalizado = usuarioId?.trim();
+
+        if (!usuarioIdNormalizado) {
+          setErro("ID do usuário inválido.");
+          return false;
         }
-        await usuariosApi.atualizar(usuarioId, input as AtualizarUsuarioInput);
+
+        await usuariosApi.atualizar(
+          usuarioIdNormalizado,
+          input as AtualizarUsuarioInput,
+        );
       }
 
       await onSuccess?.();

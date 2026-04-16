@@ -70,3 +70,16 @@ export function usuarioEncerrado(usuarioId: UsuarioId) {
 export function emailUsuarioJaExiste(email: string, locatarioId: LocatarioId | null) {
   return createErroApp({ codigo: "USUARIO_EMAIL_JA_EXISTE", detalhes: { email, locatarioId } });
 }
+
+/**
+ * 
+ * @param usuarioId 
+ * @returns 
+ */
+export function senhaAtualInvalida(usuarioId: UsuarioId) {
+  return createErroApp({
+    codigo: "NAO_AUTENTICADO",
+    mensagem: "Senha atual inválida.",
+    detalhes: { usuarioId },
+  });
+}

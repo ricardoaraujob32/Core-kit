@@ -19,7 +19,7 @@
 CREATE TABLE IF NOT EXISTS tokens (
   token_id           UUID NOT NULL DEFAULT gen_random_uuid(),
   usuario_id         UUID NOT NULL,
-  locatario_id       UUID NULL, -- NULL indica usuário de nível plataforma (ex.: superadmin)
+  locatario_id       UUID NOT NULL, -- NULL indica usuário de nível plataforma (ex.: superadmin)
   hash_token         TEXT UNIQUE NOT NULL, -- nunca guarde o token em claro
   tipo               tipo_token NOT NULL, -- access / refresh / etc.
   emitido_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS tokens (
   revogado_em        TIMESTAMPTZ NULL,
   proximo_token_id   UUID NULL, -- id do novo token (rotação)
   proximo_usuario_id UUID NULL,
+  proximo_locatario_id UUID NULL,
   agente_usuario     TEXT NULL,
   endereco_ip        INET NULL
 );
@@ -34,14 +35,14 @@ CREATE TABLE IF NOT EXISTS tokens (
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_token') THEN
-    ALTER TABLE tokens ADD CONSTRAINT pk_token PRIMARY KEY (token_id, usuario_id);
+    ALTER TABLE tokens ADD CONSTRAINT pk_token PRIMARY KEY (token_id, usuario_id, locatario_id);
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_proximo_token_id') THEN
     ALTER TABLE tokens
     ADD CONSTRAINT fk_proximo_token_id
-    FOREIGN KEY (proximo_token_id, proximo_usuario_id)
-    REFERENCES tokens(token_id, usuario_id)
+    FOREIGN KEY (proximo_token_id, proximo_usuario_id, proximo_locatario_id)
+    REFERENCES tokens(token_id, usuario_id, locatario_id)
     ON UPDATE CASCADE
     ON DELETE SET NULL;
   END IF;
@@ -61,7 +62,7 @@ BEGIN
     FOREIGN KEY (locatario_id)
     REFERENCES locatarios(locatario_id)
     ON UPDATE CASCADE
-    ON DELETE SET NULL;
+    ON DELETE CASCADE;
   END IF;
 END;
 $$;

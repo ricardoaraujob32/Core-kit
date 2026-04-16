@@ -1,8 +1,8 @@
-// web/src/features/tenant-admin/usuarios/api/usuariosApi.ts
+// apps/web/src/features/tenant-admin/usuarios/api/usuariosApi.ts
 
 import { httpClient } from "../../../../core/api/httpClient";
-import type { AcaoUsuarioResponse, AtualizarUsuarioInput, AtualizarUsuarioResponse, CriarUsuarioInput, CriarUsuarioResponse, ListarUsuariosResponse, 
-  ObterUsuarioResponse } from "../tipos";
+import type { AcaoUsuarioResponse, AlterarMinhaSenhaInput, AlterarSenhaUsuarioResponse, AtualizarUsuarioInput, AtualizarUsuarioResponse, CriarUsuarioInput, 
+  CriarUsuarioResponse, ListarUsuariosResponse, ObterUsuarioResponse, RedefinirSenhaUsuarioInput, RedefinirSenhaUsuarioResponse } from "../tipos";
 
 const BASE = "/usuarios";
 
@@ -23,10 +23,7 @@ export const usuariosApi = {
   },
 
   atualizar(usuarioId: string, input: AtualizarUsuarioInput): Promise<AtualizarUsuarioResponse> {
-    return httpClient.patch<AtualizarUsuarioResponse, AtualizarUsuarioInput>(
-      `${BASE}/${usuarioId}`,
-      input,
-    );
+    return httpClient.patch<AtualizarUsuarioResponse, AtualizarUsuarioInput>(`${BASE}/${usuarioId}`, input);
   },
 
   inativar(usuarioId: string): Promise<AcaoUsuarioResponse> {
@@ -35,5 +32,13 @@ export const usuariosApi = {
 
   reativar(usuarioId: string): Promise<AcaoUsuarioResponse> {
     return httpClient.post<AcaoUsuarioResponse>(`${BASE}/${usuarioId}/reativar`);
+  },
+
+  alterarMinhaSenha(usuarioId: string, input: AlterarMinhaSenhaInput): Promise<AlterarSenhaUsuarioResponse> {
+    return httpClient.post<AlterarSenhaUsuarioResponse, AlterarMinhaSenhaInput>(`${BASE}/${usuarioId}/alterar-senha`, input);
+  },
+
+  redefinirSenha(usuarioId: string, input: RedefinirSenhaUsuarioInput): Promise<RedefinirSenhaUsuarioResponse> {
+    return httpClient.post<RedefinirSenhaUsuarioResponse, RedefinirSenhaUsuarioInput>(`${BASE}/${usuarioId}/redefinir-senha`, input);
   },
 };

@@ -2,7 +2,7 @@
 
 import type { ObterLocatarioInput, ObterLocatarioOutput, ObterLocatarioResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
-import { validarLocatarioId } from "../validadores";
+import { validarConfiguracoesLocatario, validarLocatarioId } from "../validadores";
 import { locatarioNaoEncontrado } from "../erros";
 import { wrapOk } from "../../kernel";
 import { transicionarEstadoLocatario } from "../maquinaEstados";
@@ -46,18 +46,21 @@ export function createFnObterLocatario(deps: { locatarioRepositorio: LocatariosR
     });
     if (!res.ok) return res;
 
-    const loc = res.value;
-    if (!loc) return locatarioNaoEncontrado(locatarioId.value);
+    const locatario = res.value;
+    if (!locatario) return locatarioNaoEncontrado(locatarioId.value);
 
     const transicao = transicionarEstadoLocatario({
-      locatarioId: loc.locatarioId,
-      statusAtual: loc.status,
+      locatarioId: locatario.locatarioId,
+      statusAtual: locatario.status,
       evento: "OPERAR",
     });
     if (!transicao.ok) return transicao;
 
+    const configuracoesOk = validarConfiguracoesLocatario(locatario.configuracoes);
+    if (!configuracoesOk.ok) return configuracoesOk;
+
     return wrapOk<ObterLocatarioOutput>({
-      locatario: loc,
+      locatario: locatario,
     });
   };
 }

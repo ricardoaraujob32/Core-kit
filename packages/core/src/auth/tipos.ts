@@ -2,6 +2,7 @@
 
 import type { ContextoExecucao, ErroApp, Result } from "../kernel";
 import type { LocatarioId, LocatarioSlug } from "../locatarios";
+import { TokenId } from "../tokens";
 import type { UsuarioId } from "../usuarios";
 
 /**
@@ -74,6 +75,15 @@ export interface JwtPayloadAuth {
   /** Emissor do token. */
   iss: string;
 }
+
+/**
+ * 
+ */
+export type ChaveToken = {
+  tokenId: TokenId;
+  usuarioId: UsuarioId;
+  locatarioId: LocatarioId;
+};
 
 /**
  * Entrada necessária para emissão de uma nova sessão autenticada.

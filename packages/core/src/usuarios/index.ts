@@ -50,3 +50,5 @@ export { createFnListarUsuariosPorLocatario } from "./usecases/listarUsuariosPor
 export { createFnAtualizarUsuario } from "./usecases/atualizarUsuario";
 export { createFnDesativarUsuario } from "./usecases/desativarUsuario";
 export { createFnReativarUsuario } from "./usecases/reativarUsuario";
+export { createFnAlterarSenhaUsuario } from "./usecases/alterarSenhaUsuario";
+export { createFnRedefinirSenhaUsuario } from "./usecases/redefinirSenhaUsuario";

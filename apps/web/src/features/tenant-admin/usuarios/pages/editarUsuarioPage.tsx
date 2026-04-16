@@ -1,4 +1,4 @@
-// web/src/features/tenant-admin/usuarios/pages/editarUsuarioPage.tsx
+// apps/web/src/features/tenant-admin/usuarios/pages/editarUsuarioPage.tsx
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -10,7 +10,8 @@ import { useSalvarUsuario } from "../hooks/useSalvarUsuario";
 
 export default function EditarUsuarioPage() {
   const navigate = useNavigate();
-  const { usuarioId = "" } = useParams<{ usuarioId: string }>();
+  const params = useParams<{ usuarioId: string }>();
+  const usuarioId = params.usuarioId;
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [erroCarga, setErroCarga] = useState<string | null>(null);
@@ -18,13 +19,24 @@ export default function EditarUsuarioPage() {
   const { salvar, isSaving, erro } = useSalvarUsuario({
     mode: "edit",
     usuarioId,
-    onSuccess: () => navigate(`/app/usuarios/${usuarioId}`),
+    onSuccess: () => {
+      navigate(usuarioId ? `/app/usuarios/${usuarioId}` : "/app/usuarios");
+    },
   });
 
   useEffect(() => {
     let ativo = true;
 
     async function carregar() {
+      if (!usuarioId) {
+        if (ativo) {
+          setUsuario(null);
+          setErroCarga("ID do usuário inválido.");
+          setIsLoading(false);
+        }
+        return;
+      }
+
       setIsLoading(true);
       setErroCarga(null);
 
@@ -35,6 +47,7 @@ export default function EditarUsuarioPage() {
         }
       } catch {
         if (ativo) {
+          setUsuario(null);
           setErroCarga("Não foi possível carregar o usuário.");
         }
       } finally {
@@ -59,10 +72,18 @@ export default function EditarUsuarioPage() {
     return <div className="rounded-2xl border bg-white p-6">Carregando usuário...</div>;
   }
 
-  if (erroCarga || !usuario) {
+  if (erroCarga) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        {erroCarga ?? "Usuário não encontrado."}
+        {erroCarga}
+      </div>
+    );
+  }
+
+  if (!usuario) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        Usuário não encontrado.
       </div>
     );
   }

@@ -39,6 +39,7 @@ export default function SuperAdminLayout(): JSX.Element {
 
           <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
             <NavLink to="/superadmin">Dashboard</NavLink>
+            <NavLink to="/superadmin/locatarios">Locatários</NavLink>
 
             <span style={{ fontSize: 14, color: "#6b7280" }}>
               {user?.email ?? user?.nome ?? user?.usuarioId ?? "Usuário autenticado"}

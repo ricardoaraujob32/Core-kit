@@ -1,8 +1,8 @@
 // apps/api/src/infra/prisma/auth/authUseCaseDeps.ts
 
 import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, RelogioPorta } from "@core-kit/core";
+import { env, type Env } from "../../../env";
 import type { AuthPrismaAdapters } from "./authPrismaAdapters";
-import { env } from "../../../env";
 
 /**
  * 
@@ -29,7 +29,7 @@ export type AuthUseCaseDeps = {
     relogio: RelogioPorta;
     idPorta: IdPorta;
     eventos?: EventosSegurancaPorta;
-    issuer: env.JWT_ISSUER,
+    issuer: Env["JWT_ISSUER"];
   };
 
   rotacionarRefreshDeps: {
@@ -38,7 +38,7 @@ export type AuthUseCaseDeps = {
     relogio: RelogioPorta;
     idPorta: IdPorta;
     eventos?: EventosSegurancaPorta;
-    issuer: env.JWT_ISSUER,
+    issuer: Env["JWT_ISSUER"];
   };
 
   validarSessaoDeps: {
@@ -79,6 +79,7 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     relogio,
     idPorta,
     eventos,
+    issuer: env.JWT_ISSUER,
   };
 
   const rotacionarRefreshDeps = {
@@ -87,6 +88,7 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     relogio,
     idPorta,
     eventos,
+    issuer: env.JWT_ISSUER,
   };
 
   const validarSessaoDeps = {

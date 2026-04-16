@@ -1,10 +1,10 @@
-// web/src/features/tenant-admin/usuarios/pages/NovoUsuarioPage.tsx
+// apps/web/src/features/tenant-admin/usuarios/pages/novoUsuarioPage.tsx
 
 import { useNavigate } from "react-router-dom";
 import { UsuarioActionGuard } from "../components/usuarioActionGuard";
 import { UsuarioForm } from "../components/usuarioForm";
 import { useSalvarUsuario } from "../hooks/useSalvarUsuario";
-import type { CriarUsuarioInput } from "../tipos";
+import type { AtualizarUsuarioInput, CriarUsuarioInput } from "../tipos";
 
 export default function NovoUsuarioPage() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export default function NovoUsuarioPage() {
     onSuccess: () => navigate("/app/usuarios"),
   });
 
-  async function handleSubmit(input: CriarUsuarioInput) {
+  async function handleSubmit(input: CriarUsuarioInput | AtualizarUsuarioInput) {
     await salvar(input as CriarUsuarioInput);
   }
 

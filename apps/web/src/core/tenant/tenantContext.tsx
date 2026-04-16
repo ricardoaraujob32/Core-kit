@@ -24,7 +24,7 @@ const TenantContext = createContext<TenantContextValue | undefined>(undefined);
 
 export function TenantProvider({
   children,
-}: PropsWithChildren): JSX.Element {
+}: PropsWithChildren) {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [branding, setBranding] = useState<TenantBranding | null>(null);

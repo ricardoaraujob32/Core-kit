@@ -1,3 +1,4 @@
+// apps/web/src/features/tenant-admin/usuarios/components/usuarioForm.tsx
 
 import { useMemo, useState } from "react";
 import type { AtualizarUsuarioInput, CriarUsuarioInput, Usuario, UsuarioFormMode } from "../tipos";
@@ -80,7 +81,7 @@ export function UsuarioForm({ mode, initialData, isSaving, erro, onSubmit }: Pro
             value={senha}
             onChange={(event) => setSenha(event.target.value)}
             required
-            minLength={6}
+            minLength={4}
           />
         </label>
       ) : null}

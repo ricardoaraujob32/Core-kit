@@ -161,8 +161,8 @@ export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutoriz
           }
         }
 
-        const modulos = Array.from(porCodigo.values()).sort((a, b) =>
-          a.codigo.localeCompare(b.codigo),
+        const modulos = Array.from(porCodigo.keys()).sort((a, b) =>
+          a.localeCompare(b),
         );
 
         const snapshot: AutorizacaoSnapshot = {

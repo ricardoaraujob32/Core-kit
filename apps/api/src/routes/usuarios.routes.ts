@@ -10,6 +10,8 @@ import {
   obterUsuarioController,
   reativarUsuarioController,
 } from "../modules/usuarios/usuarios.controller";
+import { alterarMinhaSenhaUsuarioController, redefinirSenhaUsuarioController } from "../modules/usuarios/usuarios.senha.controller";
+import { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "../modules/usuarios/usuarios.dto";
 
 /**
  * Registra as rotas HTTP do módulo operacional de usuários.
@@ -53,35 +55,53 @@ export const usuariosRoutes: FastifyPluginAsync = async (app) => {
    * Cria um novo usuário no locatário autenticado.
    */
   app.post<{ Body: { email: string; nome: string; senha: string } }>(
-  "/usuarios",
-  { preHandler: [authGuard] },
-  criarUsuarioController,
-);
+    "/usuarios",
+    { preHandler: [authGuard] },
+    criarUsuarioController,
+  );
 
   /**
    * Atualiza dados cadastrais de um usuário.
    */
   app.patch<{ Params: { id: string }; Body: { email?: string; nome?: string };}>(
-  "/usuarios/:id",
-  { preHandler: [authGuard] },
-  atualizarUsuarioController,
-);
+    "/usuarios/:id",
+    { preHandler: [authGuard] },
+    atualizarUsuarioController,
+  );
 
   /**
    * Inativa um usuário existente.
    */
   app.post<{ Params: { id: string } }>(
-  "/usuarios/:id/inativar",
-  { preHandler: [authGuard] },
-  desativarUsuarioController,
-);
+    "/usuarios/:id/inativar",
+    { preHandler: [authGuard] },
+    desativarUsuarioController,
+  );
 
   /**
    * Reativa um usuário previamente inativado.
    */
   app.post<{ Params: { id: string } }>(
-  "/usuarios/:id/reativar",
-  { preHandler: [authGuard] },
-  reativarUsuarioController,
-);
+    "/usuarios/:id/reativar",
+    { preHandler: [authGuard] },
+    reativarUsuarioController,
+  );
+
+  /**
+   * 
+   */
+  app.post<{ Params: UsuarioIdParamsDto; Body: AlterarSenhaUsuarioBodyDto; }>(
+    "/usuarios/:id/alterar-senha",
+    { preHandler: [authGuard] },
+    alterarMinhaSenhaUsuarioController,
+  );
+
+  /**
+   * 
+   */
+  app.post<{ Params: UsuarioIdParamsDto; Body: RedefinirSenhaUsuarioBodyDto; }>(
+    "/usuarios/:id/redefinir-senha",
+    { preHandler: [authGuard] },
+    redefinirSenhaUsuarioController,
+  );
 };

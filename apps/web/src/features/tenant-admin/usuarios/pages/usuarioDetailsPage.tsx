@@ -1,4 +1,4 @@
-// web/src/features/tenant-admin/usuarios/pages/UsuarioDetailsPage.tsx
+// apps/web/src/features/tenant-admin/usuarios/pages/usuarioDetailsPage.tsx
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -8,6 +8,8 @@ import { UsuarioDetailsCard } from "../components/usuarioDetailsCard";
 import { useUsuarioActions } from "../hooks/useUsuarioActions";
 import { useUsuariosPermissions } from "../hooks/useUsuariosPermissions";
 import type { Usuario } from "../tipos";
+import { useAuth } from "apps/web/src/core/auth/authContext";
+import { useSenhaUsuario } from "../hooks/useSenhaUsuario";
 
 export default function UsuarioDetailsPage() {
   const navigate = useNavigate();
@@ -16,6 +18,15 @@ export default function UsuarioDetailsPage() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [erroCarga, setErroCarga] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  const {alterarMinhaSenha, redefinirSenha, erro: erroSenha, sucesso: sucessoSenha, isSaving: isSavingSenha} = useSenhaUsuario({
+    usuarioId,
+  });
+
+  const isProprioUsuario = Boolean(
+    usuarioId && user?.usuarioId && usuarioId === user.usuarioId,
+  );
 
   async function carregar() {
     setIsLoading(true);

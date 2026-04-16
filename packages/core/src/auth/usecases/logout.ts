@@ -47,7 +47,7 @@ export function createFnLogout(deps: {
 
     const revogarRes = await executarEmTransacao(deps.transacao, async () => {
       return deps.tokensPorta.revogar({
-        tokenId: refreshValido.value.tokenId,
+        chave: refreshValido.value.chave,
         agora,
       });
     });
@@ -55,10 +55,10 @@ export function createFnLogout(deps: {
 
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.logout",
-      usuarioId: refreshValido.value.usuarioId,
+      usuarioId: refreshValido.value.chave.usuarioId,
       locatarioId: locatarioId.value,
       detalhes: {
-        tokenId: refreshValido.value.tokenId,
+        tokenId: refreshValido.value.chave.tokenId,
       },
       quando: agora,
     });

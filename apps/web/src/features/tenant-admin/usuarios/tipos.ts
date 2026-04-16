@@ -1,3 +1,4 @@
+// apps/web/src/features/tenant-admin/usuarios/tipos.ts
 
 export type StatusUsuario = "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO";
 
@@ -52,3 +53,24 @@ export type FiltroUsuarios = {
 };
 
 export type UsuarioFormMode = "create" | "edit";
+
+export type AlterarMinhaSenhaInput = {
+  senhaAtual: string;
+  novaSenha: string;
+};
+
+export type RedefinirSenhaUsuarioInput = {
+  novaSenha: string;
+};
+
+export type AlterarSenhaUsuarioResponse = {
+  item: {
+    usuarioId: string;
+  };
+};
+
+export type RedefinirSenhaUsuarioResponse = {
+  item: {
+    usuarioId: string;
+  };
+};

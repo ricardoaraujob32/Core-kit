@@ -86,4 +86,15 @@ export interface UsuariosRepositorio {
     usuarioId: UsuarioId;
     quando: Date;
   }): Promise<Result<void, ErroApp>>;
+
+  /**
+   * 
+   * @param params 
+   */
+  atualizarSenha(params: {
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+  senhaHash: string;
+  atualizadoEm: Date;
+}): Promise<Result<void, ErroApp>>;
 }

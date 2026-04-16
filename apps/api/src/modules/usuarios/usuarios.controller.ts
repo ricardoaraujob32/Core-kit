@@ -12,6 +12,7 @@ import { sendHttpError } from "../../http/serializarErroApp";
 import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
 import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
 import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
+import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter";
 
 /**
  * Runtime técnico central da borda.
@@ -130,7 +131,7 @@ export async function listarUsuariosController(request: FastifyRequest, reply: F
   }
 
   return reply.status(200).send({
-    itens: resultado.value.itens,
+    itens: toListarUsuariosResponseDto(resultado.value.itens),
   });
 }
 
@@ -188,7 +189,7 @@ export async function obterUsuarioController(request: FastifyRequest<{ Params: U
   }
 
   return reply.status(200).send({
-    item: resultado.value.usuario,
+    item: toUsuarioResponseDto(resultado.value.usuario),
   });
 }
 
@@ -372,7 +373,7 @@ export async function atualizarUsuarioController(request: FastifyRequest<{ Param
   }
 
   return reply.status(200).send({
-    item: resultado.value.usuario,
+    item: toUsuarioResponseDto(resultado.value.usuario),
   });
 }
 
@@ -441,7 +442,7 @@ export async function desativarUsuarioController(request: FastifyRequest<{ Param
   }
 
   return reply.status(200).send({
-    item: resultado.value.usuario,
+    item: toUsuarioResponseDto(resultado.value.usuario),
   });
 }
 
@@ -510,6 +511,6 @@ export async function reativarUsuarioController(request: FastifyRequest<{ Params
   }
 
   return reply.status(200).send({
-    item: resultado.value.usuario,
+    item: toUsuarioResponseDto(resultado.value.usuario),
   });
 }

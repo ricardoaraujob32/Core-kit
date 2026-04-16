@@ -175,3 +175,46 @@ export function parseCriarUsuarioBody(input: unknown) {
 export function parseAtualizarUsuarioBody(input: unknown) {
   return atualizarUsuarioBodySchema.safeParse(input);
 }
+
+/**
+ * 
+ */
+export const alterarSenhaUsuarioBodySchema = z.object({
+  senhaAtual: z.string().min(4, "O campo 'senhaAtual' deve ter ao menos 4 caracteres."),
+  novaSenha: z.string().min(4, "O campo 'novaSenha' deve ter ao menos 4 caracteres."),
+});
+
+/**
+ * 
+ */
+export type AlterarSenhaUsuarioBodyDto = z.infer<typeof alterarSenhaUsuarioBodySchema>;
+
+/**
+ * 
+ */
+export const redefinirSenhaUsuarioBodySchema = z.object({
+  novaSenha: z.string().min(4, "O campo 'novaSenha' deve ter ao menos 4 caracteres."),
+});
+
+/**
+ * 
+ */
+export type RedefinirSenhaUsuarioBodyDto = z.infer<typeof redefinirSenhaUsuarioBodySchema>;
+
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function parseAlterarSenhaUsuarioBody(input: unknown) {
+  return alterarSenhaUsuarioBodySchema.safeParse(input);
+}
+
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function parseRedefinirSenhaUsuarioBody(input: unknown) {
+  return redefinirSenhaUsuarioBodySchema.safeParse(input);
+}

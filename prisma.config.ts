@@ -1,0 +1,16 @@
+import { config as loadEnv } from "dotenv";
+import { defineConfig } from "prisma/config";
+
+loadEnv({ path: "apps/api/.env" });
+
+export default defineConfig({
+  schema: "apps/api/prisma/schema.prisma",
+  migrations: {
+    path: "apps/api/prisma/migrations",
+  },
+  datasource: {
+    url:
+      process.env.DATABASE_URL ??
+      "postgresql://teste:teste@localhost:5432/teste",
+  },
+});

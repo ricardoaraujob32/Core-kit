@@ -8,7 +8,6 @@
       "options": [
         "packages/core/tsconfig.json",
         "apps/api/tsconfig.json",
-        "web/tsconfig.json",
         "apps/web/tsconfig.json"
       ],
       "default": "apps/api/tsconfig.json"
@@ -24,7 +23,7 @@
     {
       "label": "TS: Compilar tudo",
       "type": "shell",
-      "command": "npx tsc -b packages/core/tsconfig.json apps/api/tsconfig.json web/tsconfig.json apps/web/tsconfig.json",
+      "command": "npx tsc -b packages/core/tsconfig.json apps/api/tsconfig.json apps/web/tsconfig.json",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -36,7 +35,7 @@
     {
       "label": "TS: So validar tipos",
       "type": "shell",
-      "command": "npx tsc --noEmit -p packages/core/tsconfig.json && npx tsc --noEmit -p apps/api/tsconfig.json && npx tsc --noEmit -p web/tsconfig.json && npx tsc --noEmit -p apps/web/tsconfig.json",
+      "command": "npx tsc --noEmit -p packages/core/tsconfig.json && npx tsc --noEmit -p apps/api/tsconfig.json && npx tsc --noEmit -p apps/web/tsconfig.json",
       "group": "test",
       "problemMatcher": [
         "$tsc"
@@ -85,7 +84,7 @@
     {
       "label": "TS: Limpar build",
       "type": "shell",
-      "command": "npx tsc -b packages/core/tsconfig.json apps/api/tsconfig.json web/tsconfig.json apps/web/tsconfig.json --clean",
+      "command": "npx tsc -b packages/core/tsconfig.json apps/api/tsconfig.json apps/web/tsconfig.json --clean",
       "problemMatcher": []
     },
     {
@@ -97,25 +96,24 @@
     {
       "label": "Backend: Iniciar",
       "type": "shell",
-      "command": "node --env-file=apps/api/.env node_modules/tsx/dist/cli.mjs apps/api/src/server.ts",
+      "command": "node --env-file=apps/api/.env --import tsx apps/api/src/server.ts",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "isBackground": true,
-      "problemMatcher": [
-        {
-          "owner": "custom",
-          "fileLocation": "absolute",
-          "pattern": [
-            {
-              "regexp": "^(.*)$",
-              "message": 1
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".",
-            "endsPattern": "Server listening at http://"
-          }
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Server listening at http://"
         }
-      ],
+      },
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -140,25 +138,24 @@
     {
       "label": "Frontend: Iniciar",
       "type": "shell",
-      "command": "pnpm -C web dev -- --host 0.0.0.0",
+      "command": "pnpm -C apps/web dev -- --host 0.0.0.0",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "isBackground": true,
-      "problemMatcher": [
-        {
-          "owner": "custom",
-          "fileLocation": "absolute",
-          "pattern": [
-            {
-              "regexp": "^(.*)$",
-              "message": 1
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".",
-            "endsPattern": "Local:"
-          }
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Local:"
         }
-      ],
+      },
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -168,7 +165,7 @@
     {
       "label": "Frontend: Desligar",
       "type": "shell",
-      "command": "bash -lc \"pids=$(lsof -tiTCP:5173 -sTCP:LISTEN 2>/dev/null); if [ -n \\\"$pids\\\" ]; then kill $pids; else pkill -f 'vite.*--host 0.0.0.0|pnpm -C web dev' || true; fi\"",
+      "command": "bash -lc \"pids=$(lsof -tiTCP:5173 -sTCP:LISTEN 2>/dev/null); if [ -n \\\"$pids\\\" ]; then kill $pids; else pkill -f 'vite.*--host 0.0.0.0|pnpm -C apps/web dev' || true; fi\"",
       "problemMatcher": []
     },
     {
@@ -199,16 +196,7 @@
       ]
     },
     {
-      "label": "Web: Build",
-      "type": "shell",
-      "command": "npx tsc -p web/tsconfig.json",
-      "group": "build",
-      "problemMatcher": [
-        "$tsc"
-      ]
-    },
-    {
-      "label": "Apps Web: Build",
+      "label": "Frontend: Build",
       "type": "shell",
       "command": "npx tsc -p apps/web/tsconfig.json",
       "group": "build",
@@ -238,14 +226,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Web: Testes Unitarios",
-      "type": "shell",
-      "command": "pnpm -C web vitest run",
-      "group": "test",
-      "problemMatcher": []
-    },
-    {
-      "label": "Apps Web: Testes Unitarios",
+      "label": "Frontend: Testes Unitarios",
       "type": "shell",
       "command": "echo \"Sem testes unitarios configurados em apps/web\"",
       "group": "test",

@@ -4,7 +4,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
 import { isSuperAdmin } from "../core/auth/tipos";
 
-export default function AuthLayout(): JSX.Element {
+export default function AuthLayout() {
   const { isLoading, isAuthenticated, user } = useAuth();
 
   if (isLoading) {

@@ -2,8 +2,9 @@
 
 import type { CriarLocatarioInput, CriarLocatarioOutput, CriarLocatarioResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
-import { validarNomeLocatario } from "../validadores";
+import { validarCorTema, validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarIdentidadeVisualLocatario, validarLocatarioSlug, validarModoTemaLocatario, validarNomeLocatario, validarUrlLogoLocatario } from "../validadores";
 import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+import { emailLocatarioJaExiste, slugLocatarioJaExiste } from "../erros";
 
 /**
  * Cria a função de caso de uso responsável por registrar um novo locatário.
@@ -24,7 +25,7 @@ import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } fr
  * @returns Função `criarLocatario` pronta para receber a entrada do caso de uso.
  */
 export function createFnCriarLocatario(deps: {
-  locRepo: LocatariosRepositorio;
+  locatariosRepositorio: LocatariosRepositorio;
   idPorta: IdPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
@@ -46,15 +47,75 @@ export function createFnCriarLocatario(deps: {
     const nome = validarNomeLocatario(input.nome);
     if (!nome.ok) return nome;
 
-    return executarEmTransacao(deps.transacao, async () => {
-      const locatarioId = deps.idPorta.gerarId();
-      const criadoEm = deps.relogio.agora();
+    const slug = validarLocatarioSlug(input.slug);
+    if (!slug.ok) return slug;
 
-      const res = await deps.locRepo.criar({
+    const email = validarEmailLocatario(input.email);
+    if (!email.ok) return email;
+
+    const documento = validarDocumentoLocatario(input.documento);
+    if (!documento.ok) return documento;
+
+    const fusoHorario = validarFusoHorarioLocatario(input.fusoHorario);
+    if (!fusoHorario.ok) return fusoHorario;
+
+    const modoTema = validarModoTemaLocatario(input.configuracaoInicial?.modoTema);
+    if (!modoTema.ok) return modoTema;
+
+    const identidadeVisual = validarIdentidadeVisualLocatario(
+      input.configuracaoInicial?.identidadeVisual ?? slug.value,
+    );
+    if (!identidadeVisual.ok) return identidadeVisual;
+
+    const corPrimaria = validarCorTema(input.configuracaoInicial?.corPrimaria, "corPrimaria");
+    if (!corPrimaria.ok) return corPrimaria;
+
+    const corSecundaria = validarCorTema(input.configuracaoInicial?.corSecundaria, "corSecundaria");
+    if (!corSecundaria.ok) return corSecundaria;
+
+    const corTerciaria = validarCorTema(input.configuracaoInicial?.corTerciaria, "corTerciaria");
+    if (!corTerciaria.ok) return corTerciaria;
+
+    const urlLogo = validarUrlLogoLocatario(input.configuracaoInicial?.urlLogo);
+    if (!urlLogo.ok) return urlLogo;
+
+    return executarEmTransacao(deps.transacao, async () => {
+      const slugExistente = await deps.locatariosRepositorio.buscarPorSlug({ slug: slug.value });
+      if (!slugExistente.ok) return slugExistente;
+      if (slugExistente.value) return slugLocatarioJaExiste(slug.value);
+
+      const emailExistente = await deps.locatariosRepositorio.buscarPorEmail({
+        emailNormalizado: email.value,
+      });
+      if (!emailExistente.ok) return emailExistente;
+      if (emailExistente.value) return emailLocatarioJaExiste(email.value);
+
+      const agora = deps.relogio.agora();
+      const locatarioId = deps.idPorta.gerarId();
+      const configuracaoId = deps.idPorta.gerarId();
+
+      const res = await deps.locatariosRepositorio.criar({
         locatarioId,
         nome: nome.value,
+        slug: slug.value,
+        documento: documento.value,
+        email: email.value,
+        fusoHorario: fusoHorario.value,
         status: "ATIVO",
-        criadoEm,
+        criadoEm: agora,
+        atualizadoEm: agora,
+        configuracaoInicial: {
+          configuracaoId,
+          modoTema: modoTema.value,
+          identidadeVisual: identidadeVisual.value,
+          corPrimaria: corPrimaria.value,
+          corSecundaria: corSecundaria.value,
+          corTerciaria: corTerciaria.value,
+          urlLogo: urlLogo.value,
+          ativa: Boolean(input.configuracaoInicial?.ativa),
+          criadoEm: agora,
+          atualizadoEm: agora,
+        },
       });
       if (!res.ok) return res;
 

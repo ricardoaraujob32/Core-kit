@@ -9,7 +9,7 @@ type ProtectedRouteProps = {
 
 export function ProtectedRoute({
   redirectTo = "/login",
-}: ProtectedRouteProps): JSX.Element {
+}: ProtectedRouteProps) {
   const location = useLocation();
   const { isLoading, isAuthenticated } = useAuth();
 

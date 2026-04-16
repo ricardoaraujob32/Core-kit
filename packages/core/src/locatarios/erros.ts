@@ -1,7 +1,7 @@
 // packages/core/src/locatarios/erros.ts
 
 import { createErroApp } from "../kernel";
-import { LocatarioId } from "./tipos";
+import { LocatarioId, LocatarioSlug } from "./tipos";
 
 /**
  * Cria erro para entradas inválidas relacionadas ao domínio de locatários.
@@ -48,4 +48,26 @@ export function locatarioSuspenso(locatarioId: LocatarioId) {
  */
 export function locatarioEncerrado(locatarioId: LocatarioId) {
   return createErroApp({ codigo: "LOCATARIO_ENCERRADO", detalhes: { locatarioId, status: "ENCERRADO" } });
+}
+
+export function slugLocatarioJaExiste(slug: LocatarioSlug) {
+  return createErroApp({
+    codigo: "CONFLITO",
+    mensagem: "Slug de locatário já existe.",
+    detalhes: {
+      campo: "slug",
+      slug,
+    },
+  });
+}
+
+export function emailLocatarioJaExiste(email: string) {
+  return createErroApp({
+    codigo: "CONFLITO",
+    mensagem: "E-mail de locatário já existe.",
+    detalhes: {
+      campo: "email",
+      email,
+    },
+  });
 }

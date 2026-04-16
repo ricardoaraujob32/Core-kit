@@ -51,7 +51,11 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
         });
 
         return wrapOk({
-          tokenId,
+          chave: {
+            tokenId,
+            usuarioId: params.usuarioId,
+            locatarioId: params.locatarioId,
+          },
           tokenBruto,
           expiraEm,
         });
@@ -98,7 +102,7 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
           },
         });
 
-        if (!row || !row.locatario_id) {
+        if (!row) {
           return createErroApp({
             codigo: "NAO_AUTENTICADO",
             mensagem: "Refresh token inválido.",
@@ -116,6 +120,8 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
             detalhes: {
               operacao: "auth.tokens.validarRefresh",
               tokenId: row.token_id,
+              usuarioId: row.usuario_id,
+              locatarioId: row.locatario_id,
             },
           });
         }
@@ -127,15 +133,19 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
             detalhes: {
               operacao: "auth.tokens.validarRefresh",
               tokenId: row.token_id,
+              usuarioId: row.usuario_id,
+              locatarioId: row.locatario_id,
               expiraEm: row.expira_em,
             },
           });
         }
 
         return wrapOk({
-          tokenId: row.token_id,
-          usuarioId: row.usuario_id,
-          locatarioId: row.locatario_id,
+          chave: {
+            tokenId: row.token_id,
+            usuarioId: row.usuario_id,
+            locatarioId: row.locatario_id,
+          },
         });
       } catch (causa) {
         return erroInfraAuth({
@@ -158,38 +168,19 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
      */
     async revogar(params) {
       try {
-        const token = await db.tokens.findFirst({
-          where: {
-            token_id: params.tokenId,
-            tipo: "REFRESH",
-          },
-          select: {
-            token_id: true,
-            usuario_id: true,
-            locatario_id: true,
-          },
-        });
-
-        if (!token) {
-          return createErroApp({
-            codigo: "NAO_ENCONTRADO",
-            mensagem: "Token não encontrado para revogação.",
-            detalhes: {
-              operacao: "auth.tokens.revogar",
-              tokenId: params.tokenId,
-            },
-          });
-        }
-
         await db.tokens.update({
           where: {
-            token_id_usuario_id: {
-              token_id: token.token_id,
-              usuario_id: token.usuario_id,
+            token_id_usuario_id_locatario_id: {
+              token_id: params.chave.tokenId,
+              usuario_id: params.chave.usuarioId,
+              locatario_id: params.chave.locatarioId,
             },
           },
           data: {
             revogado_em: params.agora,
+            proximo_token_id: params.proximo?.tokenId ?? null,
+            proximo_usuario_id: params.proximo?.usuarioId ?? null,
+            proximo_locatario_id: params.proximo?.locatarioId ?? null,
           },
         });
 
@@ -200,7 +191,10 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
           operacao: "auth.tokens.revogar",
           causa,
           detalhes: {
-            tokenId: params.tokenId,
+            tokenId: params.chave.tokenId,
+            proximoTokenId: params.proximo?.tokenId,
+            proximoUsuarioId: params.proximo?.usuarioId,
+            proximoLocatarioId: params.proximo?.locatarioId,
           },
         });
       }

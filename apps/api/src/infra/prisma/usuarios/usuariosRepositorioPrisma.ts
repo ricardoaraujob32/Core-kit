@@ -139,6 +139,8 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
           usuarioId: params.usuarioId,
         });
       } catch (causa) {
+        console.error("ERRO REAL:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "usuarios",
           operacao: "infra.usuarios.criar",
@@ -177,6 +179,8 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
 
         return wrapOk(mapUsuario(row));
       } catch (causa) {
+        console.error("ERRO REAL:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "usuarios",
           operacao: "infra.usuarios.buscarPorId",
@@ -217,6 +221,8 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
 
         return wrapOk(mapUsuario(row));
       } catch (causa) {
+        console.error("ERRO REAL:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "usuarios",
           operacao: "usuarios.buscarPorEmailNoLocatario",
@@ -263,6 +269,8 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
 
         return wrapOk(rows.map(mapUsuario));
       } catch (causa) {
+        console.error("ERRO REAL:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "usuarios",
           operacao: "infra.usuarios.listarPorLocatario",
@@ -306,6 +314,8 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
           email: usuario.email.toLowerCase(),
         });
       } catch (causa) {
+        console.error("ERRO REAL:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "usuarios",
           operacao: "infra.usuarios.atualizar",
@@ -342,6 +352,8 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
 
         return wrapOk(undefined);
       } catch (causa) {
+        console.error("ERRO REAL:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "usuarios",
           operacao: "infra.usuarios.atualizarUltimoLogin",
@@ -352,5 +364,37 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
         });
       }
     },
-  };
+
+    /**
+     * 
+     * @param params 
+     * @returns 
+     */
+    async atualizarSenha(params): Promise<Result<void, ErroApp>> {
+      try {
+        await db.usuarios.updateMany({
+          where: {
+            usuario_id: params.usuarioId,
+            locatario_id: params.locatarioId,
+            excluido_em: null,
+          },
+          data: {
+            senha_hash: params.senhaHash,
+            atualizado_em: params.atualizadoEm,
+          },
+        });
+
+        return wrapOk(undefined);
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "usuarios",
+          operacao: "infra.usuarios.atualizarSenha",
+          detalhes: {
+            usuarioId: params.usuarioId,
+            locatarioId: params.locatarioId,
+          },
+        });
+      }
+    }
+  };  
 }

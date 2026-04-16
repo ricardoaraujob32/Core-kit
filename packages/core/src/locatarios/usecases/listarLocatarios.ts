@@ -3,6 +3,7 @@
 import type { ListarLocatariosInput, ListarLocatariosOutput, ListarLocatariosResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { wrapOk } from "../../kernel";
+import { validarConfiguracoesLocatario } from "../validadores";
 
 /**
  * Cria a função de caso de uso responsável por listar locatários.
@@ -31,6 +32,11 @@ export function createFnListarLocatarios(deps: { locatarioRepositorio: Locatario
   return async function listarLocatarios(input: ListarLocatariosInput): ListarLocatariosResult {
     const res = await deps.locatarioRepositorio.listar();
     if (!res.ok) return res;
+
+    for (const loc of res.value) {
+      const validacao = validarConfiguracoesLocatario(loc.configuracoes);
+      if (!validacao.ok) return validacao;
+    }
 
     return wrapOk<ListarLocatariosOutput>({
       itens: res.value,

@@ -4,6 +4,7 @@ import { ContextoExecucao, ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 import { TokenId } from "../tokens";
 import { UsuarioId } from "../usuarios";
+import { ChaveToken } from "./tipos";
 
 /**
  * Porta de hashing/comparação de senha usada por `auth`.
@@ -90,19 +91,16 @@ export interface TokensAuthPorta {
    * @returns `Ok` com identificador, valor bruto e expiração.
    */
   criarRefresh(params: {
-    locatarioId: LocatarioId;
     usuarioId: UsuarioId;
+    locatarioId: LocatarioId;
     agora: Date;
     ttlMs: number;
   }): Promise<
-    Result<
-      {
-        tokenId: TokenId;
-        tokenBruto: string;
-        expiraEm: Date;
-      },
-      ErroApp
-    >
+    Result<{
+      chave: ChaveToken;
+      tokenBruto: string;
+      expiraEm: Date;
+    }, ErroApp>
   >;
 
   /**
@@ -112,18 +110,13 @@ export interface TokensAuthPorta {
    * @returns `Ok` com os identificadores lógicos resolvidos.
    */
   validarRefresh(params: {
-    locatarioId: LocatarioId;
     tokenBruto: string;
+    locatarioId: LocatarioId;
     agora: Date;
   }): Promise<
-    Result<
-      {
-        tokenId: TokenId;
-        usuarioId: UsuarioId;
-        locatarioId: LocatarioId;
-      },
-      ErroApp
-    >
+    Result<{
+      chave: ChaveToken;
+    }, ErroApp>
   >;
 
   /**
@@ -133,8 +126,9 @@ export interface TokensAuthPorta {
    * @returns `Ok(void)` quando a operação é concluída.
    */
   revogar(params: {
-    tokenId: TokenId;
+    chave: ChaveToken;
     agora: Date;
+    proximo?: ChaveToken;
   }): Promise<Result<void, ErroApp>>;
 }
 

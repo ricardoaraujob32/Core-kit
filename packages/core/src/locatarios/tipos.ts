@@ -1,6 +1,7 @@
 // packages/core/src/locatarios/tipos.ts
 
-import type { ErroApp, Result } from "../kernel";
+import type { ErroApp, Result, wrapOk } from "../kernel";
+import { locatarioInvalido } from "./erros";
 
 /**
  * Identificador lógico de um locatário.
@@ -38,80 +39,214 @@ export type EventoLocatario =
   | "SUSPENDER"
   | "REATIVAR"
   | "ENCERRAR";
+
 /**
- * Entidade de domínio que representa um locatário da plataforma.
- *
- * Este tipo modela apenas a visão do Core. Não deve ser confundido com a
- * estrutura física do banco de dados nem com payloads HTTP.
+ * Modo de tema da configuração visual do locatário.
+ */
+export type ModoTemaLocatario =
+  | "SISTEMA"
+  | "CLARO"
+  | "ESCURO";
+
+/**
+ * Identificador lógico de configuração do locatário.
+ */
+export type ConfiguracaoLocatarioId = string;
+
+/**
+ * Configuração visual/operacional associada ao locatário.
+ */
+export interface ConfiguracaoLocatario {
+  locatarioId: LocatarioId;
+  configuracaoId: ConfiguracaoLocatarioId;
+  modoTema: ModoTemaLocatario;
+  identidadeVisual: string;
+  corPrimaria: string | null;
+  corSecundaria: string | null;
+  corTerciaria: string | null;
+  urlLogo: string | null;
+  ativa: boolean;
+  criadoEm: Date;
+  atualizadoEm: Date;
+}
+
+/**
+ * Entidade de domínio do locatário.
  */
 export interface Locatario {
-  /** Identificador único do locatário. */
   locatarioId: LocatarioId;
-  /** Nome exibível do locatário. */
   nome: string;
-  /** Estado atual do locatário. */
+  slug: LocatarioSlug;
+  documento: string | null;
+  email: string;
+  fusoHorario: string;
   status: LocatarioStatus;
-  /** Data de criação do locatário no domínio. */
   criadoEm: Date;
+  atualizadoEm: Date;
+  excluidoEm: Date | null;
+  motivoExclusao: string | null;
+  suspensoEm: Date | null;
+  motivoSuspensao: string | null;
+  reativadoEm: Date | null;
+  motivoReativacao: string | null;
+  configuracoes: ConfiguracaoLocatario[];
 }
 
+
 /**
- * Dados mínimos necessários para criar um locatário.
+ * Entrada de criação de locatário.
  */
 export interface CriarLocatarioInput {
-  /** Nome do novo locatário. */
   nome: string;
+  slug: LocatarioSlug;
+  email: string;
+  documento?: string | null;
+  fusoHorario?: string;
+  configuracaoInicial?: {
+    modoTema?: ModoTemaLocatario;
+    identidadeVisual?: string;
+    corPrimaria?: string | null;
+    corSecundaria?: string | null;
+    corTerciaria?: string | null;
+    urlLogo?: string | null;
+    ativa?: boolean;
+  };
 }
 
 /**
- * Resultado essencial retornado após a criação de um locatário.
+ * Saída de criação de locatário.
  */
 export interface CriarLocatarioOutput {
-  /** Identificador atribuído ao locatário recém-criado. */
   locatarioId: LocatarioId;
 }
 
 /**
- * Resultado assíncrono da criação de locatário.
+ * Resultado assíncrono da criação.
  */
 export type CriarLocatarioResult = Promise<Result<CriarLocatarioOutput, ErroApp>>;
 
 /**
- * Entrada da listagem de locatários.
- *
- * Mantida como objeto vazio para padronização do contrato.
+ * Entrada de listagem.
  */
 export interface ListarLocatariosInput {}
 
 /**
- * Saída padronizada para listagem de locatários.
+ * Saída de listagem.
  */
 export interface ListarLocatariosOutput {
-  /** Coleção de locatários retornados pela operação. */
   itens: Locatario[];
 }
 
 /**
- * Resultado assíncrono da listagem de locatários.
+ * Resultado assíncrono da listagem.
  */
 export type ListarLocatariosResult = Promise<Result<ListarLocatariosOutput, ErroApp>>;
 
 /**
- * Entrada usada para buscar um locatário específico por identidade.
+ * Entrada de obtenção por id.
  */
 export interface ObterLocatarioInput {
-  /** Identificador do locatário a ser obtido. */
   locatarioId: LocatarioId;
 }
 
 /**
- * Saída da obtenção de locatário.
+ * Saída de obtenção.
  */
 export interface ObterLocatarioOutput {
   locatario: Locatario;
 }
 
 /**
- * Resultado assíncrono da obtenção de um locatário.
+ * Resultado assíncrono da obtenção.
  */
 export type ObterLocatarioResult = Promise<Result<ObterLocatarioOutput, ErroApp>>;
+
+/**
+ * Entrada de atualização cadastral.
+ */
+export interface AtualizarLocatarioInput {
+  locatarioId: LocatarioId;
+  nome?: string;
+  email?: string;
+  documento?: string | null;
+  fusoHorario?: string;
+}
+
+/**
+ * Saída de atualização cadastral.
+ */
+export interface AtualizarLocatarioOutput {
+  locatario: Locatario;
+}
+
+/**
+ * Resultado assíncrono da atualização.
+ */
+export type AtualizarLocatarioResult = Promise<Result<AtualizarLocatarioOutput, ErroApp>>;
+
+/**
+ * 
+ */
+export interface SuspenderLocatarioInput {
+  locatarioId: LocatarioId;
+  motivoSuspensao?: string | null;
+}
+
+/**
+ * 
+ */
+export type SuspenderLocatarioResult = Promise<
+  ReturnType<typeof wrapOk<AtualizarLocatarioOutput>> | ReturnType<typeof locatarioInvalido>
+>;
+
+/**
+ * 
+ */
+export interface ReativarLocatarioInput {
+  locatarioId: LocatarioId;
+  motivoReativacao?: string | null;
+}
+
+/**
+ * 
+ */
+export interface EncerrarLocatarioInput {
+  locatarioId: LocatarioId;
+  motivoExclusao?: string | null;
+}
+
+/**
+ * 
+ */
+export interface CriarConfiguracaoLocatarioInput {
+  locatarioId: LocatarioId;
+  modoTema?: string;
+  identidadeVisual: string;
+  corPrimaria?: string | null;
+  corSecundaria?: string | null;
+  corTerciaria?: string | null;
+  urlLogo?: string | null;
+  ativa?: boolean;
+}
+
+/**
+ * 
+ */
+export interface AtualizarConfiguracaoLocatarioInput {
+  locatarioId: LocatarioId;
+  configuracaoId: string;
+  modoTema?: string;
+  identidadeVisual?: string;
+  corPrimaria?: string | null;
+  corSecundaria?: string | null;
+  corTerciaria?: string | null;
+  urlLogo?: string | null;
+}
+
+/**
+ * 
+ */
+export interface AtivarConfiguracaoLocatarioInput {
+  locatarioId: LocatarioId;
+  configuracaoId: string;
+}
