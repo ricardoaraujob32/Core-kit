@@ -97,7 +97,7 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * Configurações do próprio locatário.
    */
   app.get<{ Params: LocatarioIdParamsDto }>(
-    "/locatarios/:id/configuracoes",
+    "/me/locatario/configuracoes",
     { preHandler: [authGuard] },
     listarConfiguracoesLocatarioController,
   );
@@ -106,7 +106,7 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * 
    */
   app.get<{ Params: LocatarioIdParamsDto }>(
-    "/locatarios/:id/configuracoes/ativa",
+    "/me/locatario/configuracoes/ativa",
     { preHandler: [authGuard] },
     obterConfiguracaoAtivaLocatarioController,
   );
@@ -115,7 +115,7 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * 
    */
   app.post<{ Params: LocatarioIdParamsDto; Body: CriarConfiguracaoBodyDto; }>(
-    "/locatarios/:id/configuracoes",
+    "/me/locatario/configuracoes",
     { preHandler: [authGuard] },
     criarConfiguracaoLocatarioController,
   );
@@ -124,7 +124,7 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * 
    */
   app.patch<{ Params: ConfiguracaoIdParamsDto; Body: AtualizarConfiguracaoBodyDto; }>(
-    "/locatarios/:id/configuracoes/:configuracaoId",
+    "/me/locatario/configuracoes/:configuracaoId",
     { preHandler: [authGuard] },
     atualizarConfiguracaoLocatarioController,
   );
@@ -133,7 +133,7 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
    * 
    */
   app.post<{ Params: ConfiguracaoIdParamsDto }>(
-    "/locatarios/:id/configuracoes/:configuracaoId/ativar",
+    "/me/locatario/configuracoes/:configuracaoId/ativar",
     { preHandler: [authGuard] },
     ativarConfiguracaoLocatarioController,
   );

@@ -6,13 +6,13 @@ import { clientePrisma } from "../../infra/prisma/client";
 import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
 import { createFnAtualizarUsuario, createFnCriarUsuario, createFnDesativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
   createFnReativarUsuario, metaAcao, metaAtualizacao, metaCriacao, Permissoes } from "@core-kit/core";
-import { obterCtxAutorizadoOuResponderErro, tempCtxAutenticadoSemAutorizacaoRemoverDepois } from "../helpers";
 import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
 import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
 import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter";
+import { autorizarHttp } from "../../http/autorizarHttp";
 
 /**
  * Runtime técnico central da borda.
@@ -97,13 +97,13 @@ function responderErroValidacao(reply: FastifyReply, parseResult: {
  * @returns Resposta HTTP padronizada.
  */
 export async function listarUsuariosController(request: FastifyRequest, reply: FastifyReply) {
-  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-  //   permissao: Permissoes.TENANT_USUARIO_LISTAR,
-  //   modulo: "USUARIOS",
-  // });
-  // if (!ctx) return;
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_LISTAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
+  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  // if (!ctx) return;
 
   const { usuariosRepositorio: usuariosRepositorio } = criarDepsUsuarios();
 
@@ -149,13 +149,13 @@ export async function listarUsuariosController(request: FastifyRequest, reply: F
  * @returns Usuário encontrado no escopo do locatário autenticado.
  */
 export async function obterUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-  //   permissao: Permissoes.TENANT_USUARIO_LISTAR,
-  //   modulo: "USUARIOS",
-  // });
-  // if (!ctx) return;
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_OBTER,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
+  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {
@@ -213,13 +213,13 @@ export async function obterUsuarioController(request: FastifyRequest<{ Params: U
  * @returns Identificador do usuário recém-criado.
  */
 export async function criarUsuarioController(request: FastifyRequest<{ Body: CriarUsuarioBodyDto }>, reply: FastifyReply) {
-  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-  //   permissao: Permissoes.TENANT_USUARIO_CRIAR,
-  //   modulo: "USUARIOS",
-  // });
-  // if (!ctx) return;
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_CRIAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
+  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  // if (!ctx) return;
 
   const bodyParse = parseCriarUsuarioBody(request.body);
   if (!bodyParse.success) {
@@ -298,13 +298,13 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
  * @returns Usuário atualizado.
  */
 export async function atualizarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: AtualizarUsuarioBodyDto; }>, reply: FastifyReply) {
-  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-  //   permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
-  //   modulo: "USUARIOS",
-  // });
-  // if (!ctx) return;
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
+  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {
@@ -388,13 +388,13 @@ export async function atualizarUsuarioController(request: FastifyRequest<{ Param
  * @returns Usuário inativado.
  */
 export async function desativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-  //   permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
-  //   modulo: "USUARIOS",
-  // });
-  // if (!ctx) return;
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_INATIVAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
+  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {
@@ -457,13 +457,13 @@ export async function desativarUsuarioController(request: FastifyRequest<{ Param
  * @returns Usuário reativado.
  */
 export async function reativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
-  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-  //   permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
-  //   modulo: "USUARIOS",
-  // });
-  // if (!ctx) return;
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_INATIVAR,
+    modulo: "USUARIOS",
+  });
   if (!ctx) return;
+  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {

@@ -31,6 +31,10 @@ function prioridadeOrigem(origem: OrigemModuloHabilitado): number {
   }
 }
 
+function normalizarCodigo<T extends string>(codigo: T): T {
+  return codigo.trim() as T;
+}
+
 type CreateAutorizacaoRepositorioParams = {
   cache?: AutorizacaoSnapshotCache;
 };
@@ -41,7 +45,10 @@ type CreateAutorizacaoRepositorioParams = {
  * @param params 
  * @returns 
  */
-export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutorizacaoRepositorioParams = {}): AutorizacaoRepositorio {
+export function createAutorizacaoRepositorio(
+  db: PrismaDb,
+  params: CreateAutorizacaoRepositorioParams = {},
+): AutorizacaoRepositorio {
   const cache = params.cache ?? autorizacaoSnapshotCache;
 
   return {
@@ -55,17 +62,36 @@ export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutoriz
       isPlataforma?: boolean;
     }) {
       try {
+        console.log("🔥 RBAC REPOSITORIO CARREGADO 🔥", {
+          locatarioId,
+          usuarioId,
+          isPlataforma,
+        });
+
         const cached = cache.get({
           locatarioId,
           usuarioId,
           isPlataforma,
         });
 
+        console.log("🔥 SNAPSHOT CACHE RESULT 🔥", {
+          locatarioId,
+          usuarioId,
+          isPlataforma,
+          hit: !!cached,
+        });
+
         if (cached) {
+          console.info("[autorizacao.snapshot] cacheHit", {
+            locatarioId,
+            usuarioId,
+            isPlataforma,
+            snapshot: cached,
+          });
           return wrapOk(cached);
         }
 
-        const [rowsPapeis, assinaturas] = await Promise.all([
+        const [rowsPapeis, rowsModulos] = await Promise.all([
           db.usuarios_papeis.findMany({
             where: {
               locatario_id: locatarioId,
@@ -91,44 +117,69 @@ export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutoriz
               papel_id: "asc",
             },
           }),
-          db.assinaturas.findMany({
+
+          // Importante:
+          // nesta versão, a resolução de módulos parte diretamente da tabela
+          // modulos_assinatura. Isso evita falso-negativo causado por filtro
+          // relacional excessivo em `assinaturas` durante a depuração.
+          db.modulos_assinatura.findMany({
             where: {
               locatario_id: locatarioId,
-              status: "ATIVA",
-              excluido_em: null,
-              modulos_assinatura: {
-                some: {
-                  habilitado: true,
-                  modulos: {
-                    ativo: true,
-                  },
-                },
-              },
+              habilitado: true,
             },
             select: {
+              origem: true,
+              modulo_id: true,
               assinatura_id: true,
-              modulos_assinatura: {
-                where: {
-                  habilitado: true,
-                  modulos: {
-                    ativo: true,
-                  },
-                },
+              modulos: {
                 select: {
-                  origem: true,
-                  modulos: {
-                    select: {
-                      codigo: true,
-                    },
-                  },
+                  codigo: true,
+                  ativo: true,
+                },
+              },
+              assinaturas: {
+                select: {
+                  assinatura_id: true,
+                  locatario_id: true,
+                  status: true,
+                  excluido_em: true,
                 },
               },
             },
-            orderBy: {
-              assinatura_id: "asc",
-            },
+            orderBy: [
+              { assinatura_id: "asc" },
+              { modulo_id: "asc" },
+            ],
           }),
         ]);
+
+        console.info("[autorizacao.snapshot] rowsPapeis", {
+          locatarioId,
+          usuarioId,
+          quantidade: rowsPapeis.length,
+          itens: rowsPapeis.map((row) => ({
+            papelCodigo: row.papeis.codigo,
+            permissoes: row.papeis.papel_permissoes.map(
+              (pp) => pp.permissoes.codigo,
+            ),
+          })),
+        });
+
+        console.info("[autorizacao.snapshot] rowsModulos.raw", {
+          locatarioId,
+          usuarioId,
+          quantidade: rowsModulos.length,
+          itens: rowsModulos.map((row) => ({
+            assinaturaId: row.assinatura_id,
+            moduloId: row.modulo_id,
+            codigo: row.modulos.codigo,
+            moduloAtivo: row.modulos.ativo,
+            origem: row.origem,
+            assinaturaStatus: row.assinaturas?.status ?? null,
+            assinaturaExcluida: row.assinaturas?.excluido_em ?? null,
+            assinaturaLocatarioId: row.assinaturas?.locatario_id ?? null,
+          })),
+        });
 
         const papeis = Array.from(
           new Set(rowsPapeis.map((row) => row.papeis.codigo as Papel)),
@@ -146,24 +197,67 @@ export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutoriz
 
         const porCodigo = new Map<string, ModuloHabilitado>();
 
-        for (const assinatura of assinaturas) {
-          for (const vinculo of assinatura.modulos_assinatura) {
-            const codigo = vinculo.modulos.codigo.trim().toUpperCase();
-            const origem = normalizarOrigemModulo(vinculo.origem);
+        for (const vinculo of rowsModulos) {
+          if (!vinculo.modulos.ativo) {
+            console.info("[autorizacao.snapshot] moduloIgnorado", {
+              motivo: "modulo_inativo",
+              codigo: vinculo.modulos.codigo,
+              moduloId: vinculo.modulo_id,
+            });
+            continue;
+          }
 
-            const atual = porCodigo.get(codigo);
-            if (
-              !atual ||
-              prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)
-            ) {
-              porCodigo.set(codigo, { codigo, origem });
-            }
+          if (vinculo.assinaturas.excluido_em) {
+            console.info("[autorizacao.snapshot] moduloIgnorado", {
+              motivo: "assinatura_excluida",
+              codigo: vinculo.modulos.codigo,
+              assinaturaId: vinculo.assinatura_id,
+            });
+            continue;
+          }
+
+          if (vinculo.assinaturas.status !== "ATIVA") {
+            console.info("[autorizacao.snapshot] moduloIgnorado", {
+              motivo: "assinatura_inativa",
+              codigo: vinculo.modulos.codigo,
+              assinaturaId: vinculo.assinatura_id,
+              status: vinculo.assinaturas.status,
+            });
+            continue;
+          }
+
+          if (vinculo.assinaturas.locatario_id !== locatarioId) {
+            console.info("[autorizacao.snapshot] moduloIgnorado", {
+              motivo: "locatario_assinatura_divergente",
+              codigo: vinculo.modulos.codigo,
+              assinaturaId: vinculo.assinatura_id,
+              assinaturaLocatarioId: vinculo.assinaturas.locatario_id,
+              locatarioIdEsperado: locatarioId,
+            });
+            continue;
+          }
+
+          const codigo = vinculo.modulos.codigo.trim().toUpperCase();
+          const origem = normalizarOrigemModulo(vinculo.origem);
+
+          const atual = porCodigo.get(codigo);
+          if (
+            !atual ||
+            prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)
+          ) {
+            porCodigo.set(codigo, { codigo, origem });
           }
         }
 
         const modulos = Array.from(porCodigo.keys()).sort((a, b) =>
           a.localeCompare(b),
         );
+
+        console.info("[autorizacao.snapshot] modulosFinal", {
+          locatarioId,
+          usuarioId,
+          modulos,
+        });
 
         const snapshot: AutorizacaoSnapshot = {
           locatarioId,
@@ -172,6 +266,8 @@ export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutoriz
           permissoes,
           modulos,
         };
+
+        console.info("[autorizacao.snapshot] snapshotFinal", snapshot);
 
         cache.set(
           {
@@ -184,6 +280,13 @@ export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutoriz
 
         return wrapOk(snapshot);
       } catch (causa) {
+        console.error("[autorizacao.snapshot] erro", {
+          locatarioId,
+          usuarioId,
+          isPlataforma,
+          causa,
+        });
+
         return mapearErroInfra(causa, {
           entidade: "autorizacao",
           operacao: "infra.prisma.autorizacao.obterSnapshot",
@@ -197,3 +300,4 @@ export function createAutorizacaoRepositorio(db: PrismaDb, params: CreateAutoriz
     },
   };
 }
+

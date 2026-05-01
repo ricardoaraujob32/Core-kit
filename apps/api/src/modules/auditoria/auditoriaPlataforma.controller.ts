@@ -6,7 +6,6 @@ import { sendHttpError } from "../../http/serializarErroApp";
 import { clientePrisma } from "../../infra/prisma/client";
 import { auditar } from "./auditoria.dispatcher.instance";
 import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto";
-import { obterCtxAutorizadoOuResponderErro } from "../helpers";
 import { criarContextoAuditoria } from "./auditoria.helpers";
 
 /**

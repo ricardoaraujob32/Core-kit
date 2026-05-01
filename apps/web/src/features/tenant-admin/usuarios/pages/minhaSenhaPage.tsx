@@ -30,9 +30,9 @@ export default function MinhaSenhaPage() {
         isSaving={isSaving}
         erro={erro}
         sucesso={sucesso}
-        onSubmit={(input) =>
-          alterarMinhaSenha(input as { senhaAtual: string; novaSenha: string })
-        }
+        onSubmit={async (input) => {
+          await alterarMinhaSenha(input as { senhaAtual: string; novaSenha: string });
+        }}
       />
     </div>
   );

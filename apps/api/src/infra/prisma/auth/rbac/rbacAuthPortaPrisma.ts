@@ -15,6 +15,10 @@ import { PrismaDb } from "../../tipos";
  * - papéis ainda não implementados (placeholder).
  */
 export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
+  console.log("[auth.rbac.porta.init]", {
+    arquivo: "apps/api/src/infra/prisma/auth/rbac/rbacAuthPortaPrisma.ts",
+  });
+
   return {
     /**
      * Resolve permissões do usuário e devolve novo contexto.
@@ -24,7 +28,19 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
      */
     async resolverPermissoes(ctxBase: ContextoExecucao): Promise<Result<ContextoExecucao, ErroApp>> {
       try {
+        console.log("[auth.rbac.resolverPermissoes.start]", {
+          usuarioId: ctxBase.usuarioId ?? null,
+          locatarioId: ctxBase.locatarioId,
+          papeis: ctxBase.papeis ?? [],
+          permissoes: ctxBase.permissoes ?? [],
+          modulosHabilitados: ctxBase.modulosHabilitados ?? [],
+        });
+
         if (!ctxBase.usuarioId) {
+          console.log("[auth.rbac.resolverPermissoes.skip][sem-usuario]", {
+            locatarioId: ctxBase.locatarioId,
+          });
+
           return wrapOk(ctxBase);
         }
 
@@ -54,6 +70,16 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
           },
         });
 
+        console.log("[auth.rbac.resolverPermissoes.rows]", {
+          usuarioId: ctxBase.usuarioId,
+          locatarioId: ctxBase.locatarioId,
+          quantidade: rows.length,
+          itens: rows.map((row) => ({
+            papelCodigo: row.papeis.codigo,
+            permissoes: row.papeis.papel_permissoes.map((pp) => pp.permissoes.codigo),
+          })),
+        });
+
         const papeis = Array.from(
           new Set(rows.map((row) => row.papeis.codigo as Papel)),
         );
@@ -68,6 +94,14 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
           ),
         ).sort();
 
+        console.log("[auth.rbac.resolverPermissoes.resolvido]", {
+          usuarioId: ctxBase.usuarioId,
+          locatarioId: ctxBase.locatarioId,
+          papeis,
+          permissoes,
+          modulosHabilitadosEntrada: ctxBase.modulosHabilitados ?? [],
+        });
+
         const ctx = createContextoExecucao({
           locatarioId: ctxBase.locatarioId,
           usuarioId: ctxBase.usuarioId,
@@ -77,10 +111,18 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
           agora: ctxBase.agora,
         });
 
+        console.log("[auth.rbac.resolverPermissoes.ok]", {
+          usuarioId: ctx.usuarioId ?? null,
+          locatarioId: ctx.locatarioId,
+          papeis: ctx.papeis ?? [],
+          permissoes: ctx.permissoes ?? [],
+          modulosHabilitados: ctx.modulosHabilitados ?? [],
+        });
+
         return wrapOk(ctx);
       } catch (causa) {
-        return erroInfraAuth({
-          mensagem:"Falha ao resolver permissões de autenticação.",
+        const erro = erroInfraAuth({
+          mensagem: "Falha ao resolver permissões de autenticação.",
           operacao: "auth.rbac.resolverPermissoes",
           causa,
           detalhes: {
@@ -88,6 +130,15 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
             usuarioId: ctxBase.usuarioId,
           }
         });
+
+        console.error("[auth.rbac.resolverPermissoes.err]", {
+          usuarioId: ctxBase.usuarioId ?? null,
+          locatarioId: ctxBase.locatarioId,
+          causa,
+          erro,
+        });
+
+        return erro;
       }
     },
   };

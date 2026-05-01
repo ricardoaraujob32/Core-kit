@@ -7,29 +7,18 @@ import type { ConfiguracaoLocatario } from "../tipos";
 
 export function useConfiguracoesLocatario(locatarioId?: string | null) {
   const [itens, setItens] = useState<ConfiguracaoLocatario[]>([]);
-  const [configuracaoAtiva, setConfiguracaoAtiva] =
-    useState<ConfiguracaoLocatario | null>(null);
+  const [configuracaoAtiva, setConfiguracaoAtiva] = useState<ConfiguracaoLocatario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
-    const id = locatarioId?.trim();
-
-    if (!id) {
-      setItens([]);
-      setConfiguracaoAtiva(null);
-      setErro("Locatário inválido.");
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     setErro(null);
 
     try {
       const [lista, ativa] = await Promise.all([
-        meuLocatarioApi.listarConfiguracoes(id),
-        meuLocatarioApi.obterConfiguracaoAtiva(id),
+        meuLocatarioApi.listarConfiguracoes(),
+        meuLocatarioApi.obterConfiguracaoAtiva(),
       ]);
 
       setItens(lista.itens);
@@ -41,7 +30,7 @@ export function useConfiguracoesLocatario(locatarioId?: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [locatarioId]);
+  }, []);
 
   useEffect(() => {
     void carregar();

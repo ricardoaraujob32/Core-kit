@@ -94,15 +94,44 @@ export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply
   const ctxResult = await buildContextFromRequest(request);
 
   if (!ctxResult.ok) {
+    console.error("[http.autorizacao.negada][contexto]", {
+      url: request.url,
+      method: request.method,
+      usuarioId: request.usuario?.usuarioId ?? null,
+      locatarioId: request.usuario?.locatarioId ?? null,
+      politica,
+      erro: ctxResult.error,
+    });
+
     sendHttpError(reply, ctxResult.error);
     return null;
   }
 
   const ctx = ctxResult.value;
 
+  console.log("[http.autorizacao.ctx]", {
+    url: request.url,
+    method: request.method,
+    usuarioId: ctx.usuarioId ?? null,
+    locatarioId: ctx.locatarioId,
+    papeis: ctx.papeis ?? [],
+    permissoes: ctx.permissoes ?? [],
+    modulosHabilitados: ctx.modulosHabilitados ?? [],
+    politica,
+  });
+
   if (politica.exigeSuperadmin) {
     const erroSuperadmin = exigirSuperAdminHttp(ctx);
     if (erroSuperadmin) {
+      console.error("[http.autorizacao.negada][superadmin]", {
+        url: request.url,
+        method: request.method,
+        usuarioId: ctx.usuarioId ?? null,
+        locatarioId: ctx.locatarioId,
+        politica,
+        erro: erroSuperadmin,
+      });
+
       sendHttpError(reply, erroSuperadmin);
       return null;
     }
@@ -112,6 +141,15 @@ export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply
     const erroMesmoLocatario = exigirMesmoLocatarioHttp(ctx, politica.locatarioIdAlvo);
 
     if (erroMesmoLocatario) {
+      console.error("[http.autorizacao.negada][mesmo-locatario]", {
+        url: request.url,
+        method: request.method,
+        usuarioId: ctx.usuarioId ?? null,
+        locatarioId: ctx.locatarioId,
+        politica,
+        erro: erroMesmoLocatario,
+      });
+
       sendHttpError(reply, erroMesmoLocatario);
       return null;
     }
@@ -121,6 +159,15 @@ export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply
     const autorizacao = autorizarOperacao({ ctx, permissao: politica.permissao });
 
     if (!autorizacao.ok) {
+      console.error("[http.autorizacao.negada][permissao]", {
+        url: request.url,
+        method: request.method,
+        usuarioId: ctx.usuarioId ?? null,
+        locatarioId: ctx.locatarioId,
+        politica,
+        erro: autorizacao.error,
+      });
+
       sendHttpError(reply, autorizacao.error);
       return null;
     }
@@ -129,10 +176,28 @@ export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply
   if (politica.modulo) {
     const erroModulo = exigirModuloHabilitadoHttp(ctx, politica.modulo);
     if (erroModulo) {
+      console.error("[http.autorizacao.negada][modulo]", {
+        url: request.url,
+        method: request.method,
+        usuarioId: ctx.usuarioId ?? null,
+        locatarioId: ctx.locatarioId,
+        politica,
+        modulosNormalizados: normalizarModulosHabilitados(ctx),
+        erro: erroModulo,
+      });
+
       sendHttpError(reply, erroModulo);
       return null;
     }
   }
+
+  console.log("[http.autorizacao.ok]", {
+    url: request.url,
+    method: request.method,
+    usuarioId: ctx.usuarioId ?? null,
+    locatarioId: ctx.locatarioId,
+    politica,
+  });
 
   return ctx;
 }

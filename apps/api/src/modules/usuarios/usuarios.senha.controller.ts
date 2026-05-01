@@ -6,9 +6,9 @@ import { sendHttpError } from "../../http/serializarErroApp";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
 import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { obterCtxAutorizadoOuResponderErro, tempCtxAutenticadoSemAutorizacaoRemoverDepois } from "../helpers";
 import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
 import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
+import { autorizarHttp } from "../../http/autorizarHttp";
 
 const authRuntime = createAuthHttpRuntime();
 
@@ -41,19 +41,14 @@ function responderErroValidacao(reply: FastifyReply, issues: Array<{ path: (stri
  * @returns 
  */
 export async function alterarMinhaSenhaUsuarioController(
-  request: FastifyRequest<{
-    Params: UsuarioIdParamsDto;
-    Body: AlterarSenhaUsuarioBodyDto;
-  }>,
-  reply: FastifyReply,
-) {
+  request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: AlterarSenhaUsuarioBodyDto;}>, reply: FastifyReply,) {
   const params = parseUsuarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
   const body = parseAlterarSenhaUsuarioBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
   if (ctx.usuarioId !== params.data.id) {
@@ -100,19 +95,14 @@ export async function alterarMinhaSenhaUsuarioController(
  * @returns 
  */
 export async function redefinirSenhaUsuarioController(
-  request: FastifyRequest<{
-    Params: UsuarioIdParamsDto;
-    Body: RedefinirSenhaUsuarioBodyDto;
-  }>,
-  reply: FastifyReply,
-) {
+  request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: RedefinirSenhaUsuarioBodyDto;}>, reply: FastifyReply,) {
   const params = parseUsuarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
   const body = parseRedefinirSenhaUsuarioBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  const ctx = await autorizarHttp(request, reply, {
     locatarioIdAlvo: undefined,
     permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
   });

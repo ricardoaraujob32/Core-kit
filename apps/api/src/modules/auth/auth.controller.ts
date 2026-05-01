@@ -6,7 +6,7 @@ import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshResponse, SessionUserDto } from "./auth.dto";
 import { ContextoExecucao, LocatarioId, metaAcao, UsuarioId } from "@core-kit/core";
 import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap";
-import { obterCtxOuResponderErro } from "../helpers";
+import { autorizarHttp } from "../../http/autorizarHttp";
 
 /**
  * Runtime oficial de autenticação usado pela borda HTTP.
@@ -105,7 +105,7 @@ export async function loginController(request: FastifyRequest<{ Body: LoginBody 
  * - serializa o usuário autenticado/autorizado para o frontend.
  */
 export async function meController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await obterCtxOuResponderErro(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
   const payload: MeResponse = {

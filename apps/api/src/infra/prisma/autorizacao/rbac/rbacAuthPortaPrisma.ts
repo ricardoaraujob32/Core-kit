@@ -15,9 +15,7 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
   const autorizacaoRepositorio = createAutorizacaoRepositorio(db);
 
   return {
-    async resolverPermissoes(
-      ctxBase: ContextoExecucao,
-    ): Promise<Result<ContextoExecucao, ErroApp>> {
+    async resolverPermissoes(ctxBase: ContextoExecucao): Promise<Result<ContextoExecucao, ErroApp>> {
       try {
         if (!ctxBase.usuarioId) {
           return wrapOk(ctxBase);

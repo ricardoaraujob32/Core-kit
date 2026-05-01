@@ -1,314 +1,160 @@
 // // apps/api/src/infra/assinaturas/assinaturasRepositorioPrisma.ts
 
-// import { Assinatura, AssinaturaId, AssinaturasModulosRepositorio, AssinaturasRepositorio, ErroApp, LocatarioId, ModuloId, ModulosConsultaRepositorio, PlanoId, PlanosConsultaRepositorio, Result, wrapOk } from "@core-kit/core";
-// import { PrismaClient } from "@prisma/client";
+import type { Assinatura, AssinaturaId, AssinaturasRepositorio, LocatarioId, RegistrarAssinaturaParams } from "@core-kit/core";
+import { wrapOk } from "@core-kit/core";
+import type { PrismaDb } from "../tipos";
+import { mapearErroInfra } from "../erros";
 
-// /**
-//  * 
-//  * @param row 
-//  * @returns 
-//  */
-// function mapAssinatura(row: {
-//   assinatura_id: AssinaturaId;
-//   locatario_id: LocatarioId;
-//   plano_id: PlanoId;
-//   status: string;
-//   iniciada_em: Date;
-//   encerrada_em: Date | null;
-//   criada_em: Date;
-//   atualizada_em: Date;
-// }): Assinatura {
-//   return {
-//     assinaturaId: row.assinatura_id,
-//     locatarioId: row.locatario_id,
-//     planoId: row.plano_id,
-//     status: row.status as Assinatura["status"],
-//     iniciadaEm: row.iniciada_em,
-//     encerradaEm: row.encerrada_em,
-//     criadaEm: row.criada_em,
-//     atualizadaEm: row.atualizada_em,
-//   };
-// }
+type AssinaturaRow = {
+  assinatura_id: string;
+  locatario_id: string;
+  plano_id: string;
+  status: string;
+  inicio_em: Date;
+  fim_em: Date | null;
+  criado_em: Date;
+  atualizado_em: Date;
+};
 
-// /**
-//  * 
-//  * @param row 
-//  * @returns 
-//  */
-// function mapModuloDaAssinatura(row: {
-//   assinatura_id: AssinaturaId;
-//   modulo_id: ModuloId;
-//   habilitado_em: Date;
-//   desabilitado_em: Date | null;
-// }): ModuloDaAssinatura {
-//   return {
-//     assinaturaId: row.assinatura_id,
-//     moduloId: row.modulo_id,
-//     habilitadoEm: row.habilitado_em,
-//     desabilitadoEm: row.desabilitado_em,
-//   };
-// }
+function mapAssinatura(row: AssinaturaRow): Assinatura {
+  return {
+    assinaturaId: row.assinatura_id,
+    locatarioId: row.locatario_id,
+    planoId: row.plano_id,
+    status: row.status as Assinatura["status"],
+    iniciadaEm: row.inicio_em,
+    encerradaEm: row.fim_em,
+    criadaEm: row.criado_em,
+    atualizadaEm: row.atualizado_em,
+  };
+}
 
-// /**
-//  * 
-//  */
-// export class AssinaturasRepositorioPrisma
-//   implements
-//     AssinaturasRepositorio,
-//     AssinaturasModulosRepositorio,
-//     PlanosConsultaRepositorio,
-//     ModulosConsultaRepositorio
-// {
-//   constructor(private readonly prisma: PrismaClient) {}
+export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRepositorio {
+  return {
+    async criarAssinatura(params: RegistrarAssinaturaParams) {
+      try {
+        const assinatura = await db.assinaturas.create({
+          data: {
+            assinatura_id: params.assinaturaId,
+            locatario_id: params.locatarioId,
+            plano_id: params.planoId,
+            status: params.status,
+            inicio_em: params.iniciadaEm,
+            fim_em: params.encerradaEm ?? null,
+            criado_em: params.criadaEm,
+            atualizado_em: params.atualizadaEm,
+          },
+          select: {
+            assinatura_id: true,
+            locatario_id: true,
+            plano_id: true,
+            status: true,
+            inicio_em: true,
+            fim_em: true,
+            criado_em: true,
+            atualizado_em: true,
+          },
+        });
 
-//   async criarAssinatura(params: RegistrarAssinaturaParams): Promise<Result<Assinatura, ErroApp>> {
-//     const row = await this.prisma.$queryRawUnsafe<any>(`
-//       INSERT INTO assinaturas (
-//         assinatura_id,
-//         locatario_id,
-//         plano_id,
-//         status,
-//         iniciada_em,
-//         encerrada_em,
-//         criada_em,
-//         atualizada_em
-//       )
-//       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-//       RETURNING
-//         assinatura_id,
-//         locatario_id,
-//         plano_id,
-//         status,
-//         iniciada_em,
-//         encerrada_em,
-//         criada_em,
-//         atualizada_em
-//     `,
-//       params.assinaturaId,
-//       params.locatarioId,
-//       params.planoId,
-//       params.status,
-//       params.iniciadaEm,
-//       params.encerradaEm ?? null,
-//       params.criadaEm,
-//       params.atualizadaEm,
-//     );
+        return wrapOk(mapAssinatura(assinatura));
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "assinaturas",
+          operacao: "infra.prisma.assinaturas.criarAssinatura",
+          detalhes: { locatarioId: params.locatarioId, planoId: params.planoId },
+        });
+      }
+    },
 
-//     return wrapOk(mapAssinatura(row[0]));
-//   }
+    async atualizarAssinatura(assinatura: Assinatura) {
+      try {
+        const atualizada = await db.assinaturas.update({
+          where: {
+            assinatura_id_locatario_id: {
+              assinatura_id: assinatura.assinaturaId,
+              locatario_id: assinatura.locatarioId,
+            },
+          },
+          data: {
+            plano_id: assinatura.planoId,
+            status: assinatura.status,
+            inicio_em: assinatura.iniciadaEm,
+            fim_em: assinatura.encerradaEm,
+            atualizado_em: assinatura.atualizadaEm,
+          },
+          select: {
+            assinatura_id: true,
+            locatario_id: true,
+            plano_id: true,
+            status: true,
+            inicio_em: true,
+            fim_em: true,
+            criado_em: true,
+            atualizado_em: true,
+          },
+        });
 
-//   async atualizarAssinatura(assinatura: Assinatura): Promise<Result<Assinatura, ErroApp>> {
-//     const row = await this.prisma.$queryRawUnsafe<any>(`
-//       UPDATE assinaturas
-//          SET status = $2,
-//              iniciada_em = $3,
-//              encerrada_em = $4,
-//              atualizada_em = $5
-//        WHERE assinatura_id = $1
-//        RETURNING
-//          assinatura_id,
-//          locatario_id,
-//          plano_id,
-//          status,
-//          iniciada_em,
-//          encerrada_em,
-//          criada_em,
-//          atualizada_em
-//     `,
-//       assinatura.assinaturaId,
-//       assinatura.status,
-//       assinatura.iniciadaEm,
-//       assinatura.encerradaEm,
-//       assinatura.atualizadaEm,
-//     );
+        return wrapOk(mapAssinatura(atualizada));
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "assinaturas",
+          operacao: "infra.prisma.assinaturas.atualizarAssinatura",
+          detalhes: { assinaturaId: assinatura.assinaturaId, locatarioId: assinatura.locatarioId },
+        });
+      }
+    },
 
-//     return wrapOk(mapAssinatura(row[0]));
-//   }
+    async buscarPorId(assinaturaId: AssinaturaId) {
+      try {
+        const assinatura = await db.assinaturas.findFirst({
+          where: { assinatura_id: assinaturaId, excluido_em: null },
+          select: {
+            assinatura_id: true,
+            locatario_id: true,
+            plano_id: true,
+            status: true,
+            inicio_em: true,
+            fim_em: true,
+            criado_em: true,
+            atualizado_em: true,
+          },
+        });
 
-//   async buscarPorId(assinaturaId: AssinaturaId): Promise<Result<Assinatura | null, ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT
-//         assinatura_id,
-//         locatario_id,
-//         plano_id,
-//         status,
-//         iniciada_em,
-//         encerrada_em,
-//         criada_em,
-//         atualizada_em
-//       FROM assinaturas
-//       WHERE assinatura_id = $1
-//       LIMIT 1
-//     `, assinaturaId);
+        return wrapOk(assinatura ? mapAssinatura(assinatura) : null);
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "assinaturas",
+          operacao: "infra.prisma.assinaturas.buscarPorId",
+          detalhes: { assinaturaId },
+        });
+      }
+    },
 
-//     return wrapOk(rows[0] ? mapAssinatura(rows[0]) : null);
-//   }
+    async buscarAssinaturaAtivaPorLocatario(locatarioId: LocatarioId) {
+      try {
+        const assinatura = await db.assinaturas.findFirst({
+          where: { locatario_id: locatarioId, status: "ATIVA", excluido_em: null },
+          orderBy: { criado_em: "desc" },
+          select: {
+            assinatura_id: true,
+            locatario_id: true,
+            plano_id: true,
+            status: true,
+            inicio_em: true,
+            fim_em: true,
+            criado_em: true,
+            atualizado_em: true,
+          },
+        });
 
-//   async buscarAssinaturaOperacionalPorLocatario(locatarioId: LocatarioId): Promise<Result<Assinatura | null, ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT
-//         assinatura_id,
-//         locatario_id,
-//         plano_id,
-//         status,
-//         iniciada_em,
-//         encerrada_em,
-//         criada_em,
-//         atualizada_em
-//       FROM assinaturas
-//       WHERE locatario_id = $1
-//         AND status IN ('RASCUNHO', 'ATIVA', 'SUSPENSA')
-//       ORDER BY criada_em DESC
-//       LIMIT 1
-//     `, locatarioId);
-
-//     return wrapOk(rows[0] ? mapAssinatura(rows[0]) : null);
-//   }
-
-//   async buscarAssinaturaAtivaPorLocatario(locatarioId: LocatarioId): Promise<Result<Assinatura | null, ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT
-//         assinatura_id,
-//         locatario_id,
-//         plano_id,
-//         status,
-//         iniciada_em,
-//         encerrada_em,
-//         criada_em,
-//         atualizada_em
-//       FROM assinaturas
-//       WHERE locatario_id = $1
-//         AND status = 'ATIVA'
-//       ORDER BY criada_em DESC
-//       LIMIT 1
-//     `, locatarioId);
-
-//     return wrapOk(rows[0] ? mapAssinatura(rows[0]) : null);
-//   }
-
-//   async vincularModulo(params: RegistrarModuloDaAssinaturaParams): Promise<Result<ModuloDaAssinatura, ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       INSERT INTO modulos_assinatura (
-//         assinatura_id,
-//         modulo_id,
-//         habilitado_em,
-//         desabilitado_em
-//       )
-//       VALUES ($1,$2,$3,$4)
-//       RETURNING
-//         assinatura_id,
-//         modulo_id,
-//         habilitado_em,
-//         desabilitado_em
-//     `,
-//       params.assinaturaId,
-//       params.moduloId,
-//       params.habilitadoEm,
-//       params.desabilitadoEm ?? null,
-//     );
-
-//     return wrapOk(mapModuloDaAssinatura(rows[0]));
-//   }
-
-//   async desvincularModulo(assinaturaId: AssinaturaId, moduloId: ModuloId, desabilitadoEm: Date): Promise<Result<void, ErroApp>> {
-//     await this.prisma.$executeRawUnsafe(`
-//       UPDATE modulos_assinatura
-//          SET desabilitado_em = $3
-//        WHERE assinatura_id = $1
-//          AND modulo_id = $2
-//          AND desabilitado_em IS NULL
-//     `,
-//       assinaturaId,
-//       moduloId,
-//       desabilitadoEm,
-//     );
-
-//     return wrapOk(undefined);
-//   }
-
-//   async buscarModuloVinculado(assinaturaId: AssinaturaId, moduloId: ModuloId): Promise<Result<ModuloDaAssinatura | null, ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT
-//         assinatura_id,
-//         modulo_id,
-//         habilitado_em,
-//         desabilitado_em
-//       FROM modulos_assinatura
-//       WHERE assinatura_id = $1
-//         AND modulo_id = $2
-//       ORDER BY habilitado_em DESC
-//       LIMIT 1
-//     `, assinaturaId, moduloId);
-
-//     return wrapOk(rows[0] ? mapModuloDaAssinatura(rows[0]) : null);
-//   }
-
-//   async listarModulosAtivosDaAssinatura(assinaturaId: AssinaturaId): Promise<Result<ModuloDaAssinatura[], ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT
-//         assinatura_id,
-//         modulo_id,
-//         habilitado_em,
-//         desabilitado_em
-//       FROM modulos_assinatura
-//       WHERE assinatura_id = $1
-//         AND desabilitado_em IS NULL
-//       ORDER BY modulo_id ASC
-//     `, assinaturaId);
-
-//     return wrapOk(rows.map(mapModuloDaAssinatura));
-//   }
-
-//   async validarPlanoAtivo(planoId: PlanoId): Promise<Result<PlanoConsulta | null, ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT plano_id, ativo
-//       FROM planos
-//       WHERE plano_id = $1
-//       LIMIT 1
-//     `, planoId);
-
-//     const row = rows[0];
-//     return wrapOk(
-//       row
-//         ? {
-//             planoId: row.plano_id,
-//             ativo: Boolean(row.ativo),
-//           }
-//         : null,
-//     );
-//   }
-
-//   async validarModuloAtivo(moduloId: ModuloId): Promise<Result<ModuloConsulta | null, ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT modulo_id, ativo
-//       FROM modulos
-//       WHERE modulo_id = $1
-//       LIMIT 1
-//     `, moduloId);
-
-//     const row = rows[0];
-//     return wrapOk(
-//       row
-//         ? {
-//             moduloId: row.modulo_id,
-//             ativo: Boolean(row.ativo),
-//           }
-//         : null,
-//     );
-//   }
-
-//   async listarModulosGratis(): Promise<Result<ModuloGratis[], ErroApp>> {
-//     const rows = await this.prisma.$queryRawUnsafe<any>(`
-//       SELECT modulo_id
-//       FROM modulos
-//       WHERE gratuito = TRUE
-//       ORDER BY modulo_id ASC
-//     `);
-
-//     return wrapOk(
-//       rows.map((row: { modulo_id: ModuloId }) => ({
-//         moduloId: row.modulo_id,
-//       })),
-//     );
-//   }
-// }
+        return wrapOk(assinatura ? mapAssinatura(assinatura) : null);
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "assinaturas",
+          operacao: "infra.prisma.assinaturas.buscarAssinaturaAtivaPorLocatario",
+          detalhes: { locatarioId },
+        });
+      }
+    },
+  };
+}

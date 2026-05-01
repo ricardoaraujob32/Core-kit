@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS estoques (
   excluido_motivo TEXT NULL
 );
 
-ALTER TABLE ADD CONSTRAINT pk_estoques PRIMARY KEY (locatario_id, estoque_id);
+ALTER TABLE estoques ADD CONSTRAINT pk_estoques PRIMARY KEY (locatario_id, estoque_id);
 
 ALTER TABLE estoques ADD CONSTRAINT fk_estoques_locatarios
 FOREIGN KEY (locatario_id) REFERENCES locatarios(locatario_id)

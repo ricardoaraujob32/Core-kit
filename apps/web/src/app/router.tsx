@@ -16,11 +16,20 @@ import TenantAdminDashboard from "../features/tenant-admin/pages/dashboard";
 
 import AccessDenied from "../pages/accessDenied";
 import NotFound from "../pages/notFound";
-import { EditarUsuarioPage, NovoUsuarioPage, UsuarioDetailsPage, UsuariosListPage } from "../features/tenant-admin/usuarios";
-
-import { EditarLocatarioPage, LocatarioDetailsPage, LocatariosListPage, NovoLocatarioPage } from "../features/superadmin/locatarios";
+import { EditarUsuarioPage, MinhaSenhaPage, NovoUsuarioPage, UsuarioDetailsPage, UsuariosListPage } from "../features/tenant-admin/usuarios";
 import { ConfiguracoesLocatarioPage, MeuLocatarioPage } from "../features/tenant-admin/locatario";
+import { USUARIOS_MODULE, USUARIOS_PERMISSIONS } from "../core/api/permissions";
+import { AssinaturaModulosPage } from "../features/tenant-admin/assinatura";
+import { ClienteDetailsPage, ClientesListPage, EditarClientePage, NovoClientePage } from "../features/tenant-admin/clientes";
+import { EditarFornecedorPage, FornecedorDetailsPage, FornecedoresListPage, NovoFornecedorPage } from "../features/tenant-admin/fornecedores";
+import { EditarProdutoPage, NovoProdutoPage, ProdutoDetailsPage, ProdutosListPage } from "../features/tenant-admin/produtos";
+import { NovaVendaPage } from "../features/tenant-admin/vendas";
+import { TransacaoDetailsPage, TransacoesListPage } from "../features/tenant-admin/transacoes";
+import { NovaCompraPage } from "../features/tenant-admin/compras";
 
+/**
+ * 
+ */
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -55,22 +64,6 @@ export const router = createBrowserRouter([
             index: true,
             element: <SuperAdminDashboard />,
           },
-          {
-            path: "locatarios",
-            element: <LocatariosListPage />,
-          },
-          {
-            path: "locatarios/novo",
-            element: <NovoLocatarioPage />,
-          },
-          {
-            path: "locatarios/:locatarioId",
-            element: <LocatarioDetailsPage />,
-          },
-          {
-            path: "locatarios/:locatarioId/editar",
-            element: <EditarLocatarioPage />,
-          },
         ],
       },
     ],
@@ -87,14 +80,6 @@ export const router = createBrowserRouter([
             element: <TenantAdminDashboard />,
           },
           {
-            path: "locatario",
-            element: <MeuLocatarioPage />,
-          },
-          {
-            path: "locatario/configuracoes",
-            element: <ConfiguracoesLocatarioPage />,
-          },
-          {
             path: "usuarios",
             element: <UsuariosListPage />,
           },
@@ -109,6 +94,94 @@ export const router = createBrowserRouter([
           {
             path: "usuarios/:usuarioId/editar",
             element: <EditarUsuarioPage />,
+          },
+          {
+            path: "locatario",
+            element: <MeuLocatarioPage />,
+          },
+          {
+            path: "locatario/configuracoes",
+            element: <ConfiguracoesLocatarioPage />,
+          },
+          {
+            path: "minha-senha",
+            element: <MinhaSenhaPage />,
+          },
+          {
+            path: "assinatura/modulos",
+            element: <AssinaturaModulosPage />,
+          },
+          {
+            path: "clientes",
+            element: <ClientesListPage />,
+          },
+          {
+            path: "clientes/novo",
+            element: <NovoClientePage />,
+          },
+          {
+            path: "clientes/:clienteId",
+            element: <ClienteDetailsPage />,
+          },
+          {
+            path: "clientes/:clienteId/editar",
+            element: <EditarClientePage />,
+          },
+          {
+            path: "fornecedores",
+            element: <FornecedoresListPage />,
+          },
+          {
+            path: "fornecedores/novo",
+            element: <NovoFornecedorPage />,
+          },
+          {
+            path: "fornecedores/:fornecedorId",
+            element: <FornecedorDetailsPage />,
+          },
+          {
+            path: "fornecedores/:fornecedorId/editar",
+            element: <EditarFornecedorPage />,
+          },
+          {
+            path: "transacoes",
+            element: <TransacoesListPage />,
+          },
+          {
+            path: "transacoes/:transacaoId",
+            element: <TransacaoDetailsPage />,
+          },
+          {
+            path: "produtos",
+            element: <ProdutosListPage />,
+          },
+          {
+            path: "produtos/novo",
+            element: <NovoProdutoPage />,
+          },
+          {
+            path: "produtos/:produtoId",
+            element: <ProdutoDetailsPage />,
+          },
+          {
+            path: "produtos/:produtoId/editar",
+            element: <EditarProdutoPage />,
+          },
+          {
+            path: "transacoes",
+            element: <TransacoesListPage />,
+          },
+          {
+            path: "transacoes/:transacaoId",
+            element: <TransacaoDetailsPage />,
+          },
+          {
+            path: "vendas/nova",
+            element: <NovaVendaPage />,
+          },
+          {
+            path: "compras/nova",
+            element: <NovaCompraPage />,
           },
         ],
       },

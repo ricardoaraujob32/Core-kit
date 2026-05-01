@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS produtos_estoque (
   custo_medio NUMERIC(18,3) NOT NULL DEFAULT 0 CHECK (custo_medio >= 0),
   estoque_minimo NUMERIC(18,3) NOT NULL DEFAULT 0 CHECK (estoque_minimo >= 0),
 
-  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 ALTER TABLE ADD CONSTRAINT pk_saldos PRIMARY KEY (locatario_id, estoque_id, produto_id);

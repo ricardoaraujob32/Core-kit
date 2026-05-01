@@ -4,40 +4,43 @@ import { httpClient } from "../../../../core/api/httpClient";
 import type { AtualizarConfiguracaoLocatarioInput, AtualizarConfiguracaoLocatarioResponse, AtivarConfiguracaoLocatarioResponse, CriarConfiguracaoLocatarioInput,
   CriarConfiguracaoLocatarioResponse, ListarConfiguracoesLocatarioResponse, ObterConfiguracaoAtivaLocatarioResponse, ObterMeuLocatarioResponse } from "../tipos";
 
+const BASE_ME = "/me/locatario";
+const BASE_LOCATARIOS = "/locatarios";
+
 export const meuLocatarioApi = {
   obterMeuLocatario(locatarioId: string): Promise<ObterMeuLocatarioResponse> {
-    return httpClient.get<ObterMeuLocatarioResponse>(`/locatarios/${locatarioId}`);
+    return httpClient.get<ObterMeuLocatarioResponse>(
+      `${BASE_LOCATARIOS}/${locatarioId}`,
+    );
   },
 
-  listarConfiguracoes(locatarioId: string): Promise<ListarConfiguracoesLocatarioResponse> {
+  listarConfiguracoes(): Promise<ListarConfiguracoesLocatarioResponse> {
     return httpClient.get<ListarConfiguracoesLocatarioResponse>(
-      `/locatarios/${locatarioId}/configuracoes`,
+      `${BASE_ME}/configuracoes`,
     );
   },
 
-  obterConfiguracaoAtiva(locatarioId: string): Promise<ObterConfiguracaoAtivaLocatarioResponse> {
+  obterConfiguracaoAtiva(): Promise<ObterConfiguracaoAtivaLocatarioResponse> {
     return httpClient.get<ObterConfiguracaoAtivaLocatarioResponse>(
-      `/locatarios/${locatarioId}/configuracoes/ativa`,
+      `${BASE_ME}/configuracoes/ativa`,
     );
   },
 
-  criarConfiguracao(locatarioId: string, input: CriarConfiguracaoLocatarioInput): Promise<CriarConfiguracaoLocatarioResponse> {
-    return httpClient.post<
-      CriarConfiguracaoLocatarioResponse,
-      CriarConfiguracaoLocatarioInput
-    >(`/locatarios/${locatarioId}/configuracoes`, input);
+  criarConfiguracao(input: CriarConfiguracaoLocatarioInput): Promise<CriarConfiguracaoLocatarioResponse> {
+    return httpClient.post<CriarConfiguracaoLocatarioResponse, CriarConfiguracaoLocatarioInput>(
+      `${BASE_ME}/configuracoes`, input
+    );
   },
 
-  atualizarConfiguracao(locatarioId: string, configuracaoId: string, input: AtualizarConfiguracaoLocatarioInput): Promise<AtualizarConfiguracaoLocatarioResponse> {
-    return httpClient.patch<
-      AtualizarConfiguracaoLocatarioResponse,
-      AtualizarConfiguracaoLocatarioInput
-    >(`/locatarios/${locatarioId}/configuracoes/${configuracaoId}`, input);
+  atualizarConfiguracao(configuracaoId: string, input: AtualizarConfiguracaoLocatarioInput): Promise<AtualizarConfiguracaoLocatarioResponse> {
+    return httpClient.patch<AtualizarConfiguracaoLocatarioResponse, AtualizarConfiguracaoLocatarioInput>(
+      `${BASE_ME}/configuracoes/${configuracaoId}`, input
+    );
   },
 
-  ativarConfiguracao(locatarioId: string, configuracaoId: string): Promise<AtivarConfiguracaoLocatarioResponse> {
+  ativarConfiguracao(configuracaoId: string): Promise<AtivarConfiguracaoLocatarioResponse> {
     return httpClient.post<AtivarConfiguracaoLocatarioResponse>(
-      `/locatarios/${locatarioId}/configuracoes/${configuracaoId}/ativar`,
+      `${BASE_ME}/configuracoes/${configuracaoId}/ativar`,
     );
   },
 };

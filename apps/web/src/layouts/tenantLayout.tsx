@@ -2,28 +2,25 @@
 
 import { Outlet, NavLink } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
-import { useTenant } from "../core/tenant/useTenant";
 import { JSX } from "react";
 
+/**
+ * 
+ * @returns 
+ */
 export default function TenantLayout(): JSX.Element {
   const { user, logout } = useAuth();
-  const { branding, isLoading } = useTenant();
 
   async function handleLogout() {
     await logout();
   }
 
-  const nomeAplicacao = branding?.nomeFantasia ?? "Área do Locatário";
-  const corPrimaria = branding?.corPrimaria ?? "var(--tenant-color-primary)";
-  const corFundo = branding?.corFundo ?? "var(--tenant-color-background)";
-  const corTexto = branding?.corTexto ?? "var(--tenant-color-text)";
-
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: corFundo,
-        color: corTexto,
+        background: "#f9fafb",
+        color: "#111827",
       }}
     >
       <header
@@ -44,13 +41,9 @@ export default function TenantLayout(): JSX.Element {
           }}
         >
           <div>
-            <strong style={{ color: corPrimaria }}>
-              {nomeAplicacao}
-            </strong>
+            <strong>Mini SaaS Admin</strong>
             <div style={{ fontSize: 14, color: "#6b7280" }}>
-              {isLoading
-                ? "Carregando identidade visual..."
-                : "Área administrativa do locatário"}
+              Área administrativa do locatário
             </div>
           </div>
 
@@ -59,7 +52,14 @@ export default function TenantLayout(): JSX.Element {
             <NavLink to="/app/usuarios">Usuários</NavLink>
             <NavLink to="/app/locatario">Locatário</NavLink>
             <NavLink to="/app/locatario/configuracoes">Configurações</NavLink>
-
+            <NavLink to="/app/assinatura/modulos">Módulos</NavLink>
+            <NavLink to="/app/minha-senha">Minha senha</NavLink>
+            <NavLink to="/app/clientes">Cliente</NavLink>
+            <NavLink to="/app/fornecedores">Fornecedor</NavLink>
+            <NavLink to="/app/produtos">Produto</NavLink>
+            <NavLink to="/app/transacoes">Transações</NavLink>
+            <NavLink to="/app/vendas/nova">Nova venda</NavLink>
+            <NavLink to="/app/compras/nova">Nova compra</NavLink>
 
             <span style={{ fontSize: 14, color: "#6b7280" }}>
               {user?.email ?? user?.nome ?? user?.usuarioId ?? "Usuário autenticado"}
@@ -78,4 +78,3 @@ export default function TenantLayout(): JSX.Element {
     </div>
   );
 }
-

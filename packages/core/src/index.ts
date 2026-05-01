@@ -18,3 +18,7 @@ export * from "./auditoria";
 export * from "./backups";
 export * from "./exportacoes";
 export * from "./importacoes";
+export * from "./clientes";
+export * from "./fornecedores";
+export * from "./produtos";
+export * from "./vendas";

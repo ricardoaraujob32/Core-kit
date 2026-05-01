@@ -1,11 +1,10 @@
 // apps/api/src/infra/prisma/locatarios/locatariosRepositorioPrisma.ts
 
-import type { ErroApp, Locatario, LocatarioId, LocatariosRepositorio, LocatarioStatus, Result } from "@core-kit/core";
+import type { ConfiguracaoLocatario, ErroApp, Locatario, LocatarioId, LocatariosRepositorio, ModoTemaLocatario, Result } from "@core-kit/core";
 import { createErroApp, wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
 import { status_locatario } from "@prisma/client";
-import { ConfiguracaoLocatario, ModoTemaLocatario } from "packages/core/src/locatarios/tipos";
 
 type ConfiguracaoLocatarioRow = {
   locatario_id: string;
@@ -91,19 +90,34 @@ function mapModoTema(valor: string): ModoTemaLocatario {
   }
 }
 
-
-function mapLocatario(row: {
-  locatario_id: string;
-  nome: string;
-  status: string;
-  criado_em: Date;
-}): Locatario {
+/**
+ * 
+ * @param row 
+ * @returns 
+ */
+function mapLocatario(row: LocatarioRow): Locatario {
   return {
     locatarioId: row.locatario_id as LocatarioId,
     nome: row.nome,
+    slug: row.slug,
+    documento: row.documento,
+    email: row.email,
+    fusoHorario: row.fuso_horario,
     status: row.status as Locatario["status"],
+
+    excluidoEm: row.excluido_em,
+    motivoExclusao: row.motivo_exclusao,
+    suspensoEm: row.suspenso_em,
+    motivoSuspensao: row.motivo_suspensao,
+    reativadoEm: row.reativado_em,
+    motivoReativacao: row.motivo_reativacao,
+
     criadoEm: row.criado_em,
-  } as Locatario;
+    atualizadoEm: row.atualizado_em,
+
+    // 🔥 ESSENCIAL
+    configuracoes: (row.configuracoes_locatario ?? []).map(mapConfiguracao),
+  };
 }
 
 function mapStatusLocatarioParaPersistencia(status: Locatario["status"]): status_locatario {

@@ -3,7 +3,7 @@
 import { useNavigate } from "react-router-dom";
 import { LocatarioForm } from "../components/LocatarioForm";
 import { useSalvarLocatario } from "../hooks/useSalvarLocatario";
-import type { CriarLocatarioInput } from "../tipos";
+import type { AtualizarLocatarioInput, CriarLocatarioInput } from "../tipos";
 
 export default function NovoLocatarioPage() {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ export default function NovoLocatarioPage() {
     },
   });
 
-  async function handleSubmit(input: CriarLocatarioInput) {
+  async function handleSubmit(input: CriarLocatarioInput | AtualizarLocatarioInput) {
     await salvar(input);
   }
 

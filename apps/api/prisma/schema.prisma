@@ -129,8 +129,15 @@ model locatarios {
   auditoria_locatario     auditoria_locatario[]
   auditoria_plataforma    auditoria_plataforma[]
   assinaturas             assinaturas[]
+  clientes                clientes[]
   configuracoes_locatario configuracoes_locatario[]
+  estoques                estoques[]
+  fornecedores            fornecedores[]
+  itens_transacao         itens_transacao[]
+  movimentos_estoque      movimentos_estoque[]
+  produtos                produtos[]
   tokens                  tokens[]
+  transacoes              transacoes[]
   usuarios                usuarios[]
   usuarios_papeis         usuarios_papeis[]
   usuarios_temp           usuarios_temp[]
@@ -226,24 +233,23 @@ model planos {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model tokens {
-  token_id             String        @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  usuario_id           String        @db.Uuid
-  locatario_id         String        @db.Uuid
-  hash_token           String        @unique
-  emitido_em           DateTime      @default(now()) @db.Timestamptz(6)
-  expira_em            DateTime      @db.Timestamptz(6)
-  revogado_em          DateTime?     @db.Timestamptz(6)
-  proximo_token_id     String?       @db.Uuid
-  proximo_usuario_id   String?       @db.Uuid
+  token_id             String      @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id           String      @db.Uuid
+  locatario_id         String      @db.Uuid
+  hash_token           String      @unique
+  emitido_em           DateTime    @default(now()) @db.Timestamptz(6)
+  expira_em            DateTime    @db.Timestamptz(6)
+  revogado_em          DateTime?   @db.Timestamptz(6)
+  proximo_token_id     String?     @db.Uuid
+  proximo_usuario_id   String?     @db.Uuid
   agente_usuario       String?
-  endereco_ip          String?       @db.Inet
+  endereco_ip          String?     @db.Inet
   tipo                 tipo_token?
-  proximo_locatario_id String?       @db.Uuid
-  usuarios_temp        usuarios_temp @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "fk_tokens_usuarios")
-  tokens               tokens        @relation("tokensTotokens", fields: [token_id, usuario_id, locatario_id], references: [token_id, usuario_id, locatario_id], onDelete: Cascade, map: "proximo_token_fk")
-  other_tokens         tokens?       @relation("tokensTotokens")
-  locatarios           locatarios    @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "tokens_locatarios_fk")
-  usuarios             usuarios      @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "tokens_usuarios_fk")
+  proximo_locatario_id String?     @db.Uuid
+  tokens               tokens      @relation("tokensTotokens", fields: [token_id, usuario_id, locatario_id], references: [token_id, usuario_id, locatario_id], onDelete: Cascade, map: "proximo_token_fk")
+  other_tokens         tokens?     @relation("tokensTotokens")
+  locatarios           locatarios  @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "tokens_locatarios_fk")
+  usuarios             usuarios    @relation(fields: [usuario_id], references: [usuario_id], onDelete: Cascade, map: "tokens_usuarios_fk")
 
   @@id([token_id, usuario_id, locatario_id], map: "tokens_pk")
   @@schema("core")
@@ -324,7 +330,6 @@ model usuarios_temp {
   motivo_exclusao                                                            String?
   auditoria_locatario                                                        auditoria_locatario[]
   auditoria_plataforma                                                       auditoria_plataforma[]
-  tokens                                                                     tokens[]
   usuarios_plataforma                                                        usuarios_plataforma[]
   usuarios_temp_usuarios_temp_atualizado_por_usuario_idTousuarios_temp       usuarios_temp?         @relation("usuarios_temp_atualizado_por_usuario_idTousuarios_temp", fields: [atualizado_por_usuario_id], references: [usuario_id], map: "fk_usuarios_atualizado_por_usuario")
   other_usuarios_temp_usuarios_temp_atualizado_por_usuario_idTousuarios_temp usuarios_temp[]        @relation("usuarios_temp_atualizado_por_usuario_idTousuarios_temp")
@@ -395,6 +400,192 @@ model itens_importacao {
 
   @@id([item_id, importacao_id, locatario_id], map: "itens_importacao_pk")
   @@schema("jobs")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model clientes {
+  cliente_id      String           @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id    String           @db.Uuid
+  nome            String
+  documento       String?
+  email           String?
+  telefone        String?
+  criado_em       DateTime         @default(now()) @db.Timestamptz(6)
+  atualizado_em   DateTime         @default(now()) @db.Timestamptz(6)
+  excluido_em     DateTime?        @db.Timestamptz(6)
+  excluido_por    String?          @db.Uuid
+  excluido_motivo String?
+  locatarios      locatarios       @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "clientes_locatarios_fk")
+  ordens_servico  ordens_servico[]
+  transacoes      transacoes[]
+
+  @@id([cliente_id, locatario_id], map: "clientes_pk")
+  @@schema("core")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model estoques {
+  locatario_id       String               @db.Uuid
+  estoque_id         String               @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome               String
+  padrao             Boolean              @default(true)
+  criado_em          DateTime             @default(now()) @db.Timestamptz(6)
+  atualizado_em      DateTime             @default(now()) @db.Timestamptz(6)
+  excluido_em        DateTime?            @db.Timestamptz(6)
+  excluido_por       String?              @db.Uuid
+  excluido_motivo    String?
+  locatarios         locatarios           @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "estoques_locatarios_fk")
+  itens_transacao    itens_transacao[]
+  movimentos_estoque movimentos_estoque[]
+
+  @@id([locatario_id, estoque_id], map: "estoques_pk")
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model fornecedores {
+  fornecedor_id   String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id    String       @db.Uuid
+  nome            String
+  documento       String?
+  email           String?
+  telefone        String?
+  criado_em       DateTime     @default(now()) @db.Timestamptz(6)
+  atualizado_em   DateTime     @default(now()) @db.Timestamptz(6)
+  excluido_em     DateTime?    @db.Timestamptz(6)
+  excluido_por    String?      @db.Uuid
+  excluido_motivo String?
+  locatarios      locatarios   @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "fornecedores_locatarios_fk")
+  transacoes      transacoes[]
+
+  @@id([fornecedor_id, locatario_id], map: "fornecedores_pk")
+  @@schema("core")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model itens_transacao {
+  locatario_id       String               @db.Uuid
+  item_transacao_id  String               @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  transacao_id       String               @db.Uuid
+  produto_id         String               @db.Uuid
+  estoque_id         String               @db.Uuid
+  valor              Decimal              @db.Decimal(18, 3)
+  criado_em          DateTime             @default(now()) @db.Timestamptz(6)
+  atualizado_em      DateTime             @default(now()) @db.Timestamptz(6)
+  excluido_em        DateTime?            @db.Timestamptz(6)
+  excluido_por       String?              @db.Uuid
+  excluido_motivo    String?
+  estoques           estoques             @relation(fields: [locatario_id, estoque_id], references: [locatario_id, estoque_id], onDelete: Cascade, map: "itens_transacao_estoques_fk")
+  locatarios         locatarios           @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "itens_transacao_locatarios_fk")
+  produtos           produtos             @relation(fields: [produto_id, locatario_id], references: [produto_id, locatario_id], onDelete: Cascade, map: "itens_transacao_produtos_fk")
+  transacoes         transacoes           @relation(fields: [transacao_id, locatario_id], references: [transacao_id, locatario_id], onDelete: Cascade, map: "itens_transacao_transacoes_fk")
+  movimentos_estoque movimentos_estoque[]
+
+  @@id([locatario_id, item_transacao_id, transacao_id], map: "itens_transacao_pk")
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model movimentos_estoque {
+  movimentacao_id   String          @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id      String          @db.Uuid
+  estoque_id        String          @db.Uuid
+  produto_id        String          @db.Uuid
+  transacao_id      String          @db.Uuid
+  item_transacao_id String          @db.Uuid
+  tipo              String
+  delta             Decimal         @db.Decimal(18, 3)
+  quantidade        Decimal         @db.Decimal(18, 3)
+  ocorrencia_em     DateTime        @default(now()) @db.Timestamptz(6)
+  detalhes          Json            @default("{}")
+  referencia        String?
+  observacao        String?
+  criado_em         DateTime        @default(now()) @db.Timestamptz(6)
+  criado_por        String?         @db.Uuid
+  estoques          estoques        @relation(fields: [locatario_id, estoque_id], references: [locatario_id, estoque_id], onDelete: Cascade, map: "movimentos_estoque_estoques_fk")
+  itens_transacao   itens_transacao @relation(fields: [locatario_id, item_transacao_id, transacao_id], references: [locatario_id, item_transacao_id, transacao_id], onDelete: Cascade, map: "movimentos_estoque_itens_transacao_fk")
+  locatarios        locatarios      @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "movimentos_estoque_locatarios_fk")
+  produtos          produtos        @relation(fields: [produto_id, locatario_id], references: [produto_id, locatario_id], onDelete: Cascade, map: "movimentos_estoque_produtos_fk")
+
+  @@id([movimentacao_id, locatario_id], map: "movimentos_estoque_pk")
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model ordens_servico {
+  ordem_servico_id String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id     String       @db.Uuid
+  cliente_id       String?      @db.Uuid
+  status           String       @default("ABERTA")
+  titulo           String
+  descricao        String?
+  aberta_em        DateTime     @default(now()) @db.Timestamptz(6)
+  fechada_em       DateTime?    @db.Timestamptz(6)
+  criado_em        DateTime     @default(now()) @db.Timestamptz(6)
+  atualizado_em    DateTime     @default(now()) @db.Timestamptz(6)
+  excluido_em      DateTime?    @db.Timestamptz(6)
+  excluido_por     String?      @db.Uuid
+  excluido_motivo  String?
+  clientes         clientes?    @relation(fields: [cliente_id, locatario_id], references: [cliente_id, locatario_id], onDelete: Cascade, map: "ordens_servico_clientes_fk")
+  transacoes       transacoes[]
+
+  @@id([ordem_servico_id, locatario_id], map: "ordens_servico_pk")
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model produtos {
+  produto_id         String               @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id       String               @db.Uuid
+  sku                String?
+  nome               String
+  unidade            String?              @default("UN")
+  tipo               String
+  ativo              Boolean              @default(true)
+  criado_em          DateTime             @default(now()) @db.Timestamptz(6)
+  atualizado_em      DateTime             @default(now()) @db.Timestamptz(6)
+  excluido_em        DateTime?            @db.Timestamptz(6)
+  excluido_por       String?              @db.Uuid
+  excluido_motivo    String?
+  itens_transacao    itens_transacao[]
+  movimentos_estoque movimentos_estoque[]
+  locatarios         locatarios           @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "produtos_locatarios_fk")
+
+  @@id([produto_id, locatario_id], map: "produtos_pk")
+  @@schema("core")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model transacoes {
+  transacao_id     String            @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id     String            @db.Uuid
+  cliente_id       String?           @db.Uuid
+  fornecedor_id    String?           @db.Uuid
+  ordem_servico_id String?           @db.Uuid
+  tipo             String
+  origem           String
+  valor            Decimal           @db.Decimal(18, 3)
+  vencimento_em    DateTime          @db.Timestamptz(6)
+  status           String
+  criado_em        DateTime          @default(now()) @db.Timestamptz(6)
+  atualizado_em    DateTime          @default(now()) @db.Timestamptz(6)
+  excluido_em      DateTime?         @db.Timestamptz(6)
+  excluido_por     String?           @db.Uuid
+  excluido_motivo  String?
+  itens_transacao  itens_transacao[]
+  clientes         clientes?         @relation(fields: [cliente_id, locatario_id], references: [cliente_id, locatario_id], onDelete: Cascade, map: "transacoes_clientes_fk")
+  fornecedores     fornecedores?     @relation(fields: [fornecedor_id, locatario_id], references: [fornecedor_id, locatario_id], onDelete: Cascade, map: "transacoes_fornecedores_fk")
+  locatarios       locatarios        @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "transacoes_locatarios_fk")
+  ordens_servico   ordens_servico?   @relation(fields: [ordem_servico_id, locatario_id], references: [ordem_servico_id, locatario_id], onDelete: Cascade, map: "transacoes_ordens_servico_fk")
+
+  @@id([transacao_id, locatario_id], map: "transacoes_pk")
+  @@schema("core")
 }
 
 enum ciclo_cobranca {

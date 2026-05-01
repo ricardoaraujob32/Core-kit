@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS produtos (
   excluido_motivo TEXT NULL
 );
 
-ALTER TABLE ADD CONSTRAINT pk_produtos PRIMARY KEY (locatario_id, produto_id);
+ALTER TABLE produtos ADD CONSTRAINT pk_produtos PRIMARY KEY (locatario_id, produto_id);
 
-ALTER TABLE ADD CONSTRAINT uq_produtos_nome UNIQUE (locatario_id, nome);
+ALTER TABLE produtos ADD CONSTRAINT uq_produtos_nome UNIQUE (locatario_id, nome);
 
 CREATE UNIQUE INDEX uq_produtos_sku ON produtos(locatario_id, sku) WHERE sku IS NOT NULL;

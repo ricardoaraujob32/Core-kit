@@ -7,17 +7,11 @@ import type { AtualizarConfiguracaoLocatarioInput, CriarConfiguracaoLocatarioInp
 
 type Params = {
   mode: "create" | "edit";
-  locatarioId?: string | null;
   configuracaoId?: string;
   onSuccess?: () => void | Promise<void>;
 };
 
-export function useSalvarConfiguracaoLocatario({
-  mode,
-  locatarioId,
-  configuracaoId,
-  onSuccess,
-}: Params) {
+export function useSalvarConfiguracaoLocatario({ mode, configuracaoId, onSuccess }: Params) {
   const [isSaving, setIsSaving] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -26,20 +20,12 @@ export function useSalvarConfiguracaoLocatario({
       | CriarConfiguracaoLocatarioInput
       | AtualizarConfiguracaoLocatarioInput,
   ) {
-    const id = locatarioId?.trim();
-
-    if (!id) {
-      setErro("Locatário inválido.");
-      return false;
-    }
-
     setIsSaving(true);
     setErro(null);
 
     try {
       if (mode === "create") {
         await meuLocatarioApi.criarConfiguracao(
-          id,
           input as CriarConfiguracaoLocatarioInput,
         );
       } else {
@@ -51,7 +37,6 @@ export function useSalvarConfiguracaoLocatario({
         }
 
         await meuLocatarioApi.atualizarConfiguracao(
-          id,
           confId,
           input as AtualizarConfiguracaoLocatarioInput,
         );

@@ -1,23 +1,18 @@
-// frontend/src/layouts/AuthLayout.tsx
+// apps/web/src/layouts/authLayout.tsx
 
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
-import { isSuperAdmin } from "../core/auth/tipos";
+import { JSX } from "react";
 
-export default function AuthLayout() {
-  const { isLoading, isAuthenticated, user } = useAuth();
+export default function AuthLayout(): JSX.Element {
+  const { isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return <div>Carregando...</div>;
   }
 
-  if (isAuthenticated && user) {
-    return (
-      <Navigate
-        to={isSuperAdmin(user) ? "/superadmin" : "/app"}
-        replace
-      />
-    );
+  if (isAuthenticated) {
+    return <Navigate to="/app" replace />;
   }
 
   return (

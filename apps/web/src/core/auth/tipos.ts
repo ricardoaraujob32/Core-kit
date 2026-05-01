@@ -1,17 +1,22 @@
-// web/src/core/auth/tipos.ts
+// apps/web/src/core/auth/tipos.ts
 
 export type Permissao = string;
 export type Papel = string;
 export type ModuloHabilitado = string;
+
+export const AUTHZ_FLAGS = {
+  enableSuperadminFrontend: false,
+} as const;
 
 export type SessionUser = {
   usuarioId: string;
   locatarioId: string | null;
   papeis: Papel[];
   permissoes: Permissao[];
-  modulosHabilitados?: ModuloHabilitado[];
+  modulosHabilitados: ModuloHabilitado[];
   nome?: string;
   email?: string;
+  isSuperAdmin?: boolean;
 };
 
 export type LoginInput = {
@@ -66,6 +71,15 @@ export type AuthContextValue = {
 };
 
 export function isSuperAdmin(user: SessionUser | null | undefined): boolean {
+  if (!AUTHZ_FLAGS.enableSuperadminFrontend) {
+    return false;
+  }
+
   if (!user) return false;
+
+  if (user.isSuperAdmin === true) {
+    return true;
+  }
+
   return Array.isArray(user.papeis) && user.papeis.includes("SUPERADMIN");
 }

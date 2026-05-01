@@ -89,11 +89,25 @@ export function createFnAuthGuard(deps: AuthGuardDeps) {
       });
     }
 
-    const resultado = deps.validarSessao({
-      accessToken,
+    console.log("[http.authGuard.start]", {
+      url: request.url,
+      method: request.method,
+      possuiBearer: true,
     });
 
+    const resultado = await Promise.resolve(
+      deps.validarSessao({
+        accessToken,
+      }),
+    );
+
     if (!resultado.ok) {
+      console.error("[http.authGuard.err][validarSessao]", {
+        url: request.url,
+        method: request.method,
+        erro: resultado.error,
+      });
+
       return sendHttpError(reply, resultado.error);
     }
 
@@ -103,5 +117,14 @@ export function createFnAuthGuard(deps: AuthGuardDeps) {
       sessionId: resultado.value.sessao.sessionId,
       expiraEm: resultado.value.sessao.expiraEm,
     };
+
+    console.log("[http.authGuard.ok]", {
+      url: request.url,
+      method: request.method,
+      usuarioId: request.usuario.usuarioId,
+      locatarioId: request.usuario.locatarioId ?? null,
+      sessionId: request.usuario.sessionId ?? null,
+      expiraEm: request.usuario.expiraEm ?? null,
+    });
   };
 }

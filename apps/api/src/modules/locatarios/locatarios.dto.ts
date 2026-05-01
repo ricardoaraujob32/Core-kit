@@ -11,6 +11,10 @@ export const configuracaoIdParamsSchema = z.object({
   configuracaoId: z.string().trim().min(1, "O parâmetro 'configuracaoId' é obrigatório."),
 });
 
+export const configuracaoIdOnlyParamsSchema = z.object({
+  configuracaoId: z.string().trim().min(1, "O parâmetro 'configuracaoId' é obrigatório."),
+});
+
 export const criarLocatarioBodySchema = z.object({
   nome: z.string().trim().min(2, "O campo 'nome' deve ter ao menos 2 caracteres."),
   slug: z.string().trim().min(2, "O campo 'slug' deve ter ao menos 2 caracteres."),
@@ -84,6 +88,7 @@ export const atualizarConfiguracaoBodySchema = z.object({
 
 export type LocatarioIdParamsDto = z.infer<typeof locatarioIdParamsSchema>;
 export type ConfiguracaoIdParamsDto = z.infer<typeof configuracaoIdParamsSchema>;
+export type ConfiguracaoIdOnlyParamsDto = z.infer<typeof configuracaoIdOnlyParamsSchema>;
 export type CriarLocatarioBodyDto = z.infer<typeof criarLocatarioBodySchema>;
 export type AtualizarLocatarioBodyDto = z.infer<typeof atualizarLocatarioBodySchema>;
 export type SuspenderLocatarioBodyDto = z.infer<typeof suspenderLocatarioBodySchema>;
@@ -94,6 +99,10 @@ export type AtualizarConfiguracaoBodyDto = z.infer<typeof atualizarConfiguracaoB
 
 export function parseLocatarioIdParams(input: unknown) {
   return locatarioIdParamsSchema.safeParse(input);
+}
+
+export function parseConfiguracaoIdOnlyParams(input: unknown) {
+  return configuracaoIdOnlyParamsSchema.safeParse(input);
 }
 
 export function parseConfiguracaoIdParams(input: unknown) {

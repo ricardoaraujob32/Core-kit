@@ -54,6 +54,14 @@ export type AuthUseCaseDeps = {
   resolverContextoAutorizadoDeps: {
     rbacPorta: AuthPrismaAdapters["rbacPorta"];
   };
+
+  listarModulosHabilitadosDeps: {
+    repositorio: AuthPrismaAdapters["modulosHabilitadosRepositorio"];
+  };
+
+  snapshotDeps: {
+    autorizacaoRepositorio: AuthPrismaAdapters["autorizacaoRepositorio"];
+  };
 };
 
 /**
@@ -105,11 +113,22 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     rbacPorta: adapters.rbacPorta,
   };
 
+  const listarModulosHabilitadosDeps = {
+    repositorio: adapters.modulosHabilitadosRepositorio,
+  };
+
+  const snapshotDeps = {
+    autorizacaoRepositorio: adapters.autorizacaoRepositorio,
+  };
+
   return {
     emitirSessaoDeps,
     rotacionarRefreshDeps,
     validarSessaoDeps,
     logoutDeps,
     resolverContextoAutorizadoDeps,
+    listarModulosHabilitadosDeps,
+    snapshotDeps,
   };
-}
+ };
+

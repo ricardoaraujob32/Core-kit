@@ -1,4 +1,4 @@
-// apps/api/src/infra/prisma/auth/createAuthPrismaContexto.ts
+// apps/api/src/infra/prisma/auth/authPrismaContexto.ts
 
 import type { PrismaClient } from "@prisma/client";
 import type { IdPorta, LocatarioId, UsuarioId } from "@core-kit/core";

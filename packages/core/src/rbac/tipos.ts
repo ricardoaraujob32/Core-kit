@@ -54,6 +54,9 @@ export const Permissoes = {
   TENANT_USUARIO_LISTAR: "tenant.usuario.listar",
   TENANT_USUARIO_ATUALIZAR: "tenant.usuario.atualizar",
   TENANT_USUARIO_ATRIBUIR_PAPEIS: "tenant.usuario.atribuirPapeis",
+  TENANT_USUARIO_OBTER: "tenant.usuario.obter",
+  TENANT_USUARIO_INATIVAR: "tenant.usuario.inativar",
+  TENANT_USUARIO_REDEFINIR_SENHA: "tenant.usuario.redefinirSenha",
 
   TENANT_RBAC_PAPEL_CRIAR: "tenant.rbac.papel.criar",
   TENANT_RBAC_PAPEL_ATUALIZAR: "tenant.rbac.papel.atualizar",
@@ -64,6 +67,9 @@ export const Permissoes = {
   TENANT_RBAC_USUARIO_PAPEIS_ATUALIZAR: "tenant.rbac.usuario.papeis.atualizar",
 
   TENANT_AUDITORIA_LER: "tenant.auditoria.ler",
+
+  TENANT_ASSINATURA_LER: "tenant.assinatura.ler",
+  TENANT_ASSINATURA_ATUALIZAR: "tenant.assinatura.atualizar",
 
   AUTH_SESSAO_VALIDAR: "auth.sessao.validar",
   AUTH_SESSAO_REVOGAR: "auth.sessao.revogar",

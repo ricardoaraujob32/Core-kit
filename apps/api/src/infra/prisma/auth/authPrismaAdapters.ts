@@ -1,4 +1,4 @@
-// apps/api/src/infra/prisma/auth/createAuthPrismaAdapters.ts
+// apps/api/src/infra/prisma/auth/authPrismaAdapters.ts
 
 import type { IdPorta } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
@@ -6,6 +6,8 @@ import { createLocatariosRepositorioAuth } from "./locatario/locatariosRepositor
 import { createUsuariosRepositorioAuth } from "./usuario/usuariosRepositorioAuthPrisma";
 import { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma";
 import { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma";
+import { createAutorizacaoRepositorio } from "../autorizacao/rbac/autorizacaoRepositorioPrisma";
+import { createModulosHabilitadosRepositorio } from "./assinatura/modulosHabilitadosRepositorioPrisma";
 
 /**
  * Dependências Prisma de autenticação montadas sobre um `db`.
@@ -18,6 +20,8 @@ export type AuthPrismaAdapters = {
   usuariosRepositorio: ReturnType<typeof createUsuariosRepositorioAuth>;
   tokensPorta: ReturnType<typeof createTokensAuthPorta>;
   rbacPorta: ReturnType<typeof createRbacAuthPorta>;
+  autorizacaoRepositorio: ReturnType<typeof createAutorizacaoRepositorio>;
+  modulosHabilitadosRepositorio: ReturnType<typeof createModulosHabilitadosRepositorio>;
 };
 
 type CreateAuthPrismaAdaptersParams = {
@@ -43,5 +47,7 @@ export function createAuthPrismaAdapters(db: PrismaDb, params: CreateAuthPrismaA
     usuariosRepositorio: createUsuariosRepositorioAuth(db),
     tokensPorta: createTokensAuthPorta(db, params.idPorta),
     rbacPorta: createRbacAuthPorta(db),
+    autorizacaoRepositorio: createAutorizacaoRepositorio(db),
+    modulosHabilitadosRepositorio: createModulosHabilitadosRepositorio(db),
   };
 }

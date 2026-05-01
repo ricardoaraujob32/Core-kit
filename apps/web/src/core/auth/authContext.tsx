@@ -1,4 +1,4 @@
-// web/src/core/auth/authContext.tsx
+// apps/web/src/core/auth/authContext.tsx
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
 import { HttpError, registerAccessTokenGetter, registerRefreshSessionHandler, registerUnauthorizedHandler } from "../api/httpClient";
@@ -17,6 +17,7 @@ function normalizeUser(user: SessionUser): SessionUser {
     modulosHabilitados: Array.isArray(user.modulosHabilitados)
       ? user.modulosHabilitados
       : [],
+    isSuperAdmin: user.isSuperAdmin === true,
   };
 }
 

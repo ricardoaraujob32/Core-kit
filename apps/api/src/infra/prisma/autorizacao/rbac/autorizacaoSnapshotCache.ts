@@ -4,9 +4,12 @@ import type { LocatarioId, UsuarioId } from "@core-kit/core";
 import type { AutorizacaoSnapshot } from "@core-kit/core";
 
 /**
- * 
- * @param params 
- * @returns 
+ * Chave primária do cache de snapshot de autorização.
+ *
+ * O cache é segmentado por:
+ * - locatário;
+ * - usuário;
+ * - escopo de plataforma.
  */
 function buildKey(params: {
   locatarioId: LocatarioId;
@@ -20,16 +23,49 @@ function buildKey(params: {
   ].join(":");
 }
 
-/**
- * 
- */
+type CacheParams = {
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+  isPlataforma?: boolean;
+};
+
 type CacheEntry = {
   value: AutorizacaoSnapshot;
   expiresAt: number;
+  locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
+};
+
+type CreateAutorizacaoSnapshotCacheParams = {
+  /**
+   * TTL em milissegundos.
+   *
+   * - `0` ou valor negativo desabilita retenção prática, porque toda leitura expira.
+   */
+  ttlMs?: number;
+
+  /**
+   * Permite desligar completamente o cache sem alterar chamadas existentes.
+   *
+   * Útil em desenvolvimento e depuração de RBAC/módulos.
+   */
+  enabled?: boolean;
 };
 
 /**
- * 
+ * Cache em memória para snapshots de autorização.
+ *
+ * Responsabilidades:
+ * - armazenar snapshots por usuário/locatário;
+ * - expirar entradas por TTL;
+ * - invalidar por chave específica;
+ * - invalidar em lote por locatário;
+ * - invalidar em lote por usuário;
+ * - permitir desabilitação em dev/teste.
+ *
+ * Observação arquitetural:
+ * - em execução com múltiplos processos, este cache é local ao processo;
+ * - portanto, invalidação distribuída exigirá mecanismo externo.
  */
 export class AutorizacaoSnapshotCache {
   private readonly entries = new Map<string, CacheEntry>();
@@ -41,19 +77,10 @@ export class AutorizacaoSnapshotCache {
     usuarioId: UsuarioId;
     isPlataforma?: boolean;
   }): AutorizacaoSnapshot | null {
-    const key = buildKey(params);
-    const entry = this.entries.get(key);
-
-    if (!entry) {
-      return null;
-    }
-
-    if (Date.now() > entry.expiresAt) {
-      this.entries.delete(key);
-      return null;
-    }
-
-    return entry.value;
+    console.log("🧪 AutorizacaoSnapshotCache.get DESABILITADO", {
+      key: buildKey(params),
+    });
+    return null;
   }
 
   set(
@@ -64,11 +91,9 @@ export class AutorizacaoSnapshotCache {
     },
     value: AutorizacaoSnapshot,
   ): void {
-    const key = buildKey(params);
-
-    this.entries.set(key, {
-      value,
-      expiresAt: Date.now() + this.ttlMs,
+    console.log("🧪 AutorizacaoSnapshotCache.set IGNORADO", {
+      key: buildKey(params),
+      snapshot: value,
     });
   }
 
@@ -85,7 +110,4 @@ export class AutorizacaoSnapshotCache {
   }
 }
 
-/**
- * 
- */
 export const autorizacaoSnapshotCache = new AutorizacaoSnapshotCache();

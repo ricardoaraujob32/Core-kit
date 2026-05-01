@@ -1,21 +1,18 @@
-// frontend/src/core/routing/TenantRoute.tsx
+// apps/web/src/core/routing/tenantRoute.tsx
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { isSuperAdmin, type Permissao } from "../auth/tipos";
-import { useAuth } from "../auth/useAuth";
+import { useAuthorization } from "../auth/useAuthorization";
+import { JSX } from "react";
 
 type TenantRouteProps = {
-  requiredPermissions?: Permissao[];
+  requiredPermissions?: string[];
+  requiredModule?: string;
   requireAllPermissions?: boolean;
   loginPath?: string;
   forbiddenPath?: string;
 };
 
-function hasRequiredPermissions(
-  currentPermissions: Permissao[],
-  requiredPermissions: Permissao[],
-  requireAllPermissions: boolean,
-): boolean {
+function hasRequiredPermissions(currentPermissions: string[], requiredPermissions: string[], requireAllPermissions: boolean): boolean {
   if (requiredPermissions.length === 0) {
     return true;
   }
@@ -31,18 +28,9 @@ function hasRequiredPermissions(
   );
 }
 
-export function TenantRoute({
-  requiredPermissions = [],
-  requireAllPermissions = true,
-  loginPath = "/login",
-  forbiddenPath = "/acesso-negado",
-}: TenantRouteProps) {
+export function TenantRoute({ requiredPermissions = [], requiredModule, requireAllPermissions = true, loginPath = "/login", forbiddenPath = "/acesso-negado"}: TenantRouteProps): JSX.Element {
   const location = useLocation();
-  const { isLoading, isAuthenticated, user } = useAuth();
-
-  if (isLoading) {
-    return <div>Carregando sessão...</div>;
-  }
+  const { isAuthenticated, user, permissions, hasModule } = useAuthorization();
 
   if (!isAuthenticated || !user) {
     return (
@@ -54,15 +42,14 @@ export function TenantRoute({
     );
   }
 
-  if (isSuperAdmin(user)) {
-    return <Navigate to={forbiddenPath} replace />;
-  }
-
   if (!user.locatarioId || user.locatarioId.trim() === "") {
     return <Navigate to={forbiddenPath} replace />;
   }
 
-  const permissions = Array.isArray(user.permissoes) ? user.permissoes : [];
+  if (requiredModule && !hasModule(requiredModule)) {
+    return <Navigate to={forbiddenPath} replace />;
+  }
+
   const authorized = hasRequiredPermissions(
     permissions,
     requiredPermissions,

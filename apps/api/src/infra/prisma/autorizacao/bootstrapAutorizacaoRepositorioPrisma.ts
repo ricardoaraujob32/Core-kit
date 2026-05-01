@@ -1,4 +1,4 @@
-//
+// apps/api/src/infra/prisma/autorizacao/bootstrapAutorizacaoRepositorioPrisma.ts
 
 import { wrapOk } from "@core-kit/core";
 import type { BootstrapAutorizacaoRepositorio, CatalogoAutorizacaoBootstrap } from "@core-kit/core";

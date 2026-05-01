@@ -10,11 +10,8 @@ import { useSalvarConfiguracaoLocatario } from "../hooks/useSalvarConfiguracaoLo
 import type { AtualizarConfiguracaoLocatarioInput, ConfiguracaoLocatario, CriarConfiguracaoLocatarioInput } from "../tipos";
 
 export default function ConfiguracoesLocatarioPage() {
-  const { user } = useAuth();
-  const locatarioId = user?.locatarioId ?? null;
-
   const { itens, configuracaoAtiva, isLoading, erro, recarregar } =
-    useConfiguracoesLocatario(locatarioId);
+    useConfiguracoesLocatario();
 
   const [modoFormulario, setModoFormulario] = useState<"create" | "edit">("create");
   const [configuracaoEmEdicao, setConfiguracaoEmEdicao] =
@@ -22,7 +19,6 @@ export default function ConfiguracoesLocatarioPage() {
 
   const { salvar, isSaving, erro: erroSalvar } = useSalvarConfiguracaoLocatario({
     mode: modoFormulario,
-    locatarioId,
     configuracaoId: configuracaoEmEdicao?.configuracaoId,
     onSuccess: async () => {
       setModoFormulario("create");
@@ -32,7 +28,6 @@ export default function ConfiguracoesLocatarioPage() {
   });
 
   const { ativar, isRunning, erro: erroAtivar } = useAtivarConfiguracaoLocatario(
-    locatarioId,
     async () => {
       await recarregar();
     },

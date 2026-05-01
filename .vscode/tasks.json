@@ -23,23 +23,19 @@
     {
       "label": "TS: Compilar tudo",
       "type": "shell",
-      "command": "npx tsc -b packages/core/tsconfig.json apps/api/tsconfig.json apps/web/tsconfig.json",
+      "command": "pnpm -C packages/core build && pnpm -C apps/api build && pnpm -C apps/web build",
       "group": {
         "kind": "build",
         "isDefault": true
       },
-      "problemMatcher": [
-        "$tsc"
-      ]
+      "problemMatcher": []
     },
     {
       "label": "TS: So validar tipos",
       "type": "shell",
-      "command": "npx tsc --noEmit -p packages/core/tsconfig.json && npx tsc --noEmit -p apps/api/tsconfig.json && npx tsc --noEmit -p apps/web/tsconfig.json",
+      "command": "pnpm -C packages/core typecheck && pnpm -C apps/api typecheck && pnpm -C apps/web typecheck",
       "group": "test",
-      "problemMatcher": [
-        "$tsc"
-      ]
+      "problemMatcher": []
     },
     {
       "label": "TS: Compilar projeto individual",
@@ -96,9 +92,12 @@
     {
       "label": "Backend: Iniciar",
       "type": "shell",
-      "command": "node --env-file=apps/api/.env --import tsx apps/api/src/server.ts",
+      "command": "bash -lc \"cd apps/api && node --env-file=.env --import tsx src/server.ts\"",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "DOTENV_CONFIG_PATH": "apps/api/.env"
+        }
       },
       "isBackground": true,
       "problemMatcher": {
@@ -123,8 +122,13 @@
     {
       "label": "Backend: Desligar",
       "type": "shell",
-      "command": "bash -lc \"pids=$(lsof -tiTCP:3333 -sTCP:LISTEN 2>/dev/null); if [ -n \\\"$pids\\\" ]; then kill $pids; else pkill -f 'apps/api/src/server.ts|dist/cli.mjs apps/api/src/server.ts' || true; fi\"",
-      "problemMatcher": []
+      "command": "bash -lc 'set +e; pids=\"$(lsof -tiTCP:3333 -sTCP:LISTEN 2>/dev/null)\"; if [ -n \"$pids\" ]; then kill -TERM $pids 2>/dev/null; sleep 1; kill -KILL $pids 2>/dev/null; fi; pkill -TERM -f \"apps/api/src/server.ts|pnpm -C apps/api exec|node --env-file=.env --import tsx|tsx src/server.ts|apps/api/dist/.+server\" 2>/dev/null; sleep 1; pkill -KILL -f \"apps/api/src/server.ts|pnpm -C apps/api exec|node --env-file=.env --import tsx|tsx src/server.ts|apps/api/dist/.+server\" 2>/dev/null; true'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     },
     {
       "label": "Backend: Reiniciar",
@@ -180,29 +184,23 @@
     {
       "label": "Core: Build",
       "type": "shell",
-      "command": "npx tsc -p packages/core/tsconfig.json",
+      "command": "pnpm -C packages/core build",
       "group": "build",
-      "problemMatcher": [
-        "$tsc"
-      ]
+      "problemMatcher": []
     },
     {
       "label": "API: Build",
       "type": "shell",
-      "command": "npx tsc -p apps/api/tsconfig.json",
+      "command": "pnpm -C apps/api build",
       "group": "build",
-      "problemMatcher": [
-        "$tsc"
-      ]
+      "problemMatcher": []
     },
     {
       "label": "Frontend: Build",
       "type": "shell",
-      "command": "npx tsc -p apps/web/tsconfig.json",
+      "command": "pnpm -C apps/web build",
       "group": "build",
-      "problemMatcher": [
-        "$tsc"
-      ]
+      "problemMatcher": []
     },
     {
       "label": "Root: Testes Unitarios",
@@ -226,11 +224,45 @@
       "problemMatcher": []
     },
     {
+      "label": "Prisma: Gerar schema e client API",
+      "type": "shell",
+      "command": "npx prisma db pull --schema=apps/api/prisma/schema.prisma && npx prisma generate --schema=apps/api/prisma/schema.prisma",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
       "label": "Frontend: Testes Unitarios",
       "type": "shell",
-      "command": "echo \"Sem testes unitarios configurados em apps/web\"",
+      "command": "pnpm -C apps/web test",
       "group": "test",
       "problemMatcher": []
+    },
+    {
+      "label": "API: Reset runtime local",
+      "type": "shell",
+      "command": "bash -lc \"set -euo pipefail; cd '${workspaceFolder}'; echo '==> Encerrando processos locais da API'; pkill -f 'apps/api/src/server.ts' 2>/dev/null || true; pkill -f 'tsx src/index.ts' 2>/dev/null || true; pkill -f 'node --env-file=.env --import tsx src/server.ts' 2>/dev/null || true; echo '==> Limpando dist locais'; rm -rf apps/api/dist packages/core/dist apps/web/dist; echo '==> Removendo cópias empacotadas de @core-kit/api'; rm -rf node_modules/@core-kit/api 2>/dev/null || true; rm -rf node_modules/.pnpm/node_modules/@core-kit/api 2>/dev/null || true; echo '==> Instalando dependências'; pnpm install; echo '==> Gerando Prisma Client'; pnpm -C apps/api exec prisma generate --schema=prisma/schema.prisma; echo '==> Buildando core'; pnpm -C packages/core build; echo '==> Buildando api'; pnpm -C apps/api build; echo '==> Subindo API via source'; cd apps/api && node --env-file=.env --import tsx src/server.ts\"",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Server listening at http://"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
     }
   ]
 }

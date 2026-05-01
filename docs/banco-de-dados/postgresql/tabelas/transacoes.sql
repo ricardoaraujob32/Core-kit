@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS transacoes (
   fornecedor_id UUID NULL,
   ordem_servico_id UUID NULL,
 
+  tipo TEXT NOT NULL CHECK (tipo IN ('VENDA','COMPRA')),
+  origem TEXT NOT NULL CHECK (origem IN ('AVULSA','ORDEM_SERVICO')),
   valor NUMERIC(18,3) NOT NULL,
   vencimento_em TIMESTAMPTZ NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('ABERTA', 'EM_PROCESSAMENTO', 'AGUARDANDO_PAGAMENTO', 'ENVIADA', 'CONCLUIDA')),
@@ -15,4 +17,4 @@ CREATE TABLE IF NOT EXISTS transacoes (
   excluido_motivo TEXT NULL
 );
 
-ALTER TABLE ADD CONSTRAINT pk_transacao PRIMARY KEY (locatario_id, transacao_id);
+ALTER TABLE transacoes ADD CONSTRAINT pk_transacao PRIMARY KEY (locatario_id, transacao_id);

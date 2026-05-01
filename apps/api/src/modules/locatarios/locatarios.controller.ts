@@ -3,14 +3,19 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { clientePrisma } from "../../infra/prisma/client";
-import { createFnAtivarConfiguracaoLocatario, createFnAtualizarConfiguracaoLocatario, createFnAtualizarLocatario, createFnCriarConfiguracaoLocatario, createFnCriarLocatario, createFnEncerrarLocatario, createFnListarLocatarios, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, metaAcao } from "@core-kit/core";
+import { createFnAtivarConfiguracaoLocatario, createFnAtualizarConfiguracaoLocatario, createFnAtualizarLocatario, createFnCriarConfiguracaoLocatario, 
+  createFnCriarLocatario, createFnEncerrarLocatario, createFnListarLocatarios, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, 
+  metaAcao } from "@core-kit/core";
 import { exigirMesmoLocatarioHttp } from "../../http/routeGuards";
 //import { auditar } from "../auditoria/auditoria.dispatcher.instance";
-import { obterCtxAutorizadoOuResponderErro, tempCtxAutenticadoSemAutorizacaoRemoverDepois } from "../helpers";
 import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma";
 import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { AtualizarConfiguracaoBodyDto, AtualizarLocatarioBodyDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, CriarLocatarioBodyDto, EncerrarLocatarioBodyDto, LocatarioIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, parseEncerrarLocatarioBody, parseLocatarioIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, ReativarLocatarioBodyDto, SuspenderLocatarioBodyDto } from "./locatarios.dto";
+import { AtualizarConfiguracaoBodyDto, AtualizarLocatarioBodyDto, ConfiguracaoIdOnlyParamsDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, CriarLocatarioBodyDto, EncerrarLocatarioBodyDto, 
+  LocatarioIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
+  parseEncerrarLocatarioBody, parseLocatarioIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, ReativarLocatarioBodyDto, 
+  SuspenderLocatarioBodyDto } from "./locatarios.dto";
+import { autorizarHttp } from "../../http/autorizarHttp";
 
 /**
  * Builder oficial de contexto HTTP para este módulo.
@@ -60,7 +65,7 @@ function responderErroValidacao(reply: FastifyReply, issues: Array<{ path: (stri
  * @returns Resposta HTTP padronizada.
  */
 export async function listarLocatariosSuperAdminController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
   if (!ctx) return;
 
   const { locatariosRepositorio } = criarDepsLocatarios();
@@ -106,7 +111,7 @@ export async function obterLocatarioSuperAdminController(request: FastifyRequest
   const params = parseLocatarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
   if (!ctx) return;
 
   const { locatariosRepositorio } = criarDepsLocatarios();
@@ -152,7 +157,7 @@ export async function criarLocatarioSuperAdminController(request: FastifyRequest
   const body = parseCriarLocatarioBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
   if (!ctx) return;
 
   const { locatariosRepositorio, relogio, idPorta, transacao } = criarDepsLocatarios();
@@ -188,7 +193,7 @@ export async function atualizarLocatarioSuperAdminController(request: FastifyReq
   const body = parseAtualizarLocatarioBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
   if (!ctx) return;
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
@@ -222,7 +227,7 @@ export async function suspenderLocatarioSuperAdminController(request: FastifyReq
   const body = parseSuspenderLocatarioBody(request.body ?? {});
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
   if (!ctx) return;
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
@@ -256,7 +261,7 @@ export async function reativarLocatarioSuperAdminController(request: FastifyRequ
   const body = parseReativarLocatarioBody(request.body ?? {});
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
   if (!ctx) return;
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
@@ -290,7 +295,7 @@ export async function encerrarLocatarioSuperAdminController(request: FastifyRequ
   const body = parseEncerrarLocatarioBody(request.body ?? {});
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
   if (!ctx) return;
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
@@ -324,28 +329,8 @@ export async function encerrarLocatarioSuperAdminController(request: FastifyRequ
  * @returns Resposta HTTP padronizada.
  */
 export async function obterMeuLocatarioController(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
-  //   locatarioIdAlvo: request.params.id,
-  // });
-  // if (!ctx) return;
-
-  const params = parseLocatarioIdParams(request.params);
-  if (!params.success) return responderErroValidacao(reply, params.error.issues);
-
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
-
-  if (ctx.locatarioId !== params.data.id) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "A operação é permitida apenas no próprio locatário.",
-      detalhes: {
-        operacao: "http.locatarios.obterMeuLocatario",
-        locatarioIdContexto: ctx.locatarioId,
-        locatarioIdSolicitado: params.data.id,
-      },
-    });
-  }
 
   const { locatariosRepositorio } = criarDepsLocatarios();
 
@@ -354,7 +339,7 @@ export async function obterMeuLocatarioController(request: FastifyRequest<{ Para
   });
 
   const resultado = await obterLocatario({
-    locatarioId: params.data.id,
+    locatarioId: ctx.locatarioId,
   });
 
   // await auditar(criarContextoAuditoria(request, ctx), {
@@ -382,25 +367,12 @@ export async function obterMeuLocatarioController(request: FastifyRequest<{ Para
  * @returns 
  */
 export async function listarConfiguracoesLocatarioController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
-  const params = parseLocatarioIdParams(request.params);
-  if (!params.success) return responderErroValidacao(reply, params.error.issues);
-
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
-
-  if (ctx.locatarioId !== params.data.id) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "A operação é permitida apenas no próprio locatário.",
-      detalhes: {
-        operacao: "http.locatarios.listarConfiguracoes",
-      },
-    });
-  }
 
   const { locatariosRepositorio } = criarDepsLocatarios();
   const resultado = await locatariosRepositorio.listarConfiguracoes({
-    locatarioId: params.data.id,
+    locatarioId: ctx.locatarioId,
   });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
@@ -415,31 +387,19 @@ export async function listarConfiguracoesLocatarioController(request: FastifyReq
  * @returns 
  */
 export async function obterConfiguracaoAtivaLocatarioController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
-  const params = parseLocatarioIdParams(request.params);
-  if (!params.success) return responderErroValidacao(reply, params.error.issues);
-
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
-
-  if (ctx.locatarioId !== params.data.id) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "A operação é permitida apenas no próprio locatário.",
-      detalhes: {
-        operacao: "http.locatarios.obterConfiguracaoAtiva",
-      },
-    });
-  }
 
   const { locatariosRepositorio } = criarDepsLocatarios();
   const resultado = await locatariosRepositorio.obterConfiguracaoAtiva({
-    locatarioId: params.data.id,
+    locatarioId: ctx.locatarioId,
   });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
 
   return reply.status(200).send({ item: resultado.value });
 }
+
 
 /**
  * 
@@ -448,24 +408,11 @@ export async function obterConfiguracaoAtivaLocatarioController(request: Fastify
  * @returns 
  */
 export async function criarConfiguracaoLocatarioController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: CriarConfiguracaoBodyDto }>, reply: FastifyReply) {
-  const params = parseLocatarioIdParams(request.params);
-  if (!params.success) return responderErroValidacao(reply, params.error.issues);
-
   const body = parseCriarConfiguracaoBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
-
-  if (ctx.locatarioId !== params.data.id) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "A operação é permitida apenas no próprio locatário.",
-      detalhes: {
-        operacao: "http.locatarios.criarConfiguracao",
-      },
-    });
-  }
 
   const { locatariosRepositorio, relogio, idPorta, transacao } = criarDepsLocatarios();
 
@@ -477,7 +424,7 @@ export async function criarConfiguracaoLocatarioController(request: FastifyReque
   });
 
   const resultado = await criarConfiguracao({
-    locatarioId: params.data.id,
+    locatarioId: ctx.locatarioId,
     ...body.data,
   });
 
@@ -493,24 +440,14 @@ export async function criarConfiguracaoLocatarioController(request: FastifyReque
  * @returns 
  */
 export async function atualizarConfiguracaoLocatarioController(request: FastifyRequest<{ Params: ConfiguracaoIdParamsDto; Body: AtualizarConfiguracaoBodyDto }>, reply: FastifyReply) {
-  const params = parseConfiguracaoIdParams(request.params);
+  const params = parseConfiguracaoIdOnlyParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
   const body = parseAtualizarConfiguracaoBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
-
-  if (ctx.locatarioId !== params.data.id) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "A operação é permitida apenas no próprio locatário.",
-      detalhes: {
-        operacao: "http.locatarios.atualizarConfiguracao",
-      },
-    });
-  }
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
@@ -521,7 +458,7 @@ export async function atualizarConfiguracaoLocatarioController(request: FastifyR
   });
 
   const resultado = await atualizarConfiguracao({
-    locatarioId: params.data.id,
+    locatarioId: ctx.locatarioId,
     configuracaoId: params.data.configuracaoId,
     ...body.data,
   });
@@ -538,21 +475,11 @@ export async function atualizarConfiguracaoLocatarioController(request: FastifyR
  * @returns 
  */
 export async function ativarConfiguracaoLocatarioController(request: FastifyRequest<{ Params: ConfiguracaoIdParamsDto }>, reply: FastifyReply) {
-  const params = parseConfiguracaoIdParams(request.params);
+  const params = parseConfiguracaoIdOnlyParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
-  const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
+  const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
-
-  if (ctx.locatarioId !== params.data.id) {
-    return sendHttpError(reply, {
-      codigo: "NAO_AUTORIZADO",
-      mensagem: "A operação é permitida apenas no próprio locatário.",
-      detalhes: {
-        operacao: "http.locatarios.ativarConfiguracao",
-      },
-    });
-  }
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
@@ -563,7 +490,7 @@ export async function ativarConfiguracaoLocatarioController(request: FastifyRequ
   });
 
   const resultado = await ativarConfiguracao({
-    locatarioId: params.data.id,
+    locatarioId: ctx.locatarioId,
     configuracaoId: params.data.configuracaoId,
   });
 
