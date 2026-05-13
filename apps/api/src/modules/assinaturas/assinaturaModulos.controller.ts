@@ -1,7 +1,7 @@
 // apps/api/src/modules/assinaturas/assinaturaModulos.controller.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { createErroApp, createFnDesvincularModuloDaAssinatura, createFnListarModulosHabilitados, createFnVincularModuloNaAssinatura, Permissoes } from "@core-kit/core";
+import { createErroApp, createFnDesvincularModuloDaAssinatura, createFnListarModulosHabilitados, createFnVincularModuloNaAssinatura, metaAcao, Permissoes } from "@core-kit/core";
 import { autorizarHttp } from "../../http/autorizarHttp";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { clientePrisma } from "../../infra/prisma/client";
@@ -13,8 +13,8 @@ import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assin
 import { parseModuloIdParams, parseVincularModuloAssinaturaBody } from "./assinaturaModulos.dto";
 import type { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "./assinaturaModulos.dto";
 import { toModuloHabilitadoDto, toVinculoModuloDto } from "./assinaturaModulos.presenter";
-
-const authRuntime = createAuthHttpRuntime();
+import { auditarController } from "../auditoria/auditarController";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 
 function criarDepsAssinaturaModulos() {
   return {
@@ -22,8 +22,8 @@ function criarDepsAssinaturaModulos() {
     assinaturasModulosRepositorio: createAssinaturasModulosRepositorioPrisma(clientePrisma),
     modulosConsultaRepositorio: createModulosConsultaRepositorioPrisma(clientePrisma),
     modulosHabilitadosRepositorio: createModulosHabilitadosRepositorio(clientePrisma),
-    relogio: authRuntime.technical.relogio,
-    transacao: authRuntime.transacao,
+    relogio: getAuthBootstrap().runtime.technical.relogio,
+    transacao: getAuthBootstrap().runtime.transacao,
   };
 }
 
@@ -126,6 +126,19 @@ export async function vincularModuloNaMinhaAssinaturaController(request: Fastify
     moduloId: bodyParse.data.moduloId,
   });
 
+  await auditarController(request, ctx, {
+    evento: "assinatura.modulo.vinculado",
+    sucesso: resultado.ok,
+    entidadeTipo: "assinatura_modulo",
+    entidadeId: bodyParse.data.moduloId,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      assinaturaId: assinaturaAtiva.value.assinaturaId,
+      moduloId: bodyParse.data.moduloId,
+    }),
+  });
+
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
 
   return reply.status(201).send({
@@ -181,6 +194,19 @@ export async function desvincularModuloDaMinhaAssinaturaController(request: Fast
   const resultado = await desvincularModuloDaAssinatura({
     assinaturaId: assinaturaAtiva.value.assinaturaId,
     moduloId: paramsParse.data.moduloId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "assinatura.modulo.desvinculado",
+    sucesso: resultado.ok,
+    entidadeTipo: "assinatura_modulo",
+    entidadeId: paramsParse.data.moduloId,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      assinaturaId: assinaturaAtiva.value.assinaturaId,
+      moduloId: paramsParse.data.moduloId,
+    }),
   });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);

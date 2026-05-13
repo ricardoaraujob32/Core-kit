@@ -58,35 +58,11 @@ export function createFnRotacionarRefresh(deps: {
    * @returns `Ok(sessao)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function rotacionarRefresh(input: RotacionarRefreshInput): RotacionarRefreshResult {
-     console.info("[core.auth.refresh] start", {
-      locatarioId: input.locatarioId,
-      hasRefreshToken:
-        typeof input.refreshToken === "string" && input.refreshToken.length > 0,
-      refreshTokenLength:
-        typeof input.refreshToken === "string" ? input.refreshToken.length : 0,
-    });
-
     const locatarioId = validarLocatarioIdAuth(input.locatarioId);
-    // if (!locatarioId.ok) return locatarioId;
-    if (!locatarioId.ok) {
-      console.warn("[core.auth.refresh] invalid.locatarioId", {
-        codigo: locatarioId.error.codigo,
-        mensagem: locatarioId.error.mensagem,
-        detalhes: locatarioId.error.detalhes ?? null,
-      });
-      return locatarioId;
-    }
+    if (!locatarioId.ok) return locatarioId;
 
     const refresh = validarTokenNaoVazio(input.refreshToken);
-    // if (!refresh.ok) return refresh;
-    if (!refresh.ok) {
-      console.warn("[core.auth.refresh] invalid.refreshToken", {
-        codigo: refresh.error.codigo,
-        mensagem: refresh.error.mensagem,
-        detalhes: refresh.error.detalhes ?? null,
-      });
-      return refresh;
-    }
+    if (!refresh.ok) return refresh;
 
     const agora = deps.relogio.agora();
 
@@ -95,22 +71,7 @@ export function createFnRotacionarRefresh(deps: {
       tokenBruto: refresh.value,
       agora,
     });
-    // if (!refreshValido.ok) return refreshValido;
-    if (!refreshValido.ok) {
-      console.warn("[core.auth.refresh] refresh.validation.error", {
-        locatarioId: locatarioId.value,
-        codigo: refreshValido.error.codigo,
-        mensagem: refreshValido.error.mensagem,
-        detalhes: refreshValido.error.detalhes ?? null,
-      });
-      return refreshValido;
-    }
-
-    console.info("[core.auth.refresh] refresh.validated", {
-      locatarioId: locatarioId.value,
-      usuarioId: refreshValido.value.chave.usuarioId,
-      tokenId: refreshValido.value.chave.tokenId,
-    });
+    if (!refreshValido.ok) return refreshValido;
 
     const sessionId = deps.idPorta.gerarId();
 
@@ -122,17 +83,7 @@ export function createFnRotacionarRefresh(deps: {
       ttlSegundos: deps.ttlAccessSegundos ?? 600,
       issuer: deps.issuer ?? "mini-saas-api",
     });
-    // if (!accessRes.ok) return accessRes;
-    if (!accessRes.ok) {
-      console.warn("[core.auth.refresh] access.emit.error", {
-        locatarioId: locatarioId.value,
-        usuarioId: refreshValido.value.chave.usuarioId,
-        codigo: accessRes.error.codigo,
-        mensagem: accessRes.error.mensagem,
-        detalhes: accessRes.error.detalhes ?? null,
-      });
-      return accessRes;
-    }
+    if (!accessRes.ok) return accessRes;
 
     const persistenciaRes = await executarEmTransacao(deps.transacao, async () => {
       const novoRefresh = await deps.tokensPorta.criarRefresh({
@@ -152,17 +103,7 @@ export function createFnRotacionarRefresh(deps: {
 
       return wrapOk(novoRefresh.value);
     });
-    // if (!persistenciaRes.ok) return persistenciaRes;
-    if (!persistenciaRes.ok) {
-      console.warn("[core.auth.refresh] persistence.error", {
-        locatarioId: locatarioId.value,
-        usuarioId: refreshValido.value.chave.usuarioId,
-        codigo: persistenciaRes.error.codigo,
-        mensagem: persistenciaRes.error.mensagem,
-        detalhes: persistenciaRes.error.detalhes ?? null,
-      });
-      return persistenciaRes;
-    }
+    if (!persistenciaRes.ok) return persistenciaRes;
 
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.refresh",
@@ -182,14 +123,6 @@ export function createFnRotacionarRefresh(deps: {
       accessExpiraEm: new Date(accessRes.value.payload.exp * 1000),
       refreshExpiraEm: persistenciaRes.value.expiraEm,
     };
-
-    console.info("[core.auth.refresh] success", {
-      locatarioId: locatarioId.value,
-      usuarioId: refreshValido.value.chave.usuarioId,
-      sessionId,
-      hasAccessToken: Boolean(sessao.accessToken),
-      hasRefreshToken: Boolean(sessao.refreshToken),
-    });
 
     return wrapOk<RotacionarRefreshOutput>({
       sessao,

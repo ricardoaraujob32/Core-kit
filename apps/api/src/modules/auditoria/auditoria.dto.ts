@@ -2,71 +2,40 @@
 
 import { z } from "zod";
 
-/**
- * Enum canônico de categorias de auditoria.
- */
-export const categoriaAuditoriaSchema = z.enum([
-  "OPERACAO",
-  "SEGURANCA",
-  "ERRO",
-  "COMPLIANCE",
-]);
-
-/**
- * Querystring suportada para listagem de auditoria do locatário.
- */
-export const listarAuditoriaLocatarioQuerySchema = z.object({
-  evento: z.string().trim().min(1).optional(),
-  eventoPrefixo: z.string().trim().min(1).optional(),
-  categoria: categoriaAuditoriaSchema.optional(),
-  sucesso: z.enum(["true", "false"]).optional(),
-  erroCodigo: z.string().trim().min(1).optional(),
-  entidadeNome: z.string().trim().min(1).optional(),
-  entidadeTipo: z.string().trim().min(1).optional(),
-  entidadeId: z.string().trim().min(1).optional(),
-  usuarioId: z.string().trim().min(1).optional(),
-  origem: z.string().trim().min(1).optional(),
-  requisicaoId: z.string().trim().min(1).optional(),
-  agenteTipo: z.string().trim().min(1).optional(),
-  textoLivre: z.string().trim().min(1).optional(),
-  cursor: z.string().trim().min(1).optional(),
-  limite: z.string().trim().min(1).optional(),
-  criadoDe: z.string().trim().min(1).optional(),
-  criadoAte: z.string().trim().min(1).optional(),
-});
-
-/**
- * Querystring suportada para listagem de auditoria da plataforma.
- */
-export const listarAuditoriaPlataformaQuerySchema =
-  listarAuditoriaLocatarioQuerySchema.extend({
-    locatarioAlvoId: z.string().trim().min(1).optional(),
-  });
-
-export type ListarAuditoriaLocatarioQuery = z.infer<
-  typeof listarAuditoriaLocatarioQuerySchema
->;
-
-export type ListarAuditoriaPlataformaQuery = z.infer<
-  typeof listarAuditoriaPlataformaQuerySchema
->;
-
-/**
- * Faz parse seguro da query de auditoria do locatário.
- *
- * @param input Querystring bruta.
- * @returns Resultado do parse com Zod.
- */
-export function parseListarAuditoriaLocatarioQuery(input: unknown) {
-  return listarAuditoriaLocatarioQuerySchema.safeParse(input);
+function parseDateOpcional(value: unknown) {
+  if (value === undefined || value === null || value === "") return undefined;
+  const date = new Date(String(value));
+  return date;
 }
 
-/**
- * Faz parse seguro da query de auditoria da plataforma.
- *
- * @param input Querystring bruta.
- * @returns Resultado do parse com Zod.
- */
-export function parseListarAuditoriaPlataformaQuery(input: unknown) {
-  return listarAuditoriaPlataformaQuerySchema.safeParse(input);
+export const listarAuditoriaQuerySchema = z.object({
+  evento: z.string().trim().optional(),
+  eventoPrefixo: z.string().trim().optional(),
+  sucesso: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) =>
+      value === undefined ? undefined : value === "true",
+    ),
+  erroCodigo: z.string().trim().optional(),
+  entidadeNome: z.string().trim().optional(),
+  entidadeTipo: z.string().trim().optional(),
+  entidadeId: z.string().trim().optional(),
+  usuarioId: z.string().trim().optional(),
+  origem: z.string().trim().optional(),
+  requisicaoId: z.string().trim().optional(),
+  agenteTipo: z.string().trim().optional(),
+  criadoDe: z.preprocess(parseDateOpcional, z.date().optional()),
+  criadoAte: z.preprocess(parseDateOpcional, z.date().optional()),
+  textoLivre: z.string().trim().optional(),
+  cursor: z.string().trim().optional(),
+  limite: z.coerce.number().int().positive().max(500).optional(),
+});
+
+export type ListarAuditoriaQueryDto = z.infer<
+  typeof listarAuditoriaQuerySchema
+>;
+
+export function parseListarAuditoriaQuery(input: unknown) {
+  return listarAuditoriaQuerySchema.safeParse(input);
 }

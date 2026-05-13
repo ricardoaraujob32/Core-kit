@@ -3,6 +3,7 @@
 import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaNaoEncontrada } from "../erros";
 import { transicionarEstadoAssinatura } from "../maquinaEstados";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
 import { AssinaturasRepositorio } from "../portasRepositorio";
 import { CancelarAssinaturaInput, CancelarAssinaturaOutput, CancelarAssinaturaResult } from "../tipos";
 import { validarCancelarAssinaturaInput } from "../validadores";
@@ -24,6 +25,7 @@ export function createFnCancelarAssinatura(deps: {
   assinaturasRepositorio: AssinaturasRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaAssinaturasPorta;
 }) {
     /**
  * Cancela uma assinatura.
@@ -62,6 +64,18 @@ export function createFnCancelarAssinatura(deps: {
         atualizadaEm: instante,
       });
       if (!atualizada.ok) return atualizada;
+
+      const autorizacao = await autorizarAssinatura(deps, {
+        operacao: "ASSINATURA_CANCELAR",
+        locatarioId: atual.value.locatarioId,
+        assinaturaId: atual.value.assinaturaId,
+        assinatura: atual.value,
+        dados: {
+          motivo: input.motivo,
+          encerradaEm: input.encerradaEm,
+        },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       return wrapOk<CancelarAssinaturaOutput>({
         assinatura: atualizada.value,

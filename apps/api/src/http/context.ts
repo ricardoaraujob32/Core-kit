@@ -39,6 +39,16 @@ type BuildContextDeps = {
 }
 
 /**
+ * 
+ */
+type ContextoPlataformaHttp = {
+  tipo: "PLATAFORMA";
+  usuarioId: string;
+  sessionId: string;
+  expiraEm: Date;
+};
+
+/**
  * Builder oficial de contexto HTTP da aplicação.
  *
  * Observação:
@@ -67,18 +77,6 @@ export const buildContextFromRequest = createFnBuildContextFromRequest({
 function extrairUsuarioAutenticado(req: FastifyRequest) {
   const usuario = req.usuario ?? null;
 
-  console.log("[http.contexto.extrairUsuario]", {
-    url: req.url,
-    method: req.method,
-    possuiUsuario: !!usuario,
-    usuarioId: usuario?.usuarioId ?? null,
-    locatarioId: usuario?.locatarioId ?? null,
-    papeis: usuario?.papeis ?? [],
-    permissoes: usuario?.permissoes ?? [],
-    sessionId: usuario?.sessionId ?? null,
-    expiraEm: usuario?.expiraEm ?? null,
-  });
-
   return usuario;
 }
 
@@ -93,20 +91,14 @@ function extrairUsuarioAutenticado(req: FastifyRequest) {
  * @param usuario Usuário autenticado anexado ao request.
  * @returns `Ok(ContextoExecucao)` ou `Err(ErroApp)` em caso de falha.
  */
-function criarCtxBase(usuario: NonNullable<FastifyRequest["usuario"]>): Result<ContextoExecucao, ErroApp> {
+function criarCtxTenantBase(usuario: NonNullable<FastifyRequest["usuario"]>): Result<ContextoExecucao, ErroApp> {
   if (!usuario.locatarioId) {
     const erro = createErroApp({
       codigo: "LOCATARIO_OBRIGATORIO",
       mensagem: "Locatário ausente no contexto autenticado.",
       detalhes: {
-        operacao: "http.contexto.criarBase",
+        operacao: "http.contexto.criarCtxTenantBase",
       },
-    });
-
-    console.error("[http.contexto.criarBase.err]", {
-      usuarioId: usuario.usuarioId,
-      locatarioId: usuario.locatarioId ?? null,
-      erro,
     });
 
     return erro;
@@ -116,8 +108,6 @@ function criarCtxBase(usuario: NonNullable<FastifyRequest["usuario"]>): Result<C
     const ctx = createContextoExecucao({
       locatarioId: usuario.locatarioId,
       usuarioId: usuario.usuarioId,
-      papeis: usuario.papeis ? [...usuario.papeis] : undefined,
-      permissoes: usuario.permissoes ? [...usuario.permissoes] : undefined,
     });
 
     console.log("[http.contexto.criarBase.ok]", {
@@ -150,6 +140,29 @@ function criarCtxBase(usuario: NonNullable<FastifyRequest["usuario"]>): Result<C
 
     return erro;
   }
+}
+
+function criarCtxPlataforma(usuario: {
+  usuarioId: string;
+  sessionId?: string;
+  expiraEm?: Date;
+}): Result<ContextoPlataformaHttp, ErroApp> {
+  if (!usuario.sessionId || !usuario.expiraEm) {
+    return createErroApp({
+      codigo: "NAO_AUTENTICADO",
+      mensagem: "Sessão de plataforma incompleta.",
+      detalhes: {
+        operacao: "http.contexto.criarCtxPlataforma",
+      },
+    });
+  }
+
+  return wrapOk({
+    tipo: "PLATAFORMA",
+    usuarioId: usuario.usuarioId,
+    sessionId: usuario.sessionId,
+    expiraEm: usuario.expiraEm,
+  });
 }
 
 /**
@@ -199,7 +212,7 @@ export function createFnBuildContextFromRequest(deps: BuildContextDeps) {
       return erro;
     }
 
-    const ctxBase = criarCtxBase(usuario);
+    const ctxBase = criarCtxTenantBase(usuario);
     if (!ctxBase.ok) {
       console.error("[http.contexto.build.err][ctx-base]", {
         url: req.url,
@@ -312,4 +325,49 @@ export function createFnBuildContextFromRequest(deps: BuildContextDeps) {
 
     return wrapOk(ctxFinal);
   };
+}
+
+export type ContextoHttpAutorizado =
+  | {
+      tipo: "TENANT";
+      ctx: ContextoExecucao;
+    }
+  | {
+      tipo: "PLATAFORMA";
+      usuarioId: string;
+      sessionId: string;
+      expiraEm: Date;
+    };
+
+export async function buildContextoHttpFromRequest(
+  req: FastifyRequest,
+): Promise<Result<ContextoHttpAutorizado, ErroApp>> {
+  const usuario = extrairUsuarioAutenticado(req);
+
+  if (!usuario) {
+    return createErroApp({
+      codigo: "NAO_AUTENTICADO",
+      mensagem: "Usuário autenticado ausente na requisição.",
+      detalhes: {
+        operacao: "http.contexto.buildContextoHttp",
+      },
+    });
+  }
+
+  if (usuario.locatarioId === null) {
+    const plataforma = criarCtxPlataforma(usuario);
+
+    if (!plataforma.ok) return plataforma;
+
+    return wrapOk(plataforma.value);
+  }
+
+  const tenant = await buildContextFromRequest(req);
+
+  if (!tenant.ok) return tenant;
+
+  return wrapOk({
+    tipo: "TENANT",
+    ctx: tenant.value,
+  });
 }

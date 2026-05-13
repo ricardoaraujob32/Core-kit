@@ -2,9 +2,11 @@
 
 import type { CriarLocatarioInput, CriarLocatarioOutput, CriarLocatarioResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
-import { validarCorTema, validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarIdentidadeVisualLocatario, validarLocatarioSlug, validarModoTemaLocatario, validarNomeLocatario, validarUrlLogoLocatario } from "../validadores";
+import { validarCorTema, validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarIdentidadeVisualLocatario, validarLocatarioSlug, 
+  validarModoTemaLocatario, validarNomeLocatario, validarUrlLogoLocatario } from "../validadores";
 import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
 import { emailLocatarioJaExiste, slugLocatarioJaExiste } from "../erros";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
 
 /**
  * Cria a função de caso de uso responsável por registrar um novo locatário.
@@ -29,6 +31,7 @@ export function createFnCriarLocatario(deps: {
   idPorta: IdPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
 }) {
   /**
    * Executa o caso de uso de criação de locatário.
@@ -44,6 +47,8 @@ export function createFnCriarLocatario(deps: {
    * @returns `Ok({ locatarioId })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function criarLocatario(input: CriarLocatarioInput): CriarLocatarioResult {
+    const { locatariosRepositorio } = deps;
+
     const nome = validarNomeLocatario(input.nome);
     if (!nome.ok) return nome;
 
@@ -79,12 +84,23 @@ export function createFnCriarLocatario(deps: {
     const urlLogo = validarUrlLogoLocatario(input.configuracaoInicial?.urlLogo);
     if (!urlLogo.ok) return urlLogo;
 
+    const autorizacao = await autorizarLocatario(deps, {
+      operacao: "LOCATARIO_CRIAR",
+      dados: {
+        slug: slug.value,
+        email: email.value,
+      },
+    });
+    if (autorizacao && !autorizacao.ok) return autorizacao;
+
     return executarEmTransacao(deps.transacao, async () => {
-      const slugExistente = await deps.locatariosRepositorio.buscarPorSlug({ slug: slug.value });
+      const slugExistente = await locatariosRepositorio.buscarPorSlug({
+        slug: slug.value,
+      });
       if (!slugExistente.ok) return slugExistente;
       if (slugExistente.value) return slugLocatarioJaExiste(slug.value);
 
-      const emailExistente = await deps.locatariosRepositorio.buscarPorEmail({
+      const emailExistente = await locatariosRepositorio.buscarPorEmail({
         emailNormalizado: email.value,
       });
       if (!emailExistente.ok) return emailExistente;
@@ -94,7 +110,7 @@ export function createFnCriarLocatario(deps: {
       const locatarioId = deps.idPorta.gerarId();
       const configuracaoId = deps.idPorta.gerarId();
 
-      const res = await deps.locatariosRepositorio.criar({
+      const resultado = await locatariosRepositorio.criar({
         locatarioId,
         nome: nome.value,
         slug: slug.value,
@@ -117,10 +133,10 @@ export function createFnCriarLocatario(deps: {
           atualizadoEm: agora,
         },
       });
-      if (!res.ok) return res;
+      if (!resultado.ok) return resultado;
 
       return wrapOk<CriarLocatarioOutput>({
-        locatarioId: res.value.locatarioId,
+        locatarioId: resultado.value.locatarioId,
       });
     });
   };

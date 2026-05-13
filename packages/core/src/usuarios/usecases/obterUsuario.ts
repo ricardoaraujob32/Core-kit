@@ -3,10 +3,9 @@
 import { wrapOk } from "../../kernel";
 import type { ObterUsuarioInput, ObterUsuarioOutput, ObterUsuarioResult } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import { validarUsuarioId } from "../validadores";
-import { usuarioNaoEncontrado } from "../erros";
-import { validarLocatarioId } from "../../locatarios";
-import { transicionarEstadoUsuario } from "../maquinaEstados";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
+import { obterUsuarioObrigatorio } from "./helpers";
 
 /**
  * Cria a função de caso de uso responsável por obter um usuário por ID.
@@ -24,7 +23,10 @@ import { transicionarEstadoUsuario } from "../maquinaEstados";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `obterUsuario` pronta para receber a entrada do caso de uso.
  */
-export function createFnObterUsuario(deps: { usuariosRepositorio: UsuariosRepositorio }) {
+export function createFnObterUsuario(deps: { 
+  usuariosRepositorio: UsuariosRepositorio;
+  politicaSeguranca?: PoliticaSegurancaUsuariosPorta;
+}) {
   /**
    * Executa o caso de uso de obtenção de usuário.
    *
@@ -39,32 +41,26 @@ export function createFnObterUsuario(deps: { usuariosRepositorio: UsuariosReposi
    * @returns `Ok(usuario)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function obterUsuario(input: ObterUsuarioInput): ObterUsuarioResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
-    const res = await deps.usuariosRepositorio.buscarPorId({
-      locatarioId: locatarioId.value,
-      usuarioId: usuarioId.value,
+    const usuario = await obterUsuarioObrigatorio({
+      usuariosRepositorio: deps.usuariosRepositorio,
+      locatarioId: input.locatarioId,
+      usuarioId: input.usuarioId,
     });
-    if (!res.ok) return res;
+    if (!usuario.ok) return usuario;
 
-    const usuario = res.value;
-    if (!usuario || usuario.excluidoEm) {
-      return usuarioNaoEncontrado(usuarioId.value);
-    }
-
-    const transicao = transicionarEstadoUsuario({
-      usuarioId: usuario.usuarioId,
-      statusAtual: usuario.status,
-      evento: "OPERAR",
+    const autorizacao = await autorizarUsuario(deps, {
+      operacao: "USUARIO_OBTER",
+      locatarioId: usuario.value.locatarioId,
+      usuarioId: usuario.value.usuarioId,
+      usuario: usuario.value,
     });
-    if (!transicao.ok) return transicao;
+    if (autorizacao && !autorizacao.ok) return autorizacao;
+
+    const operacional = exigirEstadoOperacionalUsuario(usuario.value);
+    if (!operacional.ok) return operacional;
 
     return wrapOk<ObterUsuarioOutput>({
-      usuario,
+      usuario: usuario.value,
     });
   };
 }

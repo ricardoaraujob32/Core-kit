@@ -1,7 +1,7 @@
 // packages/core/src/kernel/ROPHelpers.ts
 
 import { Result, wrapErr, wrapOk } from "./result";
-import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp } from "./erros";
+import { CodigoErroApp, ErroApp, erroApp, isErroApp } from "./erros";
 
 /**
  * Propósito do arquivo:
@@ -22,9 +22,9 @@ import { CodigoErroApp, ErroApp, erroApp, mapCodigoErroToMensagemErro, isErroApp
  * - causa: Causa original do erro (ex: exceção capturada). Nunca deve ser enviada diretamente ao cliente.
  * @returns um erro padronizado para ser usado em API ROP
  */
-export function createErroApp<T = never>(params: {codigo: CodigoErroApp; mensagem?: string | null; detalhes?: Record<string, unknown>; causa?: unknown;}): Result<T, ErroApp> {
+export function createErroApp<T = never, Codigo extends string = CodigoErroApp,>(params: {codigo: Codigo; mensagem: string; detalhes?: Record<string, unknown>; causa?: unknown;}): Result<T, ErroApp> {
   const codigo = params.codigo;
-  const mensagem = normalizarMensagem(params.mensagem) || mapCodigoErroToMensagemErro(codigo);
+  const mensagem = params.mensagem;
   const detalhes = params.detalhes;
   const causa = params.causa;
 
@@ -69,7 +69,7 @@ export function fromThrowable<T>(fn: () => T,): Result<T, ErroApp> {
     if (isErroApp(e)) return wrapErr(e);
 
     // Caso contrário, normaliza para erro interno.
-    return createErroApp({ codigo: "ERRO_INTERNO", causa: e });
+    return createErroApp({ codigo: "ERRO_INTERNO", mensagem: "", causa: e });
   }
 }
 
@@ -93,7 +93,7 @@ export async function fromThrowableAsync<T>(fn: () => Promise<T>,): Promise<Resu
     if (isErroApp(e)) return wrapErr(e);
 
     // Caso contrário, normaliza para erro interno.
-    return createErroApp({ codigo: "ERRO_INTERNO", causa: e });
+    return createErroApp({ codigo: "ERRO_INTERNO", mensagem: "", causa: e });
   }
 }
 

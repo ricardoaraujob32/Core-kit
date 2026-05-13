@@ -1,23 +1,19 @@
 // apps/api/src/middlewares/authGuard.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { getAuthBootstrap } from "../bootstrap/authBootstrap";
 import { sendHttpError } from "../http/serializarErroApp";
-import { createAuthHttpRuntime } from "../infra/prisma/auth";
 
 /**
  * Dependências necessárias para criar o middleware de autenticação.
+ *
+ * Observação:
+ * - o tipo vem do bootstrap oficial;
+ * - este arquivo não compõe runtime localmente.
  */
 type AuthGuardDeps = {
-  /**
-   * Função responsável por validar a sessão a partir do access token.
-   */
-  validarSessao: ReturnType<typeof createAuthHttpRuntime>["validarSessao"];
+  validarSessao: ReturnType<typeof getAuthBootstrap>["runtime"]["validarSessao"];
 };
-
-/**
- * Runtime oficial de autenticação usado pela borda HTTP.
- */
-const authRuntime = createAuthHttpRuntime();
 
 /**
  * Middleware oficial de autenticação HTTP.
@@ -26,10 +22,14 @@ const authRuntime = createAuthHttpRuntime();
  * - extrai bearer token;
  * - valida a sessão;
  * - popula `request.usuario`;
- * - não resolve permissões nem aplica autorização fina.
+ * - não resolve permissões;
+ * - não monta contexto;
+ * - não compõe runtime de auth.
  */
 export const authGuard = createFnAuthGuard({
-  validarSessao: authRuntime.validarSessao,
+  get validarSessao() {
+    return getAuthBootstrap().runtime.validarSessao;
+  },
 });
 
 /**
@@ -38,9 +38,6 @@ export const authGuard = createFnAuthGuard({
  * Regras:
  * - o header deve seguir o formato `Bearer <token>`;
  * - se o header estiver ausente ou malformado, retorna `null`.
- *
- * @param request Requisição Fastify recebida na borda HTTP.
- * @returns Token JWT bruto ou `null`.
  */
 function extrairBearerToken(request: FastifyRequest): string | null {
   const raw = request.headers.authorization;
@@ -55,59 +52,27 @@ function extrairBearerToken(request: FastifyRequest): string | null {
 }
 
 /**
- * Middleware de autenticação HTTP.
- *
- * Responsabilidades:
- * - extrair o bearer token da requisição;
- * - validar a sessão usando o caso de uso do Core;
- * - traduzir a sessão validada para `request.usuario`;
- * - devolver erro HTTP padronizado quando a autenticação falhar.
- *
- * Observação:
- * - este middleware não resolve permissões;
- * - ele apenas autentica e propaga identidade + metadados da sessão.
- *
- * @param request Requisição Fastify atual.
- * @param reply Resposta Fastify usada para serializar erros.
- * @returns `void` em caso de sucesso ou resposta HTTP de erro em caso de falha.
+ * Cria o middleware concreto de autenticação HTTP.
  */
 export function createFnAuthGuard(deps: AuthGuardDeps) {
-  /**
-   * Middleware concreto de autenticação.
-   *
-   * @param request Requisição Fastify atual.
-   * @param reply Resposta Fastify.
-   * @returns `void` em caso de sucesso ou resposta HTTP de erro em caso de falha.
-   */
   return async function authGuard(request: FastifyRequest, reply: FastifyReply) {
     const accessToken = extrairBearerToken(request);
 
     if (!accessToken) {
       return sendHttpError(reply, {
         codigo: "NAO_AUTENTICADO",
-        mensagem: "Bearer token ausente.",
+        mensagem: "Token de acesso ausente.",
+        detalhes: {
+          operacao: "http.authGuard",
+        },
       });
     }
 
-    console.log("[http.authGuard.start]", {
-      url: request.url,
-      method: request.method,
-      possuiBearer: true,
+    const resultado = await deps.validarSessao({
+      accessToken,
     });
 
-    const resultado = await Promise.resolve(
-      deps.validarSessao({
-        accessToken,
-      }),
-    );
-
     if (!resultado.ok) {
-      console.error("[http.authGuard.err][validarSessao]", {
-        url: request.url,
-        method: request.method,
-        erro: resultado.error,
-      });
-
       return sendHttpError(reply, resultado.error);
     }
 
@@ -117,14 +82,5 @@ export function createFnAuthGuard(deps: AuthGuardDeps) {
       sessionId: resultado.value.sessao.sessionId,
       expiraEm: resultado.value.sessao.expiraEm,
     };
-
-    console.log("[http.authGuard.ok]", {
-      url: request.url,
-      method: request.method,
-      usuarioId: request.usuario.usuarioId,
-      locatarioId: request.usuario.locatarioId ?? null,
-      sessionId: request.usuario.sessionId ?? null,
-      expiraEm: request.usuario.expiraEm ?? null,
-    });
   };
 }

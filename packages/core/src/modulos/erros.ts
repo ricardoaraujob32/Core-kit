@@ -3,6 +3,12 @@
 import { createErroApp, ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 
+export type CodigoErroModulo =
+  | "MODULOS_LOCATARIO_ID_INVALIDO"
+  | "MODULOS_CODIGO_INVALIDO"
+  | "MODULOS_REPOSITORIO_FALHA"
+  | "MODULO_NAO_HABILITADO"
+
 /**
  * Cria erro específico para identificador de locatário inválido em operações
  * do módulo de habilitação de módulos.
@@ -11,7 +17,7 @@ import { LocatarioId } from "../locatarios";
  * @returns `Err(ErroApp)` específico do pacote `modulos`.
  */
 export function erroLocatarioIdInvalido(locatarioId: unknown): Result<never, ErroApp> {
-  return createErroApp({ codigo: "MODULOS_LOCATARIO_ID_INVALIDO", detalhes: { locatarioId } });
+  return createErroApp({ codigo: "MODULOS_LOCATARIO_ID_INVALIDO", mensagem: "Identificador de locatário inválido para consulta de módulos.", detalhes: { locatarioId } });
 }
 
 /**
@@ -21,7 +27,7 @@ export function erroLocatarioIdInvalido(locatarioId: unknown): Result<never, Err
  * @returns `Err(ErroApp)` específico do pacote `modulos`.
  */
 export function erroModuloCodigoInvalido(codigo: unknown): Result<never, ErroApp> {
-  return createErroApp({ codigo: "MODULOS_CODIGO_INVALIDO", detalhes: { codigo } });
+  return createErroApp({ codigo: "MODULOS_CODIGO_INVALIDO", mensagem: "Código do módulo inválido.", detalhes: { codigo } });
 }
 
 /**
@@ -31,7 +37,7 @@ export function erroModuloCodigoInvalido(codigo: unknown): Result<never, ErroApp
  * @returns `Err(ErroApp)` com causa preservada para diagnóstico.
  */
 export function erroRepositorioModulos(causa?: unknown): Result<never, ErroApp> {
-  return createErroApp({ codigo: "MODULOS_REPOSITORIO_FALHA", detalhes: {}, causa });
+  return createErroApp({ codigo: "MODULOS_REPOSITORIO_FALHA", mensagem: "Falha ao consultar módulos habilitados.", detalhes: {}, causa });
 }
 
 /**
@@ -42,5 +48,5 @@ export function erroRepositorioModulos(causa?: unknown): Result<never, ErroApp> 
  * @returns `Err(ErroApp)` com contexto de autorização funcional.
  */
 export function erroModuloNaoHabilitado(codigo: string, locatarioId: LocatarioId): Result<never, ErroApp> {
-  return createErroApp({ codigo: "MODULO_NAO_HABILITADO", detalhes: { codigo, locatarioId } });
+  return createErroApp({ codigo: "MODULO_NAO_HABILITADO", mensagem: "Módulo não habilitado para o locatário.", detalhes: { codigo, locatarioId } });
 }

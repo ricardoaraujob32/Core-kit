@@ -1,12 +1,12 @@
 // apps/api/src/modules/auditoria/auditoriaPlataforma.controller.ts
 
-import type { FastifyReply, FastifyRequest } from "fastify";
+// import type { FastifyReply, FastifyRequest } from "fastify";
 
-import { sendHttpError } from "../../http/serializarErroApp";
-import { clientePrisma } from "../../infra/prisma/client";
-import { auditar } from "./auditoria.dispatcher.instance";
-import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto";
-import { criarContextoAuditoria } from "./auditoria.helpers";
+// import { sendHttpError } from "../../http/serializarErroApp";
+// import { clientePrisma } from "../../infra/prisma/client";
+// import { auditar } from "./auditoria.dispatcher.instance";
+// import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto";
+// import { criarContextoAuditoria } from "./auditoria.helpers";
 
 /**
  * Controller HTTP para listagem da auditoria da plataforma.
@@ -16,7 +16,7 @@ import { criarContextoAuditoria } from "./auditoria.helpers";
  * - lê apenas `auditoria_plataforma`;
  * - suporta filtros avançados.
  */
-export async function listarAuditoriaPlataformaController(request: FastifyRequest<{ Querystring: ListarAuditoriaPlataformaQuery }>, reply: FastifyReply) {
+// export async function listarAuditoriaPlataformaController(request: FastifyRequest<{ Querystring: ListarAuditoriaPlataformaQuery }>, reply: FastifyReply) {
   // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
   //   exigeSuperadmin: true,
   // });
@@ -74,4 +74,4 @@ export async function listarAuditoriaPlataformaController(request: FastifyReques
   // return reply.status(200).send({
   //   lista: resultado.value.lista,
   // });
-}
+// }

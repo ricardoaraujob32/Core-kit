@@ -1,6 +1,6 @@
 // packages/core/src/modulos/usecases/listarModulosHabilitados.ts
 
-import { ErroApp, Result, wrapOk } from "../../kernel";
+import { wrapOk } from "../../kernel";
 import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
 import { ListarModulosHabilitadosInput, ListarModulosHabilitadosOutput, ListarModulosHabilitadosResult } from "../tipos";
 import { validarListarModulosHabilitadosInput } from "../validadores";
@@ -39,12 +39,17 @@ export function createFnListarModulosHabilitados(deps: {
     const validado = validarListarModulosHabilitadosInput(input);
     if (!validado.ok) return validado;
 
-    const modulosResult = await deps.repositorio.listarPorLocatario(validado.value.locatarioId);
+    const modulosResult = await deps.repositorio.listarPorLocatario(
+      validado.value.locatarioId,
+    );
     if (!modulosResult.ok) return modulosResult;
 
     return wrapOk<ListarModulosHabilitadosOutput>({
       locatarioId: validado.value.locatarioId,
-      modulos: modulosResult.value,
+      modulos: modulosResult.value.map((modulo) => ({
+        ...modulo,
+        codigo: modulo.codigo.toUpperCase(),
+      })),
     });
   };
 }

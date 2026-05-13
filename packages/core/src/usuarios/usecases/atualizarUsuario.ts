@@ -1,12 +1,13 @@
 // packages/core/src/usuarios/usecases/atualizarUsuario.ts
 
-import { validarEmailUsuario, validarNomeUsuario, validarUsuarioId } from "../validadores";
-import { usuarioNaoEncontrado, emailUsuarioJaExiste } from "../erros";
+import { validarEmailUsuario, validarNomeUsuario } from "../validadores";
+import { emailUsuarioJaExiste } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import type { AtualizarUsuarioInput, AtualizarUsuarioOutput, AtualizarUsuarioResult } from "../tipos";
 import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import { validarLocatarioId } from "../../locatarios";
-import { transicionarEstadoUsuario } from "../maquinaEstados";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
+import { obterUsuarioObrigatorio } from "./helpers";
 
 /**
  * Cria a função de caso de uso responsável por atualizar dados cadastrais
@@ -33,6 +34,7 @@ export function createFnAtualizarUsuario(deps: {
   usuariosRepositorio: UsuariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaUsuariosPorta;
 }) {
   /**
    * Executa o caso de uso de atualização de usuário.
@@ -49,28 +51,28 @@ export function createFnAtualizarUsuario(deps: {
    * @returns `Ok(usuarioAtualizado)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function atualizarUsuario(input: AtualizarUsuarioInput): AtualizarUsuarioResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.usuariosRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
+      const atual = await obterUsuarioObrigatorio({
+        usuariosRepositorio: deps.usuariosRepositorio,
+        locatarioId: input.locatarioId,
+        usuarioId: input.usuarioId,
       });
       if (!atual.ok) return atual;
-      if (!atual.value || atual.value.excluidoEm) {
-        return usuarioNaoEncontrado(usuarioId.value);
-      }
 
-      const transicao = transicionarEstadoUsuario({
+      const autorizacao = await autorizarUsuario(deps, {
+        operacao: "USUARIO_ATUALIZAR",
+        locatarioId: atual.value.locatarioId,
         usuarioId: atual.value.usuarioId,
-        statusAtual: atual.value.status,
-        evento: "OPERAR",
+        usuario: atual.value,
+        dados: {
+          nome: input.nome,
+          email: input.email,
+        },
       });
-      if (!transicao.ok) return transicao;
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
+      const operacional = exigirEstadoOperacionalUsuario(atual.value);
+      if (!operacional.ok) return operacional;
 
       let nome = atual.value.nome;
       let email = atual.value.email;
@@ -92,10 +94,7 @@ export function createFnAtualizarUsuario(deps: {
         if (!existente.ok) return existente;
 
         if (existente.value && existente.value.usuarioId !== atual.value.usuarioId) {
-          return emailUsuarioJaExiste(
-            emailValidado.value,
-            atual.value.locatarioId,
-          );
+          return emailUsuarioJaExiste(emailValidado.value, atual.value.locatarioId);
         }
 
         email = emailValidado.value;

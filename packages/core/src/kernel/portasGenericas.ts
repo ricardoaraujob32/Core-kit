@@ -108,3 +108,24 @@ export interface TransacaoPorta {
    */
   executar<T>(fn: () => Promise<Result<T, ErroApp>>): Promise<Result<T, ErroApp>>;
 }
+
+/**
+ * 
+ */
+export interface BuscarPorIdPorta<TId extends string, TEntidade> {
+  buscarPorId(params: { id: TId }): Promise<Result<TEntidade | null, ErroApp>>;
+}
+
+/**
+ * 
+ */
+export interface AtualizarEntidadePorta<TEntidade> {
+  atualizar(entidade: TEntidade): Promise<Result<TEntidade, ErroApp>>;
+}
+
+/**
+ * 
+ */
+export interface ListarEntidadesPorta<TEntidade> {
+  listar(): Promise<Result<TEntidade[], ErroApp>>;
+}

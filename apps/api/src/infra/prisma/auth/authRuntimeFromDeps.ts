@@ -1,9 +1,10 @@
 // apps/api/src/infra/prisma/auth/authRuntimeFromDeps.ts
 
-import { createContextoExecucao, createFnEmitirSessao, createFnListarModulosHabilitados, createFnLogout, createFnResolverContextoAutorizado, createFnRotacionarRefresh, createFnValidarSessao, wrapOk } from "@core-kit/core";
+import { createContextoExecucao, createFnEmitirSessao, createFnListarModulosHabilitados, createFnLogout, createFnRotacionarRefresh, createFnValidarSessao, 
+  createFnEmitirSessaoPlataforma, wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import type { AuthUseCaseDeps } from "./authUseCaseDeps";
-import type { IdPorta, RelogioPorta } from "@core-kit/core";
+import type { IdPorta, LocatarioId, RelogioPorta, UsuarioId } from "@core-kit/core";
 
 /**
  * Portas técnicas já resolvidas para a composição do runtime.
@@ -31,6 +32,7 @@ export type AuthRuntimeTechnicalPorts = {
 export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCaseDeps, technical: AuthRuntimeTechnicalPorts) {
   const validarSessao = createFnValidarSessao(deps.validarSessaoDeps);
   const emitirSessao = createFnEmitirSessao(deps.emitirSessaoDeps);
+  const emitirSessaoPlataforma = createFnEmitirSessaoPlataforma(deps.emitirSessaoPlataformaDeps);
   const rotacionarRefresh = createFnRotacionarRefresh(deps.rotacionarRefreshDeps);
   const logout = createFnLogout(deps.logoutDeps);
   const listarModulosHabilitados = createFnListarModulosHabilitados(deps.listarModulosHabilitadosDeps);
@@ -40,6 +42,7 @@ export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCase
     technical,
 
     emitirSessao,
+    emitirSessaoPlataforma,
     rotacionarRefresh,
     validarSessao,
     logout,
@@ -54,8 +57,8 @@ export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCase
 
     async resolverContextoAutorizado(input: {
       sessao: {
-        locatarioId: string;
-        usuarioId?: string | null;
+        locatarioId: LocatarioId;
+        usuarioId?: UsuarioId | null;
         sessionId: string;
         expiraEm: Date;
       };

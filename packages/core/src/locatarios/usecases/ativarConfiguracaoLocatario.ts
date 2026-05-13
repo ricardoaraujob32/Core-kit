@@ -3,9 +3,11 @@
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import type { RelogioPorta, TransacaoPorta } from "../../kernel";
 import { executarEmTransacao, wrapOk } from "../../kernel";
-import { validarConfiguracaoLocatarioId, validarConfiguracoesLocatario, validarLocatarioId } from "../validadores";
-import { locatarioInvalido, locatarioNaoEncontrado } from "../erros";
-import { AtivarConfiguracaoLocatarioInput } from "../tipos";
+import { validarConfiguracaoLocatarioId, validarLocatarioId } from "../validadores";
+import { AtivarConfiguracaoLocatarioInput, AtivarConfiguracaoLocatarioOutput, AtivarConfiguracaoLocatarioResult } from "../tipos";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import { obterConfiguracaoObrigatoria, obterLocatarioObrigatorio } from "./helpers";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
 
 /**
  * 
@@ -13,16 +15,19 @@ import { AtivarConfiguracaoLocatarioInput } from "../tipos";
  * @returns 
  */
 export function createFnAtivarConfiguracaoLocatario(deps: {
-  locatarioRepositorio: LocatariosRepositorio;
+  locatariosRepositorio: LocatariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
 }) {
   /**
    * 
    * @param input
    * @returns
    */
-  return async function ativarConfiguracaoLocatario(input: AtivarConfiguracaoLocatarioInput) {
+  return async function ativarConfiguracaoLocatario(input: AtivarConfiguracaoLocatarioInput): AtivarConfiguracaoLocatarioResult {
+    const { locatariosRepositorio } = deps;
+
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -30,49 +35,48 @@ export function createFnAtivarConfiguracaoLocatario(deps: {
     if (!configuracaoId.ok) return configuracaoId;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const locatario = await deps.locatarioRepositorio.buscarPorId({
+      const locatario = await obterLocatarioObrigatorio({
+        locatariosRepositorio,
         locatarioId: locatarioId.value,
       });
       if (!locatario.ok) return locatario;
-      if (!locatario.value) return locatarioNaoEncontrado(locatarioId.value);
 
-      const alvo = locatario.value.configuracoes.find(
-        (c) => c.configuracaoId === configuracaoId.value,
-      );
-      if (!alvo) {
-        return locatarioInvalido({
-          campo: "configuracaoId",
-          valor: configuracaoId.value,
-          motivo: "configuracao_nao_encontrada",
-        });
-      }
+      const estadoOperacional = exigirEstadoOperacionalLocatario(locatario.value);
+      if (!estadoOperacional.ok) return estadoOperacional;
+
+      const configuracao = obterConfiguracaoObrigatoria({
+        locatario: locatario.value,
+        configuracaoId: configuracaoId.value,
+      });
+      if (!configuracao.ok) return configuracao;
+
+      const autorizacao = await autorizarLocatario(deps, {
+        operacao: "LOCATARIO_CONFIGURACAO_ATIVAR",
+        locatarioId: locatario.value.locatarioId,
+        locatario: locatario.value,
+        dados: { configuracaoId: configuracaoId.value },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const agora = deps.relogio.agora();
 
-      const futuras = locatario.value.configuracoes.map((c) => ({
-        ...c,
-        ativa: c.configuracaoId === configuracaoId.value,
-        atualizadoEm: c.configuracaoId === configuracaoId.value ? agora : c.atualizadoEm,
-      }));
+      const resultadoDesativacao =
+        await locatariosRepositorio.desativarConfiguracoesAtivas({
+          locatarioId: locatarioId.value,
+          atualizadoEm: agora,
+        });
+      if (!resultadoDesativacao.ok) return resultadoDesativacao;
 
-      const validacao = validarConfiguracoesLocatario(futuras);
-      if (!validacao.ok) return validacao;
+      const resultadoAtivacao =
+        await locatariosRepositorio.atualizarConfiguracao({
+          ...configuracao.value,
+          ativa: true,
+          atualizadoEm: agora,
+        });
+      if (!resultadoAtivacao.ok) return resultadoAtivacao;
 
-      const desativar = await deps.locatarioRepositorio.desativarConfiguracoesAtivas({
-        locatarioId: locatarioId.value,
-        atualizadoEm: agora,
-      });
-      if (!desativar.ok) return desativar;
-
-      const ativar = await deps.locatarioRepositorio.atualizarConfiguracao({
-        ...alvo,
-        ativa: true,
-        atualizadoEm: agora,
-      });
-      if (!ativar.ok) return ativar;
-
-      return wrapOk({
-        configuracao: ativar.value,
+      return wrapOk<AtivarConfiguracaoLocatarioOutput>({
+        configuracao: resultadoAtivacao.value,
       });
     });
   };

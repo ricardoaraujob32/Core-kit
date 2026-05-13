@@ -7,6 +7,7 @@ import { validarHashToken, validarExpiraEm, validarTokenTipo } from "../validado
 import { hashTokenJaExiste, tokenInvalido } from "../erros";
 import { validarLocatarioId } from "../../locatarios";
 import { validarUsuarioId } from "../../usuarios";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
 
 /**
  * Cria a função de caso de uso responsável por emitir e persistir um token.
@@ -32,6 +33,7 @@ export function createFnEmitirToken(deps: {
   idPorta: IdPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaTokensPorta;
 }) {
   /**
    * Executa o caso de uso de emissão de token.
@@ -64,7 +66,20 @@ export function createFnEmitirToken(deps: {
     if (!expiraEm.ok) return expiraEm;
 
     return executarEmTransacao(deps.transacao, async () => {
+      const autorizacao = await autorizarToken(deps, {
+        operacao: "TOKEN_EMITIR",
+        locatarioId: locatarioId.value,
+        usuarioId: usuarioId.value,
+        dados: {
+          tipo: tipo.value,
+          agenteUsuario: input.agenteUsuario ?? null,
+          enderecoIp: input.enderecoIp ?? null,
+        },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
       const agora = deps.relogio.agora();
+
       if (expiraEm.value.getTime() <= agora.getTime()) {
         return tokenInvalido({ campo: "expiraEm", regra: "deve_ser_futuro" });
       }

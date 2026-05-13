@@ -2,17 +2,23 @@
 
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
+import { isPlataforma } from "../core/auth/tipos";
 import { JSX } from "react";
 
 export default function AuthLayout(): JSX.Element {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, user } = useAuth();
 
   if (isLoading) {
     return <div>Carregando...</div>;
   }
 
-  if (isAuthenticated) {
-    return <Navigate to="/app" replace />;
+  if (isAuthenticated && user) {
+    return (
+      <Navigate
+        to={isPlataforma(user) ? "/superadmin" : "/app"}
+        replace
+      />
+    );
   }
 
   return (

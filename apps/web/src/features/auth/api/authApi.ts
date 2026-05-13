@@ -1,10 +1,20 @@
 // web/src/features/auth/api/authApi.ts
 
-import type { LoginInput, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "../../../core/auth/tipos";
-import { httpClient } from "../../../core/api/httpClient";
+import { httpClient } from "apps/web/src/core/api/httpClient";
+import { LoginInput, LoginPlataformaInput, LoginPlataformaResponse, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "apps/web/src/core/auth/tipos";
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
   return httpClient.post<LoginResponse, LoginInput>("/auth/login", input);
+}
+
+export async function loginPlataforma(input: LoginPlataformaInput): Promise<LoginPlataformaResponse> {
+  return httpClient.post<LoginPlataformaResponse, LoginPlataformaInput>(
+    "/auth/plataforma/login",
+    input,
+    {
+      skipAuthRetry: true,
+    },
+  );
 }
 
 export async function me(): Promise<MeResponse> {

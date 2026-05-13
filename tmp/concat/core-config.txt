@@ -1,0 +1,42 @@
+
+
+===== packages/core/package.json =====
+
+{
+  "name": "@core-kit/core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:file": "vitest run"
+  },
+  
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+
+
+===== packages/core/tsconfig.json =====
+
+//packages/core/tsconfig.json
+
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true,
+    "declaration": true,
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

@@ -2,7 +2,6 @@
 
 import { ContextoExecucao, ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
-import { TokenId } from "../tokens";
 import { UsuarioId } from "../usuarios";
 import { ChaveToken } from "./tipos";
 
@@ -42,7 +41,7 @@ export interface JwtAuthPorta {
    */
   emitirAccessToken(params: {
     usuarioId: UsuarioId;
-    locatarioId: LocatarioId;
+    locatarioId: LocatarioId | null;
     sessionId: string;
     agora: Date;
     ttlSegundos: number;
@@ -70,7 +69,7 @@ export interface JwtAuthPorta {
   ): Result<
     {
       sub: UsuarioId;
-      loc: LocatarioId;
+      loc: LocatarioId | null;
       session: string;
       exp: number;
     },

@@ -2,15 +2,18 @@
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import { isPlataforma } from "../auth/tipos";
 import { JSX } from "react";
 
 type SuperAdminRouteProps = {
   loginPath?: string;
   forbiddenPath?: string;
-  fallbackPath?: string;
 };
 
-export function SuperAdminRoute({ loginPath = "/login", fallbackPath = "/app" }: SuperAdminRouteProps): JSX.Element {
+export function SuperAdminRoute({
+  loginPath = "/login",
+  forbiddenPath = "/app",
+}: SuperAdminRouteProps): JSX.Element {
   const location = useLocation();
   const { isLoading, isAuthenticated, user } = useAuth();
 
@@ -28,7 +31,11 @@ export function SuperAdminRoute({ loginPath = "/login", fallbackPath = "/app" }:
     );
   }
 
-  return <Navigate to={fallbackPath} replace />;
+  if (!isPlataforma(user)) {
+    return <Navigate to={forbiddenPath} replace />;
+  }
+
+  return <Outlet />;
 }
 
 export default SuperAdminRoute;

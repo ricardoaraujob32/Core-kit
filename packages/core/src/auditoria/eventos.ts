@@ -1,50 +1,13 @@
 // packages/core/src/auditoria/eventos.ts
 
-/**
- * Destino lógico de publicação do evento de auditoria.
- */
-export type DestinoAuditoria = "PLATAFORMA" | "LOCATARIO" | "AMBAS";
+import { CategoriaAuditoria } from "./tipos";
 
-/**
- * Categoria canônica do evento auditado.
- */
-export type CategoriaAuditoria =
-  | "OPERACAO"
-  | "SEGURANCA"
-  | "ERRO"
-  | "COMPLIANCE";
+export type DestinoAuditoria = "LOCATARIO" | "PLATAFORMA";
 
-/**
- * Definição canônica de um evento de auditoria.
- *
- * Esta estrutura é a fonte de verdade para:
- * - categoria do evento;
- * - destino de publicação;
- * - exigência de `locatarioAlvoId`.
- */
 export type EventoAuditoriaDef = {
-  /**
-   * Nome estável do evento.
-   */
   evento: string;
-
-  /**
-   * Categoria semântica do evento.
-   */
   categoria: CategoriaAuditoria;
-
-  /**
-   * Destino de publicação.
-   */
   destino: DestinoAuditoria;
-
-  /**
-   * Indica se o evento exige `locatarioAlvoId`.
-   *
-   * Casos típicos:
-   * - impersonação;
-   * - operação de plataforma que afeta um locatário específico.
-   */
   exigeLocatarioAlvo?: boolean;
 };
 
@@ -66,12 +29,12 @@ export const EVENTOS_AUDITORIA: EventoAuditoriaDef[] = [
   { evento: "usuario.inativado", categoria: "OPERACAO", destino: "LOCATARIO" },
   { evento: "usuario.reativado", categoria: "OPERACAO", destino: "LOCATARIO" },
 
-  {
-    evento: "plataforma.usuario.acao_impersonada",
-    categoria: "OPERACAO",
-    destino: "AMBAS",
-    exigeLocatarioAlvo: true,
-  },
+  // {
+  //   evento: "plataforma.usuario.acao_impersonada",
+  //   categoria: "OPERACAO",
+  //   destino: "AMBAS",
+  //   exigeLocatarioAlvo: true,
+  // },
 
   // =========================
   // LOCATÁRIOS
@@ -107,9 +70,11 @@ export const EVENTOS_AUDITORIA: EventoAuditoriaDef[] = [
     exigeLocatarioAlvo: true,
   },
 
-  // =========================
+    // =========================
   // AUTH / SEGURANÇA
   // =========================
+
+  // Auth de locatário
   {
     evento: "auth.login.sucesso",
     categoria: "SEGURANCA",
@@ -118,18 +83,52 @@ export const EVENTOS_AUDITORIA: EventoAuditoriaDef[] = [
   {
     evento: "auth.login.falha",
     categoria: "SEGURANCA",
-    destino: "PLATAFORMA",
+    destino: "LOCATARIO",
+  },
+  {
+    evento: "auth.refresh",
+    categoria: "SEGURANCA",
+    destino: "LOCATARIO",
+  },
+  {
+    evento: "auth.logout",
+    categoria: "SEGURANCA",
+    destino: "LOCATARIO",
   },
   {
     evento: "auth.sessao.revogada",
     categoria: "SEGURANCA",
     destino: "LOCATARIO",
   },
+
+  // Auth de plataforma
+  {
+    evento: "plataforma.auth.login.sucesso",
+    categoria: "SEGURANCA",
+    destino: "PLATAFORMA",
+  },
+  {
+    evento: "plataforma.auth.login.falha",
+    categoria: "SEGURANCA",
+    destino: "PLATAFORMA",
+  },
+  {
+    evento: "plataforma.auth.refresh",
+    categoria: "SEGURANCA",
+    destino: "PLATAFORMA",
+  },
+  {
+    evento: "plataforma.auth.logout",
+    categoria: "SEGURANCA",
+    destino: "PLATAFORMA",
+  },
   {
     evento: "plataforma.auth.sessao.revogada",
     categoria: "SEGURANCA",
     destino: "PLATAFORMA",
   },
+
+  // Impersonação
   {
     evento: "plataforma.impersonacao.iniciada",
     categoria: "SEGURANCA",
@@ -141,7 +140,7 @@ export const EVENTOS_AUDITORIA: EventoAuditoriaDef[] = [
     categoria: "SEGURANCA",
     destino: "PLATAFORMA",
     exigeLocatarioAlvo: true,
-  },
+  },  
 
   // =========================
   // RBAC
@@ -190,4 +189,44 @@ export const EVENTOS_AUDITORIA: EventoAuditoriaDef[] = [
     categoria: "OPERACAO",
     destino: "PLATAFORMA",
   },
+
+    // =========================
+  // CLIENTES
+  // =========================
+  { evento: "cliente.listado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "cliente.obtido", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "cliente.criado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "cliente.atualizado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "cliente.excluido", categoria: "OPERACAO", destino: "LOCATARIO" },
+
+  // =========================
+  // FORNECEDORES
+  // =========================
+  { evento: "fornecedor.listado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "fornecedor.obtido", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "fornecedor.criado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "fornecedor.atualizado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "fornecedor.excluido", categoria: "OPERACAO", destino: "LOCATARIO" },
+
+  // =========================
+  // PRODUTOS
+  // =========================
+  { evento: "produto.listado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "produto.obtido", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "produto.criado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "produto.atualizado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "produto.excluido", categoria: "OPERACAO", destino: "LOCATARIO" },
+
+  // =========================
+  // TRANSAÇÕES COMERCIAIS
+  // =========================
+  { evento: "transacao.listada", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.obtida", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.venda.criada", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.compra.criada", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.item_adicionado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.item_atualizado", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.item_removido", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.confirmada", categoria: "OPERACAO", destino: "LOCATARIO" },
+  { evento: "transacao.cancelada", categoria: "OPERACAO", destino: "LOCATARIO" },
 ];

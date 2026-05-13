@@ -1,23 +1,86 @@
-import { describe, expect, it } from "vitest";
-import { createListarLocatarios } from "../../src/locatarios/usecases/listarLocatarios";
-import { criarLocatarioSeed, criarLocatariosRepositorioMemoria } from "../../src/locatarios/repositorioMemoria";
+// packages/core/__tests__/locatarios/listarLocatarios.test.ts
 
-describe("listarLocatarios", () => {
-  it("lista locatários ordenados por nome", async () => {
-    const repo = criarLocatariosRepositorioMemoria([
-      criarLocatarioSeed({ locatarioId: "loc-2", nome: "Beta" }),
-      criarLocatarioSeed({ locatarioId: "loc-1", nome: "Alpha" }),
+import { describe, expect, it } from "vitest";
+import { createFnListarLocatarios } from "../../src/locatarios/usecases/listarLocatarios";
+import { criarLocatarioTeste, criarLocatariosSimulacroRepositorio } from "./simulacros/locatariosSimulacroRepositorio";
+import { criarPoliticaSegurancaLocatariosFake } from "./fake/politicaSegurancaLocatariosFake";
+
+describe("#1 - createFnListarLocatarios", () => {
+  it("#1.1 - deve listar locatários ordenados por nome", async () => {
+    const repo = criarLocatariosSimulacroRepositorio([
+      criarLocatarioTeste({ locatarioId: "loc-2", nome: "Beta", slug: "beta" }),
+      criarLocatarioTeste({ locatarioId: "loc-1", nome: "Alpha", slug: "alpha" }),
     ]);
 
-    const usecase = createListarLocatarios({ locRepo: repo });
+    const usecase = createFnListarLocatarios({ locatariosRepositorio: repo });
 
-    const resultado = await usecase();
+    const resultado = await usecase({} as never);
 
     expect(resultado.ok).toBe(true);
-    if (!resultado.ok) return;
+    if (resultado.ok) {
+      expect(resultado.value.itens.map((item) => item.nome)).toEqual(["Alpha", "Beta"]);
+    }
+  });
 
-    expect(resultado.value.itens).toHaveLength(2);
-    expect(resultado.value.itens[0]?.nome).toBe("Alpha");
-    expect(resultado.value.itens[1]?.nome).toBe("Beta");
+  it("#1.2 - deve retornar lista vazia quando não há locatários", async () => {
+    const repo = criarLocatariosSimulacroRepositorio();
+    const usecase = createFnListarLocatarios({ locatariosRepositorio: repo });
+
+    const resultado = await usecase({} as never);
+
+    expect(resultado.ok).toBe(true);
+    if (resultado.ok) expect(resultado.value.itens).toEqual([]);
+  });
+
+  it("#1.3 - deve propagar falha do repositório", async () => {
+    const repo = criarLocatariosSimulacroRepositorio();
+
+    repo.simularFalha("listar");
+
+    const usecase = createFnListarLocatarios({ locatariosRepositorio: repo });
+
+    const resultado = await usecase({} as never);
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.detalhes?.simulada).toBe(true);
+  });
+});
+
+describe("#2 - política de segurança", () => {
+  it("#2.1 - deve autorizar operação antes de listar locatários", async () => {
+    const repo = criarLocatariosSimulacroRepositorio([
+      criarLocatarioTeste({ locatarioId: "loc-1", nome: "Beta" }),
+    ]);
+    const politica = criarPoliticaSegurancaLocatariosFake();
+
+    const usecase = createFnListarLocatarios({
+      locatariosRepositorio: repo,
+      politicaSeguranca: politica.politicaSeguranca,
+    });
+
+    const resultado = await usecase({} as never);
+
+    expect(resultado.ok).toBe(true);
+    expect(politica.ultimaChamada()).toMatchObject({
+      operacao: "LOCATARIO_LISTAR",
+    });
+  });
+
+  it("#2.2 - deve retornar erro quando política negar listagem", async () => {
+    const repo = criarLocatariosSimulacroRepositorio();
+    const politica = criarPoliticaSegurancaLocatariosFake({ autorizado: false });
+
+    const usecase = createFnListarLocatarios({
+      locatariosRepositorio: repo,
+      politicaSeguranca: politica.politicaSeguranca,
+    });
+
+    const resultado = await usecase({} as never);
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(resultado.error.codigo).toBe("NAO_AUTORIZADO");
+      expect(resultado.error.detalhes?.operacao).toBe("LOCATARIO_LISTAR");
+    }
   });
 });

@@ -5,6 +5,7 @@ import type { ListarTokensDoUsuarioInput, ListarTokensDoUsuarioOutput, ListarTok
 import type { TokensRepositorio } from "../portasRepositorio";
 import { validarUsuarioId } from "../../usuarios";
 import { validarLocatarioId } from "../../locatarios";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
 
 /**
  * Cria a função de caso de uso responsável por listar tokens de um usuário
@@ -21,7 +22,10 @@ import { validarLocatarioId } from "../../locatarios";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `listarTokensDoUsuario` pronta para receber a entrada do caso de uso.
  */
-export function createFnListarTokensDoUsuario(deps: { tokensRepo: TokensRepositorio }) {
+export function createFnListarTokensDoUsuario(deps: { 
+  tokensRepo: TokensRepositorio;
+  politicaSeguranca?: PoliticaSegurancaTokensPorta;
+ }) {
   /**
    * Executa o caso de uso de listagem de tokens do usuário.
    *
@@ -39,6 +43,13 @@ export function createFnListarTokensDoUsuario(deps: { tokensRepo: TokensReposito
 
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
+
+    const autorizacao = await autorizarToken(deps, {
+      operacao: "TOKEN_LISTAR",
+      locatarioId: locatarioId.value,
+      usuarioId: usuarioId.value,
+    });
+    if (autorizacao && !autorizacao.ok) return autorizacao;
 
     const res = await deps.tokensRepo.listarPorUsuario({
       usuarioId: usuarioId.value,

@@ -3,6 +3,13 @@
 import { createErroApp, ErroApp, Result } from "../kernel";
 import { ImportacaoId, ItemImportacaoId } from "./tipos";
 
+
+export type CodigoErroImportacao =
+  | "IMPORTACAO_INVALIDA"
+  | "IMPORTACAO_NAO_ENCONTRADA"
+  | "ITEM_IMPORTACAO_NAO_ENCONTRADO"
+  | "IMPORTACAO_TRANSICAO_STATUS_INVALIDA"
+
 /**
  * Cria erro para dados inválidos de importação.
  *
@@ -13,7 +20,7 @@ import { ImportacaoId, ItemImportacaoId } from "./tipos";
  * @returns `Err(ErroApp)` específico do pacote `importacoes`.
  */
 export function erroImportacaoInvalida(detalhes?: Record<string, unknown>): Result<never, ErroApp> {
-  return createErroApp({ codigo: "IMPORTACAO_INVALIDA", detalhes });
+  return createErroApp({ codigo: "IMPORTACAO_INVALIDA", mensagem: "Dados da importação são inválidos.", detalhes });
 }
 
 /**
@@ -23,7 +30,7 @@ export function erroImportacaoInvalida(detalhes?: Record<string, unknown>): Resu
  * @returns `Err(ErroApp)` com contexto da busca.
  */
 export function erroImportacaoNaoEncontrada(importacaoId: ImportacaoId): Result<never, ErroApp> {
-  return createErroApp({ codigo: "IMPORTACAO_NAO_ENCONTRADA", detalhes: { importacaoId } });
+  return createErroApp({ codigo: "IMPORTACAO_NAO_ENCONTRADA",mensagem: "Importação não encontrada.", detalhes: { importacaoId } });
 }
 
 /**
@@ -33,7 +40,7 @@ export function erroImportacaoNaoEncontrada(importacaoId: ImportacaoId): Result<
  * @returns `Err(ErroApp)` com contexto do item.
  */
 export function erroItemImportacaoNaoEncontrado(itemImportacaoId: ItemImportacaoId): Result<never, ErroApp> {
-  return createErroApp({ codigo: "ITEM_IMPORTACAO_NAO_ENCONTRADO", detalhes: { itemImportacaoId } });
+  return createErroApp({ codigo: "ITEM_IMPORTACAO_NAO_ENCONTRADO", mensagem: "Item de importação não encontrado.", detalhes: { itemImportacaoId } });
 }
 
 /**
@@ -47,5 +54,5 @@ export function erroItemImportacaoNaoEncontrado(itemImportacaoId: ItemImportacao
  * @returns `Err(ErroApp)` específico de transição de status inválida.
  */
 export function erroTransicaoStatusImportacaoInvalida(entidade: string, id: string, statusAtual: string, statusDestino: string): Result<never, ErroApp> {
-  return createErroApp({ codigo: "IMPORTACAO_TRANSICAO_STATUS_INVALIDA", detalhes: { entidade, id, statusAtual, statusDestino } });
+  return createErroApp({ codigo: "IMPORTACAO_TRANSICAO_STATUS_INVALIDA", mensagem: "A transição de status da importação é inválida.", detalhes: { entidade, id, statusAtual, statusDestino } });
 }

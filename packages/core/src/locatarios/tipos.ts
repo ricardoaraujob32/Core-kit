@@ -207,6 +207,12 @@ export interface ReativarLocatarioInput {
   motivoReativacao?: string | null;
 }
 
+export interface ReativarLocatarioOutput {
+  locatario: Locatario;
+}
+
+export type ReativarLocatarioResult = Promise<Result<ReativarLocatarioOutput, ErroApp>>;
+
 /**
  * 
  */
@@ -229,6 +235,12 @@ export interface CriarConfiguracaoLocatarioInput {
   ativa?: boolean;
 }
 
+export interface CriarConfiguracaoLocatarioOutput {
+  configuracaoId: ConfiguracaoLocatarioId;
+}
+
+export type CriarConfiguracaoLocatarioResult = Promise<Result<CriarConfiguracaoLocatarioOutput, ErroApp>>;
+
 /**
  * 
  */
@@ -243,6 +255,12 @@ export interface AtualizarConfiguracaoLocatarioInput {
   urlLogo?: string | null;
 }
 
+export interface AtualizarConfiguracaoLocatarioOutput {
+  configuracao: ConfiguracaoLocatario;
+}
+
+export type AtualizarConfiguracaoLocatarioResult = Promise<Result<AtualizarConfiguracaoLocatarioOutput, ErroApp>>;
+
 /**
  * 
  */
@@ -250,3 +268,9 @@ export interface AtivarConfiguracaoLocatarioInput {
   locatarioId: LocatarioId;
   configuracaoId: string;
 }
+
+export interface AtivarConfiguracaoLocatarioOutput {
+  configuracao: ConfiguracaoLocatario;
+}
+
+export type AtivarConfiguracaoLocatarioResult = Promise<Result<AtivarConfiguracaoLocatarioOutput, ErroApp>>;

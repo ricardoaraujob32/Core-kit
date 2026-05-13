@@ -1,36 +1,25 @@
 // apps/web/src/core/routing/tenantRoute.tsx
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuthorization } from "../auth/useAuthorization";
+import { useAuth } from "../auth/useAuth";
+import { isTenant } from "../auth/tipos";
 import { JSX } from "react";
 
 type TenantRouteProps = {
-  requiredPermissions?: string[];
-  requiredModule?: string;
-  requireAllPermissions?: boolean;
   loginPath?: string;
   forbiddenPath?: string;
 };
 
-function hasRequiredPermissions(currentPermissions: string[], requiredPermissions: string[], requireAllPermissions: boolean): boolean {
-  if (requiredPermissions.length === 0) {
-    return true;
-  }
-
-  if (requireAllPermissions) {
-    return requiredPermissions.every((permission) =>
-      currentPermissions.includes(permission),
-    );
-  }
-
-  return requiredPermissions.some((permission) =>
-    currentPermissions.includes(permission),
-  );
-}
-
-export function TenantRoute({ requiredPermissions = [], requiredModule, requireAllPermissions = true, loginPath = "/login", forbiddenPath = "/acesso-negado"}: TenantRouteProps): JSX.Element {
+export function TenantRoute({
+  loginPath = "/login",
+  forbiddenPath = "/acesso-negado",
+}: TenantRouteProps): JSX.Element {
   const location = useLocation();
-  const { isAuthenticated, user, permissions, hasModule } = useAuthorization();
+  const { isLoading, isAuthenticated, user } = useAuth();
+
+  if (isLoading) {
+    return <div>Carregando sessão...</div>;
+  }
 
   if (!isAuthenticated || !user) {
     return (
@@ -42,21 +31,7 @@ export function TenantRoute({ requiredPermissions = [], requiredModule, requireA
     );
   }
 
-  if (!user.locatarioId || user.locatarioId.trim() === "") {
-    return <Navigate to={forbiddenPath} replace />;
-  }
-
-  if (requiredModule && !hasModule(requiredModule)) {
-    return <Navigate to={forbiddenPath} replace />;
-  }
-
-  const authorized = hasRequiredPermissions(
-    permissions,
-    requiredPermissions,
-    requireAllPermissions,
-  );
-
-  if (!authorized) {
+  if (!isTenant(user) || !user.locatarioId) {
     return <Navigate to={forbiddenPath} replace />;
   }
 

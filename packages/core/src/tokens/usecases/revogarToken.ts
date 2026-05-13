@@ -3,11 +3,10 @@
 import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
 import type { RevogarTokenInput, RevogarTokenOutput, RevogarTokenResult } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
-import { validarAgora, validarTokenId } from "../validadores";
-import { tokenNaoEncontrado, tokenRevogado } from "../erros";
-import { obterStatusToken, transicionarEstadoToken } from "../maquinaEstados";
-import { validarLocatarioId } from "../../locatarios";
-import { validarUsuarioId } from "../../usuarios";
+import { validarAgora } from "../validadores";
+import { exigirTransicaoToken } from "../maquinaEstados";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
+import { obterTokenObrigatorioPorId } from "./helpers";
 
 /**
  * Cria a função de caso de uso responsável por revogar um token existente.
@@ -31,6 +30,7 @@ export function createFnRevogarToken(deps: {
   tokensRepo: TokensRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaTokensPorta;
 }) {
   /**
    * Executa o caso de uso de revogação de token.
@@ -47,36 +47,35 @@ export function createFnRevogarToken(deps: {
    * @returns `Ok(tokenAtualizado)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function revogarToken(input: RevogarTokenInput): RevogarTokenResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
-    const tokenId = validarTokenId(input.tokenId);
-    if (!tokenId.ok) return tokenId;
-
-    const agora = validarAgora(input.agora);
-    if (!agora.ok) return agora;
+    const agoraInput = validarAgora(input.agora);
+    if (!agoraInput.ok) return agoraInput;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.tokensRepo.buscarPorId({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
-        tokenId: tokenId.value,
+      const atual = await obterTokenObrigatorioPorId({
+        tokensRepo: deps.tokensRepo,
+        locatarioId: input.locatarioId,
+        usuarioId: input.usuarioId,
+        tokenId: input.tokenId,
       });
       if (!atual.ok) return atual;
 
-      if (!atual.value) {
-        return tokenNaoEncontrado(tokenId.value);
-      }
+      const autorizacao = await autorizarToken(deps, {
+        operacao: "TOKEN_REVOGAR",
+        locatarioId: atual.value.locatarioId,
+        usuarioId: atual.value.usuarioId,
+        tokenId: atual.value.tokenId,
+        token: atual.value,
+        dados: {
+          motivo: input.motivo,
+        },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const agora = deps.relogio.agora();
-      const statusAtual = obterStatusToken(atual.value, agora);
 
-      const transicao = transicionarEstadoToken({
-        tokenId: atual.value.tokenId,
-        statusAtual,
+      const transicao = exigirTransicaoToken({
+        token: atual.value,
+        agora,
         evento: "REVOGAR",
       });
       if (!transicao.ok) return transicao;

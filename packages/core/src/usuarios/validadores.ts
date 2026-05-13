@@ -64,3 +64,12 @@ export function validarEmailUsuario(email: string): Result<string, ErroApp> {
 export function validarSenhaHash(senhaHash: string): Result<string, ErroApp> {
   return mapearErro( validarTextoObrigatorio(senhaHash, "senhaHash", 20), "senhaHash", senhaHash );
 }
+
+/**
+ * 
+ * @param senha 
+ * @returns 
+ */
+export function validarSenhaUsuario(senha: string): Result<string, ErroApp> {
+  return mapearErro(validarTextoObrigatorio(senha, "senha", 8), "senha", senha);
+}

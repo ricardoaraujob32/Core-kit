@@ -99,7 +99,7 @@ export type ListarTransacoesInput = { locatarioId: LocatarioId; tipo?: TipoTrans
 export type ListarTransacoesOutput = { itens: TransacaoComercial[] };
 export type ListarTransacoesResult = Promise<Result<ListarTransacoesOutput, ErroApp>>;
 
-export type AdicionarItemTransacaoInput = { locatarioId: LocatarioId; transacaoId: TransacaoId; produtoId: ProdutoId; quantidade: number; valorUnitario?: number; valorDesconto?: number; estoqueId?: EstoqueId | null; usuarioId?: UsuarioId | null; descricao?: string | null; };
+export type AdicionarItemTransacaoInput = { locatarioId: LocatarioId; transacaoId: TransacaoId; produtoId: ProdutoId; quantidade: number; valorUnitario?: number; valorDesconto?: number; estoqueId?: EstoqueId | null; usuarioId?: UsuarioId | null; descricao?: string | null; valorAcrescimo?: number | undefined; };
 export type AdicionarItemTransacaoOutput = { item: ItemTransacaoComercial; transacao: TransacaoComercial };
 export type AdicionarItemTransacaoResult = Promise<Result<AdicionarItemTransacaoOutput, ErroApp>>;
 

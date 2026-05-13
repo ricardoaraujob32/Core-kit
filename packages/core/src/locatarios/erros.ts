@@ -4,6 +4,16 @@ import { createErroApp } from "../kernel";
 import { LocatarioId, LocatarioSlug } from "./tipos";
 
 /**
+ * 
+ */
+export type CodigoErroLocatario =
+  | "LOCATARIO_INVALIDO"
+  | "LOCATARIO_NAO_ENCONTRADO"
+  | "LOCATARIO_SUSPENSO"
+  | "LOCATARIO_ENCERRADO"
+  | "LOCATARIO_OBRIGATORIO";
+
+/**
  * Cria erro para entradas inválidas relacionadas ao domínio de locatários.
  *
  * Use este helper quando os dados recebidos para criação, atualização,
@@ -14,7 +24,7 @@ import { LocatarioId, LocatarioSlug } from "./tipos";
  * @returns `Err(ErroApp)` tipado para o domínio de locatários.
  */
 export function locatarioInvalido(detalhes?: Record<string, unknown>) {
-  return createErroApp({ codigo: "LOCATARIO_INVALIDO", detalhes });
+  return createErroApp({ codigo: "LOCATARIO_INVALIDO", mensagem: "Dados do locatário são inválidos.", detalhes });
 }
 
 /**
@@ -24,7 +34,7 @@ export function locatarioInvalido(detalhes?: Record<string, unknown>) {
  * @returns `Err(ErroApp)` com o código específico do módulo.
  */
 export function locatarioNaoEncontrado(locatarioId: LocatarioId) {
-  return createErroApp({ codigo: "LOCATARIO_NAO_ENCONTRADO", detalhes: { locatarioId } });
+  return createErroApp({ codigo: "LOCATARIO_NAO_ENCONTRADO", mensagem: "Locatário não encontrado.", detalhes: { locatarioId } });
 }
 
 /**
@@ -37,7 +47,7 @@ export function locatarioNaoEncontrado(locatarioId: LocatarioId) {
  * @returns `Err(ErroApp)` com status contextual em `detalhes`.
  */
 export function locatarioSuspenso(locatarioId: LocatarioId) {
-  return createErroApp({ codigo: "LOCATARIO_SUSPENSO", detalhes: { locatarioId, status: "SUSPENSO" } });
+  return createErroApp({ codigo: "LOCATARIO_SUSPENSO", mensagem: "Locatário suspenso.", detalhes: { locatarioId, status: "SUSPENSO" } });
 }
 
 /**
@@ -47,9 +57,23 @@ export function locatarioSuspenso(locatarioId: LocatarioId) {
  * @returns `Err(ErroApp)` com status contextual em `detalhes`.
  */
 export function locatarioEncerrado(locatarioId: LocatarioId) {
-  return createErroApp({ codigo: "LOCATARIO_ENCERRADO", detalhes: { locatarioId, status: "ENCERRADO" } });
+  return createErroApp({ codigo: "LOCATARIO_ENCERRADO", mensagem: "Locatário encerrado.", detalhes: { locatarioId, status: "ENCERRADO" } });
 }
 
+/**
+ * 
+ * @param detalhes 
+ * @returns 
+ */
+export function locatarioObrigatorio(locatarioId: LocatarioId) {
+  return createErroApp({ codigo: "LOCATARIO_OBRIGATORIO", mensagem: "Locatário ausente no contexto autenticado.", detalhes: { locatarioId } });
+}
+
+/**
+ * 
+ * @param slug 
+ * @returns 
+ */
 export function slugLocatarioJaExiste(slug: LocatarioSlug) {
   return createErroApp({
     codigo: "CONFLITO",
@@ -61,6 +85,11 @@ export function slugLocatarioJaExiste(slug: LocatarioSlug) {
   });
 }
 
+/**
+ * 
+ * @param email 
+ * @returns 
+ */
 export function emailLocatarioJaExiste(email: string) {
   return createErroApp({
     codigo: "CONFLITO",

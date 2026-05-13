@@ -1,12 +1,12 @@
-// packages/core/src/usuarios/usecases/inativarUsuario.ts
+// packages/core/src/usuarios/usecases/desativarUsuario.ts
 
-import { validarUsuarioId } from "../validadores";
-import { usuarioNaoEncontrado } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { DesativarUsuarioInput as DesativarUsuarioInput, DesativarUsuarioOutput as DesativarUsuarioOutput, DesativarUsuarioResult as DesativarUsuarioResult } from "../tipos";
-import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import { validarLocatarioId } from "../../locatarios";
+import type { DesativarUsuarioInput, DesativarUsuarioOutput, DesativarUsuarioResult } from "../tipos";
+import { wrapOk, RelogioPorta, TransacaoPorta } from "../../kernel";
+import { executarEmTransacao } from "../../kernel";
 import { transicionarEstadoUsuario } from "../maquinaEstados";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
+import { obterUsuarioObrigatorio } from "./helpers";
 
 /**
  * Cria a função de caso de uso responsável por marcar um usuário como inativo.
@@ -30,6 +30,7 @@ export function createFnDesativarUsuario(deps: {
   usuariosRepositorio: UsuariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaUsuariosPorta;
 }) {
   /**
    * Executa o caso de uso de inativação de usuário.
@@ -45,21 +46,21 @@ export function createFnDesativarUsuario(deps: {
    * @returns `Ok(usuarioAtualizado)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function desativarUsuario(input: DesativarUsuarioInput): DesativarUsuarioResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.usuariosRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
+      const atual = await obterUsuarioObrigatorio({
+        usuariosRepositorio: deps.usuariosRepositorio,
+        locatarioId: input.locatarioId,
+        usuarioId: input.usuarioId,
       });
       if (!atual.ok) return atual;
-      if (!atual.value || atual.value.excluidoEm) {
-        return usuarioNaoEncontrado(usuarioId.value);
-      }
+
+      const autorizacao = await autorizarUsuario(deps, {
+        operacao: "USUARIO_DESATIVAR",
+        locatarioId: atual.value.locatarioId,
+        usuarioId: atual.value.usuarioId,
+        usuario: atual.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const transicao = transicionarEstadoUsuario({
         usuarioId: atual.value.usuarioId,
@@ -81,4 +82,3 @@ export function createFnDesativarUsuario(deps: {
     });
   };
 }
-

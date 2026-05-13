@@ -4,9 +4,9 @@ import type { LocatariosRepositorio } from "../portasRepositorio";
 import type { RelogioPorta, TransacaoPorta } from "../../kernel";
 import type { SuspenderLocatarioInput } from "../tipos";
 import { executarEmTransacao, wrapOk } from "../../kernel";
-import { validarLocatarioId } from "../validadores";
-import { locatarioNaoEncontrado } from "../erros";
 import { transicionarEstadoLocatario } from "../maquinaEstados";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import { obterLocatarioObrigatorio } from "./helpers";
 
 /**
  * 
@@ -14,9 +14,10 @@ import { transicionarEstadoLocatario } from "../maquinaEstados";
  * @returns 
  */
 export function createFnSuspenderLocatario(deps: {
-  locatarioRepositorio: LocatariosRepositorio;
+  locatariosRepositorio: LocatariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
 }) {
   /**
    * 
@@ -24,27 +25,31 @@ export function createFnSuspenderLocatario(deps: {
    * @returns
    */
   return async function suspenderLocatario(input: SuspenderLocatarioInput) {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.locatarioRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
+      const locatario = await obterLocatarioObrigatorio({
+        locatariosRepositorio: deps.locatariosRepositorio,
+        locatarioId: input.locatarioId,
       });
-      if (!atual.ok) return atual;
-      if (!atual.value) return locatarioNaoEncontrado(locatarioId.value);
+      if (!locatario.ok) return locatario;
+
+      const autorizacao = await autorizarLocatario(deps, {
+        operacao: "LOCATARIO_SUSPENDER",
+        locatarioId: locatario.value.locatarioId,
+        locatario: locatario.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const transicao = transicionarEstadoLocatario({
-        locatarioId: atual.value.locatarioId,
-        statusAtual: atual.value.status,
+        locatarioId: locatario.value.locatarioId,
+        statusAtual: locatario.value.status,
         evento: "SUSPENDER",
       });
       if (!transicao.ok) return transicao;
 
       const agora = deps.relogio.agora();
 
-      const atualizado = await deps.locatarioRepositorio.atualizar({
-        ...atual.value,
+      const atualizado = await deps.locatariosRepositorio.atualizar({
+        ...locatario.value,
         status: transicao.value,
         suspensoEm: agora,
         motivoSuspensao: input.motivoSuspensao?.trim() || null,

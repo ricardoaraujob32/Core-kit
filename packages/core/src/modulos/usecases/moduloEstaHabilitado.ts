@@ -40,11 +40,13 @@ export function createFnModuloEstaHabilitado(deps: {
     const validado = validarModuloEstaHabilitadoInput(input);
     if (!validado.ok) return validado;
 
-    const modulosResult = await deps.repositorio.listarPorLocatario(validado.value.locatarioId);
+    const modulosResult = await deps.repositorio.listarPorLocatario(
+      validado.value.locatarioId,
+    );
     if (!modulosResult.ok) return modulosResult;
 
     const encontrado = modulosResult.value.find(
-      (item) => item.codigo === validado.value.codigo,
+      (item) => item.codigo.toUpperCase() === validado.value.codigo,
     );
 
     return wrapOk<ModuloEstaHabilitadoOutput>({

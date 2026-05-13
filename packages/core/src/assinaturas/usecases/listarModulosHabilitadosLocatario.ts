@@ -1,8 +1,10 @@
 // packages/core/src/assinaturas/usecases/listarModulosHabilitadosLocatario.ts
 
 import { wrapOk } from "../../kernel";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
 import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio";
 import { ListarModulosHabilitadosLocatarioInput, ListarModulosHabilitadosLocatarioOutput, ListarModulosHabilitadosLocatarioResult, ModuloHabilitadoLocatario } from "../tipos";
+import { validarListarModulosHabilitadosLocatarioInput } from "../validadores";
 
 /**
  * Propósito do arquivo:
@@ -22,6 +24,7 @@ export function createFnListarModulosHabilitadosLocatario(deps: {
   assinaturasRepositorio: AssinaturasRepositorio;
   assinaturasModulosRepositorio: AssinaturasModulosRepositorio;
   modulosConsultaRepositorio: ModulosConsultaRepositorio;
+  politicaSeguranca?: PoliticaSegurancaAssinaturasPorta;
 }) {
     /**
  * Lista os módulos habilitados de um locatário.
@@ -38,10 +41,19 @@ export function createFnListarModulosHabilitadosLocatario(deps: {
  * ou `Err(ErroApp)` em caso de falha.
  */
   return async function listarModulosHabilitadosLocatario(input: ListarModulosHabilitadosLocatarioInput): ListarModulosHabilitadosLocatarioResult {
+    const validacao = validarListarModulosHabilitadosLocatarioInput(input);
+    if (!validacao.ok) return validacao;
+
     const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
       input.locatarioId,
     );
     if (!assinaturaAtiva.ok) return assinaturaAtiva;
+
+    const autorizacao = await autorizarAssinatura(deps, {
+      operacao: "ASSINATURA_LISTAR_MODULOS",
+      locatarioId: input.locatarioId,
+    });
+    if (autorizacao && !autorizacao.ok) return autorizacao;
 
     const modulosGratis = await deps.modulosConsultaRepositorio.listarModulosGratis();
     if (!modulosGratis.ok) return modulosGratis;

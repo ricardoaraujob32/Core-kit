@@ -17,6 +17,5 @@
       "@env": ["apps/api/src/env.ts"]
     }
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/__tests__/**"]
+  "include": ["src", "__tests__"]
 }

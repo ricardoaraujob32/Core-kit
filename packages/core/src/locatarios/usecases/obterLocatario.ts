@@ -2,10 +2,10 @@
 
 import type { ObterLocatarioInput, ObterLocatarioOutput, ObterLocatarioResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
-import { validarConfiguracoesLocatario, validarLocatarioId } from "../validadores";
-import { locatarioNaoEncontrado } from "../erros";
 import { wrapOk } from "../../kernel";
-import { transicionarEstadoLocatario } from "../maquinaEstados";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
+import { obterLocatarioObrigatorio } from "./helpers";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
 
 /**
  * Cria a função de caso de uso responsável por obter um locatário por ID.
@@ -23,7 +23,10 @@ import { transicionarEstadoLocatario } from "../maquinaEstados";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `obterLocatario` pronta para receber a entrada do caso de uso.
  */
-export function createFnObterLocatario(deps: { locatarioRepositorio: LocatariosRepositorio }) {
+export function createFnObterLocatario(deps: { 
+  locatariosRepositorio: LocatariosRepositorio,
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
+ }) {
   /**
    * Executa o caso de uso de obtenção de locatário.
    *
@@ -38,29 +41,24 @@ export function createFnObterLocatario(deps: { locatarioRepositorio: LocatariosR
    * @returns `Ok(locatario)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function obterLocatario(input: ObterLocatarioInput): ObterLocatarioResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const res = await deps.locatarioRepositorio.buscarPorId({
-      locatarioId: locatarioId.value,
+    const locatario = await obterLocatarioObrigatorio({
+      locatariosRepositorio: deps.locatariosRepositorio,
+      locatarioId: input.locatarioId,
     });
-    if (!res.ok) return res;
+    if (!locatario.ok) return locatario;
 
-    const locatario = res.value;
-    if (!locatario) return locatarioNaoEncontrado(locatarioId.value);
+    const estadoOperacional = exigirEstadoOperacionalLocatario(locatario.value);
+    if (!estadoOperacional.ok) return estadoOperacional;
 
-    const transicao = transicionarEstadoLocatario({
-      locatarioId: locatario.locatarioId,
-      statusAtual: locatario.status,
-      evento: "OPERAR",
+    const autorizacao = await autorizarLocatario(deps, {
+      operacao: "LOCATARIO_OBTER",
+      locatarioId: locatario.value.locatarioId,
+      locatario: locatario.value,
     });
-    if (!transicao.ok) return transicao;
-
-    const configuracoesOk = validarConfiguracoesLocatario(locatario.configuracoes);
-    if (!configuracoesOk.ok) return configuracoesOk;
+    if (autorizacao && !autorizacao.ok) return autorizacao;
 
     return wrapOk<ObterLocatarioOutput>({
-      locatario: locatario,
+      locatario: locatario.value,
     });
   };
 }

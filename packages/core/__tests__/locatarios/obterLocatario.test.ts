@@ -1,75 +1,112 @@
-import { describe, expect, it } from "vitest";
-import { createObterLocatario } from "../../src/locatarios/usecases/obterLocatario";
-import { criarLocatarioSeed, criarLocatariosRepositorioMemoria } from "../../src/locatarios/repositorioMemoria";
+// packages/core/__tests__/locatarios/obterLocatario.test.ts
 
-describe("obterLocatario", () => {
-  it("obtém locatário ativo", async () => {
-    const repo = criarLocatariosRepositorioMemoria([
-      criarLocatarioSeed({
-        locatarioId: "loc-1",
-        nome: "Empresa A",
-        status: "ATIVO",
-      }),
+import { describe, expect, it } from "vitest";
+import { createFnObterLocatario } from "../../src/locatarios/usecases/obterLocatario";
+import { criarLocatarioTeste, criarLocatariosSimulacroRepositorio } from "./simulacros/locatariosSimulacroRepositorio";
+import { criarPoliticaSegurancaLocatariosFake } from "./fake/politicaSegurancaLocatariosFake";
+
+describe("#1 - createFnObterLocatario", () => {
+  it("#1.1 - deve obter locatário ativo", async () => {
+    const repo = criarLocatariosSimulacroRepositorio([
+      criarLocatarioTeste({ locatarioId: "loc-1", status: "ATIVO" }),
     ]);
 
-    const usecase = createObterLocatario({ locRepo: repo });
+    const usecase = createFnObterLocatario({ locatariosRepositorio: repo });
 
     const resultado = await usecase({ locatarioId: "loc-1" });
 
     expect(resultado.ok).toBe(true);
-    if (!resultado.ok) return;
-
-    expect(resultado.value.locatarioId).toBe("loc-1");
-    expect(resultado.value.status).toBe("ATIVO");
+    if (resultado.ok) expect(resultado.value.locatario.locatarioId).toBe("loc-1");
   });
 
-  it("falha quando locatário não existe", async () => {
-    const repo = criarLocatariosRepositorioMemoria();
-    const usecase = createObterLocatario({ locRepo: repo });
+  it("#1.2 - deve falhar quando locatário não existe", async () => {
+    const repo = criarLocatariosSimulacroRepositorio();
+    const usecase = createFnObterLocatario({ locatariosRepositorio: repo });
 
     const resultado = await usecase({ locatarioId: "loc-x" });
 
     expect(resultado.ok).toBe(false);
-    if (resultado.ok) return;
-
-    expect(resultado.error.codigo).toBe("LOCATARIO_NAO_ENCONTRADO");
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("LOCATARIO_NAO_ENCONTRADO");
   });
 
-  it("falha quando locatário está suspenso", async () => {
-    const repo = criarLocatariosRepositorioMemoria([
-      criarLocatarioSeed({
-        locatarioId: "loc-1",
-        nome: "Empresa A",
-        status: "SUSPENSO",
-      }),
+  it("#1.3 - deve falhar quando locatário está suspenso", async () => {
+    const repo = criarLocatariosSimulacroRepositorio([
+      criarLocatarioTeste({ locatarioId: "loc-1", status: "SUSPENSO" }),
     ]);
 
-    const usecase = createObterLocatario({ locRepo: repo });
+    const usecase = createFnObterLocatario({ locatariosRepositorio: repo });
 
     const resultado = await usecase({ locatarioId: "loc-1" });
 
     expect(resultado.ok).toBe(false);
-    if (resultado.ok) return;
-
-    expect(resultado.error.codigo).toBe("LOCATARIO_SUSPENSO");
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("LOCATARIO_SUSPENSO");
   });
 
-  it("falha quando locatário está encerrado", async () => {
-    const repo = criarLocatariosRepositorioMemoria([
-      criarLocatarioSeed({
-        locatarioId: "loc-1",
-        nome: "Empresa A",
-        status: "ENCERRADO",
-      }),
+  it("#1.4 - deve falhar quando locatário está encerrado", async () => {
+    const repo = criarLocatariosSimulacroRepositorio([
+      criarLocatarioTeste({ locatarioId: "loc-1", status: "ENCERRADO" }),
     ]);
 
-    const usecase = createObterLocatario({ locRepo: repo });
+    const usecase = createFnObterLocatario({ locatariosRepositorio: repo });
 
     const resultado = await usecase({ locatarioId: "loc-1" });
 
     expect(resultado.ok).toBe(false);
-    if (resultado.ok) return;
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("LOCATARIO_ENCERRADO");
+  });
 
-    expect(resultado.error.codigo).toBe("LOCATARIO_ENCERRADO");
+  it("#1.5 - deve propagar falha do repositório", async () => {
+    const repo = criarLocatariosSimulacroRepositorio();
+
+    repo.simularFalha("buscarPorId");
+
+    const usecase = createFnObterLocatario({ locatariosRepositorio: repo });
+
+    const resultado = await usecase({ locatarioId: "loc-1" });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.error.detalhes?.simulada).toBe(true);
+  });
+});
+
+describe("#2 - política de segurança", () => {
+  it("#2.1 - deve autorizar operação antes de obter locatário", async () => {
+    const repo = criarLocatariosSimulacroRepositorio([
+      criarLocatarioTeste({ locatarioId: "loc-1", status: "ATIVO" }),
+    ]);
+    const politica = criarPoliticaSegurancaLocatariosFake();
+
+    const usecase = createFnObterLocatario({
+      locatariosRepositorio: repo,
+      politicaSeguranca: politica.politicaSeguranca,
+    });
+
+    const resultado = await usecase({ locatarioId: "loc-1" });
+
+    expect(resultado.ok).toBe(true);
+    expect(politica.ultimaChamada()).toMatchObject({
+      operacao: "LOCATARIO_OBTER",
+      locatarioId: "loc-1",
+    });
+  });
+
+  it("#2.2 - deve retornar erro quando política negar obtenção", async () => {
+    const repo = criarLocatariosSimulacroRepositorio([
+      criarLocatarioTeste({ locatarioId: "loc-1", status: "ATIVO" }),
+    ]);
+    const politica = criarPoliticaSegurancaLocatariosFake({ autorizado: false });
+
+    const usecase = createFnObterLocatario({
+      locatariosRepositorio: repo,
+      politicaSeguranca: politica.politicaSeguranca,
+    });
+
+    const resultado = await usecase({ locatarioId: "loc-1" });
+
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) {
+      expect(resultado.error.codigo).toBe("NAO_AUTORIZADO");
+      expect(resultado.error.detalhes?.operacao).toBe("LOCATARIO_OBTER");
+    }
   });
 });

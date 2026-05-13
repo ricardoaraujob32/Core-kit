@@ -4,9 +4,11 @@ import type { LocatariosRepositorio } from "../portasRepositorio";
 import type { RelogioPorta, TransacaoPorta } from "../../kernel";
 import { executarEmTransacao, wrapOk } from "../../kernel";
 import { validarCorTema, validarConfiguracaoLocatarioId, validarIdentidadeVisualLocatario, validarLocatarioId, validarModoTemaLocatario, 
-    validarUrlLogoLocatario, validarConfiguracoesLocatario} from "../validadores";
-import { locatarioInvalido, locatarioNaoEncontrado } from "../erros";
-import { AtualizarConfiguracaoLocatarioInput } from "../tipos";
+    validarUrlLogoLocatario } from "../validadores";
+import { AtualizarConfiguracaoLocatarioInput, AtualizarConfiguracaoLocatarioOutput, AtualizarConfiguracaoLocatarioResult } from "../tipos";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import { obterConfiguracaoObrigatoria, obterLocatarioObrigatorio } from "./helpers";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
 
 /**
  * 
@@ -14,16 +16,19 @@ import { AtualizarConfiguracaoLocatarioInput } from "../tipos";
  * @returns 
  */
 export function createFnAtualizarConfiguracaoLocatario(deps: {
-  locatarioRepositorio: LocatariosRepositorio;
+  locatariosRepositorio: LocatariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
 }) {
   /**
    * 
    * @param input
    * @returns
    */
-  return async function atualizarConfiguracaoLocatario(input: AtualizarConfiguracaoLocatarioInput) {
+  return async function atualizarConfiguracaoLocatario(input: AtualizarConfiguracaoLocatarioInput): AtualizarConfiguracaoLocatarioResult {
+    const { locatariosRepositorio } = deps;
+
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -31,29 +36,35 @@ export function createFnAtualizarConfiguracaoLocatario(deps: {
     if (!configuracaoId.ok) return configuracaoId;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const loc = await deps.locatarioRepositorio.buscarPorId({
+      const locatario = await obterLocatarioObrigatorio({
+        locatariosRepositorio,
         locatarioId: locatarioId.value,
       });
-      if (!loc.ok) return loc;
-      if (!loc.value) return locatarioNaoEncontrado(locatarioId.value);
+      if (!locatario.ok) return locatario;
 
-      const atual = loc.value.configuracoes.find(
-        (c) => c.configuracaoId === configuracaoId.value,
-      );
-      if (!atual) {
-        return locatarioInvalido({
-          campo: "configuracaoId",
-          valor: configuracaoId.value,
-          motivo: "configuracao_nao_encontrada",
-        });
-      }
+      const estadoOperacional = exigirEstadoOperacionalLocatario(locatario.value);
+      if (!estadoOperacional.ok) return estadoOperacional;
 
-      let modoTema = atual.modoTema;
-      let identidadeVisual = atual.identidadeVisual;
-      let corPrimaria = atual.corPrimaria;
-      let corSecundaria = atual.corSecundaria;
-      let corTerciaria = atual.corTerciaria;
-      let urlLogo = atual.urlLogo;
+      const atual = obterConfiguracaoObrigatoria({
+        locatario: locatario.value,
+        configuracaoId: configuracaoId.value,
+      });
+      if (!atual.ok) return atual;
+
+      const autorizacao = await autorizarLocatario(deps, {
+        operacao: "LOCATARIO_CONFIGURACAO_ATUALIZAR",
+        locatarioId: locatario.value.locatarioId,
+        locatario: locatario.value,
+        dados: { configuracaoId: configuracaoId.value },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
+      let modoTema = atual.value.modoTema;
+      let identidadeVisual = atual.value.identidadeVisual;
+      let corPrimaria = atual.value.corPrimaria;
+      let corSecundaria = atual.value.corSecundaria;
+      let corTerciaria = atual.value.corTerciaria;
+      let urlLogo = atual.value.urlLogo;
 
       if (input.modoTema !== undefined) {
         const r = validarModoTemaLocatario(input.modoTema);
@@ -91,31 +102,21 @@ export function createFnAtualizarConfiguracaoLocatario(deps: {
         urlLogo = r.value;
       }
 
-      const atualizada = {
-        ...atual,
-        modoTema,
-        identidadeVisual,
-        corPrimaria,
-        corSecundaria,
-        corTerciaria,
-        urlLogo,
-        atualizadoEm: deps.relogio.agora(),
-      };
+      const resultadoAtualizacao =
+        await locatariosRepositorio.atualizarConfiguracao({
+          ...atual.value,
+          modoTema,
+          identidadeVisual,
+          corPrimaria,
+          corSecundaria,
+          corTerciaria,
+          urlLogo,
+          atualizadoEm: deps.relogio.agora(),
+        });
+      if (!resultadoAtualizacao.ok) return resultadoAtualizacao;
 
-      if (atualizada.ativa) {
-        const validacao = validarConfiguracoesLocatario(
-          loc.value.configuracoes.map((c) =>
-            c.configuracaoId === atualizada.configuracaoId ? atualizada : c,
-          ),
-        );
-        if (!validacao.ok) return validacao;
-      }
-
-      const res = await deps.locatarioRepositorio.atualizarConfiguracao(atualizada);
-      if (!res.ok) return res;
-
-      return wrapOk({
-        configuracao: res.value,
+      return wrapOk<AtualizarConfiguracaoLocatarioOutput>({
+        configuracao: resultadoAtualizacao.value,
       });
     });
   };

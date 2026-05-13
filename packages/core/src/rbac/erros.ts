@@ -3,6 +3,11 @@
 import { createErroApp } from "../kernel";
 import { Permissao } from "./tipos";
 
+export type CodigoErroRbac =
+  | "RBAC_PERMISSAO_INVALIDA"
+  | "RBAC_NAO_AUTENTICADO"
+  | "RBAC_NAO_AUTORIZADO"
+
 /**
  * Cria erro para permissão inválida no contexto de RBAC.
  *
@@ -13,7 +18,7 @@ import { Permissao } from "./tipos";
  * @returns `Err(ErroApp)` específico do domínio de autorização.
  */
 export function permissaoInvalida(permissao: Permissao) {
-  return createErroApp({ codigo: "RBAC_PERMISSAO_INVALIDA", detalhes: { permissao } });
+  return createErroApp({ codigo: "RBAC_PERMISSAO_INVALIDA", mensagem: "Permissão inválida.", detalhes: { permissao } });
 }
 
 /**
@@ -22,7 +27,7 @@ export function permissaoInvalida(permissao: Permissao) {
  * @returns `Err(ErroApp)` específico do módulo RBAC.
  */
 export function naoAutenticado() {
-  return createErroApp({ codigo: "RBAC_NAO_AUTENTICADO", detalhes: {} });
+  return createErroApp({ codigo: "RBAC_NAO_AUTENTICADO", mensagem: "Usuário não autenticado para resolução de autorização.", detalhes: {} });
 }
 
 /**
@@ -32,5 +37,5 @@ export function naoAutenticado() {
  * @returns `Err(ErroApp)` com a permissão faltante em `detalhes`.
  */
 export function naoAutorizado(permissao: Permissao) {
-  return createErroApp({ codigo: "RBAC_NAO_AUTORIZADO", detalhes: { permissao } });
+  return createErroApp({ codigo: "RBAC_NAO_AUTORIZADO", mensagem: "Usuário não possui a permissão necessária.", detalhes: { permissao } });
 }

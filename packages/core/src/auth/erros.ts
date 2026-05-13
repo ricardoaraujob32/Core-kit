@@ -2,6 +2,14 @@
 
 import { createErroApp } from "../kernel";
 
+export type CodigoErroAuth =
+  | "AUTH_CREDENCIAIS_INVALIDAS"
+  | "AUTH_TOKEN_INVALIDO_OU_EXPIRADO"
+  | "AUTH_USUARIO_NAO_PODE_AUTENTICAR"
+  | "AUTH_LOCATARIO_NAO_PODE_AUTENTICAR"
+  | "AUTH_ENTRADA_INVALIDA"
+  | "AUTH_SESSAO_INVALIDA"
+
 /**
  * Cria erro para credenciais inválidas no processo de autenticação.
  *
@@ -11,7 +19,7 @@ import { createErroApp } from "../kernel";
  * @returns `Err(ErroApp)` específico do pacote `auth`.
  */
 export function credenciaisInvalidas() {
-  return createErroApp({ codigo: "AUTH_CREDENCIAIS_INVALIDAS", detalhes: {} });
+  return createErroApp({ codigo: "AUTH_CREDENCIAIS_INVALIDAS", mensagem: "Credenciais inválidas.", detalhes: {} });
 }
 
 /**
@@ -22,7 +30,7 @@ export function credenciaisInvalidas() {
  * @returns `Err(ErroApp)` específico do pacote `auth`.
  */
 export function tokenInvalidoOuExpirado() {
-  return createErroApp({ codigo: "AUTH_TOKEN_INVALIDO_OU_EXPIRADO", detalhes: {} });
+  return createErroApp({ codigo: "AUTH_TOKEN_INVALIDO_OU_EXPIRADO", mensagem: "Token inválido ou expirado.", detalhes: {} });
 }
 
 /**
@@ -32,7 +40,7 @@ export function tokenInvalidoOuExpirado() {
  * @returns `Err(ErroApp)` com contexto do estado bloqueante.
  */
 export function usuarioNaoPodeAutenticar(status: string) {
-  return createErroApp({ codigo: "AUTH_USUARIO_NAO_PODE_AUTENTICAR", detalhes: { status } });
+  return createErroApp({ codigo: "AUTH_USUARIO_NAO_PODE_AUTENTICAR", mensagem: "Usuário não pode autenticar.", detalhes: { status } });
 }
 
 /**
@@ -42,7 +50,7 @@ export function usuarioNaoPodeAutenticar(status: string) {
  * @returns `Err(ErroApp)` com contexto do estado bloqueante.
  */
 export function locatarioNaoPodeAutenticar(status: string) {
-  return createErroApp({ codigo: "AUTH_LOCATARIO_NAO_PODE_AUTENTICAR", detalhes: { status } });
+  return createErroApp({ codigo: "AUTH_LOCATARIO_NAO_PODE_AUTENTICAR", mensagem: "Locatário não pode autenticar.", detalhes: { status } });
 }
 
 /**
@@ -52,7 +60,7 @@ export function locatarioNaoPodeAutenticar(status: string) {
  * @returns `Err(ErroApp)` específico do pacote `auth`.
  */
 export function authEntradaInvalida(detalhes?: Record<string, unknown>) {
-  return createErroApp({ codigo: "AUTH_ENTRADA_INVALIDA", detalhes });
+  return createErroApp({ codigo: "AUTH_ENTRADA_INVALIDA", mensagem: "Entrada inválida para autenticação.", detalhes });
 }
 
 /**
@@ -61,5 +69,5 @@ export function authEntradaInvalida(detalhes?: Record<string, unknown>) {
  * @returns `Err(ErroApp)` específico do pacote `auth`.
  */
 export function sessaoInvalida() {
-  return createErroApp({ codigo: "AUTH_SESSAO_INVALIDA", detalhes: {} });
+  return createErroApp({ codigo: "AUTH_SESSAO_INVALIDA", mensagem: "Sessão inválida de autenticação.", detalhes: {} });
 }

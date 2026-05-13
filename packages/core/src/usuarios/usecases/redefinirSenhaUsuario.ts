@@ -1,13 +1,12 @@
 // packages/core/src/usuarios/usecases/redefinirSenhaUsuario.ts
 
-import type { HashAuthPorta } from "../../auth/portasServico";
-import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import { usuarioNaoEncontrado } from "../erros";
+import { executarEmTransacao, HashPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import type { RedefinirSenhaUsuarioInput, RedefinirSenhaUsuarioOutput, RedefinirSenhaUsuarioResult } from "../tipos";
-import { validarLocatarioId } from "../../locatarios";
-import { validarUsuarioId } from "../validadores";
-import { validarSenha } from "../../auth/validadores";
+import { validarSenhaUsuario } from "../validadores";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
+import { obterUsuarioObrigatorio } from "./helpers";
 
 /**
  * 
@@ -16,46 +15,49 @@ import { validarSenha } from "../../auth/validadores";
  */
 export function createFnRedefinirSenhaUsuario(deps: {
   usuariosRepositorio: UsuariosRepositorio;
-  hashPorta: HashAuthPorta;
+  hashPorta: HashPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaUsuariosPorta;
 }) {
   /**
    * 
    */
   return async function redefinirSenhaUsuario(input: RedefinirSenhaUsuarioInput): RedefinirSenhaUsuarioResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
-    const novaSenha = validarSenha(input.novaSenha);
+    const novaSenha = validarSenhaUsuario(input.novaSenha);
     if (!novaSenha.ok) return novaSenha;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.usuariosRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
+      const atual = await obterUsuarioObrigatorio({
+        usuariosRepositorio: deps.usuariosRepositorio,
+        locatarioId: input.locatarioId,
+        usuarioId: input.usuarioId,
       });
       if (!atual.ok) return atual;
-      if (!atual.value || atual.value.excluidoEm) {
-        return usuarioNaoEncontrado(usuarioId.value);
-      }
 
-      const novoHash = await deps.hashPorta.gerarHashSenha(novaSenha.value);
-      if (!novoHash.ok) return novoHash;
+      const autorizacao = await autorizarUsuario(deps, {
+        operacao: "USUARIO_REDEFINIR_SENHA",
+        locatarioId: atual.value.locatarioId,
+        usuarioId: atual.value.usuarioId,
+        usuario: atual.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
+      const operacional = exigirEstadoOperacionalUsuario(atual.value);
+      if (!operacional.ok) return operacional;
+
+      const novoHash = await deps.hashPorta.gerarHash(novaSenha.value);
 
       const persistencia = await deps.usuariosRepositorio.atualizarSenha({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
-        senhaHash: novoHash.value,
+        locatarioId: input.locatarioId,
+        usuarioId: atual.value.usuarioId,
+        senhaHash: novoHash,
         atualizadoEm: deps.relogio.agora(),
       });
       if (!persistencia.ok) return persistencia;
 
       return wrapOk<RedefinirSenhaUsuarioOutput>({
-        usuarioId: usuarioId.value,
+        usuarioId: atual.value.usuarioId,
       });
     });
   };

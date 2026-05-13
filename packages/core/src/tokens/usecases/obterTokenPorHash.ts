@@ -3,10 +3,9 @@
 import { RelogioPorta, wrapOk } from "../../kernel";
 import type { ObterTokenPorHashInput, ObterTokenPorHashOutput, ObterTokenPorHashResult } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
-import { validarHashToken } from "../validadores";
-import { tokenExpirado, tokenNaoEncontrado, tokenRevogado } from "../erros";
-import { validarLocatarioId } from "../../locatarios";
-import { validarUsuarioId } from "../../usuarios";
+import { exigirEstadoUtilizavelToken } from "../maquinaEstados";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
+import { obterTokenObrigatorioPorHash } from "./helpers";
 
 /**
  * Cria a função de caso de uso responsável por obter um token a partir de seu hash.
@@ -29,6 +28,7 @@ import { validarUsuarioId } from "../../usuarios";
 export function createFnObterTokenPorHash(deps: {
   tokensRepo: TokensRepositorio;
   relogio: RelogioPorta;
+  politicaSeguranca?: PoliticaSegurancaTokensPorta;
 }) {
   /**
    * Executa o caso de uso de obtenção de token por hash.
@@ -45,35 +45,31 @@ export function createFnObterTokenPorHash(deps: {
    * @returns `Ok(token)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function obterTokenPorHash(input: ObterTokenPorHashInput): ObterTokenPorHashResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
-    const hashToken = validarHashToken(input.hashToken);
-    if (!hashToken.ok) return hashToken;
-
-    const res = await deps.tokensRepo.buscarPorHash({
-      locatarioId: locatarioId.value,
-      usuarioId: usuarioId.value,
-      hashToken: hashToken.value,
+    const token = await obterTokenObrigatorioPorHash({
+      tokensRepo: deps.tokensRepo,
+      locatarioId: input.locatarioId,
+      usuarioId: input.usuarioId,
+      hashToken: input.hashToken,
     });
-    if (!res.ok) return res;
+    if (!token.ok) return token;
 
-    const token = res.value;
-    if (!token) return tokenNaoEncontrado(hashToken.value);
+    const autorizacao = await autorizarToken(deps, {
+      operacao: "TOKEN_OBTER_POR_HASH",
+      locatarioId: token.value.locatarioId,
+      usuarioId: token.value.usuarioId,
+      tokenId: token.value.tokenId,
+      token: token.value,
+    });
+    if (autorizacao && !autorizacao.ok) return autorizacao;
 
-    if (token.revogadoEm) {
-      return tokenRevogado(token.tokenId);
-    }
-
-    if (token.expiraEm.getTime() <= deps.relogio.agora().getTime()) {
-      return tokenExpirado(token.tokenId);
-    }
+    const utilizavel = exigirEstadoUtilizavelToken({
+      token: token.value,
+      agora: deps.relogio.agora(),
+    });
+    if (!utilizavel.ok) return utilizavel;
 
     return wrapOk<ObterTokenPorHashOutput>({
-      token,
+      token: token.value,
     });
   };
 }

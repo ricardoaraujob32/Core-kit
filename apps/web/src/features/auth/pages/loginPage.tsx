@@ -1,9 +1,9 @@
-// frontend/src/features/auth/pages/LoginPage.tsx
+// apps/web/src/features/auth/pages/LoginPage.tsx
 
 import { JSX, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isSuperAdmin } from "../../../core/auth/tipos";
 import { useAuth } from "../../../core/auth/useAuth";
+import { isPlataforma } from "../../../core/auth/tipos";
 import { mapError } from "../../../core/errors/mapError";
 
 type LocationState = {
@@ -12,11 +12,15 @@ type LocationState = {
   };
 };
 
+type LoginMode = "TENANT" | "PLATAFORMA";
+
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading } = useAuth();
 
+  const { login, loginPlataforma, isLoading } = useAuth();
+
+  const [mode, setMode] = useState<LoginMode>("TENANT");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [locatarioSlug, setLocatarioSlug] = useState("");
@@ -27,14 +31,21 @@ export default function LoginPage(): JSX.Element {
     setErro(null);
 
     try {
-      const authenticatedUser = await login({
-        email,
-        senha,
-        locatarioSlug: locatarioSlug.trim(),
-      });
+      const authenticatedUser =
+        mode === "PLATAFORMA"
+          ? await loginPlataforma({
+              email,
+              senha,
+            })
+          : await login({
+              email,
+              senha,
+              locatarioSlug: locatarioSlug.trim(),
+            });
 
       const state = location.state as LocationState | null;
-      const fallbackPath = isSuperAdmin(authenticatedUser)
+
+      const fallbackPath = isPlataforma(authenticatedUser)
         ? "/superadmin"
         : "/app";
 
@@ -51,15 +62,42 @@ export default function LoginPage(): JSX.Element {
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="locatarioSlug">Locatário (opcional)</label>
-          <input
-            id="locatarioSlug"
-            type="text"
-            value={locatarioSlug}
-            onChange={(event) => setLocatarioSlug(event.target.value)}
-            autoComplete="organization"
-          />
+          <label>
+            <input
+              type="radio"
+              name="loginMode"
+              value="TENANT"
+              checked={mode === "TENANT"}
+              onChange={() => setMode("TENANT")}
+            />
+            Locatário
+          </label>
+
+          <label style={{ marginLeft: 12 }}>
+            <input
+              type="radio"
+              name="loginMode"
+              value="PLATAFORMA"
+              checked={mode === "PLATAFORMA"}
+              onChange={() => setMode("PLATAFORMA")}
+            />
+            Plataforma
+          </label>
         </div>
+
+        {mode === "TENANT" ? (
+          <div>
+            <label htmlFor="locatarioSlug">Locatário</label>
+            <input
+              id="locatarioSlug"
+              type="text"
+              value={locatarioSlug}
+              onChange={(event) => setLocatarioSlug(event.target.value)}
+              autoComplete="organization"
+              required
+            />
+          </div>
+        ) : null}
 
         <div>
           <label htmlFor="email">E-mail</label>
@@ -69,6 +107,7 @@ export default function LoginPage(): JSX.Element {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
+            required
           />
         </div>
 
@@ -80,6 +119,7 @@ export default function LoginPage(): JSX.Element {
             value={senha}
             onChange={(event) => setSenha(event.target.value)}
             autoComplete="current-password"
+            required
           />
         </div>
 

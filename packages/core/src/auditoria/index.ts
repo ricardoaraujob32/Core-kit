@@ -1,20 +1,21 @@
 // packages/core/src/auditoria/index.ts
 
-export type {AuditoriaId, EscopoAuditoria, CategoriaAuditoria, EventoAuditoriaAtivaLocatario, EventoAuditoriaBase, EventoAuditoriaInterna,
-  FiltrosAuditoriaBase, ListarAuditoriaAtivaLocatarioInput, ListarAuditoriaAtivaLocatarioOutput, ListarAuditoriaAtivaLocatarioResult, ListarAuditoriaInternaInput,
-  ListarAuditoriaInternaOutput, ListarAuditoriaInternaResult, RegistrarEventoAuditoriaInternaInput, RegistrarEventoAuditoriaInternaOutput,
-  RegistrarEventoAuditoriaInternaResult, VisibilidadeAuditoria
+export type {
+  AuditoriaId, CategoriaAuditoria, EventoAuditoriaBase, EventoAuditoriaLocatario, EventoAuditoriaPlataforma, ListarAuditoriaLocatarioInput,
+  FiltrosAuditoriaBase, ListarAuditoriaLocatarioOutput, ListarAuditoriaLocatarioResult, ListarAuditoriaPlataformaInput, ListarAuditoriaPlataformaOutput,
+  ListarAuditoriaPlataformaResult, RegistrarEventoAuditoriaLocatarioInput, RegistrarEventoAuditoriaLocatarioOutput, RegistrarEventoAuditoriaLocatarioResult,
+  RegistrarEventoAuditoriaPlataformaInput, RegistrarEventoAuditoriaPlataformaOutput, RegistrarEventoAuditoriaPlataformaResult 
 } from "./tipos";
 
-export type { AuditoriaAtivaLocatarioRepositorio, AuditoriaInternaRepositorio } from "./portasRepositorio";
+export type { AuditoriaLocatarioRepositorio, AuditoriaPlataformaRepositorio } from "./portasRepositorio";
 
-export { createFnListarAuditoriaAtivaLocatario } from "./usecases/listarAuditoriaAtivaLocatario";
+export { createFnListarAuditoriaLocatario } from "./usecases/listarAuditoriaLocatario";
 
-// export { createFnListarAuditoriaInterna } from "./usecases/listarAuditoriaInterna";
+export { createFnRegistrarEventoAuditoriaLocatario } from "./usecases/registrarEventoAuditoriaLocatario";
 
-// export { createFnRegistrarEventoAuditoriaInterna } from "./usecases/registrarEventoAuditoriaInterna";
+export { createFnListarAuditoriaPlataforma } from "./usecases/listarAuditoriaPlataforma";
 
-// export { createFnListarAuditoriaPlataforma } from "./usecases/listarAuditoriaPlataforma";
+export { createFnRegistrarEventoAuditoriaPlataforma } from "./usecases/registrarEventoAuditoriaPlataforma";
 
 export { EVENTOS_AUDITORIA } from "./eventos";
 

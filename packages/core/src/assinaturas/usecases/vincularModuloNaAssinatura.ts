@@ -2,6 +2,7 @@
 
 import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaNaoEncontrada, erroModuloInvalido, erroModuloJaVinculado } from "../erros";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
 import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio";
 import { VincularModuloNaAssinaturaInput, VincularModuloNaAssinaturaOutput, VincularModuloNaAssinaturaResult } from "../tipos";
 import { validarVincularModuloNaAssinaturaInput } from "../validadores";
@@ -28,6 +29,7 @@ export function createFnVincularModuloNaAssinatura(deps: {
   modulosConsultaRepositorio: ModulosConsultaRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaAssinaturasPorta;
 }) {
    /**
  * Vincula um módulo a uma assinatura.
@@ -50,6 +52,15 @@ export function createFnVincularModuloNaAssinatura(deps: {
       const assinatura = await deps.assinaturasRepositorio.buscarPorId(input.assinaturaId);
       if (!assinatura.ok) return assinatura;
       if (!assinatura.value) return erroAssinaturaNaoEncontrada(input.assinaturaId);
+
+      const autorizacao = await autorizarAssinatura(deps, {
+        operacao: "ASSINATURA_VINCULAR_MODULO",
+        locatarioId: assinatura.value.locatarioId,
+        assinaturaId: assinatura.value.assinaturaId,
+        moduloId: input.moduloId,
+        assinatura: assinatura.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const modulo = await deps.modulosConsultaRepositorio.validarModuloAtivo(input.moduloId);
       if (!modulo.ok) return modulo;

@@ -1,22 +1,11 @@
 // apps/web/src/core/auth/tipos.ts
 
-export type Permissao = string;
-export type Papel = string;
-export type ModuloHabilitado = string;
-
-export const AUTHZ_FLAGS = {
-  enableSuperadminFrontend: false,
-} as const;
+export type PerfilSessao = "TENANT" | "PLATAFORMA";
 
 export type SessionUser = {
   usuarioId: string;
   locatarioId: string | null;
-  papeis: Papel[];
-  permissoes: Permissao[];
-  modulosHabilitados: ModuloHabilitado[];
-  nome?: string;
-  email?: string;
-  isSuperAdmin?: boolean;
+  perfil: PerfilSessao;
 };
 
 export type LoginInput = {
@@ -25,12 +14,22 @@ export type LoginInput = {
   locatarioSlug: string;
 };
 
-export type LoginResponse = {
-  accessToken: string;
-  refreshToken?: string;
-  accessExpiraEm?: string;
-  refreshExpiraEm?: string;
+export type LoginPlataformaInput = {
+  email: string;
+  senha: string;
 };
+
+export type SessaoResponse = {
+  accessToken: string;
+  accessExpiraEm: string;
+  refreshToken?: string;
+  refreshExpiraEm?: string;
+  usuario: SessionUser;
+};
+
+export type LoginResponse = SessaoResponse;
+
+export type LoginPlataformaResponse = SessaoResponse;
 
 export type RefreshInput = {
   refreshToken: string;
@@ -39,8 +38,8 @@ export type RefreshInput = {
 
 export type RefreshResponse = {
   accessToken: string;
-  refreshToken?: string;
   accessExpiraEm?: string;
+  refreshToken?: string;
   refreshExpiraEm?: string;
 };
 
@@ -61,25 +60,24 @@ export type AuthStatus =
 
 export type AuthContextValue = {
   status: AuthStatus;
-  isLoading: boolean;
-  isAuthenticated: boolean;
   user: SessionUser | null;
   accessToken: string | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
   login: (input: LoginInput) => Promise<SessionUser>;
+  loginPlataforma: (input: LoginPlataformaInput) => Promise<SessionUser>;
   logout: () => Promise<void>;
-  refreshSession: () => Promise<void>;
+  refreshTokens: () => Promise<boolean>;
 };
 
+export function isTenant(user: SessionUser | null | undefined): boolean {
+  return user?.perfil === "TENANT";
+}
+
+export function isPlataforma(user: SessionUser | null | undefined): boolean {
+  return user?.perfil === "PLATAFORMA";
+}
+
 export function isSuperAdmin(user: SessionUser | null | undefined): boolean {
-  if (!AUTHZ_FLAGS.enableSuperadminFrontend) {
-    return false;
-  }
-
-  if (!user) return false;
-
-  if (user.isSuperAdmin === true) {
-    return true;
-  }
-
-  return Array.isArray(user.papeis) && user.papeis.includes("SUPERADMIN");
+  return isPlataforma(user);
 }

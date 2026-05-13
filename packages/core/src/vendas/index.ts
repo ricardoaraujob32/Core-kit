@@ -1,7 +1,6 @@
 export * from "./tipos";
 export * from "./maquinaEstados";
 export * from "./portasRepositorio";
-// export * from "./repositorioMemoria";
 export * from "./usecases/criarVenda";
 export * from "./usecases/criarCompra";
 export * from "./usecases/obterTransacao";

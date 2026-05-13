@@ -19,6 +19,100 @@ import { Papel, Permissao } from "../rbac";
  * Este módulo NÃO resolve permissões; apenas normaliza e garante consistência.
  */
 
+
+
+export type EntradaPoliticaSeguranca<
+  TOperacao extends string = string,
+  TDados extends Record<string, unknown> = Record<string, unknown>,
+> = {
+  operacao: TOperacao;
+  ctx?: ContextoExecucao;
+  locatarioId?: string | null;
+  usuarioId?: string | null;
+  entidadeId?: string | null;
+  entidadeTipo?: string | null;
+  dados?: TDados;
+};
+
+export interface PoliticaSegurancaPorta<
+  TOperacao extends string = string,
+  TDados extends Record<string, unknown> = Record<string, unknown>,
+> {
+  autorizar(
+    entrada: EntradaPoliticaSeguranca<TOperacao, TDados>,
+  ): Promise<Result<void, ErroApp>>;
+}
+
+export type DepsPoliticaSeguranca<
+  TOperacao extends string = string,
+  TDados extends Record<string, unknown> = Record<string, unknown>,
+> = {
+  politicaSeguranca?: PoliticaSegurancaPorta<TOperacao, TDados>;
+};
+
+export async function autorizarPorPolitica<
+  TOperacao extends string,
+  TDados extends Record<string, unknown> = Record<string, unknown>,
+>(
+  deps: DepsPoliticaSeguranca<TOperacao, TDados>,
+  entrada: EntradaPoliticaSeguranca<TOperacao, TDados>,
+): Promise<Result<void, ErroApp> | null> {
+  if (!deps.politicaSeguranca) return null;
+  return deps.politicaSeguranca.autorizar(entrada);
+}
+
+export async function exigirAutorizacao<
+  TOperacao extends string,
+  TDados extends Record<string, unknown> = Record<string, unknown>,
+>(
+  deps: DepsPoliticaSeguranca<TOperacao, TDados>,
+  entrada: EntradaPoliticaSeguranca<TOperacao, TDados>,
+): Promise<Result<void, ErroApp>> {
+  if (!deps.politicaSeguranca) {
+    return createErroApp({
+      codigo: "NAO_AUTORIZADO",
+      mensagem: "Política de segurança não configurada.",
+      detalhes: { operacao: entrada.operacao },
+    });
+  }
+
+  return deps.politicaSeguranca.autorizar(entrada);
+}
+
+export function criarPoliticaPermissiva<
+  TOperacao extends string = string,
+  TDados extends Record<string, unknown> = Record<string, unknown>,
+>(): PoliticaSegurancaPorta<TOperacao, TDados> {
+  return {
+    async autorizar() {
+      return wrapOk(undefined);
+    },
+  };
+}
+
+export function criarPoliticaNegadora<
+  TOperacao extends string = string,
+  TDados extends Record<string, unknown> = Record<string, unknown>,
+>(params?: {
+  mensagem?: string;
+}): PoliticaSegurancaPorta<TOperacao, TDados> {
+  return {
+    async autorizar(entrada) {
+      return createErroApp({
+        codigo: "NAO_AUTORIZADO",
+        mensagem: params?.mensagem ?? "Operação não autorizada.",
+        detalhes: {
+          operacao: entrada.operacao,
+          locatarioId: entrada.locatarioId,
+          usuarioId: entrada.usuarioId,
+          entidadeId: entrada.entidadeId,
+          entidadeTipo: entrada.entidadeTipo,
+        },
+      });
+    },
+  };
+}
+
 /**
  * Verifica se o contexto possui um usuário autenticado válido.
  *

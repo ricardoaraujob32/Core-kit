@@ -1,6 +1,6 @@
 // apps/api/src/modules/produtos/produtos.controller.ts
 
-import { createFnAtualizarProduto, createFnCriarProduto, createFnExcluirProduto, createFnListarProdutos, createFnObterProduto } from "@core-kit/core";
+import { createFnAtualizarProduto, createFnCriarProduto, createFnExcluirProduto, createFnListarProdutos, createFnObterProduto, metaAcao } from "@core-kit/core";
 import { autorizarHttp } from "../../http/autorizarHttp";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
@@ -9,15 +9,15 @@ import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, parseAtualizarProdutoBody, parseCriarProdutoBody, parseProdutoIdParams, ProdutoIdParamsDto } from "./produtos.dto";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { toListarProdutosResponseDto, toProdutoResponseDto } from "./produtos.presenter";
-
-const authRuntime = createAuthHttpRuntime();
+import { auditarController } from "../auditoria/auditarController";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 
 function criarDepsProdutos() {
   return {
     produtosRepositorio: createProdutosRepositorio(clientePrisma),
-    transacao: authRuntime.transacao,
-    relogio: authRuntime.emitirSessaoDeps.relogio,
-    idPorta: authRuntime.emitirSessaoDeps.idPorta,
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
   };
 }
 
@@ -45,6 +45,12 @@ function responderErroValidacao(
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function listarProdutosController(request: FastifyRequest, reply: FastifyReply) {
   const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
@@ -68,6 +74,12 @@ export async function listarProdutosController(request: FastifyRequest, reply: F
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function obterProdutoController(request: FastifyRequest<{ Params: ProdutoIdParamsDto }>, reply: FastifyReply) {
   const paramsParse = parseProdutoIdParams(request.params);
   if (!paramsParse.success) {
@@ -97,6 +109,12 @@ export async function obterProdutoController(request: FastifyRequest<{ Params: P
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function criarProdutoController(request: FastifyRequest<{ Body: CriarProdutoBodyDto }>, reply: FastifyReply) {
   const bodyParse = parseCriarProdutoBody(request.body);
   if (!bodyParse.success) {
@@ -121,6 +139,17 @@ export async function criarProdutoController(request: FastifyRequest<{ Body: Cri
     ...bodyParse.data,
   });
 
+  await auditarController(request, ctx, {
+    evento: "produto.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "produto",
+    entidadeId: resultado.ok ? resultado.value.produtoId : null,
+    entidadeNome: bodyParse.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -132,6 +161,12 @@ export async function criarProdutoController(request: FastifyRequest<{ Body: Cri
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function atualizarProdutoController(request: FastifyRequest<{ Params: ProdutoIdParamsDto; Body: AtualizarProdutoBodyDto; }>, reply: FastifyReply) {
   const paramsParse = parseProdutoIdParams(request.params);
   if (!paramsParse.success) {
@@ -160,6 +195,20 @@ export async function atualizarProdutoController(request: FastifyRequest<{ Param
     ...bodyParse.data,
   });
 
+  await auditarController(request, ctx, {
+    evento: "produto.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "produto",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.produto.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      produtoId: paramsParse.data.id,
+      alteracoes: bodyParse.data,
+    }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -169,6 +218,12 @@ export async function atualizarProdutoController(request: FastifyRequest<{ Param
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function excluirProdutoController(request: FastifyRequest<{ Params: ProdutoIdParamsDto }>, reply: FastifyReply) {
   const paramsParse = parseProdutoIdParams(request.params);
   if (!paramsParse.success) {
@@ -190,6 +245,17 @@ export async function excluirProdutoController(request: FastifyRequest<{ Params:
     locatarioId: ctx.locatarioId,
     produtoId: paramsParse.data.id,
     excluidoPor: ctx.usuarioId ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "produto.excluido",
+    sucesso: resultado.ok,
+    entidadeTipo: "produto",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.produto.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ produtoId: paramsParse.data.id }),
   });
 
   if (!resultado.ok) {

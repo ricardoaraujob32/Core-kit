@@ -1,6 +1,6 @@
 // packages/core/src/tokens/maquinaEstados.ts
 
-import { transicionarEstado, type TabelaTransicoes } from "../kernel";
+import { ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel";
 import { tokenExpirado, tokenRevogado } from "./erros";
 import type { EventoToken, StatusToken, TokenId, TokenPersistido } from "./tipos";
 
@@ -15,6 +15,7 @@ import type { EventoToken, StatusToken, TokenId, TokenPersistido } from "./tipos
  */
 const TRANSICOES_TOKEN: TabelaTransicoes<StatusToken, EventoToken> = {
   ATIVO: {
+    USAR: "ATIVO",
     REVOGAR: "REVOGADO",
     ROTACIONAR: "REVOGADO",
   },
@@ -44,12 +45,12 @@ export function transicionarEstadoToken(params: {
     estadoAtual: params.statusAtual,
     evento: params.evento,
     contexto: { tokenId: params.tokenId },
-    onTransicaoInvalida: ({ estadoAtual, contexto }) => {
-      if (estadoAtual === "REVOGADO") {
-        return tokenRevogado(contexto?.tokenId ?? params.tokenId);
+    onTransicaoInvalida: () => {
+      if (params.statusAtual === "REVOGADO") {
+        return tokenRevogado(params.tokenId);
       }
 
-      return tokenExpirado(contexto?.tokenId ?? params.tokenId);
+      return tokenExpirado(params.tokenId);
     },
   });
 }
@@ -66,11 +67,49 @@ export function transicionarEstadoToken(params: {
  * @param agora Instante de referência para cálculo do estado.
  * @returns Estado lógico derivado do token.
  */
-export function obterStatusToken(
-  token: TokenPersistido,
-  agora: Date,
-): StatusToken {
+export function obterStatusToken(token: TokenPersistido, agora: Date): StatusToken {
   if (token.revogadoEm) return "REVOGADO";
   if (token.expiraEm.getTime() <= agora.getTime()) return "EXPIRADO";
   return "ATIVO";
+}
+
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
+export function exigirEstadoUtilizavelToken(params: {
+  token: TokenPersistido;
+  agora: Date;
+}): Result<TokenPersistido, ErroApp> {
+  const statusAtual = obterStatusToken(params.token, params.agora);
+
+  const transicao = transicionarEstadoToken({
+    tokenId: params.token.tokenId,
+    statusAtual,
+    evento: "USAR",
+  });
+
+  if (!transicao.ok) return transicao;
+
+  return wrapOk(params.token);
+}
+
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
+export function exigirTransicaoToken(params: {
+  token: TokenPersistido;
+  agora: Date;
+  evento: EventoToken;
+}): Result<StatusToken, ErroApp> {
+  const statusAtual = obterStatusToken(params.token, params.agora);
+
+  return transicionarEstadoToken({
+    tokenId: params.token.tokenId,
+    statusAtual,
+    evento: params.evento,
+  });
 }

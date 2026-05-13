@@ -5,19 +5,18 @@ import { createFnAlterarSenhaUsuario, createFnRedefinirSenhaUsuario, Permissoes 
 import { sendHttpError } from "../../http/serializarErroApp";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
 import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
 import { autorizarHttp } from "../../http/autorizarHttp";
-
-const authRuntime = createAuthHttpRuntime();
+import { createHashPortaAdapter } from "@core-kit/api/infra/hash/hashPortaAdapter";
 
 function criarDepsUsuariosSenha() {
   return {
     usuariosRepositorio: createUsuariosRepositorio(clientePrisma),
-    hashPorta: authRuntime.emitirSessaoDeps.hashPorta,
-    relogio: authRuntime.emitirSessaoDeps.relogio,
-    transacao: authRuntime.transacao,
+    hashPorta: createHashPortaAdapter(),
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    transacao: getAuthBootstrap().runtime.transacao,
   };
 }
 

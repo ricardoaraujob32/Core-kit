@@ -31,13 +31,13 @@ export function validarEmailAuth(email: string): Result<string, ErroApp> {
 /**
  * Valida a senha em texto puro recebida no fluxo de login.
  *
- * No estado atual, a regra exige apenas texto não vazio após `trim`.
+ * A senha deve ter pelo menos 8 caracteres após `trim`.
  *
  * @param senha Senha informada pelo usuário.
  * @returns `Ok(senhaNormalizada)` quando a entrada é válida.
  */
 export function validarSenha(senha: string): Result<string, ErroApp> {
-  return mapearErro(validarTextoObrigatorio(senha, "senha", 1), "senha", senha);
+  return mapearErro(validarTextoObrigatorio(senha, "senha", 8), "senha", senha);
 }
 
 /**

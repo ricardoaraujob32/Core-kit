@@ -2,7 +2,8 @@
 
 import { FastifyReply, FastifyRequest } from "fastify";
 import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConfirmarTransacao, createFnCriarCompra,
-  createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao } from "@core-kit/core";
+  createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, 
+  metaAcao} from "@core-kit/core";
 import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
@@ -16,15 +17,15 @@ import { parseAdicionarItemTransacaoBody, parseAtualizarItemTransacaoBody, parse
 import type { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto,
   TransacaoIdParamsDto } from "./vendas.dto";
 import { toListarTransacoesResponseDto, toTransacaoDetalhadaResponseDto, toTransacaoResponseDto } from "./vendas.presenter";
-
-const authRuntime = createAuthHttpRuntime();
+import { auditarController } from "../auditoria/auditarController";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 
 function criarDepsVendasBase() {
   return {
     vendasRepositorio: createVendasRepositorio(clientePrisma),
-    transacao: authRuntime.transacao,
-    relogio: authRuntime.emitirSessaoDeps.relogio,
-    idPorta: authRuntime.emitirSessaoDeps.idPorta,
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
   };
 }
 
@@ -73,10 +74,13 @@ function responderErroValidacao(
   });
 }
 
-export async function listarTransacoesController(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarTransacoesController(request: FastifyRequest, reply: FastifyReply) {
   const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
@@ -99,10 +103,13 @@ export async function listarTransacoesController(
   });
 }
 
-export async function obterTransacaoController(
-  request: FastifyRequest<{ Params: TransacaoIdParamsDto }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function obterTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
   const paramsParse = parseTransacaoIdParams(request.params);
   if (!paramsParse.success) {
     return responderErroValidacao(reply, paramsParse);
@@ -134,10 +141,13 @@ export async function obterTransacaoController(
   });
 }
 
-export async function criarVendaController(
-  request: FastifyRequest<{ Body: CriarVendaBodyDto }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarVendaController(request: FastifyRequest<{ Body: CriarVendaBodyDto }>, reply: FastifyReply) {
   const bodyParse = parseCriarVendaBody(request.body ?? {});
   if (!bodyParse.success) {
     return responderErroValidacao(reply, bodyParse);
@@ -154,6 +164,16 @@ export async function criarVendaController(
     observacao: bodyParse.data.observacao ?? null,
   });
 
+  await auditarController(request, ctx, {
+    evento: "transacao.venda.criada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: resultado.ok ? resultado.value.transacaoId : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -165,10 +185,13 @@ export async function criarVendaController(
   });
 }
 
-export async function criarCompraController(
-  request: FastifyRequest<{ Body: CriarCompraBodyDto }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarCompraController(request: FastifyRequest<{ Body: CriarCompraBodyDto }>, reply: FastifyReply) {
   const bodyParse = parseCriarCompraBody(request.body ?? {});
   if (!bodyParse.success) {
     return responderErroValidacao(reply, bodyParse);
@@ -185,6 +208,16 @@ export async function criarCompraController(
     observacao: bodyParse.data.observacao ?? null,
   });
 
+  await auditarController(request, ctx, {
+    evento: "transacao.compra.criada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: resultado.ok ? resultado.value.transacaoId : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -196,13 +229,13 @@ export async function criarCompraController(
   });
 }
 
-export async function adicionarItemTransacaoController(
-  request: FastifyRequest<{
-    Params: TransacaoIdParamsDto;
-    Body: AdicionarItemTransacaoBodyDto;
-  }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function adicionarItemTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto; Body: AdicionarItemTransacaoBodyDto;}>, reply: FastifyReply) {
   const paramsParse = parseTransacaoIdParams(request.params);
   if (!paramsParse.success) {
     return responderErroValidacao(reply, paramsParse);
@@ -216,11 +249,11 @@ export async function adicionarItemTransacaoController(
   const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
-  const adicionarItem = createFnAdicionarItemTransacao(
+  const adicionarItemTransacao = createFnAdicionarItemTransacao(
     criarDepsAdicionarItemTransacao(),
   );
 
-  const resultado = await adicionarItem({
+  const resultado = await adicionarItemTransacao({
     locatarioId: ctx.locatarioId,
     transacaoId: paramsParse.data.id,
     produtoId: bodyParse.data.produtoId,
@@ -228,6 +261,19 @@ export async function adicionarItemTransacaoController(
     quantidade: bodyParse.data.quantidade,
     valorUnitario: bodyParse.data.valorUnitario,
     valorDesconto: bodyParse.data.valorDesconto,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.item_adicionado",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      body: bodyParse.data,
+    }),
   });
 
   if (!resultado.ok) {
@@ -239,13 +285,13 @@ export async function adicionarItemTransacaoController(
   });
 }
 
-export async function atualizarItemTransacaoController(
-  request: FastifyRequest<{
-    Params: ItemTransacaoIdParamsDto;
-    Body: AtualizarItemTransacaoBodyDto;
-  }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function atualizarItemTransacaoController(request: FastifyRequest<{ Params: ItemTransacaoIdParamsDto; Body: AtualizarItemTransacaoBodyDto; }>, reply: FastifyReply) {
   const paramsParse = parseItemTransacaoIdParams(request.params);
   if (!paramsParse.success) {
     return responderErroValidacao(reply, paramsParse);
@@ -259,9 +305,9 @@ export async function atualizarItemTransacaoController(
   const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
-  const atualizarItem = createFnAtualizarItemTransacao(criarDepsVendasBase());
+  const atualizarItemTransacao = createFnAtualizarItemTransacao(criarDepsVendasBase());
 
-  const resultado = await atualizarItem({
+  const resultado = await atualizarItemTransacao({
     locatarioId: ctx.locatarioId,
     transacaoId: paramsParse.data.id,
     itemTransacaoId: paramsParse.data.itemId,
@@ -269,6 +315,20 @@ export async function atualizarItemTransacaoController(
     quantidade: bodyParse.data.quantidade,
     valorUnitario: bodyParse.data.valorUnitario,
     valorDesconto: bodyParse.data.valorDesconto,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.item_atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      itemTransacaoId: paramsParse.data.itemId,
+      alteracoes: bodyParse.data,
+    }),
   });
 
   if (!resultado.ok) {
@@ -283,10 +343,13 @@ export async function atualizarItemTransacaoController(
   });
 }
 
-export async function removerItemTransacaoController(
-  request: FastifyRequest<{ Params: ItemTransacaoIdParamsDto }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function removerItemTransacaoController(request: FastifyRequest<{ Params: ItemTransacaoIdParamsDto }>, reply: FastifyReply) {
   const paramsParse = parseItemTransacaoIdParams(request.params);
   if (!paramsParse.success) {
     return responderErroValidacao(reply, paramsParse);
@@ -303,6 +366,19 @@ export async function removerItemTransacaoController(
     itemTransacaoId: paramsParse.data.itemId,
   });
 
+  await auditarController(request, ctx, {
+    evento: "transacao.item_removido",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      itemTransacaoId: paramsParse.data.itemId,
+    }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -312,10 +388,13 @@ export async function removerItemTransacaoController(
   });
 }
 
-export async function confirmarTransacaoController(
-  request: FastifyRequest<{ Params: TransacaoIdParamsDto }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function confirmarTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
   const paramsParse = parseTransacaoIdParams(request.params);
   if (!paramsParse.success) {
     return responderErroValidacao(reply, paramsParse);
@@ -332,6 +411,16 @@ export async function confirmarTransacaoController(
     usuarioId: ctx.usuarioId ?? null,
   });
 
+  await auditarController(request, ctx, {
+    evento: "transacao.confirmada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ transacaoId: paramsParse.data.id }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -341,13 +430,13 @@ export async function confirmarTransacaoController(
   });
 }
 
-export async function cancelarTransacaoController(
-  request: FastifyRequest<{
-    Params: TransacaoIdParamsDto;
-    Body: CancelarTransacaoBodyDto;
-  }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function cancelarTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto; Body: CancelarTransacaoBodyDto; }>, reply: FastifyReply) {
   const paramsParse = parseTransacaoIdParams(request.params);
   if (!paramsParse.success) {
     return responderErroValidacao(reply, paramsParse);
@@ -368,6 +457,19 @@ export async function cancelarTransacaoController(
     transacaoId: paramsParse.data.id,
     motivo: bodyParse.data.motivo ?? null,
     usuarioId: ctx.usuarioId ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.cancelada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      motivo: bodyParse.data.motivo ?? null,
+    }),
   });
 
   if (!resultado.ok) {

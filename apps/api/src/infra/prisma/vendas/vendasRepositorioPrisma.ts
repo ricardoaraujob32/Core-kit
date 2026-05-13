@@ -338,6 +338,23 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
     async criarItem(item): Promise<Result<{ itemTransacaoId: ItemTransacaoId }, ErroApp>> {
       try {
+        if (!item.estoqueId) {
+          return mapearErroInfra(
+            new Error("estoqueId é obrigatório para item de transação no schema atual."),
+            {
+              entidade: "itens_transacao",
+              operacao: "vendas.adicionarItem",
+              detalhes: {
+                locatarioId: item.locatarioId,
+                transacaoId: item.transacaoId,
+                itemTransacaoId: item.itemTransacaoId,
+                produtoId: item.produtoId,
+                motivo: "estoque_id_obrigatorio_no_schema_atual",
+              },
+            },
+          );
+        }
+
         await db.itens_transacao.create({
           data: {
             locatario_id: item.locatarioId,
@@ -414,6 +431,23 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
     async atualizarItem(item): Promise<Result<ItemTransacaoComercial, ErroApp>> {
       try {
+        if (!item.estoqueId) {
+          return mapearErroInfra(
+            new Error("estoqueId é obrigatório para atualizar item de transação no schema atual."),
+            {
+              entidade: "itens_transacao",
+              operacao: "vendas.atualizarItem",
+              detalhes: {
+                locatarioId: item.locatarioId,
+                transacaoId: item.transacaoId,
+                itemTransacaoId: item.itemTransacaoId,
+                produtoId: item.produtoId,
+                motivo: "estoque_id_obrigatorio_no_schema_atual",
+              },
+            },
+          );
+        }
+
         await db.itens_transacao.update({
           where: {
             locatario_id_item_transacao_id_transacao_id: {
@@ -461,6 +495,14 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
       const key = historicoKey(params.locatarioId, params.transacaoId);
       return wrapOk([...(historicoTransacoesEmMemoria.get(key) ?? [])]);
     },
+
+    async listarItensPorTransacao(params) {
+      return wrapOk([]);
+    },
+
+    async removerItem(params) {
+      return wrapOk(undefined);
+    }
   };
 }
 

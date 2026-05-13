@@ -1,6 +1,6 @@
 // packages/core/src/rbac/usecases/resolverAutorizacao.ts
 
-import { createContextoExecucao, wrapOk } from "../../kernel";
+import { createContextoExecucao, exigirUsuario, wrapOk } from "../../kernel";
 import { AutorizacaoRepositorio } from "../portasRepositorio";
 import { ResolverAutorizacaoInput, ResolverAutorizacaoOutput, ResolverAutorizacaoResult } from "../tipos";
 
@@ -14,29 +14,27 @@ export function createFnResolverAutorizacao(deps: { autorizacaoRepositorio: Auto
  * 
  */
   return async function resolverAutorizacao(input: ResolverAutorizacaoInput): ResolverAutorizacaoResult {
-    if (!input.ctx.usuarioId) {
-      return wrapOk({ ctx: input.ctx });
-    }
+    const ctxAutenticado = exigirUsuario(input.ctx);
+    if (!ctxAutenticado.ok) return ctxAutenticado;
 
     const snapshot = await deps.autorizacaoRepositorio.obterSnapshot({
-      locatarioId: input.ctx.locatarioId,
-      usuarioId: input.ctx.usuarioId,
+      locatarioId: ctxAutenticado.value.locatarioId,
+      usuarioId: ctxAutenticado.value.usuarioId,
       isPlataforma: false,
     });
-
-    if (!snapshot.ok) {
-      return snapshot;
-    }
+    if (!snapshot.ok) return snapshot;
 
     const ctx = createContextoExecucao({
-      locatarioId: input.ctx.locatarioId,
-      usuarioId: input.ctx.usuarioId,
+      locatarioId: snapshot.value.locatarioId,
+      usuarioId: snapshot.value.usuarioId,
       papeis: snapshot.value.papeis,
       permissoes: snapshot.value.permissoes,
       modulosHabilitados: snapshot.value.modulos,
       agora: input.ctx.agora,
     });
 
-    return wrapOk<ResolverAutorizacaoOutput>({ ctx });
+    return wrapOk<ResolverAutorizacaoOutput>({
+      ctx,
+    });
   };
 }

@@ -28,6 +28,12 @@ export interface UsuariosRepositorioAuth {
    * @returns `Ok(void)` quando a operação é concluída.
    */
   atualizarUltimoLogin(params: { usuarioId: UsuarioId; quando: Date }): Promise<Result<void, ErroApp>>;
+
+  /**
+   * 
+   * @param params 
+   */
+  buscarUsuarioPlataformaPorEmail(params: { email: string }): Promise<Result<UsuarioAuth | null, ErroApp>>;
 }
 
 /**

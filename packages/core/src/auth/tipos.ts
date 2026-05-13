@@ -24,7 +24,7 @@ export interface Sessao {
  */
 export interface SessaoValidada {
   /** Locatário reconhecido a partir da sessão. */
-  locatarioId: LocatarioId;
+  locatarioId: LocatarioId | null
   /** Usuário autenticado na sessão. */
   usuarioId: UsuarioId;
   /** Identificador lógico da sessão. */
@@ -176,3 +176,14 @@ export interface LogoutOutput {}
  * Resultado assíncrono do logout.
  */
 export type LogoutResult = Promise<Result<LogoutOutput, ErroApp>>;
+
+export interface ResolverContextoAutorizadoInput {
+  sessao: SessaoValidada;
+}
+
+export interface ResolverContextoAutorizadoOutput {
+  ctx: ContextoExecucao;
+}
+
+export type ResolverContextoAutorizadoResult =
+  Promise<Result<ResolverContextoAutorizadoOutput, ErroApp>>;

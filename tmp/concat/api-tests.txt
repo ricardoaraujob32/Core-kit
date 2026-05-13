@@ -1,0 +1,303 @@
+
+
+===== apps/api/__tests__/bootstrap/applicationBootstrap.test.ts =====
+
+// apps/api/__tests__/bootstrap/applicationBootstrap.test.ts
+
+import { describe, expect, it } from "vitest";
+import Fastify from "fastify";
+import { runApplicationBootstrap } from "../../src/bootstrap/applicationBootstrap";
+
+describe("applicationBootstrap", () => {
+  it("deve decorar o app com auth e authorization", async () => {
+    const app = Fastify();
+
+    const bootstrap = await runApplicationBootstrap(app);
+
+    expect(bootstrap.auth).toBeTruthy();
+    expect(bootstrap.authorization).toBeTruthy();
+    expect(app.applicationBootstrap.auth).toBe(bootstrap.auth);
+    expect(app.applicationBootstrap.authorization).toBe(bootstrap.authorization);
+
+    await app.close();
+  });
+});
+
+===== apps/api/__tests__/bootstrap/authBootstrap.test.ts =====
+
+// apps/api/__tests__/bootstrap/authBootstrap.test.ts
+
+import { describe, expect, it } from "vitest";
+import { createAuthBootstrap, getAuthBootstrap } from "../../src/bootstrap/authBootstrap";
+
+describe("#1 - authBootstrap", () => {
+  it("#1.1 - deve criar bootstrap de auth com runtime", () => {
+    const bootstrap = createAuthBootstrap({
+      eventos: {
+        async registrarEvento() {},
+      },
+    });
+
+    expect(bootstrap.runtime).toBeTruthy();
+    expect(typeof bootstrap.runtime.emitirSessao).toBe("function");
+    expect(typeof bootstrap.runtime.validarSessao).toBe("function");
+    expect(typeof bootstrap.runtime.rotacionarRefresh).toBe("function");
+  });
+
+  it("#1.2 - deve expor a instância inicializada", () => {
+    const bootstrap = createAuthBootstrap({
+      eventos: {
+        async registrarEvento() {},
+      },
+    });
+
+    expect(getAuthBootstrap()).toBe(bootstrap);
+  });
+});
+
+===== apps/api/__tests__/http/autorizarHttp.spec.ts =====
+
+// // apps/api/src/http/__tests__/autorizarHttp.spec.ts
+
+// import { beforeEach, describe, expect, it, vi } from "vitest";
+// import { autorizarHttp } from "../autorizarHttp";
+// import { buildContextoHttpFromRequest } from "../context";
+
+// vi.mock("../context", () => ({
+//   buildContextoHttpFromRequest: vi.fn(),
+// }));
+
+// function criarReplyMock() {
+//   const reply = {
+//     status: vi.fn().mockReturnThis(),
+//     send: vi.fn().mockReturnThis(),
+//   };
+
+//   return reply;
+// }
+
+// describe("autorizarHttp", () => {
+//   beforeEach(() => {
+//     vi.clearAllMocks();
+//   });
+
+//   it("#1 - deve rejeitar politica de plataforma em autorizarHttp", async () => {
+//     const reply = criarReplyMock();
+
+//     const resultado = await autorizarHttp(
+//       { url: "/api/plataforma/locatarios", method: "GET" } as any,
+//       reply as any,
+//       { exigePlataforma: true },
+//     );
+
+//     expect(resultado).toBeNull();
+//     expect(buildContextoHttpFromRequest).not.toHaveBeenCalled();
+//     expect(reply.status).toHaveBeenCalledWith(400);
+//     expect(reply.send).toHaveBeenCalledWith({
+//       erro: {
+//         codigo: "INVALIDO",
+//         mensagem: "Rotas de plataforma devem usar autorizarPlataformaHttp.",
+//         detalhes: {
+//           operacao: "http.autorizacao.plataforma",
+//         },
+//       },
+//     });
+//   });
+
+//   it("#2 - deve rejeitar usuário de plataforma em rota tenant", async () => {
+//     vi.mocked(buildContextoHttpFromRequest).mockResolvedValueOnce({
+//       ok: true,
+//       value: {
+//         tipo: "PLATAFORMA",
+//         usuarioId: "usuario-plataforma-id",
+//         sessionId: "sessao-plataforma-id",
+//         expiraEm: new Date("2026-05-11T10:00:00.000Z"),
+//       },
+//     } as any);
+
+//     const reply = criarReplyMock();
+
+//     const resultado = await autorizarHttp(
+//       { url: "/api/clientes", method: "GET" } as any,
+//       reply as any,
+//     );
+
+//     expect(resultado).toBeNull();
+//     expect(reply.status).toHaveBeenCalledWith(403);
+//     expect(reply.send).toHaveBeenCalledWith({
+//       erro: {
+//         codigo: "NAO_AUTORIZADO",
+//         mensagem: "Usuário de plataforma não pode acessar rota de locatário sem escopo explícito.",
+//         detalhes: {
+//           operacao: "http.autorizacao.plataformaEmRotaTenant",
+//         },
+//       },
+//     });
+//   });
+
+//   it("#3 - deve permitir usuário tenant em rota tenant", async () => {
+//     const ctx = {
+//       locatarioId: "locatario-id",
+//       usuarioId: "usuario-id",
+//       papeis: [],
+//       permissoes: [],
+//       modulosHabilitados: [],
+//     };
+
+//     vi.mocked(buildContextoHttpFromRequest).mockResolvedValueOnce({
+//       ok: true,
+//       value: {
+//         tipo: "TENANT",
+//         ctx,
+//       },
+//     } as any);
+
+//     const reply = criarReplyMock();
+
+//     const resultado = await autorizarHttp(
+//       { url: "/api/clientes", method: "GET" } as any,
+//       reply as any,
+//     );
+
+//     expect(resultado).toBe(ctx);
+//     expect(reply.status).not.toHaveBeenCalled();
+//     expect(reply.send).not.toHaveBeenCalled();
+//   });
+// });
+
+
+===== apps/api/__tests__/http/autorizarPlataformaHttp.spec.ts =====
+
+// // apps/api/src/http/__tests__/autorizarPlataformaHttp.spec.ts
+
+// import { beforeEach, describe, expect, it, vi } from "vitest";
+// import { autorizarPlataformaHttp } from "../autorizarPlataformaHttp";
+// import { buildContextoHttpFromRequest } from "../context";
+
+// vi.mock("../context", () => ({
+//   buildContextoHttpFromRequest: vi.fn(),
+// }));
+
+// function criarReplyMock() {
+//   const reply = {
+//     status: vi.fn().mockReturnThis(),
+//     send: vi.fn().mockReturnThis(),
+//   };
+
+//   return reply;
+// }
+
+// describe("autorizarPlataformaHttp", () => {
+//   beforeEach(() => {
+//     vi.clearAllMocks();
+//   });
+
+//   it("#1 - deve permitir usuário de plataforma", async () => {
+//     const contextoPlataforma = {
+//       tipo: "PLATAFORMA" as const,
+//       usuarioId: "usuario-plataforma-id",
+//       sessionId: "sessao-plataforma-id",
+//       expiraEm: new Date("2026-05-11T10:00:00.000Z"),
+//     };
+
+//     vi.mocked(buildContextoHttpFromRequest).mockResolvedValueOnce({
+//       ok: true,
+//       value: contextoPlataforma,
+//     } as any);
+
+//     const reply = criarReplyMock();
+
+//     const resultado = await autorizarPlataformaHttp(
+//       { url: "/api/plataforma/locatarios", method: "GET" } as any,
+//       reply as any,
+//     );
+
+//     expect(resultado).toBe(contextoPlataforma);
+//     expect(reply.status).not.toHaveBeenCalled();
+//     expect(reply.send).not.toHaveBeenCalled();
+//   });
+
+//   it("#2 - deve bloquear usuário tenant em rota de plataforma", async () => {
+//     vi.mocked(buildContextoHttpFromRequest).mockResolvedValueOnce({
+//       ok: true,
+//       value: {
+//         tipo: "TENANT",
+//         ctx: {
+//           locatarioId: "locatario-id",
+//           usuarioId: "usuario-id",
+//           papeis: [],
+//           permissoes: [],
+//           modulosHabilitados: [],
+//         },
+//       },
+//     } as any);
+
+//     const reply = criarReplyMock();
+
+//     const resultado = await autorizarPlataformaHttp(
+//       { url: "/api/plataforma/locatarios", method: "GET" } as any,
+//       reply as any,
+//     );
+
+//     expect(resultado).toBeNull();
+//     expect(reply.status).toHaveBeenCalledWith(403);
+//     expect(reply.send).toHaveBeenCalledWith({
+//       erro: {
+//         codigo: "NAO_AUTORIZADO",
+//         mensagem: "Esta operação exige usuário de plataforma.",
+//         detalhes: {
+//           operacao: "http.autorizacao.plataforma",
+//         },
+//       },
+//     });
+//   });
+// });
+
+
+===== apps/api/__tests__/http/autorizarPlataformaHttp.test.ts =====
+
+// apps/api/__tests__/http/autorizarPlataformaHttp.test.ts
+
+
+
+===== apps/api/__tests__/http/context.test.ts =====
+
+// apps/api/__tests__/http/context.test.ts
+
+
+
+===== apps/api/__tests__/modules/auth/auth.plataforma.presenter.spec.ts =====
+
+// // apps/api/src/modules/auth/__tests__/auth.plataforma.presenter.spec.ts
+
+// import { describe, expect, it } from "vitest";
+// import { serializarSessaoPlataforma } from "../auth.plataforma.presenter";
+
+// describe("auth.plataforma.presenter", () => {
+//   it("#1 - deve serializar sessão de plataforma sem refresh token, permissões, papéis ou módulos", () => {
+//     const dto = serializarSessaoPlataforma({
+//       accessToken: "access-token",
+//       accessExpiraEm: new Date("2026-05-11T10:00:00.000Z"),
+//       usuarioId: "usuario-plataforma-id",
+//     });
+
+//     expect(dto).toEqual({
+//       accessToken: "access-token",
+//       accessExpiraEm: "2026-05-11T10:00:00.000Z",
+//       usuario: {
+//         usuarioId: "usuario-plataforma-id",
+//         locatarioId: null,
+//         perfil: "PLATAFORMA",
+//       },
+//     });
+
+//     expect(dto).not.toHaveProperty("refreshToken");
+//     expect(dto).not.toHaveProperty("refreshExpiraEm");
+//     expect(dto).not.toHaveProperty("permissoes");
+//     expect(dto).not.toHaveProperty("papeis");
+//     expect(dto).not.toHaveProperty("modulos");
+//     expect(dto.usuario).not.toHaveProperty("permissoes");
+//     expect(dto.usuario).not.toHaveProperty("papeis");
+//     expect(dto.usuario).not.toHaveProperty("modulos");
+//   });
+// });

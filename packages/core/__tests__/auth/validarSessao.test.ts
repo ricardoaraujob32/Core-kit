@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { criarValidarSessao } from "../usecases/validarSessao";
+// packages/core/__tests__/auth/validarSessao.test.ts
 
-describe("validarSessao", () => {
-  it("valida access token", () => {
-    const usecase = criarValidarSessao({
+import { describe, expect, it } from "vitest";
+import { createFnValidarSessao } from "../../src/auth";
+
+describe("#1 - createFnValidarSessao", () => {
+  it("#1.1 - deve validar access token e retornar sessão", () => {
+    const usecase = createFnValidarSessao({
       jwtPorta: {
         async emitirAccessToken() {
           throw new Error("não usado");
@@ -29,13 +31,13 @@ describe("validarSessao", () => {
     expect(resultado.ok).toBe(true);
     if (!resultado.ok) return;
 
-    expect(resultado.value.usuarioId).toBe("user-1");
-    expect(resultado.value.locatarioId).toBe("loc-1");
-    expect(resultado.value.sessionId).toBe("sess-1");
+    expect(resultado.value.sessao.usuarioId).toBe("user-1");
+    expect(resultado.value.sessao.locatarioId).toBe("loc-1");
+    expect(resultado.value.sessao.sessionId).toBe("sess-1");
   });
 
-  it("falha com token inválido", () => {
-    const usecase = criarValidarSessao({
+  it("#1.2 - deve falhar com token inválido", () => {
+    const usecase = createFnValidarSessao({
       jwtPorta: {
         async emitirAccessToken() {
           throw new Error("não usado");

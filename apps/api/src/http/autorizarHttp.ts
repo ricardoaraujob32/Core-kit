@@ -3,7 +3,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ContextoExecucao, Permissao, ModuloCodigo } from "@core-kit/core";
 import { autorizarOperacao } from "@core-kit/core";
-import { buildContextFromRequest } from "./context";
+import { buildContextFromRequest, buildContextoHttpFromRequest } from "./context";
 import { sendHttpError } from "./serializarErroApp";
 import { exigirMesmoLocatarioHttp, exigirSuperAdminHttp } from "./routeGuards";
 
@@ -20,6 +20,7 @@ export type PoliticaAutorizacaoHttp = {
   permissao?: Permissao;
   modulo?: ModuloCodigo;
   exigeSuperadmin?: boolean;
+  exigePlataforma?: boolean;
   locatarioIdAlvo?: string;
 };
 
@@ -91,23 +92,46 @@ function exigirModuloHabilitadoHttp(ctx: ContextoExecucao, modulo: ModuloCodigo)
  * @returns Contexto pronto para uso ou `null` quando a resposta de erro já foi enviada.
  */
 export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply, politica: PoliticaAutorizacaoHttp = {}): Promise<ContextoExecucao | null> {
-  const ctxResult = await buildContextFromRequest(request);
+  if (politica.exigePlataforma) {
+    sendHttpError(reply, {
+      codigo: "INVALIDO",
+      mensagem: "Rotas de plataforma devem usar autorizarPlataformaHttp.",
+      detalhes: {
+        operacao: "http.autorizacao.plataforma",
+      },
+    });
 
-  if (!ctxResult.ok) {
-    console.error("[http.autorizacao.negada][contexto]", {
+    return null;
+  }
+
+  const contextoHttp = await buildContextoHttpFromRequest(request);
+
+  if (!contextoHttp.ok) {
+    console.error("[http.autorizacao.negada][contexto-http]", {
       url: request.url,
       method: request.method,
       usuarioId: request.usuario?.usuarioId ?? null,
       locatarioId: request.usuario?.locatarioId ?? null,
       politica,
-      erro: ctxResult.error,
+      erro: contextoHttp.error,
     });
 
-    sendHttpError(reply, ctxResult.error);
+    sendHttpError(reply, contextoHttp.error);
     return null;
   }
 
-  const ctx = ctxResult.value;
+  if (contextoHttp.value.tipo === "PLATAFORMA") {
+    sendHttpError(reply, {
+      codigo: "NAO_AUTORIZADO",
+      mensagem: "Usuário de plataforma não pode acessar rota de locatário sem escopo explícito.",
+      detalhes: {
+        operacao: "http.autorizacao.plataformaEmRotaTenant",
+      },
+    });
+    return null;
+  }
+
+  const ctx = contextoHttp.value.ctx;
 
   console.log("[http.autorizacao.ctx]", {
     url: request.url,

@@ -13,7 +13,6 @@ export function toProdutoResponseDto(produto: Produto) {
     tipo: produto.tipo,
     precoVenda: produto.precoVenda,
     custoReferencia: produto.custoReferencia,
-    ativo: produto.ativo,
     criadoEm: produto.criadoEm,
     atualizadoEm: produto.atualizadoEm,
     excluidoEm: produto.excluidoEm,

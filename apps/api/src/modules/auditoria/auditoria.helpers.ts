@@ -1,9 +1,8 @@
 // apps/api/src/modules/auditoria/auditoria.helpers.ts
 
-import { ContextoExecucao } from "@core-kit/core";
+import { ContextoPlataformaAutorizado } from "@core-kit/api/http/autorizarPlataformaHttp";
+import { ContextoExecucao, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
 import { FastifyRequest } from "fastify";
-
-// apps/api/src/modules/auditoria/auditoria.helpers.ts
 
 /**
  * Categoria canônica dos eventos de auditoria.
@@ -14,110 +13,80 @@ export type CategoriaAuditoria =
   | "ERRO"
   | "COMPLIANCE";
 
-/**
- * Parâmetros aceitos pelo publicador de auditoria do locatário.
- *
- * Observação:
- * - representa exclusivamente eventos destinados à tabela
- *   `auditoria_locatario`;
- * - não deve ser usado para auditoria de plataforma.
- */
-export type TentarAuditarLocatarioParams = {
-  locatarioId: string;
+export type ContextoAuditoriaHttp = {
+  locatarioId: string | null;
   usuarioId: string | null;
-  evento: string;
-  categoria: CategoriaAuditoria;
-  sucesso: boolean;
-  entidadeTipo?: string | null;
-  entidadeNome?: string | null;
-  entidadeId?: string | null;
-  erroCodigo?: string | null;
-  erroMensagem?: string | null;
-  origem?: string | null;
-  requisicaoId?: string | null;
-  enderecoIp?: string | null;
-  agenteUsuario?: string | null;
-  agenteTipo?: string | null;
-  metadados?: Record<string, unknown>;
+  origem: string;
+  requisicaoId: string | null;
+  enderecoIp: string | null;
+  agenteUsuario: string | null;
+  agenteTipo: string | null;
 };
 
-/**
- * Parâmetros aceitos pelo publicador de auditoria da plataforma.
- *
- * Observação:
- * - representa exclusivamente eventos destinados à tabela
- *   `auditoria_plataforma`;
- * - `locatarioAlvoId` deve ser preenchido quando a ação de plataforma
- *   afetar um locatário específico, inclusive em impersonação.
- */
-export type TentarAuditarPlataformaParams = {
-  usuarioId: string | null;
-  evento: string;
-  categoria: CategoriaAuditoria;
-  sucesso: boolean;
-  locatarioAlvoId?: string | null;
-  entidadeTipo?: string | null;
-  entidadeNome?: string | null;
-  entidadeId?: string | null;
-  erroCodigo?: string | null;
-  erroMensagem?: string | null;
-  origem?: string | null;
-  requisicaoId?: string | null;
-  enderecoIp?: string | null;
-  agenteUsuario?: string | null;
-  agenteTipo?: string | null;
-  metadados?: Record<string, unknown>;
-};
+function extrairRequisicaoId(request: FastifyRequest): string | null {
+  const header =
+    request.headers["x-request-id"] ??
+    request.headers["x-correlation-id"];
 
-/**
- * Publica um evento na auditoria do locatário em modo best-effort.
- *
- * Observação:
- * - falhas de auditoria não quebram o fluxo principal;
- * - o contexto SQL é aberto antes da escrita para preservar coerência com RLS.
- *
- * @param params Dados do evento auditado.
- * @returns `Promise<void>`.
- */
-export async function tentarAuditarLocatario(params: TentarAuditarLocatarioParams): Promise<void> {
-  // TODO: implement audit locatario
-  console.log("Audit locatario event:", params.evento);
+  if (Array.isArray(header)) return header[0] ?? null;
+  return typeof header === "string" ? header : null;
 }
 
-export async function tentarAuditarPlataforma(params: TentarAuditarPlataformaParams): Promise<void> {
-  // TODO: implement audit plataforma
-  console.log("Audit plataforma event:", params.evento);
-}
-
-/**
- * 
- * @param request 
- * @param ctx 
- * @param extras 
- * @returns 
- */
-export function criarContextoAuditoria(request: FastifyRequest, ctx: ContextoExecucao,
-  extras?: {
-    isSuperadmin?: boolean;
-    isImpersonando?: boolean;
-    locatarioAlvoId?: string | null;
-    agenteTipo?: string | null;
-    origem?: string | null;
-  },
-) {
+export function criarContextoAuditoria(request: FastifyRequest, ctx: ContextoExecucao): ContextoAuditoriaHttp {
   return {
+    locatarioId: ctx.locatarioId,
     usuarioId: ctx.usuarioId ?? null,
-    locatarioId: ctx.locatarioId ?? null,
-    isSuperadmin: extras?.isSuperadmin ?? false,
-    isImpersonando: extras?.isImpersonando ?? false,
-    locatarioAlvoId: extras?.locatarioAlvoId ?? null,
-    agenteTipo: extras?.agenteTipo ?? null,
-    origem: extras?.origem ?? "API",
-    requisicaoId: request.requestIdApp ?? null,
+    origem: "API",
+    requisicaoId: extrairRequisicaoId(request),
     enderecoIp: request.ip ?? null,
-    agenteUsuario:
-      typeof request.headers["user-agent"] === "string"
-        ? request.headers["user-agent"]
-        : null,
+    agenteUsuario: request.headers["user-agent"] ?? null,
+    agenteTipo: ctx.usuarioId ? "USUARIO_AUTENTICADO" : "ANONIMO",
+  };
+}
+
+export function criarContextoAuditoriaPlataforma(request: FastifyRequest, plataforma: ContextoPlataformaAutorizado, extras: { locatarioAlvoId?: string | null } = {},
+): Pick<RegistrarEventoAuditoriaPlataformaInput,
+  | "superadminUsuarioId"
+  | "locatarioAlvoId"
+  | "origem"
+  | "requisicaoId"
+  | "enderecoIp"
+  | "agenteUsuario"
+  | "agenteTipo"
+> {
+  return {
+    superadminUsuarioId: plataforma.usuarioId,
+    locatarioAlvoId: extras.locatarioAlvoId ?? null,
+    origem: "API",
+    requisicaoId: request.id,
+    enderecoIp: request.ip,
+    agenteUsuario: request.headers["user-agent"] ?? null,
+    agenteTipo: "USUARIO_PLATAFORMA",
+  };
+}
+
+export function montarEventoAuditoria(
+  contexto: ContextoAuditoriaHttp,
+  evento: Omit<
+    RegistrarEventoAuditoriaPlataformaInput,
+    | "escopo"
+    | "locatarioId"
+    | "usuarioId"
+    | "origem"
+    | "requisicaoId"
+    | "enderecoIp"
+    | "agenteUsuario"
+    | "agenteTipo"
+  >,
+): RegistrarEventoAuditoriaPlataformaInput {
+  return {
+    ...evento,
+    locatarioAlvoId: contexto.locatarioId,
+    superadminUsuarioId: contexto.usuarioId,
+    origem: contexto.origem,
+    requisicaoId: contexto.requisicaoId,
+    enderecoIp: contexto.enderecoIp,
+    agenteUsuario: contexto.agenteUsuario,
+    agenteTipo: contexto.agenteTipo,
   };
 }

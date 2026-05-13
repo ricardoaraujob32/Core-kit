@@ -10,6 +10,8 @@ import { clientesRoutes } from "./clientes.routes";
 import { fornecedoresRoutes } from "./fornecedores.routes";
 import { produtosRoutes } from "./produtos.routes";
 import { vendasRoutes } from "./vendas.routes";
+import { auditoriaRoutes } from "./auditoria.routes";
+import { plataformaRoutes } from "./plataforma/plataforma.routes";
 
 export const routes: FastifyPluginAsync = async (app) => {
   await app.register(healthRoutes, { prefix: "/api" });
@@ -21,4 +23,6 @@ export const routes: FastifyPluginAsync = async (app) => {
   await app.register(fornecedoresRoutes, { prefix: "/api" });
   await app.register(produtosRoutes, { prefix: "/api" });
   await app.register(vendasRoutes, { prefix: "/api" });
+  await app.register(auditoriaRoutes, { prefix: "/api" });
+  await app.register(plataformaRoutes, { prefix: "/api/plataforma" });
 };

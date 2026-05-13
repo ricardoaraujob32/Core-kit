@@ -1,9 +1,12 @@
 // packages/core/src/usuarios/maquinaEstados.ts
 
-import { transicionarEstado, type TabelaTransicoes } from "../kernel";
+import { createErroApp, ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel";
 import { usuarioEncerrado, usuarioInativo, usuarioSuspenso } from "./erros";
-import type { EventoUsuario, StatusUsuario, UsuarioId } from "./tipos";
+import type { EventoUsuario, StatusUsuario, Usuario, UsuarioId } from "./tipos";
 
+/**
+ * 
+ */
 const TRANSICOES_USUARIO: TabelaTransicoes<StatusUsuario, EventoUsuario> = {
   ATIVO: {
     OPERAR: "ATIVO",
@@ -22,6 +25,11 @@ const TRANSICOES_USUARIO: TabelaTransicoes<StatusUsuario, EventoUsuario> = {
   ENCERRADO: {},
 };
 
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
 export function transicionarEstadoUsuario(params: {
   usuarioId: UsuarioId;
   statusAtual: StatusUsuario;
@@ -33,15 +41,53 @@ export function transicionarEstadoUsuario(params: {
     evento: params.evento,
     contexto: { usuarioId: params.usuarioId },
     onTransicaoInvalida: ({ estadoAtual, contexto }) => {
-      if (estadoAtual === "INATIVO") {
-        return usuarioInativo(contexto?.usuarioId ?? params.usuarioId);
+      if (params.statusAtual === "INATIVO" && params.evento === "OPERAR") {
+        return usuarioInativo(params.usuarioId);
       }
 
-      if (estadoAtual === "SUSPENSO") {
-        return usuarioSuspenso(contexto?.usuarioId ?? params.usuarioId);
+      if (params.statusAtual === "SUSPENSO" && params.evento === "OPERAR") {
+        return usuarioSuspenso(params.usuarioId);
       }
 
-      return usuarioEncerrado(contexto?.usuarioId ?? params.usuarioId);
+      if (params.statusAtual === "ENCERRADO") {
+        return usuarioEncerrado(params.usuarioId);
+      }
+
+      return transicaoStatusUsuarioInvalida(params);
     },
+  });
+}
+
+/**
+ * 
+ * @param usuario 
+ * @returns 
+ */
+export function exigirEstadoOperacionalUsuario(usuario: Usuario): Result<Usuario, ErroApp> {
+  const transicao = transicionarEstadoUsuario({
+    usuarioId: usuario.usuarioId,
+    statusAtual: usuario.status,
+    evento: "OPERAR",
+  });
+
+  if (!transicao.ok) return transicao;
+
+  return wrapOk(usuario);
+}
+
+/**
+ * 
+ * @param params 
+ * @returns 
+ */
+export function transicaoStatusUsuarioInvalida(params: {
+  usuarioId: UsuarioId;
+  statusAtual: StatusUsuario;
+  evento: EventoUsuario;
+}) {
+  return createErroApp({
+    codigo: "USUARIO_INVALIDO",
+    mensagem: "Transição de status do usuário inválida.",
+    detalhes: params,
   });
 }

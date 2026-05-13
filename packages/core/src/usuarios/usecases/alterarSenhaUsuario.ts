@@ -1,13 +1,14 @@
 // packages/core/src/usuarios/usecases/alterarSenhaUsuario.ts
 
-import type { HashAuthPorta } from "../../auth/portasServico";
+import type { HashPorta } from "../../kernel";
 import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import { senhaAtualInvalida, usuarioNaoEncontrado } from "../erros";
+import { senhaAtualInvalida } from "../erros";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import type { AlterarSenhaUsuarioInput, AlterarSenhaUsuarioOutput, AlterarSenhaUsuarioResult } from "../tipos";
-import { validarLocatarioId } from "../../locatarios";
-import { validarUsuarioId } from "../validadores";
-import { validarSenha } from "../../auth/validadores";
+import { validarSenhaUsuario } from "../validadores";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
+import { obterUsuarioObrigatorio } from "./helpers";
 
 /**
  * 
@@ -16,58 +17,57 @@ import { validarSenha } from "../../auth/validadores";
  */
 export function createFnAlterarSenhaUsuario(deps: {
   usuariosRepositorio: UsuariosRepositorio;
-  hashPorta: HashAuthPorta;
+  hashPorta: HashPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaUsuariosPorta;
 }) {
   /**
    * 
    */
   return async function alterarSenhaUsuario(input: AlterarSenhaUsuarioInput): AlterarSenhaUsuarioResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
-    const senhaAtual = validarSenha(input.senhaAtual);
+    const senhaAtual = validarSenhaUsuario(input.senhaAtual);
     if (!senhaAtual.ok) return senhaAtual;
 
-    const novaSenha = validarSenha(input.novaSenha);
+    const novaSenha = validarSenhaUsuario(input.novaSenha);
     if (!novaSenha.ok) return novaSenha;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.usuariosRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
+      const atual = await obterUsuarioObrigatorio({
+        usuariosRepositorio: deps.usuariosRepositorio,
+        locatarioId: input.locatarioId,
+        usuarioId: input.usuarioId,
       });
       if (!atual.ok) return atual;
-      if (!atual.value || atual.value.excluidoEm) {
-        return usuarioNaoEncontrado(usuarioId.value);
+
+      const autorizacao = await autorizarUsuario(deps, {
+        operacao: "USUARIO_ALTERAR_SENHA",
+        locatarioId: atual.value.locatarioId,
+        usuarioId: atual.value.usuarioId,
+        usuario: atual.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
+      const operacional = exigirEstadoOperacionalUsuario(atual.value);
+      if (!operacional.ok) return operacional;
+
+      const senhaOk = await deps.hashPorta.comparar(senhaAtual.value, atual.value.senhaHash);
+      if (!senhaOk) {
+        return senhaAtualInvalida(atual.value.usuarioId);
       }
 
-      const senhaOk = await deps.hashPorta.compararSenha(
-        senhaAtual.value,
-        atual.value.senhaHash,
-      );
-      if (!senhaOk.ok) return senhaOk;
-      if (!senhaOk.value) {
-        return senhaAtualInvalida(usuarioId.value);
-      }
-
-      const novoHash = await deps.hashPorta.gerarHashSenha(novaSenha.value);
-      if (!novoHash.ok) return novoHash;
+      const novoHash = await deps.hashPorta.gerarHash(novaSenha.value);
 
       const persistencia = await deps.usuariosRepositorio.atualizarSenha({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
-        senhaHash: novoHash.value,
+        locatarioId: input.locatarioId,
+        usuarioId: atual.value.usuarioId,
+        senhaHash: novoHash,
         atualizadoEm: deps.relogio.agora(),
       });
       if (!persistencia.ok) return persistencia;
 
       return wrapOk<AlterarSenhaUsuarioOutput>({
-        usuarioId: usuarioId.value,
+        usuarioId: atual.value.usuarioId,
       });
     });
   };

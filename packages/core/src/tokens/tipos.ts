@@ -28,7 +28,10 @@ export type StatusToken = "ATIVO" | "REVOGADO" | "EXPIRADO";
 /**
  * Eventos formais da máquina de estados de tokens.
  */
-export type EventoToken = "REVOGAR" | "ROTACIONAR";
+export type EventoToken =
+  | "USAR"
+  | "REVOGAR"
+  | "ROTACIONAR";
 
 /**
  * Representação de um token persistido no domínio.

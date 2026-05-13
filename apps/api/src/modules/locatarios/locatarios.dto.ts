@@ -97,6 +97,47 @@ export type EncerrarLocatarioBodyDto = z.infer<typeof encerrarLocatarioBodySchem
 export type CriarConfiguracaoBodyDto = z.infer<typeof criarConfiguracaoBodySchema>;
 export type AtualizarConfiguracaoBodyDto = z.infer<typeof atualizarConfiguracaoBodySchema>;
 
+export type ConfiguracaoLocatarioResponseDto = {
+  locatarioId: string;
+  configuracaoId: string;
+  modoTema: "SISTEMA" | "CLARO" | "ESCURO";
+  identidadeVisual: string;
+  corPrimaria: string | null;
+  corSecundaria: string | null;
+  corTerciaria: string | null;
+  urlLogo: string | null;
+  ativa: boolean;
+  criadoEm: string | null;
+  atualizadoEm: string | null;
+};
+
+export type LocatarioResponseDto = {
+  locatarioId: string;
+  nome: string;
+  slug: string;
+  documento: string | null;
+  email: string;
+  fusoHorario: string;
+  status: string;
+  criadoEm: string | null;
+  atualizadoEm: string | null;
+  excluidoEm: string | null;
+  motivoExclusao: string | null;
+  suspensoEm: string | null;
+  motivoSuspensao: string | null;
+  reativadoEm: string | null;
+  motivoReativacao: string | null;
+  configuracoes: ConfiguracaoLocatarioResponseDto[];
+};
+
+export type ItemResponseDto<T> = {
+  item: T;
+};
+
+export type ListaResponseDto<T> = {
+  itens: T[];
+};
+
 export function parseLocatarioIdParams(input: unknown) {
   return locatarioIdParamsSchema.safeParse(input);
 }

@@ -1,6 +1,5 @@
 // packages/core/src/rbac/tipos.ts
 
-import { SessaoValidada } from "../auth";
 import { ContextoExecucao, ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 import { ModuloCodigo } from "../modulos";
@@ -150,23 +149,3 @@ export interface ResolverAutorizacaoOutput {
  * 
  */
 export type ResolverAutorizacaoResult = Promise<Result<ResolverAutorizacaoOutput, ErroApp>>
-
-/**
- * Entrada para resolver o contexto autorizado a partir de uma sessão válida.
- */
-export interface ResolverContextoAutorizadoInput {
-  /** Sessão previamente validada. */
-  sessao: SessaoValidada;
-}
-
-/**
- * Saída da resolução do contexto autorizado.
- */
-export interface ResolverContextoAutorizadoOutput {
-  ctx: ContextoExecucao;
-}
-
-/**
- * Resultado assíncrono da resolução do contexto autorizado.
- */
-export type ResolverContextoAutorizadoResult = Promise<Result<ResolverContextoAutorizadoOutput, ErroApp>>;

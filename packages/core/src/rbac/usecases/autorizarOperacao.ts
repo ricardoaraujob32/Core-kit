@@ -1,8 +1,8 @@
 // packages/core/src/rbac/usecases/autorizarOperacao.ts
 
-import { exigirUsuario, normalizarPermissoes, wrapOk } from "../../kernel";
+import { normalizarPermissoes, wrapOk } from "../../kernel";
 import type { AutorizarOperacaoInput, Permissao, AutorizarOperacaoResult } from "../tipos";
-import { naoAutorizado } from "../erros";
+import { naoAutenticado, naoAutorizado } from "../erros";
 import { validarPermissao } from "../validadores";
 
 /**
@@ -26,15 +26,14 @@ export function autorizarOperacao(input: AutorizarOperacaoInput): AutorizarOpera
   const permissaoValida = validarPermissao(input.permissao);
   if (!permissaoValida.ok) return permissaoValida;
 
+  if (!input.ctx.usuarioId) {
+    return naoAutenticado();
+  }
+
   const permissao: Permissao = input.permissao;
-
-  const ctxAutenticado = exigirUsuario(input.ctx);
-  if (!ctxAutenticado.ok) return ctxAutenticado;
-
   const permissoes = normalizarPermissoes(input.ctx);
-  const possui = permissoes.includes(permissao);
 
-  if (!possui) {
+  if (!permissoes.includes(permissao)) {
     return naoAutorizado(permissao);
   }
 

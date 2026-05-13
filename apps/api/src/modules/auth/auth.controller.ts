@@ -7,30 +7,9 @@ import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshR
 import { ContextoExecucao, LocatarioId, metaAcao, UsuarioId } from "@core-kit/core";
 import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap";
 import { autorizarHttp } from "../../http/autorizarHttp";
-
-/**
- * Runtime oficial de autenticação usado pela borda HTTP.
- *
- * Observação:
- * - centraliza a composição da auth;
- * - evita wiring repetido em cada controller.
- */
-const authRuntime = createAuthHttpRuntime();
-
-/**
- * Deriva a flag de superadmin a partir dos papéis resolvidos.
- *
- * Observação:
- * - isso evita duplicar estado;
- * - segue a decisão já consolidada nas lições aprendidas.
- */
-function isSuperAdminFromContext(ctx: Pick<ContextoExecucao, "papeis" | "locatarioId">): boolean {
-  if (ctx.locatarioId === "plataforma") {
-    return true;
-  }
-
-  return Array.isArray(ctx.papeis) && ctx.papeis.includes("SUPERADMIN" as never);
-}
+import { auditar } from "../auditoria/auditoria.dispatcher";
+import { auditarController } from "../auditoria/auditarController";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 
 /**
  * Serializa o contexto autorizado para o shape de usuário esperado pelo frontend.
@@ -39,10 +18,17 @@ function serializarUsuarioSessao(ctx: ContextoExecucao): SessionUserDto {
   return {
     usuarioId: ctx.usuarioId,
     locatarioId: ctx.locatarioId,
-    papeis: ctx.papeis ? [...ctx.papeis] : [],
-    permissoes: ctx.permissoes ? [...ctx.permissoes] : [],
-    modulosHabilitados: ctx.modulosHabilitados ? [...ctx.modulosHabilitados] : [],
-    isSuperAdmin: isSuperAdminFromContext(ctx),
+    perfil: "TENANT",
+  };
+}
+
+function serializarUsuarioPlataformaSessao(params: {
+  usuarioId: UsuarioId;
+}): SessionUserDto {
+  return {
+    usuarioId: params.usuarioId,
+    locatarioId: null,
+    perfil: "PLATAFORMA",
   };
 }
 
@@ -64,29 +50,39 @@ function serializarUsuarioSessao(ctx: ContextoExecucao): SessionUserDto {
  * @returns Resposta HTTP de sucesso ou erro.
  */
 export async function loginController(request: FastifyRequest<{ Body: LoginBody }>, reply: FastifyReply) {
-  const resultado = await authRuntime.emitirSessao({
+  const resultado = await getAuthBootstrap().runtime.emitirSessao({
     locatarioSlug: request.body.locatarioSlug,
     email: request.body.email,
     senha: request.body.senha,
   });
 
-  // await auditar(criarContextoAuditoriaAuth(request),
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+   }// else {
+  // await auditar(
   //   {
-  //     evento: resultado.ok ? "auth.login.sucesso" : "auth.login.falha",
-  //     sucesso: resultado.ok,
+  //     escopo: "LOCATARIO",
+  //     locatarioId: resultado.value.sessao.locatarioId ?? null,
+  //     usuarioId: resultado.value.sessao.usuarioId ?? null,
+  //     origem: "API",
+  //     requisicaoId: null,
+  //     enderecoIp: request.ip ?? null,
+  //     agenteUsuario: request.headers["user-agent"] ?? null,
+  //     agenteTipo: "USUARIO_AUTENTICADO",
+  //   },
+  //   {
+  //     evento: "auth.login.sucesso",
+  //     sucesso: true,
   //     entidadeTipo: "sessao",
-  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     entidadeId: resultado.value.contexto?.usuarioId ?? null,
+  //     erroCodigo: null,
+  //     erroMensagem: null,
   //     metadados: metaAcao({
   //       locatarioSlug: request.body.locatarioSlug,
   //       email: request.body.email,
   //     }),
-  //   },
-  // );
-
-  if (!resultado.ok) {
-    return sendHttpError(reply, resultado.error);
-  }
+  //   },);
+  // }
 
   const payload: LoginResponse = {
     accessToken: resultado.value.sessao.accessToken,
@@ -168,7 +164,7 @@ export async function refreshController(request: FastifyRequest<{ Body: RefreshB
   });
 
   try {
-    const resultado = await authRuntime.rotacionarRefresh({
+    const resultado = await getAuthBootstrap().runtime.rotacionarRefresh({
       locatarioId,
       refreshToken,
     });
@@ -222,13 +218,27 @@ export async function refreshController(request: FastifyRequest<{ Body: RefreshB
  * - responde `204 No Content`.
  */
 export async function logoutController(request: FastifyRequest<{ Body: LogoutBody }>, reply: FastifyReply) {
-  const resultado = await authRuntime.logout({
+  const resultado = await getAuthBootstrap().runtime.logout({
     locatarioId: request.body.locatarioId,
     refreshToken: request.body.refreshToken,
   });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
+  } else {
+  const ctx = await autorizarHttp(request, reply);
+  if (ctx) {
+    await auditarController(request, ctx, {
+      evento: "auth.logout.sucesso",
+      sucesso: true,
+      entidadeTipo: "sessao",
+      erroCodigo: null,
+      erroMensagem: null,
+      metadados: metaAcao({
+        locatarioId: request.body.locatarioId,
+      }),
+    });
+  }
   }
 
   return reply.status(204).send();

@@ -1,43 +1,25 @@
 // packages/core/src/auditoria/portasRepositorio.ts
 
 import type { ErroApp, Result } from "../kernel";
-import type { EventoAuditoriaAtivaLocatario, EventoAuditoriaInterna, ListarAuditoriaAtivaLocatarioInput, ListarAuditoriaInternaInput,
-   RegistrarEventoAuditoriaInternaInput } from "./tipos";
+import type { EventoAuditoriaLocatario, EventoAuditoriaPlataforma, ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoAuditoriaLocatarioInput,
+  RegistrarEventoAuditoriaPlataformaInput } from "./tipos";
 
-/**
- * Porta de persistência da auditoria interna da plataforma.
- *
- * Esta é a trilha canônica do sistema.
- */
-export interface AuditoriaInternaRepositorio {
-  /**
-   * Registra um evento na trilha interna.
-   *
-   * @param input Dados do evento a persistir.
-   * @returns `Ok(eventoPersistido)` ou `Err(ErroApp)`.
-   */
-  registrarEvento(input: RegistrarEventoAuditoriaInternaInput): Promise<Result<EventoAuditoriaInterna, ErroApp>>;
+export interface AuditoriaLocatarioRepositorio {
+  registrarEvento(
+    input: RegistrarEventoAuditoriaLocatarioInput,
+  ): Promise<Result<EventoAuditoriaLocatario, ErroApp>>;
 
-  /**
-   * Lista eventos da auditoria interna com filtros avançados.
-   *
-   * @param input Filtros de consulta.
-   * @returns `Ok(eventos)` ou `Err(ErroApp)`.
-   */
-  listarEventos(input: ListarAuditoriaInternaInput): Promise<Result<EventoAuditoriaInterna[], ErroApp>>;
+  listarEventos(
+    input: ListarAuditoriaLocatarioInput,
+  ): Promise<Result<EventoAuditoriaLocatario[], ErroApp>>;
 }
 
-/**
- * Porta de leitura da auditoria ativa do locatário.
- *
- * Esta porta representa o produto visível ao cliente.
- */
-export interface AuditoriaAtivaLocatarioRepositorio {
-  /**
-   * Lista eventos visíveis ao locatário.
-   *
-   * @param input Filtros de consulta.
-   * @returns `Ok(eventos)` ou `Err(ErroApp)`.
-   */
-  listarEventos(input: ListarAuditoriaAtivaLocatarioInput): Promise<Result<EventoAuditoriaAtivaLocatario[], ErroApp>>;
+export interface AuditoriaPlataformaRepositorio {
+  registrarEvento(
+    input: RegistrarEventoAuditoriaPlataformaInput,
+  ): Promise<Result<EventoAuditoriaPlataforma, ErroApp>>;
+
+  listarEventos(
+    input: ListarAuditoriaPlataformaInput,
+  ): Promise<Result<EventoAuditoriaPlataforma[], ErroApp>>;
 }

@@ -1,7 +1,6 @@
 export * from "./tipos";
 export * from "./erros";
 export * from "./portasRepositorio";
-export * from "./repositorioMemoria";
 export * from "./usecases/criarCliente";
 export * from "./usecases/obterCliente";
 export * from "./usecases/listarClientes";

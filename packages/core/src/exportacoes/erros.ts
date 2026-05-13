@@ -3,6 +3,11 @@
 import { createErroApp, ErroApp, Result } from "../kernel";
 import { ExportacaoId } from "./tipos";
 
+export type CodigoErroExportacao =
+  | "EXPORTACAO_INVALIDA"
+  | "EXPORTACAO_NAO_ENCONTRADA"
+  | "EXPORTACAO_TRANSICAO_STATUS_INVALIDA"
+
 /**
  * Cria erro para dados inválidos de exportação.
  *
@@ -10,7 +15,7 @@ import { ExportacaoId } from "./tipos";
  * @returns `Err(ErroApp)` específico do pacote `exportacoes`.
  */
 export function erroExportacaoInvalida(detalhes?: Record<string, unknown>): Result<never, ErroApp> {
-  return createErroApp({ codigo: "EXPORTACAO_INVALIDA", detalhes });
+  return createErroApp({ codigo: "EXPORTACAO_INVALIDA", mensagem: "Dados da exportação são inválidos.", detalhes });
 }
 
 /**
@@ -20,7 +25,7 @@ export function erroExportacaoInvalida(detalhes?: Record<string, unknown>): Resu
  * @returns `Err(ErroApp)` com contexto da consulta.
  */
 export function erroExportacaoNaoEncontrada(exportacaoId: ExportacaoId): Result<never, ErroApp> {
-  return createErroApp({ codigo: "EXPORTACAO_NAO_ENCONTRADA", detalhes: { exportacaoId } });
+  return createErroApp({ codigo: "EXPORTACAO_NAO_ENCONTRADA", mensagem: "Exportação não encontrada.", detalhes: { exportacaoId } });
 }
 
 /**
@@ -32,5 +37,5 @@ export function erroExportacaoNaoEncontrada(exportacaoId: ExportacaoId): Result<
  * @returns `Err(ErroApp)` específico de transição de status inválida.
  */
 export function erroTransicaoStatusExportacaoInvalida(exportacaoId: ExportacaoId, statusAtual: string, statusDestino: string): Result<never, ErroApp> {
-  return createErroApp({ codigo: "EXPORTACAO_TRANSICAO_STATUS_INVALIDA", detalhes: { exportacaoId, statusAtual, statusDestino } });
+  return createErroApp({ codigo: "EXPORTACAO_TRANSICAO_STATUS_INVALIDA", mensagem: "A transição de status da exportação é inválida.", detalhes: { exportacaoId, statusAtual, statusDestino } });
 }

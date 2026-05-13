@@ -3,6 +3,7 @@
 import { ErroApp, Result, validarData, validarIdGenerico, wrapOk } from "../kernel";
 import { erroAssinaturaInvalida } from "./erros";
 import { AtivarAssinaturaInput, CancelarAssinaturaInput, CriarAssinaturaInput, DesvincularModuloDaAssinaturaInput,
+  ListarModulosHabilitadosLocatarioInput,
   SuspenderAssinaturaInput, VincularModuloNaAssinaturaInput } from "./tipos";
 
 /**
@@ -123,6 +124,23 @@ export function validarDesvincularModuloDaAssinaturaInput(input: DesvincularModu
 
   const moduloId = mapearErro( validarIdGenerico(input.moduloId, "moduloId"), "moduloId", input.moduloId );
   if (!moduloId.ok) return moduloId;
+
+  return wrapOk(input);
+}
+
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function validarListarModulosHabilitadosLocatarioInput(input: ListarModulosHabilitadosLocatarioInput): Result<ListarModulosHabilitadosLocatarioInput, ErroApp> {
+  const locatarioId = mapearErro(
+    validarIdGenerico(input.locatarioId, "locatarioId"),
+    "locatarioId",
+    input.locatarioId,
+  );
+
+  if (!locatarioId.ok) return locatarioId;
 
   return wrapOk(input);
 }

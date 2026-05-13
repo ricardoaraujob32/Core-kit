@@ -35,3 +35,10 @@ export { createFnValidarSessao } from "./usecases/validarSessao";
 export { createFnRotacionarRefresh } from "./usecases/rotacionarRefresh";
 export { createFnResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";
 export { createFnLogout } from "./usecases/logout";
+export { createFnEmitirSessaoPlataforma } from "./usecases/emitirSessaoPlataforma";
+
+export type {
+  EmitirSessaoPlataformaInput,
+  EmitirSessaoPlataformaOutput,
+  EmitirSessaoPlataformaDeps,
+} from "./usecases/emitirSessaoPlataforma";

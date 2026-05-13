@@ -1,32 +1,20 @@
-// // apps/api/src/routes/auditoria.routes.ts
+// apps/api/src/routes/auditoria.routes.ts
 
-// import type { FastifyPluginAsync } from "fastify";
-// import { listarAuditoriaAtivaLocatarioController } from "../modules/auditoria/auditoria.controller";
-// import { listarAuditoriaPlataformaController } from "../modules/auditoria/auditoriaPlataforma.controller";
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard";
+import { listarAuditoriaPlataformaController, listarMinhaAuditoriaController } from "../modules/auditoria/auditoria.controller";
+import type { ListarAuditoriaQueryDto } from "../modules/auditoria/auditoria.dto";
 
-// /**
-//  * Registra as rotas HTTP do módulo de auditoria ativa do locatário.
-//  *
-//  * Superfície atual:
-//  * - `GET /auditoria`
-//  *
-//  * @param app Instância Fastify.
-//  * @returns Plugin concluído.
-//  */
-// export const auditoriaRoutes: FastifyPluginAsync = async (app) => {
-//   /**
-//    * Auditoria do locatário
-//    */
-//   app.get(
-//     "/api/auditoria",
-//     listarAuditoriaAtivaLocatarioController,
-//   );
+export const auditoriaRoutes: FastifyPluginAsync = async (app) => {
+  app.get<{ Querystring: ListarAuditoriaQueryDto }>(
+    "/auditoria",
+    { preHandler: [authGuard] },
+    listarMinhaAuditoriaController,
+  );
 
-//   /**
-//    * Auditoria da plataforma (superadmin)
-//    */
-//   app.get(
-//     "/api/plataforma/auditoria",
-//     listarAuditoriaPlataformaController,
-//   );
-// };
+  app.get<{ Querystring: ListarAuditoriaQueryDto }>(
+    "/plataforma/auditoria",
+    { preHandler: [authGuard] },
+    listarAuditoriaPlataformaController,
+  );
+};

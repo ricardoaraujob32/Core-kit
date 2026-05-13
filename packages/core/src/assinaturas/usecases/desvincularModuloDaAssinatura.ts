@@ -2,6 +2,7 @@
 
 import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaNaoEncontrada, erroModuloNaoVinculado } from "../erros";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
 import { AssinaturasModulosRepositorio, AssinaturasRepositorio } from "../portasRepositorio";
 import { DesvincularModuloDaAssinaturaInput, DesvincularModuloDaAssinaturaOutput, DesvincularModuloDaAssinaturaResult } from "../tipos";
 import { validarDesvincularModuloDaAssinaturaInput } from "../validadores";
@@ -27,6 +28,7 @@ export function createFnDesvincularModuloDaAssinatura(deps: {
   assinaturasModulosRepositorio: AssinaturasModulosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaAssinaturasPorta;
 }) {
    /**
  * Desvincula um módulo de uma assinatura.
@@ -48,6 +50,15 @@ export function createFnDesvincularModuloDaAssinatura(deps: {
       const assinatura = await deps.assinaturasRepositorio.buscarPorId(input.assinaturaId);
       if (!assinatura.ok) return assinatura;
       if (!assinatura.value) return erroAssinaturaNaoEncontrada(input.assinaturaId);
+
+      const autorizacao = await autorizarAssinatura(deps, {
+        operacao: "ASSINATURA_DESVINCULAR_MODULO",
+        locatarioId: assinatura.value.locatarioId,
+        assinaturaId: assinatura.value.assinaturaId,
+        moduloId: input.moduloId,
+        assinatura: assinatura.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const existente = await deps.assinaturasModulosRepositorio.buscarModuloVinculado(
         input.assinaturaId,

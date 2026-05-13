@@ -2,9 +2,12 @@
 
 import type { AtualizarLocatarioInput, AtualizarLocatarioOutput, AtualizarLocatarioResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
-import { validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarLocatarioId, validarNomeLocatario } from "../validadores";
-import { emailLocatarioJaExiste, locatarioNaoEncontrado } from "../erros";
+import { validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarNomeLocatario } from "../validadores";
+import { emailLocatarioJaExiste } from "../erros";
 import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import { obterLocatarioObrigatorio } from "./helpers";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
 
 /**
  * 
@@ -12,28 +15,36 @@ import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } f
  * @returns 
  */
 export function createFnAtualizarLocatario(deps: {
-  locatarioRepositorio: LocatariosRepositorio;
+  locatariosRepositorio: LocatariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
 }) {
   /**
    * 
    */
   return async function atualizarLocatario(input: AtualizarLocatarioInput): AtualizarLocatarioResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.locatarioRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
+      const locatario = await obterLocatarioObrigatorio({
+        locatariosRepositorio: deps.locatariosRepositorio,
+        locatarioId: input.locatarioId,
       });
-      if (!atual.ok) return atual;
-      if (!atual.value) return locatarioNaoEncontrado(locatarioId.value);
+      if (!locatario.ok) return locatario;
 
-      let nome = atual.value.nome;
-      let email = atual.value.email;
-      let documento = atual.value.documento;
-      let fusoHorario = atual.value.fusoHorario;
+      const estadoOperacional = exigirEstadoOperacionalLocatario(locatario.value);
+      if (!estadoOperacional.ok) return estadoOperacional;
+
+      const autorizacao = await autorizarLocatario(deps, {
+        operacao: "LOCATARIO_ATUALIZAR",
+        locatarioId: locatario.value.locatarioId,
+        locatario: locatario.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
+      let nome = locatario.value.nome;
+      let email = locatario.value.email;
+      let documento = locatario.value.documento;
+      let fusoHorario = locatario.value.fusoHorario;
 
       if (input.nome !== undefined) {
         const nomeValidado = validarNomeLocatario(input.nome);
@@ -45,12 +56,12 @@ export function createFnAtualizarLocatario(deps: {
         const emailValidado = validarEmailLocatario(input.email);
         if (!emailValidado.ok) return emailValidado;
 
-        const existente = await deps.locatarioRepositorio.buscarPorEmail({
+        const existente = await deps.locatariosRepositorio.buscarPorEmail({
           emailNormalizado: emailValidado.value,
         });
         if (!existente.ok) return existente;
 
-        if (existente.value && existente.value.locatarioId !== atual.value.locatarioId) {
+        if (existente.value && existente.value.locatarioId !== locatario.value.locatarioId) {
           return emailLocatarioJaExiste(emailValidado.value);
         }
 
@@ -69,8 +80,8 @@ export function createFnAtualizarLocatario(deps: {
         fusoHorario = fusoValidado.value;
       }
 
-      const atualizado = await deps.locatarioRepositorio.atualizar({
-        ...atual.value,
+      const atualizado = await deps.locatariosRepositorio.atualizar({
+        ...locatario.value,
         nome,
         email,
         documento,
@@ -79,9 +90,7 @@ export function createFnAtualizarLocatario(deps: {
       });
       if (!atualizado.ok) return atualizado;
 
-      return wrapOk<AtualizarLocatarioOutput>({
-        locatario: atualizado.value,
-      });
+      return wrapOk<AtualizarLocatarioOutput>({ locatario: atualizado.value });
     });
   };
 }

@@ -2,11 +2,13 @@
 
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import type { RelogioPorta, IdPorta, TransacaoPorta } from "../../kernel";
-import { executarEmTransacao } from "../../kernel";
+import { executarEmTransacao, wrapOk } from "../../kernel";
 import { validarConfiguracoesLocatario, validarCorTema, validarIdentidadeVisualLocatario, validarLocatarioId, validarModoTemaLocatario, 
   validarUrlLogoLocatario } from "../validadores";
-import { locatarioNaoEncontrado } from "../erros";
-import type { CriarConfiguracaoLocatarioInput } from "../tipos";
+import type { CriarConfiguracaoLocatarioInput, CriarConfiguracaoLocatarioOutput, CriarConfiguracaoLocatarioResult } from "../tipos";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import { obterLocatarioObrigatorio } from "./helpers";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
 
 /**
  * 
@@ -14,17 +16,20 @@ import type { CriarConfiguracaoLocatarioInput } from "../tipos";
  * @returns 
  */
 export function createFnCriarConfiguracaoLocatario(deps: {
-  locatarioRepositorio: LocatariosRepositorio;
+  locatariosRepositorio: LocatariosRepositorio;
   relogio: RelogioPorta;
   idPorta: IdPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
 }) {
   /**
    * 
    * @param input
    * @returns
    */
-  return async function criarConfiguracaoLocatario(input: CriarConfiguracaoLocatarioInput) {
+  return async function criarConfiguracaoLocatario(input: CriarConfiguracaoLocatarioInput): CriarConfiguracaoLocatarioResult {
+    const { locatariosRepositorio } = deps;
+
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
 
@@ -47,15 +52,24 @@ export function createFnCriarConfiguracaoLocatario(deps: {
     if (!urlLogo.ok) return urlLogo;
 
     return executarEmTransacao(deps.transacao, async () => {
-      const locatario = await deps.locatarioRepositorio.buscarPorId({
+      const locatario = await obterLocatarioObrigatorio({
+        locatariosRepositorio,
         locatarioId: locatarioId.value,
       });
       if (!locatario.ok) return locatario;
-      if (!locatario.value) return locatarioNaoEncontrado(locatarioId.value);
+
+      const estadoOperacional = exigirEstadoOperacionalLocatario(locatario.value);
+      if (!estadoOperacional.ok) return estadoOperacional;
+
+      const autorizacao = await autorizarLocatario(deps, {
+        operacao: "LOCATARIO_CONFIGURACAO_CRIAR",
+        locatarioId: locatario.value.locatarioId,
+        locatario: locatario.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const agora = deps.relogio.agora();
       const configuracaoId = deps.idPorta.gerarId();
-
       const ativa = Boolean(input.ativa);
 
       if (ativa) {
@@ -78,7 +92,7 @@ export function createFnCriarConfiguracaoLocatario(deps: {
         if (!validacao.ok) return validacao;
       }
 
-      return deps.locatarioRepositorio.criarConfiguracao({
+      const configuracao = await locatariosRepositorio.criarConfiguracao({
         locatarioId: locatarioId.value,
         configuracaoId,
         modoTema: modoTema.value,
@@ -90,6 +104,11 @@ export function createFnCriarConfiguracaoLocatario(deps: {
         ativa,
         criadoEm: agora,
         atualizadoEm: agora,
+      });
+      if (!configuracao.ok) return configuracao;
+
+      return wrapOk<CriarConfiguracaoLocatarioOutput>({
+        configuracaoId: configuracao.value.configuracaoId,
       });
     });
   };

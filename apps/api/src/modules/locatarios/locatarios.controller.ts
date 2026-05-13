@@ -10,31 +10,24 @@ import { exigirMesmoLocatarioHttp } from "../../http/routeGuards";
 //import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { AtualizarConfiguracaoBodyDto, AtualizarLocatarioBodyDto, ConfiguracaoIdOnlyParamsDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, CriarLocatarioBodyDto, EncerrarLocatarioBodyDto, 
   LocatarioIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
   parseEncerrarLocatarioBody, parseLocatarioIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, ReativarLocatarioBodyDto, 
   SuspenderLocatarioBodyDto } from "./locatarios.dto";
 import { autorizarHttp } from "../../http/autorizarHttp";
-
-/**
- * Builder oficial de contexto HTTP para este módulo.
- *
- * Observação:
- * - permanece explícito no controller para manter consistência com a borda atual;
- * - usa a factory oficial já alinhada ao runtime.
- */
-
-const authRuntime = createAuthHttpRuntime();
+import { auditarController } from "../auditoria/auditarController";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp";
+import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma";
 
 function criarDepsLocatarios() {
   const locatariosRepositorio = createLocatariosRepositorio(clientePrisma);
 
   return {
     locatariosRepositorio,
-    transacao: authRuntime.transacao,
-    relogio: authRuntime.emitirSessaoDeps.relogio,
-    idPorta: authRuntime.emitirSessaoDeps.idPorta,
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
   };
 }
 
@@ -64,14 +57,14 @@ function responderErroValidacao(reply: FastifyReply, issues: Array<{ path: (stri
  * @param reply Resposta Fastify.
  * @returns Resposta HTTP padronizada.
  */
-export async function listarLocatariosSuperAdminController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
-  if (!ctx) return;
+export async function listarLocatariosPlataformaController(request: FastifyRequest, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
 
   const { locatariosRepositorio } = criarDepsLocatarios();
 
   const listarLocatarios = createFnListarLocatarios({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
   });
 
   const resultado = await listarLocatarios({});
@@ -107,17 +100,17 @@ export async function listarLocatariosSuperAdminController(request: FastifyReque
  * @param reply Resposta Fastify.
  * @returns Resposta HTTP padronizada.
  */
-export async function obterLocatarioSuperAdminController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
+export async function obterLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
   const params = parseLocatarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
-  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
-  if (!ctx) return;
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
 
   const { locatariosRepositorio } = criarDepsLocatarios();
 
   const obterLocatario = createFnObterLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
   });
 
   const resultado = await obterLocatario({
@@ -153,12 +146,12 @@ export async function obterLocatarioSuperAdminController(request: FastifyRequest
  * @param reply 
  * @returns 
  */
-export async function criarLocatarioSuperAdminController(request: FastifyRequest<{ Body: CriarLocatarioBodyDto }>, reply: FastifyReply) {
+export async function criarLocatarioPlataformaController(request: FastifyRequest<{ Body: CriarLocatarioBodyDto }>, reply: FastifyReply) {
   const body = parseCriarLocatarioBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
-  if (!ctx) return;
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
 
   const { locatariosRepositorio, relogio, idPorta, transacao } = criarDepsLocatarios();
 
@@ -170,6 +163,17 @@ export async function criarLocatarioSuperAdminController(request: FastifyRequest
   });
 
   const resultado = await criarLocatario(body.data);
+
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatarioId : null,
+    entidadeNome: body.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
 
@@ -186,20 +190,20 @@ export async function criarLocatarioSuperAdminController(request: FastifyRequest
  * @param reply 
  * @returns 
  */
-export async function atualizarLocatarioSuperAdminController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: AtualizarLocatarioBodyDto }>, reply: FastifyReply) {
+export async function atualizarLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: AtualizarLocatarioBodyDto }>, reply: FastifyReply) {
   const params = parseLocatarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
   const body = parseAtualizarLocatarioBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
-  if (!ctx) return;
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
   const atualizarLocatario = createFnAtualizarLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
     relogio,
     transacao,
   });
@@ -209,6 +213,17 @@ export async function atualizarLocatarioSuperAdminController(request: FastifyReq
     ...body.data,
   });
 
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: body.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
 
   return reply.status(200).send({ item: resultado.value.locatario });
@@ -220,20 +235,20 @@ export async function atualizarLocatarioSuperAdminController(request: FastifyReq
  * @param reply 
  * @returns 
  */
-export async function suspenderLocatarioSuperAdminController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: SuspenderLocatarioBodyDto }>, reply: FastifyReply) {
+export async function suspenderLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: SuspenderLocatarioBodyDto }>, reply: FastifyReply) {
   const params = parseLocatarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
   const body = parseSuspenderLocatarioBody(request.body ?? {});
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
-  if (!ctx) return;
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
   const suspenderLocatario = createFnSuspenderLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
     relogio,
     transacao,
   });
@@ -243,6 +258,17 @@ export async function suspenderLocatarioSuperAdminController(request: FastifyReq
     motivoSuspensao: body.data.motivoSuspensao,
   });
 
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.suspenso",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: resultado.ok ? resultado.value.locatario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
 
   return reply.status(200).send({ item: resultado.value.locatario });
@@ -254,20 +280,20 @@ export async function suspenderLocatarioSuperAdminController(request: FastifyReq
  * @param reply 
  * @returns 
  */
-export async function reativarLocatarioSuperAdminController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: ReativarLocatarioBodyDto }>, reply: FastifyReply) {
+export async function reativarLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: ReativarLocatarioBodyDto }>, reply: FastifyReply) {
   const params = parseLocatarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
   const body = parseReativarLocatarioBody(request.body ?? {});
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
-  if (!ctx) return;
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;  
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
   const reativarLocatario = createFnReativarLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
     relogio,
     transacao,
   });
@@ -277,6 +303,17 @@ export async function reativarLocatarioSuperAdminController(request: FastifyRequ
     motivoReativacao: body.data.motivoReativacao,
   });
 
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.reativado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: resultado.ok ? resultado.value.locatario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
 
   return reply.status(200).send({ item: resultado.value.locatario });
@@ -288,20 +325,20 @@ export async function reativarLocatarioSuperAdminController(request: FastifyRequ
  * @param reply 
  * @returns 
  */
-export async function encerrarLocatarioSuperAdminController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: EncerrarLocatarioBodyDto }>, reply: FastifyReply) {
+export async function encerrarLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: EncerrarLocatarioBodyDto }>, reply: FastifyReply) {
   const params = parseLocatarioIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params.error.issues);
 
   const body = parseEncerrarLocatarioBody(request.body ?? {});
   if (!body.success) return responderErroValidacao(reply, body.error.issues);
 
-  const ctx = await autorizarHttp(request, reply, { exigeSuperadmin: true });
-  if (!ctx) return;
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
 
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
   const encerrarLocatario = createFnEncerrarLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
     relogio,
     transacao,
   });
@@ -309,6 +346,17 @@ export async function encerrarLocatarioSuperAdminController(request: FastifyRequ
   const resultado = await encerrarLocatario({
     locatarioId: params.data.id,
     motivoExclusao: body.data.motivoExclusao,
+  });
+
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.encerrado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: resultado.ok ? resultado.value.locatario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
   });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
@@ -335,7 +383,7 @@ export async function obterMeuLocatarioController(request: FastifyRequest<{ Para
   const { locatariosRepositorio } = criarDepsLocatarios();
 
   const obterLocatario = createFnObterLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
   });
 
   const resultado = await obterLocatario({
@@ -417,7 +465,7 @@ export async function criarConfiguracaoLocatarioController(request: FastifyReque
   const { locatariosRepositorio, relogio, idPorta, transacao } = criarDepsLocatarios();
 
   const criarConfiguracao = createFnCriarConfiguracaoLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
     relogio,
     idPorta,
     transacao,
@@ -426,6 +474,16 @@ export async function criarConfiguracaoLocatarioController(request: FastifyReque
   const resultado = await criarConfiguracao({
     locatarioId: ctx.locatarioId,
     ...body.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "locatario.configuracao.criada",
+    sucesso: resultado.ok,
+    entidadeTipo: "configuracao_locatario",
+    entidadeId: resultado.ok ? resultado.value.configuracaoId ?? null : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
   });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
@@ -452,7 +510,7 @@ export async function atualizarConfiguracaoLocatarioController(request: FastifyR
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
   const atualizarConfiguracao = createFnAtualizarConfiguracaoLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
     relogio,
     transacao,
   });
@@ -461,6 +519,16 @@ export async function atualizarConfiguracaoLocatarioController(request: FastifyR
     locatarioId: ctx.locatarioId,
     configuracaoId: params.data.configuracaoId,
     ...body.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "locatario.configuracao.atualizada",
+    sucesso: resultado.ok,
+    entidadeTipo: "configuracao_locatario",
+    entidadeId: resultado.ok ? resultado.value.configuracao.configuracaoId ?? null : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
   });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
@@ -484,7 +552,7 @@ export async function ativarConfiguracaoLocatarioController(request: FastifyRequ
   const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
 
   const ativarConfiguracao = createFnAtivarConfiguracaoLocatario({
-    locatarioRepositorio: locatariosRepositorio,
+    locatariosRepositorio: locatariosRepositorio,
     relogio,
     transacao,
   });
@@ -492,6 +560,16 @@ export async function ativarConfiguracaoLocatarioController(request: FastifyRequ
   const resultado = await ativarConfiguracao({
     locatarioId: ctx.locatarioId,
     configuracaoId: params.data.configuracaoId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "locatario.configuracao.ativada",
+    sucesso: resultado.ok,
+    entidadeTipo: "configuracao_locatario",
+    entidadeId: resultado.ok ? resultado.value.configuracao.configuracaoId ?? null : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ configuracaoId: params.data.configuracaoId }),
   });
 
   if (!resultado.ok) return sendHttpError(reply, resultado.error);

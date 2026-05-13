@@ -6,6 +6,7 @@ import type { UsuariosRepositorio } from "../portasRepositorio";
 import { validarEmailUsuario, validarNomeUsuario, validarSenhaHash } from "../validadores";
 import { emailUsuarioJaExiste } from "../erros";
 import { validarLocatarioId } from "../../locatarios";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
 
 /**
  * Cria a função de caso de uso responsável por registrar um novo usuário.
@@ -31,6 +32,7 @@ export function createFnCriarUsuario(deps: {
   idPorta: IdPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaUsuariosPorta;
 }) {
   /**
    * Executa o caso de uso de criação de usuário.
@@ -60,11 +62,22 @@ export function createFnCriarUsuario(deps: {
     if (!senhaHash.ok) return senhaHash;
 
     return executarEmTransacao(deps.transacao, async () => {
+      const autorizacao = await autorizarUsuario(deps, {
+        operacao: "USUARIO_CRIAR",
+        locatarioId: locatarioId.value,
+        dados: {
+          email: email.value,
+          nome: nome.value,
+        },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
       const existente = await deps.usuariosRepositorio.buscarPorEmailNoLocatario({
         locatarioId: locatarioId.value,
         emailNormalizado: email.value,
       });
       if (!existente.ok) return existente;
+
       if (existente.value) {
         return emailUsuarioJaExiste(email.value, locatarioId.value);
       }

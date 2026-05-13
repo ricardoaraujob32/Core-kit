@@ -4,6 +4,17 @@ import { createErroApp } from "../kernel";
 import { TokenId } from "./tipos";
 
 /**
+ * 
+ */
+export type CodigoErroToken = 
+  | "TOKEN_INVALIDO" 
+  | "TOKEN_NAO_ENCONTRADO"
+  | "TOKEN_REVOGADO"
+  | "TOKEN_EXPIRADO"
+  | "TOKEN_HASH_JA_EXISTE"
+  | "TOKEN_ROTACAO_CONFLITO"
+
+/**
  * Cria erro para entrada inválida em operações do domínio de tokens.
  *
  * Útil para validação de payloads de emissão, revogação, rotação e validação
@@ -15,7 +26,7 @@ import { TokenId } from "./tipos";
 export function entradaInvalida(detalhes?: Record<string, unknown>) {
   return createErroApp({
     codigo: "TOKEN_INVALIDO",
-    mensagem: "Entrada inválida para operação de token.",
+    mensagem: "Entrada do token inválida.",
     detalhes,
   });
 }
@@ -45,7 +56,7 @@ export function tokenNaoAutenticado() {
  * @returns `Err(ErroApp)` com código específico do módulo de tokens.
  */
 export function conflitoRotacao(detalhes?: Record<string, unknown>) {
-  return createErroApp({ codigo: "TOKEN_ROTACAO_CONFLITO", detalhes });
+  return createErroApp({ codigo: "TOKEN_ROTACAO_CONFLITO", mensagem: "Conflito na rotação do token.", detalhes });
 }
 
 /**
@@ -55,7 +66,7 @@ export function conflitoRotacao(detalhes?: Record<string, unknown>) {
  * @returns `Err(ErroApp)` com código específico do módulo.
  */
 export function tokenInvalido(detalhes?: Record<string, unknown>) {
-  return createErroApp({ codigo: "TOKEN_INVALIDO", detalhes });
+  return createErroApp({ codigo: "TOKEN_INVALIDO", mensagem: "Dados do token inválidos.", detalhes });
 }
 
 /**
@@ -68,7 +79,7 @@ export function tokenInvalido(detalhes?: Record<string, unknown>) {
  * @returns `Err(ErroApp)` com contexto de busca.
  */
 export function tokenNaoEncontrado(tokenIdOuHash: TokenId | string) {
-  return createErroApp({ codigo: "TOKEN_NAO_ENCONTRADO", detalhes: { tokenIdOuHash } });
+  return createErroApp({ codigo: "TOKEN_NAO_ENCONTRADO", mensagem: "Token não encontrado.", detalhes: { tokenIdOuHash } });
 }
 
 /**
@@ -78,7 +89,7 @@ export function tokenNaoEncontrado(tokenIdOuHash: TokenId | string) {
  * @returns `Err(ErroApp)` com contexto do token revogado.
  */
 export function tokenRevogado(tokenId: TokenId) {
-  return createErroApp({ codigo: "TOKEN_REVOGADO", detalhes: { tokenId } });
+  return createErroApp({ codigo: "TOKEN_REVOGADO", mensagem: "Token revogado.", detalhes: { tokenId } });
 }
 
 /**
@@ -88,7 +99,7 @@ export function tokenRevogado(tokenId: TokenId) {
  * @returns `Err(ErroApp)` com contexto do token expirado.
  */
 export function tokenExpirado(tokenId: TokenId) {
-  return createErroApp({ codigo: "TOKEN_EXPIRADO", detalhes: { tokenId } });
+  return createErroApp({ codigo: "TOKEN_EXPIRADO", mensagem: "Token expirado.", detalhes: { tokenId } });
 }
 
 /**
@@ -98,5 +109,5 @@ export function tokenExpirado(tokenId: TokenId) {
  * @returns `Err(ErroApp)` específico do domínio de tokens.
  */
 export function hashTokenJaExiste(hashToken: string) {
-  return createErroApp({ codigo: "TOKEN_HASH_JA_EXISTE", detalhes: { hashToken } });
+  return createErroApp({ codigo: "TOKEN_HASH_JA_EXISTE", mensagem: "Já existe token com este hash.", detalhes: { hashToken } });
 }

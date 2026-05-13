@@ -2,11 +2,11 @@
 
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import type { RelogioPorta, TransacaoPorta } from "../../kernel";
-import type { ReativarLocatarioInput } from "../tipos";
+import type { ReativarLocatarioInput, ReativarLocatarioOutput, ReativarLocatarioResult } from "../tipos";
 import { executarEmTransacao, wrapOk } from "../../kernel";
-import { validarConfiguracoesLocatario, validarLocatarioId } from "../validadores";
-import { locatarioNaoEncontrado } from "../erros";
 import { transicionarEstadoLocatario } from "../maquinaEstados";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import { obterLocatarioObrigatorio } from "./helpers";
 
 /**
  * 
@@ -14,48 +14,52 @@ import { transicionarEstadoLocatario } from "../maquinaEstados";
  * @returns 
  */
 export function createFnReativarLocatario(deps: {
-  locatarioRepositorio: LocatariosRepositorio;
+  locatariosRepositorio: LocatariosRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
 }) {
   /**
    * 
    * @param input
    * @returns
    */
-  return async function reativarLocatario(input: ReativarLocatarioInput) {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
+  return async function reativarLocatario(input: ReativarLocatarioInput) : ReativarLocatarioResult {
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.locatarioRepositorio.buscarPorId({
-        locatarioId: locatarioId.value,
+      const locatario = await obterLocatarioObrigatorio({
+        locatariosRepositorio: deps.locatariosRepositorio,
+        locatarioId: input.locatarioId,
       });
-      if (!atual.ok) return atual;
-      if (!atual.value) return locatarioNaoEncontrado(locatarioId.value);
+      if (!locatario.ok) return locatario;
 
-      const configuracoesOk = validarConfiguracoesLocatario(atual.value.configuracoes);
-      if (!configuracoesOk.ok) return configuracoesOk;
+      const autorizacao = await autorizarLocatario(deps, {
+        operacao: "LOCATARIO_REATIVAR",
+        locatarioId: locatario.value.locatarioId,
+        locatario: locatario.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       const transicao = transicionarEstadoLocatario({
-        locatarioId: atual.value.locatarioId,
-        statusAtual: atual.value.status,
+        locatarioId: locatario.value.locatarioId,
+        statusAtual: locatario.value.status,
         evento: "REATIVAR",
       });
       if (!transicao.ok) return transicao;
 
       const agora = deps.relogio.agora();
 
-      const atualizado = await deps.locatarioRepositorio.atualizar({
-        ...atual.value,
+      const atualizado = await deps.locatariosRepositorio.atualizar({
+        ...locatario.value,
         status: transicao.value,
         reativadoEm: agora,
         motivoReativacao: input.motivoReativacao?.trim() || null,
+        suspensoEm: null,
+        motivoSuspensao: null,
         atualizadoEm: agora,
       });
       if (!atualizado.ok) return atualizado;
 
-      return wrapOk({
+      return wrapOk<ReativarLocatarioOutput>({
         locatario: atualizado.value,
       });
     });

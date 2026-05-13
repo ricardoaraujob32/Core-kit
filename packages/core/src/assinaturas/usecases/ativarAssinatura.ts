@@ -3,6 +3,7 @@
 import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaNaoEncontrada } from "../erros";
 import { transicionarEstadoAssinatura } from "../maquinaEstados";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
 import { AssinaturasRepositorio } from "../portasRepositorio";
 import { AtivarAssinaturaInput, AtivarAssinaturaOutput, AtivarAssinaturaResult } from "../tipos";
 import { validarAtivarAssinaturaInput } from "../validadores";
@@ -24,6 +25,7 @@ export function createFnAtivarAssinatura(deps: {
   assinaturasRepositorio: AssinaturasRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaAssinaturasPorta;
 }){ 
    /**
  * Ativa uma assinatura.
@@ -58,6 +60,14 @@ export function createFnAtivarAssinatura(deps: {
         atualizadaEm: deps.relogio.agora(),
       });
       if (!atualizada.ok) return atualizada;
+
+      const autorizacao = await autorizarAssinatura(deps, {
+        operacao: "ASSINATURA_ATIVAR",
+        locatarioId: atual.value.locatarioId,
+        assinaturaId: atual.value.assinaturaId,
+        assinatura: atual.value,
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       return wrapOk<AtivarAssinaturaOutput>({
         assinatura: atualizada.value,

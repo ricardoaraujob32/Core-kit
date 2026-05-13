@@ -1,8 +1,8 @@
 // packages/core/src/auth/usecases/resolverContextoAutorizado.ts
 
-import { createContextoExecucao, wrapOk } from "../../kernel";
+import { createContextoExecucao, createErroApp, wrapOk } from "../../kernel";
 import { RbacAuthPorta } from "../portasServico";
-import { ResolverContextoAutorizadoInput, ResolverContextoAutorizadoOutput, ResolverContextoAutorizadoResult } from "../../rbac/tipos";
+import { ResolverContextoAutorizadoInput, ResolverContextoAutorizadoOutput, ResolverContextoAutorizadoResult } from "../tipos";
 
 /**
  * Cria o caso de uso responsável por resolver o contexto autorizado
@@ -32,6 +32,17 @@ export function createFnResolverContextoAutorizado(deps: {rbacPorta: RbacAuthPor
    * @returns `Ok(ctx)` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function resolverContextoAutorizado(input: ResolverContextoAutorizadoInput): ResolverContextoAutorizadoResult {
+    if (!input.sessao.locatarioId) {
+      return createErroApp({
+        codigo: "NAO_AUTORIZADO",
+        mensagem: "Contexto de locatário é obrigatório para autorização tenant.",
+        detalhes: {
+          operacao: "auth.resolverContextoAutorizado.locatarioObrigatorio",
+          usuarioId: input.sessao.usuarioId,
+        },
+      });
+    }
+
     const ctx = createContextoExecucao({
       locatarioId: input.sessao.locatarioId,
       usuarioId: input.sessao.usuarioId,

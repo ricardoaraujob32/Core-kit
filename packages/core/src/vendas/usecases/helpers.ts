@@ -4,9 +4,18 @@ import type { IdPorta, RelogioPorta } from "../../kernel";
 import { UsuarioId } from "../../usuarios";
 import type { HistoricoTransacaoComercial, StatusTransacaoComercial, TransacaoComercial } from "../tipos";
 
-export function calcularTotais(itens: Array<{ valorTotal: number }>, base: TransacaoComercial): TransacaoComercial {
-  const valorSubtotal = itens.reduce((acc, item) => acc + item.valorTotal, 0);
-  return { ...base, valorSubtotal, valorTotal: valorSubtotal - base.valorDesconto + base.valorAcrescimo };
+export function calcularTotais(
+  itens: Array<{ quantidade: number; valorUnitario: number; valorDesconto: number }>,
+  base: TransacaoComercial,
+): TransacaoComercial {
+  const valorSubtotal = itens.reduce((acc, item) => acc + item.quantidade * item.valorUnitario, 0);
+  const valorDesconto = itens.reduce((acc, item) => acc + item.valorDesconto, 0);
+  return {
+    ...base,
+    valorSubtotal,
+    valorDesconto,
+    valorTotal: valorSubtotal - valorDesconto + base.valorAcrescimo,
+  };
 }
 
 export function criarHistoricoTransacao(params: { idPorta: IdPorta; relogio: RelogioPorta; transacao: TransacaoComercial; evento: string; resumo: string; usuarioId?: UsuarioId | null; statusAnterior?: StatusTransacaoComercial | null; statusNovo?: StatusTransacaoComercial | null; detalhes?: Record<string, unknown> }): HistoricoTransacaoComercial {

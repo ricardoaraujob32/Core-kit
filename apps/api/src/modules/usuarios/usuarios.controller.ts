@@ -1,33 +1,17 @@
 // apps/api/src/modules/usuarios/usuarios.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
 import { createFnAtualizarUsuario, createFnCriarUsuario, createFnDesativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
   createFnReativarUsuario, metaAcao, metaAtualizacao, metaCriacao, Permissoes } from "@core-kit/core";
-import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
 import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
-import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter";
 import { autorizarHttp } from "../../http/autorizarHttp";
-
-/**
- * Runtime técnico central da borda.
- *
- * Reaproveitado aqui como fonte de:
- * - `hashPorta`
- * - `relogio`
- * - `idPorta`
- * - `transacao`
- *
- * Motivação:
- * - evitar duplicação de wiring técnico;
- * - reaproveitar a composição já oficializada na camada HTTP/Auth.
- */
-const authRuntime = createAuthHttpRuntime();
+import { auditarController } from "../auditoria/auditarController";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 
 /**
  * Monta as dependências operacionais do módulo de usuários na API.
@@ -44,10 +28,10 @@ function criarDepsUsuarios() {
 
   return {
     usuariosRepositorio,
-    transacao: authRuntime.transacao,
-    relogio: authRuntime.emitirSessaoDeps.relogio,
-    idPorta: authRuntime.emitirSessaoDeps.idPorta,
-    hashPorta: authRuntime.emitirSessaoDeps.hashPorta,
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+    hashPorta: getAuthBootstrap().runtime.emitirSessaoDeps.hashPorta,
   };
 }
 
@@ -102,8 +86,6 @@ export async function listarUsuariosController(request: FastifyRequest, reply: F
     modulo: "USUARIOS",
   });
   if (!ctx) return;
-  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
-  // if (!ctx) return;
 
   const { usuariosRepositorio: usuariosRepositorio } = criarDepsUsuarios();
 
@@ -115,16 +97,16 @@ export async function listarUsuariosController(request: FastifyRequest, reply: F
     locatarioId: ctx.locatarioId,
   });
 
-  // await auditar(criarContextoAuditoria(request, ctx), {
-  //   evento: "usuario.listado",
-  //   sucesso: resultado.ok,
-  //   entidadeTipo: "usuario",
-  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-  //   metadados: metaAcao({
-  //     quantidadeResultados: resultado.ok ? resultado.value.itens.length : 0,
-  //   }),
-  // });
+  await auditarController(request, ctx, {
+    evento: "usuario.listado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      quantidadeResultados: resultado.ok ? resultado.value.itens.length : 0,
+    }),
+  });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -154,8 +136,6 @@ export async function obterUsuarioController(request: FastifyRequest<{ Params: U
     modulo: "USUARIOS",
   });
   if (!ctx) return;
-  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
-  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {
@@ -173,16 +153,16 @@ export async function obterUsuarioController(request: FastifyRequest<{ Params: U
     usuarioId: request.params.id,
   });
 
-  // await auditar(criarContextoAuditoria(request, ctx), {
-  //   evento: "usuario.obtido",
-  //   sucesso: resultado.ok,
-  //   entidadeTipo: "usuario",
-  //   entidadeId: request.params.id,
-  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-  //   metadados: metaAcao(),
-  // });
+  await auditarController(request, ctx, {
+    evento: "usuario.obtido",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao(),
+  });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -218,8 +198,6 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
     modulo: "USUARIOS",
   });
   if (!ctx) return;
-  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
-  // if (!ctx) return;
 
   const bodyParse = parseCriarUsuarioBody(request.body);
   if (!bodyParse.success) {
@@ -228,7 +206,7 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
 
   const body = bodyParse.data;
 
-  const senhaHashRes = await authRuntime.emitirSessaoDeps.hashPorta.gerarHashSenha(body.senha);
+  const senhaHashRes = await getAuthBootstrap().runtime.emitirSessaoDeps.hashPorta.gerarHashSenha(body.senha);
   if (!senhaHashRes.ok) {
     return sendHttpError(reply, senhaHashRes.error);
   }
@@ -249,25 +227,25 @@ export async function criarUsuarioController(request: FastifyRequest<{ Body: Cri
     senhaHash: senhaHashRes.value,
   });
 
-  // await auditar(criarContextoAuditoria(request, ctx), {
-  //   evento: "usuario.criado",
-  //   sucesso: resultado.ok,
-  //   entidadeTipo: "usuario",
-  //   entidadeId: resultado.ok ? resultado.value.usuarioId : null,
-  //   entidadeNome: request.body.nome,
-  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-  //   metadados: resultado.ok
-  //     ? metaCriacao({
-  //         usuarioId: resultado.value.usuarioId,
-  //         nome: request.body.nome,
-  //         email: request.body.email,
-  //         status: "ATIVO",
-  //       })
-  //     : metaAcao({
-  //         email: request.body.email,
-  //       }),
-  // });
+  await auditarController(request, ctx, {
+    evento: "usuario.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: resultado.ok ? resultado.value.usuarioId : null,
+    entidadeNome: request.body.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: resultado.ok
+      ? metaCriacao({
+          usuarioId: resultado.value.usuarioId,
+          nome: request.body.nome,
+          email: request.body.email,
+          status: "ATIVO",
+        })
+      : metaAcao({
+          email: request.body.email,
+        }),
+  });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -303,8 +281,6 @@ export async function atualizarUsuarioController(request: FastifyRequest<{ Param
     modulo: "USUARIOS",
   });
   if (!ctx) return;
-  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
-  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {
@@ -339,34 +315,34 @@ export async function atualizarUsuarioController(request: FastifyRequest<{ Param
     email: body.email,
   });
 
-  // await auditar(criarContextoAuditoria(request, ctx), {
-  //   evento: "usuario.atualizado",
-  //   sucesso: resultado.ok,
-  //   entidadeTipo: "usuario",
-  //   entidadeId: request.params.id,
-  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-  //   metadados:
-  //     resultado.ok && usuarioAntes.ok && usuarioAntes.value
-  //       ? metaAtualizacao(
-  //           {
-  //             nome: usuarioAntes.value.nome,
-  //             email: usuarioAntes.value.email,
-  //             status: usuarioAntes.value.status,
-  //           },
-  //           {
-  //             nome: resultado.value.usuario.nome,
-  //             email: resultado.value.usuario.email,
-  //             status: resultado.value.usuario.status,
-  //           },
-  //           [
-  //             ...(request.body.nome !== undefined ? ["nome"] : []),
-  //             ...(request.body.email !== undefined ? ["email"] : []),
-  //           ],
-  //         )
-  //       : undefined,
-  // });
+  await auditarController(request, ctx, {
+    evento: "usuario.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados:
+      resultado.ok && usuarioAntes.ok && usuarioAntes.value
+        ? metaAtualizacao(
+            {
+              nome: usuarioAntes.value.nome,
+              email: usuarioAntes.value.email,
+              status: usuarioAntes.value.status,
+            },
+            {
+              nome: resultado.value.usuario.nome,
+              email: resultado.value.usuario.email,
+              status: resultado.value.usuario.status,
+            },
+            [
+              ...(request.body.nome !== undefined ? ["nome"] : []),
+              ...(request.body.email !== undefined ? ["email"] : []),
+            ],
+          )
+        : undefined,
+  });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -393,8 +369,6 @@ export async function desativarUsuarioController(request: FastifyRequest<{ Param
     modulo: "USUARIOS",
   });
   if (!ctx) return;
-  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
-  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {
@@ -419,23 +393,23 @@ export async function desativarUsuarioController(request: FastifyRequest<{ Param
     usuarioId: request.params.id,
   });
 
-  // await auditar(criarContextoAuditoria(request, ctx), {
-  //   evento: "usuario.inativado",
-  //   sucesso: resultado.ok,
-  //   entidadeTipo: "usuario",
-  //   entidadeId: request.params.id,
-  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-  //   metadados:
-  //     resultado.ok && usuarioAntes.ok && usuarioAntes.value
-  //       ? metaAtualizacao(
-  //           { status: usuarioAntes.value.status },
-  //           { status: resultado.value.usuario.status },
-  //           ["status"],
-  //         )
-  //       : undefined,
-  // });
+  await auditarController(request, ctx, {
+    evento: "usuario.inativado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados:
+      resultado.ok && usuarioAntes.ok && usuarioAntes.value
+        ? metaAtualizacao(
+            { status: usuarioAntes.value.status },
+            { status: resultado.value.usuario.status },
+            ["status"],
+          )
+        : undefined,
+  });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
@@ -462,8 +436,6 @@ export async function reativarUsuarioController(request: FastifyRequest<{ Params
     modulo: "USUARIOS",
   });
   if (!ctx) return;
-  // const ctx = await tempCtxAutenticadoSemAutorizacaoRemoverDepois(request, reply);
-  // if (!ctx) return;
 
   const paramsParse = parseUsuarioIdParams(request.params);
   if (!paramsParse.success) {
@@ -488,23 +460,23 @@ export async function reativarUsuarioController(request: FastifyRequest<{ Params
     usuarioId: request.params.id,
   });
 
-  // await auditar(criarContextoAuditoria(request, ctx), {
-  //   evento: "usuario.reativado",
-  //   sucesso: resultado.ok,
-  //   entidadeTipo: "usuario",
-  //   entidadeId: request.params.id,
-  //   entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
-  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
-  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
-  //   metadados:
-  //     resultado.ok && usuarioAntes.ok && usuarioAntes.value
-  //       ? metaAtualizacao(
-  //           { status: usuarioAntes.value.status },
-  //           { status: resultado.value.usuario.status },
-  //           ["status"],
-  //         )
-  //       : undefined,
-  // });
+  await auditarController(request, ctx, {
+    evento: "usuario.reativado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados:
+      resultado.ok && usuarioAntes.ok && usuarioAntes.value
+        ? metaAtualizacao(
+            { status: usuarioAntes.value.status },
+            { status: resultado.value.usuario.status },
+            ["status"],
+          )
+        : undefined,
+  });
 
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);

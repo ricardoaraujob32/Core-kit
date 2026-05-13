@@ -61,11 +61,8 @@ export type LogoutBody = {
  */
 export type SessionUserDto = {
   usuarioId: UsuarioId;
-  locatarioId: string;
-  papeis: Papel[];
-  permissoes: Permissao[];
-  modulosHabilitados: ModuloCodigo[];
-  isSuperAdmin: boolean;
+  locatarioId: LocatarioId | null;
+  perfil: "PLATAFORMA" | "TENANT";
 };
 
 /**

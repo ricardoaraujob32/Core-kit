@@ -3,7 +3,7 @@
 import type { ListarLocatariosInput, ListarLocatariosOutput, ListarLocatariosResult } from "../tipos";
 import type { LocatariosRepositorio } from "../portasRepositorio";
 import { wrapOk } from "../../kernel";
-import { validarConfiguracoesLocatario } from "../validadores";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
 
 /**
  * Cria a função de caso de uso responsável por listar locatários.
@@ -18,7 +18,10 @@ import { validarConfiguracoesLocatario } from "../validadores";
  * @param deps Dependências externas necessárias para o caso de uso.
  * @returns Função `listarLocatarios` pronta para execução.
  */
-export function createFnListarLocatarios(deps: { locatarioRepositorio: LocatariosRepositorio }) {
+export function createFnListarLocatarios(deps: { 
+  locatariosRepositorio: LocatariosRepositorio;
+  politicaSeguranca?: PoliticaSegurancaLocatariosPorta;
+}) {
   /**
    * Executa o caso de uso de listagem de locatários.
    *
@@ -30,16 +33,16 @@ export function createFnListarLocatarios(deps: { locatarioRepositorio: Locatario
    * @returns `Ok({ itens })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function listarLocatarios(input: ListarLocatariosInput): ListarLocatariosResult {
-    const res = await deps.locatarioRepositorio.listar();
-    if (!res.ok) return res;
+    const autorizacao = await autorizarLocatario(deps, {
+      operacao: "LOCATARIO_LISTAR",
+    });
+    if (autorizacao && !autorizacao.ok) return autorizacao;
 
-    for (const loc of res.value) {
-      const validacao = validarConfiguracoesLocatario(loc.configuracoes);
-      if (!validacao.ok) return validacao;
-    }
+    const resultado = await deps.locatariosRepositorio.listar();
+    if (!resultado.ok) return resultado;
 
     return wrapOk<ListarLocatariosOutput>({
-      itens: res.value,
+      itens: [...resultado.value].sort((a, b) => a.nome.localeCompare(b.nome)),
     });
   };
 }

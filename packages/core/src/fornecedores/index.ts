@@ -1,6 +1,5 @@
 export * from "./tipos";
 export * from "./portasRepositorio";
-export * from "./repositorioMemoria";
 export * from "./usecases/criarFornecedor";
 export * from "./usecases/obterFornecedor";
 export * from "./usecases/listarFornecedores";

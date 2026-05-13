@@ -1,6 +1,6 @@
 // apps/api/src/modules/fornecedores/fornecedores.controller.ts
 
-import { createFnAtualizarFornecedor, createFnCriarFornecedor, createFnExcluirFornecedor, createFnListarFornecedores, createFnObterFornecedor } from "@core-kit/core";
+import { createFnAtualizarFornecedor, createFnCriarFornecedor, createFnExcluirFornecedor, createFnListarFornecedores, createFnObterFornecedor, metaAcao } from "@core-kit/core";
 import { autorizarHttp } from "../../http/autorizarHttp";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma";
@@ -9,15 +9,15 @@ import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto, parseAtualizarFornecedorBody, parseCriarFornecedorBody, parseFornecedorIdParams } from "./fornecedores.dto";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { toFornecedorResponseDto, toListarFornecedoresResponseDto } from "./fornecedores.presenter";
-
-const authRuntime = createAuthHttpRuntime();
+import { auditarController } from "../auditoria/auditarController";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 
 function criarDepsFornecedores() {
   return {
     fornecedoresRepositorio: createFornecedoresRepositorio(clientePrisma),
-    transacao: authRuntime.transacao,
-    relogio: authRuntime.emitirSessaoDeps.relogio,
-    idPorta: authRuntime.emitirSessaoDeps.idPorta,
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
   };
 }
 
@@ -45,10 +45,13 @@ function responderErroValidacao(
   });
 }
 
-export async function listarFornecedoresController(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarFornecedoresController(request: FastifyRequest, reply: FastifyReply) {
   const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
@@ -71,6 +74,12 @@ export async function listarFornecedoresController(
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function obterFornecedorController(request: FastifyRequest<{ Params: FornecedorIdParamsDto }>, reply: FastifyReply) {
   const paramsParse = parseFornecedorIdParams(request.params);
   if (!paramsParse.success) {
@@ -100,6 +109,12 @@ export async function obterFornecedorController(request: FastifyRequest<{ Params
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function criarFornecedorController(request: FastifyRequest<{ Body: CriarFornecedorBodyDto }>, reply: FastifyReply) {
   const bodyParse = parseCriarFornecedorBody(request.body);
   if (!bodyParse.success) {
@@ -124,6 +139,17 @@ export async function criarFornecedorController(request: FastifyRequest<{ Body: 
     ...bodyParse.data,
   });
 
+  await auditarController(request, ctx, {
+    evento: "fornecedor.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "fornecedor",
+    entidadeId: resultado.ok ? resultado.value.fornecedorId : null,
+    entidadeNome: bodyParse.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -135,6 +161,12 @@ export async function criarFornecedorController(request: FastifyRequest<{ Body: 
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function atualizarFornecedorController(request: FastifyRequest<{ Params: FornecedorIdParamsDto; Body: AtualizarFornecedorBodyDto; }>, reply: FastifyReply) {
   const paramsParse = parseFornecedorIdParams(request.params);
   if (!paramsParse.success) {
@@ -164,6 +196,20 @@ export async function atualizarFornecedorController(request: FastifyRequest<{ Pa
     ...bodyParse.data,
   });
 
+  await auditarController(request, ctx, {
+    evento: "fornecedor.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "fornecedor",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.fornecedor.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      fornecedorId: paramsParse.data.id,
+      alteracoes: bodyParse.data,
+    }),
+  });
+
   if (!resultado.ok) {
     return sendHttpError(reply, resultado.error);
   }
@@ -173,10 +219,13 @@ export async function atualizarFornecedorController(request: FastifyRequest<{ Pa
   });
 }
 
-export async function excluirFornecedorController(
-  request: FastifyRequest<{ Params: FornecedorIdParamsDto }>,
-  reply: FastifyReply,
-) {
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function excluirFornecedorController(request: FastifyRequest<{ Params: FornecedorIdParamsDto }>, reply: FastifyReply) {
   const paramsParse = parseFornecedorIdParams(request.params);
   if (!paramsParse.success) {
     return responderErroValidacao(reply, paramsParse);
@@ -198,6 +247,17 @@ export async function excluirFornecedorController(
     locatarioId: ctx.locatarioId,
     fornecedorId: paramsParse.data.id,
     excluidoPor: ctx.usuarioId ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "fornecedor.excluido",
+    sucesso: resultado.ok,
+    entidadeTipo: "fornecedor",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.fornecedor.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ fornecedorId: paramsParse.data.id }),
   });
 
   if (!resultado.ok) {

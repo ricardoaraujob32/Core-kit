@@ -19,8 +19,6 @@ import type { LocatarioId, Papel, Permissao, UsuarioId } from "@core-kit/core";
 export interface UsuarioAutenticado {
   usuarioId: UsuarioId;
   locatarioId?: LocatarioId | null;
-  papeis?: Papel[];
-  permissoes?: Permissao[];
   sessionId?: string;
   expiraEm?: Date;
 }

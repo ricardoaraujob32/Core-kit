@@ -3,6 +3,7 @@
 import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaNaoEncontrada } from "../erros";
 import { transicionarEstadoAssinatura } from "../maquinaEstados";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
 import { AssinaturasRepositorio } from "../portasRepositorio";
 import { SuspenderAssinaturaInput, SuspenderAssinaturaOutput, SuspenderAssinaturaResult } from "../tipos";
 import { validarSuspenderAssinaturaInput } from "../validadores";
@@ -24,6 +25,7 @@ export function createFnSuspenderAssinatura(deps: {
   assinaturasRepositorio: AssinaturasRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaAssinaturasPorta;
 }) {
     /**
  * Suspende uma assinatura.
@@ -58,6 +60,15 @@ export function createFnSuspenderAssinatura(deps: {
         atualizadaEm: deps.relogio.agora(),
       });
       if (!atualizada.ok) return atualizada;
+
+      const autorizacao = await autorizarAssinatura(deps, {
+        operacao: "ASSINATURA_SUSPENDER",
+        locatarioId: atual.value.locatarioId,
+        assinaturaId: atual.value.assinaturaId,
+        assinatura: atual.value,
+        dados: { motivo: input.motivo },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
 
       return wrapOk<SuspenderAssinaturaOutput>({
         assinatura: atualizada.value,

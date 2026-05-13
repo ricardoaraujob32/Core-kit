@@ -1,13 +1,13 @@
 // packages/core/src/tokens/usecases/rotacionarToken.ts
 
 import { executarEmTransacao, wrapOk, type IdPorta, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import { tokenInvalido, tokenNaoEncontrado, tokenRevogado, hashTokenJaExiste } from "../erros";
+import { tokenInvalido, tokenNaoEncontrado, hashTokenJaExiste } from "../erros";
 import type { RotacionarTokenInput, RotacionarTokenResult } from "../tipos";
 import type { TokensRepositorio } from "../portasRepositorio";
-import { validarExpiraEm, validarHashToken, validarTokenId } from "../validadores";
-import { obterStatusToken, transicionarEstadoToken } from "../maquinaEstados";
-import { validarLocatarioId } from "../../locatarios";
-import { validarUsuarioId } from "../../usuarios";
+import { validarExpiraEm, validarHashToken } from "../validadores";
+import { exigirTransicaoToken } from "../maquinaEstados";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
+import { obterTokenObrigatorioPorId } from "./helpers";
 
 /**
  * Cria a função de caso de uso responsável por rotacionar um token persistido.
@@ -36,6 +36,7 @@ export function createFnRotacionarToken(deps: {
   idPorta: IdPorta;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
+  politicaSeguranca?: PoliticaSegurancaTokensPorta;
 }) {
   /**
    * Executa o caso de uso de rotação de token.
@@ -55,15 +56,6 @@ export function createFnRotacionarToken(deps: {
    * @returns `Ok({ tokenAnterior, tokenNovo })` em caso de sucesso, ou `Err(ErroApp)` em caso de falha.
    */
   return async function rotacionarToken(input: RotacionarTokenInput): RotacionarTokenResult {
-    const locatarioId = validarLocatarioId(input.locatarioId);
-    if (!locatarioId.ok) return locatarioId;
-
-    const usuarioId = validarUsuarioId(input.usuarioId);
-    if (!usuarioId.ok) return usuarioId;
-
-    const tokenId = validarTokenId(input.tokenId);
-    if (!tokenId.ok) return tokenId;
-
     const novoHashToken = validarHashToken(input.novoHashToken);
     if (!novoHashToken.ok) return novoHashToken;
 
@@ -71,32 +63,43 @@ export function createFnRotacionarToken(deps: {
     if (!novoExpiraEm.ok) return novoExpiraEm;
 
     return executarEmTransacao(deps.transacao, async () => {
+      const atual = await obterTokenObrigatorioPorId({
+        tokensRepo: deps.tokensRepo,
+        locatarioId: input.locatarioId,
+        usuarioId: input.usuarioId,
+        tokenId: input.tokenId,
+      });
+      if (!atual.ok) return atual;
+
+      const autorizacao = await autorizarToken(deps, {
+        operacao: "TOKEN_ROTACIONAR",
+        locatarioId: atual.value.locatarioId,
+        usuarioId: atual.value.usuarioId,
+        tokenId: atual.value.tokenId,
+        token: atual.value,
+        dados: {
+          agenteUsuario: input.agenteUsuario ?? null,
+          enderecoIp: input.enderecoIp ?? null,
+        },
+      });
+      if (autorizacao && !autorizacao.ok) return autorizacao;
+
       const agora = deps.relogio.agora();
 
       if (novoExpiraEm.value.getTime() <= agora.getTime()) {
         return tokenInvalido({ campo: "novoExpiraEm", regra: "deve_ser_futuro" });
       }
 
-      const atual = await deps.tokensRepo.buscarPorId({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
-        tokenId: tokenId.value,
-      });
-      if (!atual.ok) return atual;
-      if (!atual.value) return tokenNaoEncontrado(tokenId.value);
-      if (atual.value.revogadoEm) return tokenRevogado(tokenId.value);
-
-      const statusAtual = obterStatusToken(atual.value, agora);
-      const transicao = transicionarEstadoToken({
-        tokenId: atual.value.tokenId,
-        statusAtual,
+      const transicao = exigirTransicaoToken({
+        token: atual.value,
+        agora,
         evento: "ROTACIONAR",
       });
       if (!transicao.ok) return transicao;
 
       const existente = await deps.tokensRepo.buscarPorHash({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
+        locatarioId: atual.value.locatarioId,
+        usuarioId: atual.value.usuarioId,
         hashToken: novoHashToken.value,
       });
       if (!existente.ok) return existente;
@@ -108,6 +111,7 @@ export function createFnRotacionarToken(deps: {
         ...atual.value,
         revogadoEm: agora,
         proximoTokenId: novoTokenId,
+        proximoUsuarioId: atual.value.usuarioId,
       });
       if (!tokenAnterior.ok) return tokenAnterior;
 
@@ -127,8 +131,8 @@ export function createFnRotacionarToken(deps: {
       if (!tokenNovoCriado.ok) return tokenNovoCriado;
 
       const tokenNovo = await deps.tokensRepo.buscarPorId({
-        locatarioId: locatarioId.value,
-        usuarioId: usuarioId.value,
+        locatarioId: atual.value.locatarioId,
+        usuarioId: atual.value.usuarioId,
         tokenId: tokenNovoCriado.value.tokenId,
       });
       if (!tokenNovo.ok) return tokenNovo;

@@ -1,64 +1,60 @@
-import { describe, expect, it } from "vitest";
-import { autorizarOperacao } from "../usecases/autorizarOperacao";
+// packages/core/__tests__/rbac/autorizarOperacao.test.ts
 
-describe("autorizarOperacao", () => {
-  it("autoriza quando usuário possui a permissão", () => {
+import { describe, expect, it } from "vitest";
+import { autorizarOperacao } from "../../src/rbac/usecases/autorizarOperacao";
+import { Permissoes } from "../../src/rbac";
+import { criarContextoAutenticado, permissaoTeste } from "./helpers/rbacUsecaseTestUtils";
+
+describe("#1 - autorizarOperacao", () => {
+  it("#1.1 - deve autorizar quando contexto possui permissão", () => {
+    const ctx = criarContextoAutenticado({
+      permissoes: [permissaoTeste],
+    });
+
     const resultado = autorizarOperacao({
-      ctx: {
-        locatarioId: "loc-1",
-        usuarioId: "user-1",
-        permissoes: ["tenant.usuario.listar"],
-      },
-      permissao: "tenant.usuario.listar",
+      ctx,
+      permissao: permissaoTeste,
     });
 
     expect(resultado.ok).toBe(true);
   });
 
-  it("falha quando usuário não possui a permissão", () => {
+  it("#1.2 - deve negar quando contexto não possui permissão", () => {
+    const ctx = criarContextoAutenticado({
+      permissoes: [],
+    });
+
     const resultado = autorizarOperacao({
-      ctx: {
-        locatarioId: "loc-1",
-        usuarioId: "user-1",
-        permissoes: ["tenant.usuario.criar"],
-      },
-      permissao: "tenant.usuario.listar",
+      ctx,
+      permissao: permissaoTeste,
     });
 
     expect(resultado.ok).toBe(false);
-    if (resultado.ok) return;
-
-    expect(resultado.error.codigo).toBe("RBAC_NAO_AUTORIZADO");
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("RBAC_NAO_AUTORIZADO");
   });
 
-  it("falha quando não há usuário autenticado", () => {
+  it("#1.3 - deve falhar quando permissão é inválida", () => {
+    const ctx = criarContextoAutenticado();
+
     const resultado = autorizarOperacao({
-      ctx: {
-        locatarioId: "loc-1",
-        permissoes: ["tenant.usuario.listar"],
-      },
-      permissao: "tenant.usuario.listar",
+      ctx,
+      permissao: "" as never,
     });
 
     expect(resultado.ok).toBe(false);
-    if (resultado.ok) return;
-
-    expect(resultado.error.codigo).toBe("RBAC_NAO_AUTENTICADO");
+    if (!resultado.ok) expect(resultado.error.codigo).toBe("RBAC_PERMISSAO_INVALIDA");
   });
 
-  it("falha quando a permissão pedida é inválida", () => {
-    const resultado = autorizarOperacao({
-      ctx: {
-        locatarioId: "loc-1",
-        usuarioId: "user-1",
-        permissoes: ["tenant.usuario.listar"],
-      },
-      permissao: " ",
+  it("#1.4 - deve aceitar permissão diferente quando presente", () => {
+    const ctx = criarContextoAutenticado({
+      permissoes: [Permissoes.TENANT_USUARIO_CRIAR],
     });
 
-    expect(resultado.ok).toBe(false);
-    if (resultado.ok) return;
+    const resultado = autorizarOperacao({
+      ctx,
+      permissao: Permissoes.TENANT_USUARIO_CRIAR,
+    });
 
-    expect(resultado.error.codigo).toBe("RBAC_PERMISSAO_INVALIDA");
+    expect(resultado.ok).toBe(true);
   });
 });

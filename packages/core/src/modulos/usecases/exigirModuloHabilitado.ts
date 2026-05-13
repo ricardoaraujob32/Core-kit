@@ -1,6 +1,6 @@
 // packages/core/src/modulos/usecases/exigirModuloHabilitado.ts
 
-import { ErroApp, Result, wrapOk } from "../../kernel";
+import { wrapOk } from "../../kernel";
 import { erroModuloNaoHabilitado } from "../erros";
 import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
 import { ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput, ModuloEstaHabilitadoResult } from "../tipos";

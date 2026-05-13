@@ -1,4 +1,4 @@
-// web/src/core/auth/authStorage.ts
+// apps/web/src/core/auth/authStorage.ts
 
 import type { SessionUser } from "./tipos";
 
@@ -61,28 +61,22 @@ export const authStorage = {
   },
 
   setLocatarioId(locatarioId: string | null): void {
-    if (!locatarioId) {
+    if (locatarioId) {
+      safeSet(LOCATARIO_ID_KEY, locatarioId);
+    } else {
       safeRemove(LOCATARIO_ID_KEY);
-      return;
     }
-
-    safeSet(LOCATARIO_ID_KEY, locatarioId);
-  },
-
-  removeLocatarioId(): void {
-    safeRemove(LOCATARIO_ID_KEY);
   },
 
   getUser(): SessionUser | null {
     const raw = safeGet(USER_KEY);
 
-    if (!raw) {
-      return null;
-    }
+    if (!raw) return null;
 
     try {
       return JSON.parse(raw) as SessionUser;
     } catch {
+      safeRemove(USER_KEY);
       return null;
     }
   },
@@ -98,6 +92,7 @@ export const authStorage = {
   clear(): void {
     safeRemove(ACCESS_TOKEN_KEY);
     safeRemove(REFRESH_TOKEN_KEY);
+    safeRemove(LOCATARIO_ID_KEY);
     safeRemove(USER_KEY);
   },
 };

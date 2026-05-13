@@ -4,6 +4,7 @@ import { wrapOk } from "../../kernel";
 import type { ListarUsuariosPorLocatarioInput, ListarUsuariosPorLocatarioOutput, ListarUsuariosPorLocatarioResult } from "../tipos";
 import type { UsuariosRepositorio } from "../portasRepositorio";
 import { validarLocatarioId } from "../../locatarios";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
 
 /**
  * Cria a função de caso de uso responsável por listar usuários de um locatário.
@@ -19,7 +20,10 @@ import { validarLocatarioId } from "../../locatarios";
  * @param deps Dependências externas necessárias para a execução do caso de uso.
  * @returns Função `listarUsuariosPorLocatario` pronta para receber a entrada do caso de uso.
  */
-export function createFnListarUsuariosPorLocatario(deps: { usuariosRepositorio: UsuariosRepositorio; }) {
+export function createFnListarUsuariosPorLocatario(deps: { 
+  usuariosRepositorio: UsuariosRepositorio;
+  politicaSeguranca?: PoliticaSegurancaUsuariosPorta; 
+}) {
   /**
    * Executa o caso de uso de listagem de usuários por locatário.
    *
@@ -34,6 +38,12 @@ export function createFnListarUsuariosPorLocatario(deps: { usuariosRepositorio: 
   return async function listarUsuariosPorLocatario(input: ListarUsuariosPorLocatarioInput): ListarUsuariosPorLocatarioResult {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
+
+    const autorizacao = await autorizarUsuario(deps, {
+      operacao: "USUARIO_LISTAR",
+      locatarioId: locatarioId.value,
+    });
+    if (autorizacao && !autorizacao.ok) return autorizacao;
 
     const res = await deps.usuariosRepositorio.listarPorLocatario({
       locatarioId: locatarioId.value,

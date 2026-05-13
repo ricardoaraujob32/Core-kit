@@ -4,6 +4,7 @@ import { wrapOk } from "@core-kit/core";
 import type { LocatarioId, Result, ErroApp, UsuarioId, UsuarioAuth, UsuariosRepositorioAuth } from "@core-kit/core";
 import { erroInfraAuth } from "../errosInfraAuth";
 import { PrismaDb } from "../../tipos";
+import { mapearErroInfra } from "../../erros";
 
 /**
  * Mapeia o status persistido no banco para o contrato de auth.
@@ -124,6 +125,45 @@ export function createUsuariosRepositorioAuth(db: PrismaDb): UsuariosRepositorio
           causa,
           detalhes: {
             usuarioId: params.usuarioId,
+          },
+        });
+      }
+    },
+
+    async buscarUsuarioPlataformaPorEmail(params) {
+      try {
+        const row = await db.usuarios.findFirst({
+          where: {
+            email: params.email,
+            locatario_id: null,
+            excluido_em: null,
+          },
+          select: {
+            usuario_id: true,
+            locatario_id: true,
+            email: true,
+            senha_hash: true,
+            status: true,
+          },
+        });
+
+        return wrapOk(
+          row
+            ? {
+                usuarioId: row.usuario_id,
+                locatarioId: row.locatario_id,
+                email: row.email,
+                senhaHash: row.senha_hash,
+                status: mapStatusUsuarioAuth(row.status),
+              }
+            : null,
+        );
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "usuarios",
+          operacao: "auth.usuario.buscarUsuarioPlataformaPorEmail",
+          detalhes: {
+            email: params.email,
           },
         });
       }

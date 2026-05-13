@@ -2,6 +2,7 @@
 
 import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
 import { erroAssinaturaJaExisteParaLocatario, erroPlanoInvalido } from "../erros";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
 import { AssinaturasRepositorio, PlanosConsultaRepositorio } from "../portasRepositorio";
 import { CriarAssinaturaInput, CriarAssinaturaOutput, CriarAssinaturaResult } from "../tipos";
 import { validarCriarAssinaturaInput } from "../validadores";
@@ -26,6 +27,7 @@ export function createFnCriarAssinatura(deps: {
   planosConsultaRepositorio: PlanosConsultaRepositorio;
   relogio: RelogioPorta;
   idPorta: IdPorta;
+  politicaSeguranca?: PoliticaSegurancaAssinaturasPorta;
 }) {
 /**
  * Cria uma nova assinatura.
@@ -50,6 +52,13 @@ export function createFnCriarAssinatura(deps: {
     const existente = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(input.locatarioId);
     if (!existente.ok) return existente;
     if (existente.value) return erroAssinaturaJaExisteParaLocatario(input.locatarioId);
+
+    const autorizacao = await autorizarAssinatura(deps, {
+      operacao: "ASSINATURA_CRIAR",
+      locatarioId: input.locatarioId,
+      planoId: input.planoId,
+    });
+    if (autorizacao && !autorizacao.ok) return autorizacao;
 
     const instante = deps.relogio.agora();
     const criada = await deps.assinaturasRepositorio.criarAssinatura({

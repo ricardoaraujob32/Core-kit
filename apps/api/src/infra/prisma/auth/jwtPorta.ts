@@ -16,7 +16,7 @@ import { env } from "../../../env";
  */
 type JwtPayloadInterno = {
   sub: UsuarioId;
-  loc: LocatarioId;
+  loc: LocatarioId | null;
   session: string;
   iat?: number;
   exp?: number;

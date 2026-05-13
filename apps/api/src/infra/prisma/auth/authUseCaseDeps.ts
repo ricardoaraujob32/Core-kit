@@ -32,6 +32,16 @@ export type AuthUseCaseDeps = {
     issuer: Env["JWT_ISSUER"];
   };
 
+  emitirSessaoPlataformaDeps: {
+    usuariosRepositorio: AuthPrismaAdapters["usuariosRepositorio"];
+    hashPorta: HashAuthPorta;
+    jwtPorta: JwtAuthPorta;
+    relogio: RelogioPorta;
+    idPorta: IdPorta;
+    eventos?: EventosSegurancaPorta;
+    issuer: Env["JWT_ISSUER"];
+  };
+
   rotacionarRefreshDeps: {
     tokensPorta: AuthPrismaAdapters["tokensPorta"];
     jwtPorta: JwtAuthPorta;
@@ -90,6 +100,16 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     issuer: env.JWT_ISSUER,
   };
 
+  const emitirSessaoPlataformaDeps = {
+    usuariosRepositorio: adapters.usuariosRepositorio,
+    hashPorta,
+    jwtPorta,
+    relogio,
+    idPorta,
+    eventos,
+    issuer: env.JWT_ISSUER,
+  };
+
   const rotacionarRefreshDeps = {
     tokensPorta: adapters.tokensPorta,
     jwtPorta,
@@ -123,6 +143,7 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
 
   return {
     emitirSessaoDeps,
+    emitirSessaoPlataformaDeps,
     rotacionarRefreshDeps,
     validarSessaoDeps,
     logoutDeps,
