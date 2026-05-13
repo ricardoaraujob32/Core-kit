@@ -25,7 +25,7 @@ export function estoquePadraoNaoEncontrado() {
 
 export function transacaoNaoPermiteEdicao(transacaoId: TransacaoId) {
   return createErroApp({
-    codigo: "REGRA_NEGOCIO",
+    codigo: "INVALIDO",
     mensagem: "A transação não permite edição neste estado.",
     detalhes: {
       transacaoId,
