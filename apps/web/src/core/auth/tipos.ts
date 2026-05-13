@@ -6,6 +6,11 @@ export type SessionUser = {
   usuarioId: string;
   locatarioId: string | null;
   perfil: PerfilSessao;
+  email?: string;
+  nome?: string;
+  papeis?: string[];
+  permissoes?: string[];
+  modulosHabilitados?: string[];
 };
 
 export type LoginInput = {

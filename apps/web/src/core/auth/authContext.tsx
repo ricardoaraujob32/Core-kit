@@ -1,13 +1,13 @@
 // apps/web/src/core/auth/authContext.tsx
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
 import { registerAccessTokenGetter, registerRefreshSessionHandler, registerUnauthorizedHandler } from "../api/httpClient";
 import { authStorage } from "./authStorage";
 import { login as loginRequest, loginPlataforma as loginPlataformaRequest, logout as logoutRequest, me as meRequest, 
   refresh as refreshRequest } from "../../features/auth/api/authApi";
 import type { AuthContextValue, LoginInput, LoginPlataformaInput, SessionUser } from "./tipos";
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function normalizeUser(user: SessionUser): SessionUser {
   return {
@@ -219,14 +219,4 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de AuthProvider");
-  }
-
-  return context;
 }
