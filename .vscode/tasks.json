@@ -17,6 +17,35 @@
       "type": "promptString",
       "description": "Arquivo TypeScript para validar rapidamente",
       "default": "apps/api/src/server.ts"
+    },
+    {
+      "id": "backupFile",
+      "type": "promptString",
+      "description": "Caminho do arquivo de backup (.dump)",
+      "default": "backups/mini-saas_2026-05-02_20-53-27.dump"
+    },
+    {
+      "id": "coreTestPackage",
+      "type": "pickString",
+      "description": "Pacote do Core para rodar testes unitários isolados",
+      "options": [
+        "locatarios",
+        "usuarios",
+        "auth",
+        "rbac",
+        "tokens",
+        "assinaturas",
+        "clientes",
+        "fornecedores",
+        "produtos",
+        "vendas",
+        "exportacoes",
+        "importacoes",
+        "modulos",
+        "auditoria",
+        "backups"
+      ],
+      "default": "locatarios"
     }
   ],
   "tasks": [
@@ -212,14 +241,14 @@
     {
       "label": "Core: Testes",
       "type": "shell",
-      "command": "pnpm -C packages/core vitest run",
+      "command": "pnpm -C packages/core exec vitest run",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "API: Testes",
       "type": "shell",
-      "command": "pnpm -C apps/api vitest run",
+      "command": "pnpm -C apps/api exec vitest run",
       "group": "test",
       "problemMatcher": []
     },
@@ -231,9 +260,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Frontend: Testes Unitarios",
+      "label": "Web: Testes Unitarios",
       "type": "shell",
-      "command": "pnpm -C apps/web test",
+      "command": "pnpm -C apps/web exec vitest run",
       "group": "test",
       "problemMatcher": []
     },
@@ -263,6 +292,371 @@
         "panel": "dedicated",
         "clear": true
       }
-    }
+    },
+    {
+      "label": "Database: Backup",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/backup-db.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Listar Backups",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/listar-backups.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Limpar Backups Antigos",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/limpar-backups-antigos.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Validar Backup",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/validar-backup.sh ${input:backupFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Restaurar Backup",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/restore-db.sh ${input:backupFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "typecheck:core",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec tsc --noEmit",
+      "group": "build"
+    },
+    {
+      "label": "typecheck:api",
+      "type": "shell",
+      "command": "pnpm -C apps/api exec tsc --noEmit",
+      "group": "build"
+    },
+    {
+      "label": "typecheck:web",
+      "type": "shell",
+      "command": "pnpm -C apps/web exec tsc --noEmit",
+      "group": "build"
+    },
+    {
+      "label": "typecheck:all",
+      "dependsOn": [
+        "typecheck:core",
+        "typecheck:api",
+        "typecheck:web"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "Core: Testes por pacote",
+      "type": "shell",
+      "command": "pnpm -C packages/core vitest run __tests__/${input:coreTestPackage}",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Core: Testes locatarios",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/locatarios",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes usuarios",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/usuarios",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes auth",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/auth",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes rbac",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/rbac",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes tokens",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/tokens",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes assinaturas",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/assinaturas",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes clientes",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/clientes",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes fornecedores",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/fornecedores",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes produtos",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/produtos",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes vendas",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/vendas",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes exportacoes",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/exportacoes",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes importacoes",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/importacoes",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes modulos",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/modulos",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes auditoria",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/auditoria",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes backups",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/backups",
+      "group": "test"
+    },
+    {
+      "label": "concat:core:src",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/core-src.txt && find packages/core/src -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/core-src.txt; cat \"$file\" >> tmp/concat/core-src.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:core:tests",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/core-tests.txt && if [ -d packages/core/__tests__ ]; then find packages/core/__tests__ -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/core-tests.txt; cat \"$file\" >> tmp/concat/core-tests.txt; done; fi",
+      "group": "build"
+    },
+    {
+      "label": "concat:api:src",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/api-src.txt && find apps/api/src -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/api-src.txt; cat \"$file\" >> tmp/concat/api-src.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:api:tests",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/api-tests.txt && if [ -d apps/api/__tests__ ]; then find apps/api/__tests__ -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/api-tests.txt; cat \"$file\" >> tmp/concat/api-tests.txt; done; fi",
+      "group": "build"
+    },
+    {
+      "label": "concat:web:src",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/web-src.txt && find apps/web/src -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/web-src.txt; cat \"$file\" >> tmp/concat/web-src.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:web:tests",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/web-tests.txt && if [ -d apps/web/__tests__ ]; then find apps/web/__tests__ -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/web-tests.txt; cat \"$file\" >> tmp/concat/web-tests.txt; done; fi",
+      "group": "build"
+    },
+    {
+      "label": "analise:preparar-pasta",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise",
+      "group": "build"
+    },
+    {
+      "label": "analise:mapa-arquitetural",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Mapa Arquitetural Automático'; echo; echo '## packages/core/src'; find packages/core/src -type d | sort; echo; echo '## apps/api/src'; find apps/api/src -type d | sort; echo; echo '## apps/web'; find apps/web -type d | sort; } > tmp/analise/mapa-arquitetural.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:imports-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && grep -RInE \"^import .* from ['\\\"]|^export .* from ['\\\"]\" packages/core/src --include='*.ts' --include='*.tsx' > tmp/analise/imports-core.txt || true",
+      "group": "build"
+    },
+    {
+      "label": "analise:violacoes-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Possíveis violações arquiteturais no Core'; echo; echo '## Imports proibidos no Core'; grep -RInE \"from ['\\\"].*(prisma|fastify|express|http|axios|react|@prisma|node:fs|fs|node:path|path)['\\\"]\" packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## usuarios importando tokens/rbac/auth'; grep -RInE \"from ['\\\"].*(tokens|rbac|auth)\" packages/core/src/usuarios --include='*.ts' --include='*.tsx' || true; echo; echo '## tokens importando rbac/auth'; grep -RInE \"from ['\\\"].*(rbac|auth)\" packages/core/src/tokens --include='*.ts' --include='*.tsx' || true; echo; echo '## rbac importando tokens/auth'; grep -RInE \"from ['\\\"].*(tokens|auth)\" packages/core/src/rbac --include='*.ts' --include='*.tsx' || true; echo; echo '## pacotes base importando auth'; grep -RInE \"from ['\\\"].*auth\" packages/core/src/locatarios packages/core/src/usuarios packages/core/src/tokens packages/core/src/rbac --include='*.ts' --include='*.tsx' || true; } > tmp/analise/violacoes-core.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:result-vs-throw",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Análise Result vs Throw'; echo; echo '## Ocorrências de throw no Core'; grep -RIn \"throw \" packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Uso de Result / Ok / Err'; grep -RInE \"Result<|wrapOk|wrapErr|ok\\(|err\\(|createErroApp|ErroApp\" packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Possíveis try/catch no Core'; grep -RInE \"try \\{|catch \\(\" packages/core/src --include='*.ts' --include='*.tsx' || true; } > tmp/analise/result-vs-throw.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:api-auth-contexto",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Análise API Auth / Contexto'; echo; echo '## Possíveis pontos de composição de auth'; grep -RInE \"runtime|authRuntime|criar.*Auth|emitirSessao|validarSessao|rotacionarRefresh|resolverContexto\" apps/api/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Possíveis aberturas de contexto SQL/RLS'; grep -RInE \"executarComContexto|executarAuthComContexto|set_config|locatario_id|RLS|contexto SQL\" apps/api/src packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Possíveis usos de as any'; grep -RIn \"as any\" apps/api/src packages/core/src --include='*.ts' --include='*.tsx' || true; } > tmp/analise/api-auth-contexto.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:composicao-proibida",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Composição proibida'; echo; grep -RInE 'createAuthHttpRuntime\\(|createAutorizacaoHttpRuntime\\(' apps/api/src --include='*.ts' --include='*.tsx' | grep -v 'bootstrap/' | grep -v 'infra/prisma/auth/' | grep -v 'infra/prisma/autorizacao/' || true; } > tmp/analise/composicao-proibida.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:throw-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Throws proibidos no Core'; echo; grep -RIn 'throw new Error' packages/core/src --include='*.ts' --include='*.tsx' || true; } > tmp/analise/throw-core.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:imports-cruzados",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Imports cruzados'; echo; grep -RInE 'from .*modules/' apps/api/src/modules --include='*.ts' --include='*.tsx' || true; } > tmp/analise/imports-cruzados.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:dependencias-modulos",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && for dir in apps/api/src/modules/*; do module=$(basename \"$dir\"); echo \"## $module\" >> tmp/analise/dependencias-modulos.md; grep -RhoE \"from ['\\\"][^'\\\"]+\" \"$dir\" --include='*.ts' | sort | uniq >> tmp/analise/dependencias-modulos.md || true; echo >> tmp/analise/dependencias-modulos.md; done",
+      "group": "build"
+    },
+    {
+      "label": "analise:rls-ilegal",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Possíveis aberturas ilegais de contexto'; echo; grep -RIn 'executarComContexto' apps/api/src --include='*.ts' | grep -v 'authPrismaContexto' | grep -v 'execucaoComContexto' || true; } > tmp/analise/rls-ilegal.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:metricas",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Métricas'; echo; echo '## Controllers'; find apps/api/src -iname '*controller.ts' | wc -l; echo; echo '## Repositórios'; find apps/api/src -iname '*Repositorio*.ts' | wc -l; echo; echo '## Throws'; grep -RIn 'throw ' packages/core/src apps/api/src --include='*.ts' | wc -l; echo; echo '## TODO/FIXME'; grep -RInE 'TODO|FIXME' apps/api/src packages/core/src --include='*.ts' || true; echo; echo '## as any'; grep -RIn 'as any' apps/api/src packages/core/src --include='*.ts' || true; } > tmp/analise/metricas.md",
+      "group": "build"
+    },
+    {
+      "label": "arquitetura:smoke-test",
+      "dependsOn": [
+        "analise:composicao-proibida",
+        "analise:throw-core",
+        "analise:imports-cruzados",
+        "analise:rls-ilegal",
+        "analise:metricas"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "analise:all",
+      "dependsOn": [
+        "analise:mapa-arquitetural",
+        "analise:imports-core",
+        "analise:violacoes-core",
+        "analise:result-vs-throw",
+        "analise:api-auth-contexto",
+        "analise:composicao-proibida",
+        "analise:throw-core",
+        "analise:imports-cruzados",
+        "analise:dependencias-modulos",
+        "analise:rls-ilegal",
+        "analise:metricas",
+      ],
+      "group": "build"
+    },
+    {
+      "label": "seguranca:auth-sem-vazamento",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Vazamento de permissões/módulos em Auth'; echo; grep -RInE 'permissoes|modulosHabilitados|modulos|papeis' apps/api/src/modules/auth apps/api/src/middlewares/authGuard.ts apps/api/src/infra/prisma/auth/jwtPorta.ts --include='*.ts' || true; } > tmp/analise/auth-sem-vazamento.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:contratos-auth-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Contratos Auth Core'; echo; grep -RInE 'export interface .*Auth|export type .*Auth|emitirAccessToken|gerarHash|comparar|criarRefresh|validarRefresh' packages/core/src/auth packages/core/src/kernel --include='*.ts' || true; } > tmp/analise/contratos-auth-core.md",
+      "group": "build"
+    },
+    {
+      "label": "concat:core:config",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/core-config.txt && find packages/core -maxdepth 2 -type f \\( -name \"package.json\" -o -name \"tsconfig*.json\" -o -name \"vitest.config.*\" -o -name \"vite.config.*\" -o -name \"eslint.config.*\" -o -name \".eslintrc*\" -o -name \".prettierrc*\" -o -name \"*.config.ts\" -o -name \"*.config.js\" -o -name \"*.config.mjs\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/core-config.txt; cat \"$file\" >> tmp/concat/core-config.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:api:config",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/api-config.txt && find apps/api -maxdepth 2 -type f \\( -name \"package.json\" -o -name \"tsconfig*.json\" -o -name \"vitest.config.*\" -o -name \"vite.config.*\" -o -name \"eslint.config.*\" -o -name \".eslintrc*\" -o -name \".prettierrc*\" -o -name \"*.config.ts\" -o -name \"*.config.js\" -o -name \"*.config.mjs\" -o -name \"schema.prisma\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/api-config.txt; cat \"$file\" >> tmp/concat/api-config.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:web:config",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/web-config.txt && find apps/web -maxdepth 2 -type f \\( -name \"package.json\" -o -name \"tsconfig*.json\" -o -name \"vitest.config.*\" -o -name \"vite.config.*\" -o -name \"eslint.config.*\" -o -name \".eslintrc*\" -o -name \".prettierrc*\" -o -name \"*.config.ts\" -o -name \"*.config.js\" -o -name \"*.config.mjs\" -o -name \"index.html\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/web-config.txt; cat \"$file\" >> tmp/concat/web-config.txt; done",
+      "group": "build"
+    },
   ]
 }

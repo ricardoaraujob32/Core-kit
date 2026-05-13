@@ -1,6 +1,9 @@
 import { createErroApp } from "../kernel";
 import type { TransacaoId, ItemTransacaoId } from "./tipos";
 
+export type CodigoErroVendas =
+  | "REGRA_NEGOCIO"
+
 export function transacaoNaoEncontrada(transacaoId: TransacaoId) {
   return createErroApp({ codigo: "NAO_ENCONTRADO", mensagem: "Transação comercial não encontrada.", detalhes: { operacao: "vendas.transacaoNaoEncontrada", transacaoId } });
 }
