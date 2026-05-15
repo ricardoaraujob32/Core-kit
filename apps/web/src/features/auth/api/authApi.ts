@@ -1,7 +1,7 @@
 // web/src/features/auth/api/authApi.ts
 
-import { httpClient } from "apps/web/src/core/api/httpClient";
-import { LoginInput, LoginPlataformaInput, LoginPlataformaResponse, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "apps/web/src/core/auth/tipos";
+import { httpClient } from "../../../core/api/httpClient";
+import { LoginInput, LoginPlataformaInput, LoginPlataformaResponse, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "../../../core/auth/tipos";
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
   return httpClient.post<LoginResponse, LoginInput>("/auth/login", input);
