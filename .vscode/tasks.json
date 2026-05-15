@@ -658,5 +658,12 @@
       "command": "mkdir -p tmp/concat && : > tmp/concat/web-config.txt && find apps/web -maxdepth 2 -type f \\( -name \"package.json\" -o -name \"tsconfig*.json\" -o -name \"vitest.config.*\" -o -name \"vite.config.*\" -o -name \"eslint.config.*\" -o -name \".eslintrc*\" -o -name \".prettierrc*\" -o -name \"*.config.ts\" -o -name \"*.config.js\" -o -name \"*.config.mjs\" -o -name \"index.html\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/web-config.txt; cat \"$file\" >> tmp/concat/web-config.txt; done",
       "group": "build"
     },
+    {
+      "label": "analise:web-imports-proibidos",
+      "type": "shell",
+      "command": "if grep -R \"apps/web/src\" -n apps/web/src; then echo '\nERRO: imports absolutos apps/web/src detectados'; exit 1; else echo 'OK: imports web válidos'; fi",
+      "group": "test",
+      "problemMatcher": []
+    },
   ]
 }
