@@ -1,5 +1,6 @@
 // apps/api/src/server.ts
 
+import "dotenv/config";
 import { env } from "./env";
 import { criarApp } from "./app";
 

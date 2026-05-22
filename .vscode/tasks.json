@@ -665,5 +665,47 @@
       "group": "test",
       "problemMatcher": []
     },
+    {
+      "label": "docker:postgres:up",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml up -d",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:down",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml down",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:restart",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up -d",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:logs",
+      "type": "shell",
+      "command": "docker logs -f corekit-postgres",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:status",
+      "type": "shell",
+      "command": "docker ps",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:psql",
+      "type": "shell",
+      "command": "docker exec -it corekit-postgres psql -U teste -d teste",
+      "group": "build",
+      "problemMatcher": []
+    },
   ]
 }
