@@ -91,7 +91,7 @@ export interface TokensAuthPorta {
    */
   criarRefresh(params: {
     usuarioId: UsuarioId;
-    locatarioId: LocatarioId;
+    locatarioId: LocatarioId | null;
     agora: Date;
     ttlMs: number;
   }): Promise<
@@ -110,7 +110,7 @@ export interface TokensAuthPorta {
    */
   validarRefresh(params: {
     tokenBruto: string;
-    locatarioId: LocatarioId;
+    locatarioId: LocatarioId | null;
     agora: Date;
   }): Promise<
     Result<{

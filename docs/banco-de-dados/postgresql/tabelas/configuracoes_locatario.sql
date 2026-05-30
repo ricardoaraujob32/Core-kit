@@ -11,10 +11,10 @@
 -- - identidade visual
 -- - emails
 -- - tema
-CREATE TABLE IF NOT EXISTS configuracoes_locatario (
+CREATE TABLE IF NOT EXISTS core.configuracoes_locatario (
   locatario_id       UUID NOT NULL,
   configuracao_id    UUID NOT NULL,
-  modo_tema          TEXT NOT NULL DEFAULT 'SISTEMA' CHECK (modo_tema IN ('CLARO','ESCURO','SISTEMA')),
+  modo_tema          core.config_locatario NOT NULL DEFAULT 'SISTEMA',
   identidade_visual  TEXT UNIQUE NOT NULL CHECK(length(trim(identidade_visual))>0), -- nome da identidade (padrão, natal, ano novo, etc)
   cor_primaria       TEXT NULL, -- ex: "#3B82F6"
   cor_secundaria     TEXT NULL, -- ex: "#3B82F6"

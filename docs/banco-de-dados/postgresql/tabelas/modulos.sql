@@ -12,11 +12,11 @@
 -- - estoque
 -- - financeiro
 -- - relatorios
-CREATE TABLE IF NOT EXISTS modulos (
+CREATE TABLE IF NOT EXISTS core.modulos (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   codigo      TEXT NOT NULL UNIQUE CHECK (codigo ~ '^[A-Z0-9_]+$'), -- Identificador técnico estável (usado em regras)
   nome        TEXT NOT NULL, -- Nome amigável
-  categoria   TEXT NOT NULL CHECK (categoria IN ('NUCLEO', 'OPERACIONAL', 'DADOS', 'IA', 'INTEGRACAO', 'RELATORIO')), 
+  categoria   core.categoria_modulos NOT NULL, 
   ativo       BOOLEAN NOT NULL DEFAULT TRUE,
   gratuito    BOOLEAN NOT NULL DEFAULT FALSE,
   ordem_exibicao INTEGER NOT NULL DEFAULT 0,

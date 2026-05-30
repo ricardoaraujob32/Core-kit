@@ -82,7 +82,7 @@ export interface JwtPayloadAuth {
 export type ChaveToken = {
   tokenId: TokenId;
   usuarioId: UsuarioId;
-  locatarioId: LocatarioId;
+  locatarioId: LocatarioId | null;
 };
 
 /**

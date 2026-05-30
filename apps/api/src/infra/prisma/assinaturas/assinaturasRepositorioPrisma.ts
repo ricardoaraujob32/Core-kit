@@ -3,6 +3,7 @@
 import type { Assinatura, AssinaturaId, AssinaturasRepositorio, LocatarioId, RegistrarAssinaturaParams } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
+import type { status_assinatura } from "@prisma/client";
 import { mapearErroInfra } from "../erros";
 
 type AssinaturaRow = {
@@ -29,6 +30,25 @@ function mapAssinatura(row: AssinaturaRow): Assinatura {
   };
 }
 
+function mapStatusAssinaturaParaPersistencia(status: Assinatura["status"]): status_assinatura {
+  switch (status) {
+    case "RASCUNHO":
+      return "RASCUNHO";
+    case "ATIVA":
+      return "ATIVA";
+    case "SUSPENSA":
+      return "SUSPENSA";
+    case "CANCELADA":
+      return "CANCELADA";
+    case "ENCERRADA":
+      return "CANCELADA";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
 export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRepositorio {
   return {
     async criarAssinatura(params: RegistrarAssinaturaParams) {
@@ -38,7 +58,7 @@ export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRep
             assinatura_id: params.assinaturaId,
             locatario_id: params.locatarioId,
             plano_id: params.planoId,
-            status: params.status,
+            status: mapStatusAssinaturaParaPersistencia(params.status),
             inicio_em: params.iniciadaEm,
             fim_em: params.encerradaEm ?? null,
             criado_em: params.criadaEm,
@@ -70,14 +90,14 @@ export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRep
       try {
         const atualizada = await db.assinaturas.update({
           where: {
-            assinatura_id_locatario_id: {
-              assinatura_id: assinatura.assinaturaId,
+            locatario_id_assinatura_id: {
               locatario_id: assinatura.locatarioId,
+              assinatura_id: assinatura.assinaturaId,
             },
           },
           data: {
             plano_id: assinatura.planoId,
-            status: assinatura.status,
+            status: mapStatusAssinaturaParaPersistencia(assinatura.status),
             inicio_em: assinatura.iniciadaEm,
             fim_em: assinatura.encerradaEm,
             atualizado_em: assinatura.atualizadaEm,

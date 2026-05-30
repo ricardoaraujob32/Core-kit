@@ -8,7 +8,7 @@
 -- - Remover vínculo NÃO remove papel nem permissão
 -- - Papéis herdam permissões exclusivamente daqui
 -- =========================================================
-CREATE TABLE IF NOT EXISTS papel_permissoes (
+CREATE TABLE IF NOT EXISTS core.papel_permissoes (
   papel_id      UUID NOT NULL,
   permissao_id  UUID NOT NULL,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),

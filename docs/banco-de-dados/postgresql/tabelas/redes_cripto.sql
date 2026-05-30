@@ -1,9 +1,0 @@
-CREATE TABLE IF NOT EXISTS redes_cripto (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  codigo TEXT NOT NULL UNIQUE CHECK (codigo ~ '^[A-Z0-9]{2,20}$'), -- ex.: BTC, ETH, SOL, POLYGON
-  nome TEXT NOT NULL,
-
-  ativo BOOLEAN NOT NULL DEFAULT TRUE,
-  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);

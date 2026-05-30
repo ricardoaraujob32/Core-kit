@@ -15,7 +15,7 @@
 -- - locatarios:suspender
 -- - financeiro:visualizar
 -- =========================================================
-CREATE TABLE IF NOT EXISTS permissoes (
+CREATE TABLE IF NOT EXISTS core.permissoes (
   id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   codigo    TEXT NOT NULL UNIQUE, -- Identificador técnico estável usado em regras. (modulo:acao)
   nome      TEXT NOT NULL, -- Nome amigável exibido em UI

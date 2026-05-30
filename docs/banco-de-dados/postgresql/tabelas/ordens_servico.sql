@@ -1,11 +1,10 @@
-CREATE TABLE IF NOT EXISTS ordens_servico (
+CREATE TABLE IF NOT EXISTS core.ordens_servico (
   ordem_servico_id UUID NOT NULL DEFAULT gen_random_uuid(),
   locatario_id UUID NOT NULL,
 
   cliente_id UUID NULL,
 
-  status TEXT NOT NULL DEFAULT 'ABERTA'
-    CHECK (status IN ('ABERTA','EM_ANDAMENTO','AGUARDANDO','CONCLUIDA','CANCELADA')),
+  status core.status_os NOT NULL DEFAULT 'ABERTA',
 
   titulo TEXT NOT NULL CHECK (length(trim(titulo)) > 0),
   descricao TEXT NULL,

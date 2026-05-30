@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS clientes (
+CREATE TABLE IF NOT EXISTS core.clientes (
   cliente_id UUID NOT NULL DEFAULT gen_random_uuid(),
   locatario_id UUID NOT NULL,
 

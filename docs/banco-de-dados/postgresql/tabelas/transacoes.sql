@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS transacoes (
+CREATE TABLE IF NOT EXISTS core.transacoes (
   transacao_id UUID DEFAULT gen_random_uuid(),
   locatario_id UUID NOT NULL,
   cliente_id UUID NULL,

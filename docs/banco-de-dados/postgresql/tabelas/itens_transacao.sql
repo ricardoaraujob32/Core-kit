@@ -1,5 +1,5 @@
 -- ITENS (produto/serviço)
-CREATE TABLE IF NOT EXISTS itens_transacao (
+CREATE TABLE IF NOT EXISTS core.itens_transacao (
   locatario_id UUID NOT NULL,
   item_transacao_id UUID NOT NULL DEFAULT gen_random_uuid(),
   transacao_id UUID NOT NULL,

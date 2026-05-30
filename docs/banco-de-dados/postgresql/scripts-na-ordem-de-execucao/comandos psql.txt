@@ -1,0 +1,45 @@
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/01_roles_nologin.sql 
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/02_roles_login.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/03_grant_roles.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/04_schemas.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/05_default_privileges.sql
+
+
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08a_core_autenticacao_plataforma.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08b_core_locatarios_configuracoes.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08c_core_usuarios_tokens_locatario.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08d_core_rbac.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08e_core_planos_modulos_assinaturas.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08f_core_operacional_base.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08g_core_os_transacoes_estoque.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/08h_jobs_importacao_exportacao.sql
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/04_schemas.sql
+
+psql -h localhost -p 5433 -U corekit_dev -d corekit_dev -v ON_ERROR_STOP=1 -f docs/banco-de-dados/postgresql/scripts-na-ordem-de-execucao/05_default_privileges.sql

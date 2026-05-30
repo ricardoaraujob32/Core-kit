@@ -133,7 +133,7 @@ export function createFornecedoresRepositorio(db: PrismaDb): FornecedoresReposit
           ...(params.cursor
             ? {
                 cursor: {
-                  fornecedor_id_locatario_id: {
+                  locatario_id_fornecedor_id: {
                     fornecedor_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -159,7 +159,7 @@ export function createFornecedoresRepositorio(db: PrismaDb): FornecedoresReposit
       try {
         await db.fornecedores.update({
           where: {
-            fornecedor_id_locatario_id: {
+            locatario_id_fornecedor_id: {
               fornecedor_id: fornecedor.fornecedorId,
               locatario_id: fornecedor.locatarioId,
             },

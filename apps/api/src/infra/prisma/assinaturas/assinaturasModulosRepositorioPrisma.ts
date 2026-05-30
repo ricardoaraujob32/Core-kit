@@ -1,18 +1,11 @@
 // apps/api/src/infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.ts
 
-import type {
-  AssinaturaId,
-  AssinaturasModulosRepositorio,
-  ModuloHabilitadoAssinatura,
-  ModuloId,
-  RegistrarModuloAssinaturaParams,
-} from "@core-kit/core";
+import type { AssinaturaId, AssinaturasModulosRepositorio, ModuloHabilitadoAssinatura, ModuloId, RegistrarModuloAssinaturaParams } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
 
-type ModuloAssinaturaRow = {
-  assinatura_id: string;
+type ModuloLocatarioRow = {
   modulo_id: string;
   origem: string;
   habilitado: boolean;
@@ -20,12 +13,25 @@ type ModuloAssinaturaRow = {
   atualizado_em: Date;
 };
 
-function mapModuloAssinatura(row: ModuloAssinaturaRow): ModuloHabilitadoAssinatura {
+function mapOrigemAssinatura(origem: string): ModuloHabilitadoAssinatura["origem"] {
+  const normalizada = origem.trim().toUpperCase();
+
+  if (normalizada === "GRATUITO" || normalizada === "CORTESIA") {
+    return "GRATUITO";
+  }
+
+  return "ASSINATURA";
+}
+
+function mapModuloAssinatura(
+  assinaturaId: AssinaturaId,
+  row: ModuloLocatarioRow,
+): ModuloHabilitadoAssinatura {
   return {
-    assinaturaId: row.assinatura_id,
+    assinaturaId,
     moduloId: row.modulo_id,
-    gratuito: false,
-    origem: row.origem === "GRATUITO" ? "GRATUITO" : "ASSINATURA",
+    gratuito: mapOrigemAssinatura(row.origem) === "GRATUITO",
+    origem: mapOrigemAssinatura(row.origem),
     habilitadoEm: row.criado_em,
     desabilitadoEm: row.habilitado ? null : row.atualizado_em,
   };
@@ -44,48 +50,56 @@ export function createAssinaturasModulosRepositorioPrisma(
 
         if (!assinatura) {
           return mapearErroInfra(new Error("Assinatura não encontrada"), {
-            entidade: "modulos_assinatura",
+            entidade: "modulos_locatario",
             operacao: "infra.prisma.assinaturasModulos.vincularModulo.assinaturaAusente",
             detalhes: { assinaturaId: params.assinaturaId },
           });
         }
 
-        const vinculo = await db.modulos_assinatura.upsert({
-          where: {
-            locatario_id_assinatura_id_modulo_id: {
-              locatario_id: assinatura.locatario_id,
-              assinatura_id: params.assinaturaId,
-              modulo_id: params.moduloId,
-            },
-          },
-          create: {
-            locatario_id: assinatura.locatario_id,
-            assinatura_id: params.assinaturaId,
-            modulo_id: params.moduloId,
-            habilitado: true,
-            origem: "MANUAL",
-            criado_em: params.habilitadoEm,
-            atualizado_em: params.habilitadoEm,
-          },
-          update: {
-            habilitado: true,
-            origem: "MANUAL",
-            atualizado_em: params.habilitadoEm,
-          },
-          select: {
-            assinatura_id: true,
-            modulo_id: true,
-            origem: true,
-            habilitado: true,
-            criado_em: true,
-            atualizado_em: true,
-          },
-        });
+        const rows = await db.$queryRaw<ModuloLocatarioRow[]>`
+          INSERT INTO core.modulos_locatario (
+            locatario_id,
+            modulo_id,
+            habilitado,
+            origem,
+            criado_em,
+            atualizado_em
+          )
+          VALUES (
+            ${assinatura.locatario_id}::uuid,
+            ${params.moduloId}::uuid,
+            true,
+            'MANUAL_SUPERADMIN'::core.origem_modulo_assinatura,
+            ${params.habilitadoEm},
+            ${params.habilitadoEm}
+          )
+          ON CONFLICT (locatario_id, modulo_id)
+          DO UPDATE SET
+            habilitado = true,
+            origem = 'MANUAL_SUPERADMIN'::core.origem_modulo_assinatura,
+            atualizado_em = ${params.habilitadoEm}
+          RETURNING
+            modulo_id,
+            origem::text AS origem,
+            habilitado,
+            criado_em,
+            atualizado_em
+        `;
 
-        return wrapOk(mapModuloAssinatura(vinculo));
+        const vinculo = rows[0];
+
+        if (!vinculo) {
+          return mapearErroInfra(new Error("Falha ao vincular módulo ao locatário"), {
+            entidade: "modulos_locatario",
+            operacao: "infra.prisma.assinaturasModulos.vincularModulo.semRetorno",
+            detalhes: { assinaturaId: params.assinaturaId, moduloId: params.moduloId },
+          });
+        }
+
+        return wrapOk(mapModuloAssinatura(params.assinaturaId, vinculo));
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.vincularModulo",
           detalhes: { assinaturaId: params.assinaturaId, moduloId: params.moduloId },
         });
@@ -105,21 +119,19 @@ export function createAssinaturasModulosRepositorioPrisma(
 
         if (!assinatura) return wrapOk(undefined);
 
-        await db.modulos_assinatura.update({
-          where: {
-            locatario_id_assinatura_id_modulo_id: {
-              locatario_id: assinatura.locatario_id,
-              assinatura_id: assinaturaId,
-              modulo_id: moduloId,
-            },
-          },
-          data: { habilitado: false, atualizado_em: desabilitadoEm },
-        });
+        await db.$executeRaw`
+          UPDATE core.modulos_locatario
+          SET
+            habilitado = false,
+            atualizado_em = ${desabilitadoEm}
+          WHERE locatario_id = ${assinatura.locatario_id}::uuid
+            AND modulo_id = ${moduloId}::uuid
+        `;
 
         return wrapOk(undefined);
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.desvincularModulo",
           detalhes: { assinaturaId, moduloId },
         });
@@ -128,22 +140,32 @@ export function createAssinaturasModulosRepositorioPrisma(
 
     async buscarModuloVinculado(assinaturaId: AssinaturaId, moduloId: ModuloId) {
       try {
-        const vinculo = await db.modulos_assinatura.findFirst({
-          where: { assinatura_id: assinaturaId, modulo_id: moduloId },
-          select: {
-            assinatura_id: true,
-            modulo_id: true,
-            origem: true,
-            habilitado: true,
-            criado_em: true,
-            atualizado_em: true,
-          },
+        const assinatura = await db.assinaturas.findFirst({
+          where: { assinatura_id: assinaturaId, excluido_em: null },
+          select: { locatario_id: true },
         });
 
-        return wrapOk(vinculo ? mapModuloAssinatura(vinculo) : null);
+        if (!assinatura) return wrapOk(null);
+
+        const rows = await db.$queryRaw<ModuloLocatarioRow[]>`
+          SELECT
+            modulo_id,
+            origem::text AS origem,
+            habilitado,
+            criado_em,
+            atualizado_em
+          FROM core.modulos_locatario
+          WHERE locatario_id = ${assinatura.locatario_id}::uuid
+            AND modulo_id = ${moduloId}::uuid
+          LIMIT 1
+        `;
+
+        const vinculo = rows[0] ?? null;
+
+        return wrapOk(vinculo ? mapModuloAssinatura(assinaturaId, vinculo) : null);
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.buscarModuloVinculado",
           detalhes: { assinaturaId, moduloId },
         });
@@ -152,23 +174,30 @@ export function createAssinaturasModulosRepositorioPrisma(
 
     async listarModulosAtivosDaAssinatura(assinaturaId: AssinaturaId) {
       try {
-        const vinculos = await db.modulos_assinatura.findMany({
-          where: { assinatura_id: assinaturaId, habilitado: true },
-          orderBy: { modulo_id: "asc" },
-          select: {
-            assinatura_id: true,
-            modulo_id: true,
-            origem: true,
-            habilitado: true,
-            criado_em: true,
-            atualizado_em: true,
-          },
+        const assinatura = await db.assinaturas.findFirst({
+          where: { assinatura_id: assinaturaId, excluido_em: null },
+          select: { locatario_id: true },
         });
 
-        return wrapOk(vinculos.map(mapModuloAssinatura));
+        if (!assinatura) return wrapOk([]);
+
+        const vinculos = await db.$queryRaw<ModuloLocatarioRow[]>`
+          SELECT
+            modulo_id,
+            origem::text AS origem,
+            habilitado,
+            criado_em,
+            atualizado_em
+          FROM core.modulos_locatario
+          WHERE locatario_id = ${assinatura.locatario_id}::uuid
+            AND habilitado = true
+          ORDER BY modulo_id ASC
+        `;
+
+        return wrapOk(vinculos.map((row) => mapModuloAssinatura(assinaturaId, row)));
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.listarModulosAtivosDaAssinatura",
           detalhes: { assinaturaId },
         });

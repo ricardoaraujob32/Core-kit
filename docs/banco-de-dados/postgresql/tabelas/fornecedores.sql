@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS fornecedores (
+CREATE TABLE IF NOT EXISTS core.fornecedores (
   fornecedor_id UUID NOT NULL DEFAULT gen_random_uuid(),
   locatario_id UUID NOT NULL,
 

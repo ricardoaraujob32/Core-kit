@@ -141,7 +141,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  produto_id_locatario_id: {
+                  locatario_id_produto_id: {
                     produto_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -167,7 +167,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
       try {
         await db.produtos.update({
           where: {
-            produto_id_locatario_id: {
+            locatario_id_produto_id: {
               produto_id: produto.produtoId,
               locatario_id: produto.locatarioId,
             },

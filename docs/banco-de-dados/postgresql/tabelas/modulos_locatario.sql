@@ -1,11 +1,10 @@
-CREATE TABLE IF NOT EXISTS modulos_locatario (
+CREATE TABLE IF NOT EXISTS core.modulos_locatario (
   locatario_id UUID NOT NULL,
   modulo_id UUID NOT NULL,
 
   habilitado BOOLEAN NOT NULL DEFAULT TRUE,
 
-  origem TEXT NOT NULL DEFAULT 'PLANO'
-    CHECK (origem IN ('PLANO','MANUAL','SISTEMA')),
+  origem core.origem_plano NOT NULL DEFAULT 'PLANO',
 
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),

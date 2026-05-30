@@ -14,7 +14,7 @@
 -- - OPERADOR
 -- - SUPERADMIN
 -- =========================================================
-CREATE TABLE IF NOT EXISTS papeis (
+CREATE TABLE IF NOT EXISTS core.papeis (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   codigo        TEXT NOT NULL UNIQUE, -- Identificador técnico estável
   nome          TEXT NOT NULL,  -- Nome amigável exibido em UI

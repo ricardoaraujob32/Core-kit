@@ -1,5 +1,5 @@
 -- MOVIMENTOS (delta pode ser negativo no AJUSTE)
-CREATE TABLE IF NOT EXISTS movimentos_estoque (
+CREATE TABLE IF NOT EXISTS core.movimentos_estoque (
   movimentacao_id UUID NOT NULL DEFAULT gen_random_uuid(),
   locatario_id UUID NOT NULL,  
   estoque_id UUID NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS movimentos_estoque (
   transacao_id UUID NOT NULL,
   item_transacao_id UUID NOT NULL,
   
-  tipo TEXT NOT NULL CHECK (tipo IN ('ENTRADA','SAIDA','AJUSTE')),
+  tipo core.tipo_movimento_estoque NOT NULL,
   delta NUMERIC(18,3) NOT NULL CHECK (delta <> 0), -- +quantidade para ENTRADA, -quantidade para SAIDA, e livre (mas consistente) para AJUSTE
   quantidade NUMERIC(18,3) NOT NULL CHECK (quantidade > 0), -- sempre positiva
   ocorrencia_em TIMESTAMPTZ NOT NULL DEFAULT now(),

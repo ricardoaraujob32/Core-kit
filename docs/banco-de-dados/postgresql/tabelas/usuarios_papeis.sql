@@ -11,7 +11,7 @@
 -- MULTI-TENANT:
 -- - Regras de acesso devem considerar locatario_id
 -- =========================================================
-CREATE TABLE IF NOT EXISTS usuarios_papeis (
+CREATE TABLE IF NOT EXISTS core.usuarios_papeis (
   usuario_id          UUID NOT NULL,
   locatario_id        UUID NOT NULL,
   papel_id            UUID NOT NULL,

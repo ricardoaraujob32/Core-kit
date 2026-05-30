@@ -1,5 +1,5 @@
 -- ESTOQUES (depósitos) 
-CREATE TABLE IF NOT EXISTS estoques (
+CREATE TABLE IF NOT EXISTS core.estoques (
   locatario_id UUID NOT NULL,
   estoque_id UUID NOT NULL DEFAULT gen_random_uuid(),
 

@@ -133,7 +133,7 @@ export function createClientesRepositorio(db: PrismaDb): ClientesRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  cliente_id_locatario_id: {
+                  locatario_id_cliente_id: {
                     cliente_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -159,7 +159,7 @@ export function createClientesRepositorio(db: PrismaDb): ClientesRepositorio {
       try {
         await db.clientes.update({
           where: {
-            cliente_id_locatario_id: {
+            locatario_id_cliente_id: {
               cliente_id: cliente.clienteId,
               locatario_id: cliente.locatarioId,
             },

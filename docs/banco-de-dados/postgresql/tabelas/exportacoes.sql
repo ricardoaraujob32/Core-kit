@@ -1,9 +1,9 @@
-CREATE TABLE IF NOT EXISTS exportacoes (
+CREATE TABLE IF NOT EXISTS jobs.exportacoes (
   exportacao_id         UUID DEFAULT gen_random_uuid(),
   locatario_id          UUID NOT NULL,
   criado_por_usuario_id UUID NULL,
-  formato               formato_exportacao NOT NULL,
-  status                status_job NOT NULL DEFAULT 'PENDENTE',
+  formato               jobs.formato_exportacao NOT NULL,
+  status                jobs.status_job NOT NULL DEFAULT 'PENDENTE',
   parametros            JSONB NOT NULL DEFAULT '{}'::jsonb, -- filtros, colunas, período etc.
   referencia_resultado  TEXT NULL, -- link/caminho do arquivo gerado
   mensagem_erro         TEXT NULL,

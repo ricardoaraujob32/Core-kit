@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS auditoria_locatario (
+CREATE TABLE IF NOT EXISTS audit.auditoria_locatario (
   auditoria_id         UUID DEFAULT gen_random_uuid(),
   locatario_id         UUID NOT NULL,
   usuario_id           UUID NOT NULL,

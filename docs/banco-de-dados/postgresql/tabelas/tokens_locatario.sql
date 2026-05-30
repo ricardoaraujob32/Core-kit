@@ -16,20 +16,20 @@
 -- - Controle de sessão
 -- - Rotação / revogação
 -- =========================================================
-CREATE TABLE IF NOT EXISTS tokens (
-  token_id           UUID NOT NULL DEFAULT gen_random_uuid(),
-  usuario_id         UUID NOT NULL,
-  locatario_id       UUID NOT NULL, -- NULL indica usuário de nível plataforma (ex.: superadmin)
-  hash_token         TEXT UNIQUE NOT NULL, -- nunca guarde o token em claro
-  tipo               tipo_token NOT NULL, -- access / refresh / etc.
-  emitido_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
-  expira_em          TIMESTAMPTZ NOT NULL,
-  revogado_em        TIMESTAMPTZ NULL,
-  proximo_token_id   UUID NULL, -- id do novo token (rotação)
-  proximo_usuario_id UUID NULL,
+CREATE TABLE IF NOT EXISTS core.tokens_locatario (
+  token_id             UUID NOT NULL DEFAULT gen_random_uuid(),
+  usuario_id           UUID NOT NULL,
+  locatario_id         UUID NOT NULL, -- NULL indica usuário de nível plataforma (ex.: superadmin)
+  hash_token           TEXT UNIQUE NOT NULL, -- nunca guarde o token em claro
+  tipo                 core.tipo_token NOT NULL, -- access / refresh / etc.
+  emitido_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expira_em            TIMESTAMPTZ NOT NULL,
+  revogado_em          TIMESTAMPTZ NULL,
+  proximo_token_id     UUID NULL, -- id do novo token (rotação)
+  proximo_usuario_id   UUID NULL,
   proximo_locatario_id UUID NULL,
-  agente_usuario     TEXT NULL,
-  endereco_ip        INET NULL
+  agente_usuario       TEXT NULL,
+  endereco_ip          INET NULL
 );
 
 DO $$

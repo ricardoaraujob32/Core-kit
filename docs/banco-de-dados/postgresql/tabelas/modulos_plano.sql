@@ -7,7 +7,7 @@
 -- - Não deve haver duplicidade (PK composta)
 -- - Remove vínculo NÃO remove módulo nem plano
 -- - Define capacidades padrão de um plano
-CREATE TABLE IF NOT EXISTS modulos_plano (
+CREATE TABLE IF NOT EXISTS core.modulos_plano (
   plano_id   UUID NOT NULL,
   modulo_id  UUID NOT NULL,
   habilitado BOOLEAN NOT NULL DEFAULT TRUE,

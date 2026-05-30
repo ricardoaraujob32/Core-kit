@@ -5,33 +5,28 @@ import { gerarRefreshTokenBruto, hashRefreshToken } from "./tokenHash";
 import { erroInfraAuth } from "../errosInfraAuth";
 import { PrismaDb } from "../../tipos";
 
+type TokenRow = {
+  token_id: string;
+  usuario_id: string;
+  locatario_id: string | null;
+  expira_em: Date;
+  revogado_em: Date | null;
+};
+
 /**
  * Adapter Prisma -> TokensAuthPorta.
  *
- * Responsabilidades:
- * - criar refresh tokens seguros (token + hash);
- * - validar refresh tokens;
- * - revogar tokens.
+ * Modelo novo:
+ * - core.tokens_locatario: refresh tokens de usuários de locatário.
+ * - core.tokens_plataforma: refresh tokens de usuários da plataforma.
  *
  * Segurança:
- * - apenas o hash do token é persistido no banco;
+ * - apenas o hash do token é persistido;
  * - o token bruto nunca é armazenado;
- * - validação ocorre via hash (similar a senha).
+ * - validação ocorre via hash.
  */
 export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAuthPorta {
   return {
-    /**
-     * Cria um novo refresh token.
-     *
-     * Fluxo:
-     * 1. gera token bruto aleatório;
-     * 2. gera hash do token;
-     * 3. persiste apenas o hash;
-     * 4. retorna token bruto ao chamador.
-     *
-     * @param params Dados necessários para materializar o token.
-     * @returns `Ok({ tokenId, tokenBruto, expiraEm })` em caso de sucesso.
-     */
     async criarRefresh(params) {
       try {
         const tokenBruto = gerarRefreshTokenBruto();
@@ -39,16 +34,43 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
         const tokenId = idPorta.gerarId() as TokenId;
         const expiraEm = new Date(params.agora.getTime() + params.ttlMs);
 
-        await db.tokens.create({
-          data: {
-            token_id: tokenId,
-            usuario_id: params.usuarioId,
-            locatario_id: params.locatarioId,
-            hash_token: hashToken,
-            tipo: "REFRESH",
-            expira_em: expiraEm,
-          },
-        });
+        if (params.locatarioId === null) {
+          await db.$executeRaw`
+            INSERT INTO core.tokens_plataforma (
+              token_id,
+              usuario_id,
+              hash_token,
+              tipo,
+              expira_em
+            )
+            VALUES (
+              ${tokenId}::uuid,
+              ${params.usuarioId}::uuid,
+              ${hashToken},
+              'REFRESH'::core.tipo_token,
+              ${expiraEm}
+            )
+          `;
+        } else {
+          await db.$executeRaw`
+            INSERT INTO core.tokens_locatario (
+              token_id,
+              usuario_id,
+              locatario_id,
+              hash_token,
+              tipo,
+              expira_em
+            )
+            VALUES (
+              ${tokenId}::uuid,
+              ${params.usuarioId}::uuid,
+              ${params.locatarioId}::uuid,
+              ${hashToken},
+              'REFRESH'::core.tipo_token,
+              ${expiraEm}
+            )
+          `;
+        }
 
         return wrapOk({
           chave: {
@@ -72,35 +94,38 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
       }
     },
 
-    /**
-     * Valida o refresh token recebido do cliente.
-     *
-     * Fluxo:
-     * 1. aplica hash ao token recebido;
-     * 2. busca no banco;
-     * 3. valida existência, revogação e expiração.
-     *
-     * @param params Token bruto, locatário e relógio da operação.
-     * @returns `Ok(...)` quando o refresh é válido.
-     */
     async validarRefresh(params) {
       try {
         const hashToken = hashRefreshToken(params.tokenBruto);
 
-        const row = await db.tokens.findFirst({
-          where: {
-            locatario_id: params.locatarioId,
-            hash_token: hashToken,
-            tipo: "REFRESH",
-          },
-          select: {
-            token_id: true,
-            usuario_id: true,
-            locatario_id: true,
-            expira_em: true,
-            revogado_em: true,
-          },
-        });
+        const rows = params.locatarioId === null
+          ? await db.$queryRaw<TokenRow[]>`
+              SELECT
+                token_id,
+                usuario_id,
+                NULL::uuid AS locatario_id,
+                expira_em,
+                revogado_em
+              FROM core.tokens_plataforma
+              WHERE hash_token = ${hashToken}
+                AND tipo = 'REFRESH'::core.tipo_token
+              LIMIT 1
+            `
+          : await db.$queryRaw<TokenRow[]>`
+              SELECT
+                token_id,
+                usuario_id,
+                locatario_id,
+                expira_em,
+                revogado_em
+              FROM core.tokens_locatario
+              WHERE locatario_id = ${params.locatarioId}::uuid
+                AND hash_token = ${hashToken}
+                AND tipo = 'REFRESH'::core.tipo_token
+              LIMIT 1
+            `;
+
+        const row = rows[0] ?? null;
 
         if (!row) {
           return createErroApp({
@@ -142,7 +167,7 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
 
         return wrapOk({
           chave: {
-            tokenId: row.token_id,
+            tokenId: row.token_id as TokenId,
             usuarioId: row.usuario_id,
             locatarioId: row.locatario_id,
           },
@@ -159,30 +184,30 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
       }
     },
 
-    /**
-     * Revoga um refresh token existente.
-     *
-     * @param params.tokenId Identificador do token.
-     * @param params.agora Timestamp da revogação.
-     * @returns `Ok(void)` quando a operação é concluída.
-     */
     async revogar(params) {
       try {
-        await db.tokens.update({
-          where: {
-            token_id_usuario_id_locatario_id: {
-              token_id: params.chave.tokenId,
-              usuario_id: params.chave.usuarioId,
-              locatario_id: params.chave.locatarioId,
-            },
-          },
-          data: {
-            revogado_em: params.agora,
-            proximo_token_id: params.proximo?.tokenId ?? null,
-            proximo_usuario_id: params.proximo?.usuarioId ?? null,
-            proximo_locatario_id: params.proximo?.locatarioId ?? null,
-          },
-        });
+        if (params.chave.locatarioId === null) {
+          await db.$executeRaw`
+            UPDATE core.tokens_plataforma
+            SET
+              revogado_em = ${params.agora},
+              proximo_token_id = ${params.proximo?.tokenId ?? null}::uuid
+            WHERE token_id = ${params.chave.tokenId}::uuid
+              AND usuario_id = ${params.chave.usuarioId}::uuid
+          `;
+        } else {
+          await db.$executeRaw`
+            UPDATE core.tokens_locatario
+            SET
+              revogado_em = ${params.agora},
+              proximo_token_id = ${params.proximo?.tokenId ?? null}::uuid,
+              proximo_usuario_id = ${params.proximo?.usuarioId ?? null}::uuid,
+              proximo_locatario_id = ${params.proximo?.locatarioId ?? null}::uuid
+            WHERE token_id = ${params.chave.tokenId}::uuid
+              AND usuario_id = ${params.chave.usuarioId}::uuid
+              AND locatario_id = ${params.chave.locatarioId}::uuid
+          `;
+        }
 
         return wrapOk(undefined);
       } catch (causa) {

@@ -11,7 +11,7 @@
 -- EXEMPLOS:
 -- - max_usuarios
 -- - max_clientes
-CREATE TABLE IF NOT EXISTS limites_plano (
+CREATE TABLE IF NOT EXISTS core.limites_plano (
   plano_id       UUID NOT NULL,
   limite_plano_id TEXT NOT NULL CHECK (limite_id ~ '^[A-Z0-9_]+$'),
   valor_inteiro  INTEGER NULL CHECK (valor_inteiro IS NULL OR valor_inteiro >= 0),

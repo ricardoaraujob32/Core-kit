@@ -24,14 +24,14 @@
 -- - Assinaturas
 -- - Planos
 
-CREATE TABLE IF NOT EXISTS locatarios (
+CREATE TABLE IF NOT EXISTS core.locatarios (
   locatario_id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome                       TEXT NOT NULL, -- Nome comercial exibido no sistema
   slug                       TEXT NOT NULL, -- Identidade externa estável (subdomínio / URL pública)
   documento                  TEXT NULL,  -- CNPJ, CPF, etc
   email                      TEXT NOT NULL CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$'),
   fuso_horario               TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
-  status                     status_locatario NOT NULL DEFAULT 'ATIVO', -- Controla acesso do tenant, NÃO é soft delete
+  status                     core.status_locatario NOT NULL DEFAULT 'ATIVO', -- Controla acesso do tenant, NÃO é soft delete
   excluido_em                TIMESTAMPTZ NULL, -- Exclusão lógica; registros nunca são removidos fisicamente
   motivo_exclusao            TEXT NULL, -- Motivo administrativo para exclusão, se aplicável
   suspenso_em                TIMESTAMPTZ NULL, -- Suspensão; bloqueia autenticação/uso, mas preserva tudo
@@ -50,14 +50,16 @@ CREATE TABLE IF NOT EXISTS locatarios (
 -- END;
 -- $$;
 
-CREATE INDEX IF NOT EXISTS idx_locatarios_status
-ON locatarios(status);
+CREATE INDEX IF NOT EXISTS idx_locatarios_status_ativos
+ON core.locatarios (status)
+WHERE excluido_em IS NULL;
 
-CREATE INDEX IF NOT EXISTS idx_locatarios_excluido_em
-ON locatarios (excluido_em);
+CREATE INDEX IF NOT EXISTS idx_locatarios_excluidos
+ON core.locatarios (excluido_em)
+WHERE excluido_em IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS ux_locatarios_slug
-ON locatarios (lower(slug));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_locatarios_slug_ci
+ON core.locatarios (lower(slug));
 
 
 
@@ -67,7 +69,7 @@ ON locatarios (lower(slug));
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_locatarios_slug_mascara') THEN
-    ALTER TABLE locatarios
+    ALTER TABLE core.locatarios
       ADD CONSTRAINT ck_locatarios_slug_mascara
       CHECK (
         length(slug) BETWEEN 3 AND 63

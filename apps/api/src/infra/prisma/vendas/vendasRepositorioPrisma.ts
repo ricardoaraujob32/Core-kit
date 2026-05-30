@@ -275,7 +275,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  transacao_id_locatario_id: {
+                  locatario_id_transacao_id: {
                     transacao_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -301,7 +301,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
       try {
         await db.transacoes.update({
           where: {
-            transacao_id_locatario_id: {
+            locatario_id_transacao_id: {
               transacao_id: transacao.transacaoId,
               locatario_id: transacao.locatarioId,
             },
@@ -450,7 +450,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
         await db.itens_transacao.update({
           where: {
-            locatario_id_item_transacao_id_transacao_id: {
+            locatario_id_transacao_id_item_transacao_id: {
               locatario_id: item.locatarioId,
               item_transacao_id: item.itemTransacaoId,
               transacao_id: item.transacaoId,
@@ -602,7 +602,7 @@ export function createMovimentacaoEstoquePortaPrisma(db: PrismaDb): Movimentacao
       try {
         const delta = movimento.tipo === "SAIDA" ? -Math.abs(movimento.quantidade) : Math.abs(movimento.quantidade);
 
-        await db.movimentos_estoque.create({
+        await db.movimentacoes_estoque.create({
           data: {
             locatario_id: movimento.locatarioId,
             estoque_id: movimento.estoqueId,

@@ -1,5 +1,5 @@
 -- PRODUTOS
-CREATE TABLE IF NOT EXISTS produtos (
+CREATE TABLE IF NOT EXISTS core.produtos (
   produto_id UUID NOT NULL DEFAULT gen_random_uuid(),
   locatario_id UUID NOT NULL,
   sku TEXT NULL,

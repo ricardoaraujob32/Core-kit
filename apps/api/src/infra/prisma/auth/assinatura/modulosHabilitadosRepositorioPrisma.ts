@@ -79,61 +79,37 @@ export function createModulosHabilitadosRepositorio(db: PrismaDb): ModulosHabili
      */
     async listarPorLocatario(locatarioId: LocatarioId) {
       try {
-        const assinaturas = await db.assinaturas.findMany({
-          where: {
-            locatario_id: locatarioId,
-            status: "ATIVA",
-            excluido_em: null,
-            modulos_assinatura: {
-              some: {
-                habilitado: true,
-                modulos: {
-                  ativo: true,
-                },
-              },
-            },
-          },
-          select: {
-            assinatura_id: true,
-            modulos_assinatura: {
-              where: {
-                habilitado: true,
-                modulos: {
-                  ativo: true,
-                },
-              },
-              select: {
-                origem: true,
-                modulos: {
-                  select: {
-                    codigo: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: {
-            assinatura_id: "asc",
-          },
-        });
+        const vinculos = await db.$queryRaw<{
+          codigo: string;
+          origem: string;
+        }[]>`
+          SELECT
+            m.codigo,
+            ml.origem::text AS origem
+          FROM core.modulos_locatario ml
+          JOIN core.modulos m
+            ON m.modulo_id = ml.modulo_id
+          WHERE ml.locatario_id = ${locatarioId}::uuid
+            AND ml.habilitado = true
+            AND m.ativo = true
+          ORDER BY m.codigo ASC
+        `;
 
         const porCodigo = new Map<string, ModuloHabilitado>();
 
-        for (const assinatura of assinaturas) {
-          for (const vinculo of assinatura.modulos_assinatura) {
-            const codigo = vinculo.modulos.codigo.trim().toUpperCase();
-            const origem = normalizarOrigemModulo(vinculo.origem);
+        for (const vinculo of vinculos) {
+          const codigo = vinculo.codigo.trim().toUpperCase();
+          const origem = normalizarOrigemModulo(vinculo.origem);
 
-            const atual = porCodigo.get(codigo);
-            if (
-              !atual ||
-              prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)
-            ) {
-              porCodigo.set(codigo, {
-                codigo,
-                origem,
-              });
-            }
+          const atual = porCodigo.get(codigo);
+          if (
+            !atual ||
+            prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)
+          ) {
+            porCodigo.set(codigo, {
+              codigo,
+              origem,
+            });
           }
         }
 

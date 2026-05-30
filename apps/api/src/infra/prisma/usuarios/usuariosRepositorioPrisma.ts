@@ -38,11 +38,12 @@ const usuarioSelect = {
  * @param status Status persistido no banco.
  * @returns Status adaptado para o contrato do domínio.
  */
-function mapStatusUsuario(status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO"): Usuario["status"] {
+function mapStatusUsuario(status: status_usuario): Usuario["status"] {
   switch (status) {
     case "ATIVO":
       return "ATIVO";
     case "INATIVO":
+    case "BLOQUEADO":
       return "INATIVO";
     case "SUSPENSO":
       return "SUSPENSO";
@@ -202,24 +203,53 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      * @param params Escopo do locatário e e-mail normalizado.
      * @returns `Ok(usuario | null)` quando a consulta é concluída.
      */
-    async buscarPorEmailNoLocatario(params): Promise<Result<Usuario | null, ErroApp>> {
+    async buscarPorEmailNoLocatario(params: { locatarioId: LocatarioId | null; emailNormalizado: string; }): Promise<Result<Usuario | null, ErroApp>> {
       try {
         const emailNormalizado = params.emailNormalizado.toLowerCase();
 
-        const row = await db.usuarios.findFirst({
-          where: {
-            locatario_id: params.locatarioId,
-            email: emailNormalizado,
-            excluido_em: null,
-          },
-          select: usuarioSelect,
-        });
+        const row = params.locatarioId === null
+          ? await db.usuarios_plataforma.findFirst({
+              where: {
+                email: emailNormalizado,
+                excluido_em: null,
+              },
+              select: {
+                usuario_id: true,
+                email: true,
+                nome: true,
+                senha_hash: true,
+                status: true,
+                ultimo_login_em: true,
+                criado_em: true,
+                atualizado_em: true,
+                excluido_em: true,
+              },
+            })
+          : await db.usuarios.findFirst({
+              where: {
+                locatario_id: params.locatarioId,
+                email: emailNormalizado,
+                excluido_em: null,
+              },
+              select: usuarioSelect,
+            });
 
         if (!row) {
           return wrapOk(null);
         }
 
-        return wrapOk(mapUsuario(row));
+        return wrapOk(mapUsuario({
+          usuario_id: row.usuario_id,
+          locatario_id: params.locatarioId,
+          email: row.email,
+          nome: row.nome,
+          senha_hash: row.senha_hash,
+          status: row.status,
+          ultimo_login_em: row.ultimo_login_em,
+          criado_em: row.criado_em,
+          atualizado_em: row.atualizado_em,
+          excluido_em: row.excluido_em,
+        }));
       } catch (causa) {
         console.error("ERRO REAL:", causa);
 
@@ -245,7 +275,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      * @param params Escopo do locatário e paginação opcional.
      * @returns `Ok(usuarios)` quando a consulta é concluída.
      */
-    async listarPorLocatario(params): Promise<Result<Usuario[], ErroApp>> {
+    async listarPorLocatario(params: { locatarioId: LocatarioId; limite?: number; cursor?: string; }): Promise<Result<Usuario[], ErroApp>> {
       try {
         const rows = await db.usuarios.findMany({
           where: {
@@ -258,7 +288,10 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  usuario_id: params.cursor,
+                  locatario_id_usuario_id: {
+                    locatario_id: params.locatarioId,
+                    usuario_id: params.cursor,
+                  },
                 },
                 skip: 1,
               }
@@ -291,6 +324,17 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      */
     async atualizar(usuario): Promise<Result<Usuario, ErroApp>> {
       try {
+        if (usuario.locatarioId === null) {
+          return mapearErroInfra(new Error("Usuário de plataforma não é suportado por este repositório"), {
+            entidade: "usuarios",
+            operacao: "infra.usuarios.atualizar",
+            detalhes: {
+              usuarioId: usuario.usuarioId,
+              locatarioId: usuario.locatarioId,
+            },
+          });
+        }
+
         await db.usuarios.updateMany({
           where: {
             usuario_id: usuario.usuarioId,

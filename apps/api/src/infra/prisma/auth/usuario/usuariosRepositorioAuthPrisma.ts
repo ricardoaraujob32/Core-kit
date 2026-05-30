@@ -2,6 +2,7 @@
 
 import { wrapOk } from "@core-kit/core";
 import type { LocatarioId, Result, ErroApp, UsuarioId, UsuarioAuth, UsuariosRepositorioAuth } from "@core-kit/core";
+import type { status_usuario } from "@prisma/client";
 import { erroInfraAuth } from "../errosInfraAuth";
 import { PrismaDb } from "../../tipos";
 import { mapearErroInfra } from "../../erros";
@@ -13,7 +14,7 @@ import { mapearErroInfra } from "../../erros";
  * @returns Status adaptado para o contrato de autenticação.
  */
 function mapStatusUsuarioAuth(
-  status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO",
+  status: status_usuario,
 ): UsuarioAuth["status"] {
   switch (status) {
     case "ATIVO":
@@ -21,8 +22,15 @@ function mapStatusUsuarioAuth(
     case "INATIVO":
       return "INATIVO";
     case "SUSPENSO":
+      return "BLOQUEADO";
+    case "BLOQUEADO":
+      return "BLOQUEADO";
     case "ENCERRADO":
       return "BLOQUEADO";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
   }
 }
 
@@ -132,15 +140,13 @@ export function createUsuariosRepositorioAuth(db: PrismaDb): UsuariosRepositorio
 
     async buscarUsuarioPlataformaPorEmail(params) {
       try {
-        const row = await db.usuarios.findFirst({
+        const row = await db.usuarios_plataforma.findFirst({
           where: {
             email: params.email,
-            locatario_id: null,
             excluido_em: null,
           },
           select: {
             usuario_id: true,
-            locatario_id: true,
             email: true,
             senha_hash: true,
             status: true,
@@ -151,7 +157,7 @@ export function createUsuariosRepositorioAuth(db: PrismaDb): UsuariosRepositorio
           row
             ? {
                 usuarioId: row.usuario_id,
-                locatarioId: row.locatario_id,
+                locatarioId: null,
                 email: row.email,
                 senhaHash: row.senha_hash,
                 status: mapStatusUsuarioAuth(row.status),

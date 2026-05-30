@@ -12,13 +12,13 @@
 -- - NÃO armazenar senhas em texto puro
 -- - Hash/salt devem ser aplicados na camada de aplicação
 -- =========================================================
-CREATE TABLE IF NOT EXISTS usuarios (
+CREATE TABLE IF NOT EXISTS core.usuarios (
   usuario_id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   locatario_id               UUID NULL, -- NULL indica usuário de nível plataforma (ex.: superadmin)
   email                      TEXT NOT NULL,
   nome                       TEXT NOT NULL,
   senha_hash                 TEXT NOT NULL,
-  status                     status_usuario NOT NULL DEFAULT 'ATIVO',
+  status                     core.status_usuario NOT NULL DEFAULT 'ATIVO',
   ultimo_login_em            TIMESTAMPTZ NULL, -- atualizado por trigger
   criado_em                  TIMESTAMPTZ NOT NULL DEFAULT now(),
   criado_por_usuario_id      UUID NULL,

@@ -12,7 +12,7 @@
 -- - Associado a locatários via assinaturas
 -- - Controla módulos e limites
 
-CREATE TABLE IF NOT EXISTS planos (
+CREATE TABLE IF NOT EXISTS core.planos (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   codigo        TEXT NOT NULL UNIQUE CHECK (codigo ~ '^[A-Z0-9_]+$'),
   nome          TEXT NOT NULL, -- Nome comercial do plano

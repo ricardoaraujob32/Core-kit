@@ -16,12 +16,12 @@
 -- CONSISTÊNCIA:
 -- - Nunca apagar registros fisicamente
 -- - Datas determinam validade
-CREATE TABLE assinaturas (
+CREATE TABLE core.assinaturas (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   locatario_id        UUID NOT NULL REFERENCES locatarios(id) ON DELETE CASCADE,
   plano_id            UUID NOT NULL REFERENCES planos(id),
 
-  status              TEXT NOT NULL DEFAULT 'ATIVA' CHECK (status IN ('ATIVA','SUSPENSA','CANCELADA','EXPIRADA')),
+  status              core.status_assinatura NOT NULL DEFAULT 'ATIVA',
 
   inicio_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
   fim_em              TIMESTAMPTZ NULL,              -- se houver término programado
@@ -29,7 +29,6 @@ CREATE TABLE assinaturas (
   motivo              TEXT NULL,                     -- por que mudou/cancelou
 
  -- Cobrança (mínimo)
-  moeda                 TEXT NOT NULL DEFAULT 'BRL' CHECK (moeda IN ('BRL','USD','EUR')),
   valor_centavos        INTEGER NOT NULL DEFAULT 0 CHECK (valor_centavos >= 0),
   ciclo                 TEXT NOT NULL DEFAULT 'MENSAL' CHECK (ciclo IN ('MENSAL','ANUAL')),
 
