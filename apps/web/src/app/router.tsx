@@ -10,7 +10,7 @@ import AuthLayout from "../layouts/authLayout";
 import SuperAdminLayout from "../layouts/superAdminLayout";
 import TenantLayout from "../layouts/tenantLayout";
 
-import LoginPage from "../features/auth/pages/loginPage";
+import LoginPage from "../features/auth/pages/LoginPage";
 import SuperAdminDashboard from "../features/superadmin/pages/dashboard";
 import TenantAdminDashboard from "../features/tenant-admin/pages/dashboard";
 
@@ -18,7 +18,6 @@ import AccessDenied from "../pages/accessDenied";
 import NotFound from "../pages/notFound";
 import { EditarUsuarioPage, MinhaSenhaPage, NovoUsuarioPage, UsuarioDetailsPage, UsuariosListPage } from "../features/tenant-admin/usuarios";
 import { ConfiguracoesLocatarioPage, MeuLocatarioPage } from "../features/tenant-admin/locatario";
-import { USUARIOS_MODULE, USUARIOS_PERMISSIONS } from "../core/api/permissions";
 import { AssinaturaModulosPage } from "../features/tenant-admin/assinatura";
 import { ClienteDetailsPage, ClientesListPage, EditarClientePage, NovoClientePage } from "../features/tenant-admin/clientes";
 import { EditarFornecedorPage, FornecedorDetailsPage, FornecedoresListPage, NovoFornecedorPage } from "../features/tenant-admin/fornecedores";
@@ -166,14 +165,6 @@ export const router = createBrowserRouter([
           {
             path: "produtos/:produtoId/editar",
             element: <EditarProdutoPage />,
-          },
-          {
-            path: "transacoes",
-            element: <TransacoesListPage />,
-          },
-          {
-            path: "transacoes/:transacaoId",
-            element: <TransacaoDetailsPage />,
           },
           {
             path: "vendas/nova",

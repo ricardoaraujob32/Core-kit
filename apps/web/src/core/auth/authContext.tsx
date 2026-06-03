@@ -10,10 +10,15 @@ import type { AuthContextValue, LoginInput, LoginPlataformaInput, SessionUser } 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function normalizeUser(user: SessionUser): SessionUser {
+  const perfil =
+    user.perfil ??
+    (user.locatarioId ? "TENANT" : "PLATAFORMA");
+
   return {
+    ...user,
     usuarioId: user.usuarioId,
     locatarioId: user.locatarioId ?? null,
-    perfil: user.perfil,
+    perfil,
   };
 }
 
@@ -108,10 +113,25 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       try {
         const response = await loginRequest(input);
 
+        // O login tenant retorna tokens. O usuário da sessão vem de /auth/me.
+        // Por isso, persistimos temporariamente o access token antes de chamar meRequest().
+        authStorage.setAccessToken(response.accessToken);
+        setAccessToken(response.accessToken);
+
+        if (response.refreshToken) {
+          authStorage.setRefreshToken(response.refreshToken);
+        } else {
+          authStorage.removeRefreshToken();
+        }
+
+        const usuario =
+          (response as { usuario?: SessionUser }).usuario ??
+          (await meRequest()).usuario;
+
         return applySession({
           accessToken: response.accessToken,
           refreshToken: response.refreshToken,
-          usuario: response.usuario,
+          usuario,
         });
       } catch (error) {
         clearSession();

@@ -10,12 +10,27 @@ type TenantRouteProps = {
   forbiddenPath?: string;
 };
 
+function isTenantLike(user: unknown): boolean {
+  if (!user || typeof user !== "object") return false;
+
+  const perfil = (user as { perfil?: string }).perfil;
+  const locatarioId = (user as { locatarioId?: string | null }).locatarioId;
+
+  return perfil === "TENANT" || Boolean(locatarioId);
+}
+
 export function TenantRoute({
   loginPath = "/login",
   forbiddenPath = "/acesso-negado",
 }: TenantRouteProps): JSX.Element {
   const location = useLocation();
   const { isLoading, isAuthenticated, user } = useAuth();
+
+  console.log("TENANT ROUTE DEBUG", {
+    isLoading,
+    isAuthenticated,
+    user,
+  });
 
   if (isLoading) {
     return <div>Carregando sessão...</div>;
@@ -31,7 +46,8 @@ export function TenantRoute({
     );
   }
 
-  if (!isTenant(user) || !user.locatarioId) {
+  if (!isTenantLike(user)) {
+    console.warn("TenantRoute bloqueou usuário:", user);
     return <Navigate to={forbiddenPath} replace />;
   }
 

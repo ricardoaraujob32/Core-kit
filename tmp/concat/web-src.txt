@@ -41,7 +41,7 @@ import AuthLayout from "../layouts/authLayout";
 import SuperAdminLayout from "../layouts/superAdminLayout";
 import TenantLayout from "../layouts/tenantLayout";
 
-import LoginPage from "../features/auth/pages/loginPage";
+import LoginPage from "../features/auth/pages/LoginPage";
 import SuperAdminDashboard from "../features/superadmin/pages/dashboard";
 import TenantAdminDashboard from "../features/tenant-admin/pages/dashboard";
 
@@ -49,7 +49,6 @@ import AccessDenied from "../pages/accessDenied";
 import NotFound from "../pages/notFound";
 import { EditarUsuarioPage, MinhaSenhaPage, NovoUsuarioPage, UsuarioDetailsPage, UsuariosListPage } from "../features/tenant-admin/usuarios";
 import { ConfiguracoesLocatarioPage, MeuLocatarioPage } from "../features/tenant-admin/locatario";
-import { USUARIOS_MODULE, USUARIOS_PERMISSIONS } from "../core/api/permissions";
 import { AssinaturaModulosPage } from "../features/tenant-admin/assinatura";
 import { ClienteDetailsPage, ClientesListPage, EditarClientePage, NovoClientePage } from "../features/tenant-admin/clientes";
 import { EditarFornecedorPage, FornecedorDetailsPage, FornecedoresListPage, NovoFornecedorPage } from "../features/tenant-admin/fornecedores";
@@ -344,7 +343,10 @@ function buildHeaders(config: HttpRequestConfig, token: string | null): Record<s
     headers["Content-Type"] = "application/json";
   }
 
-  if (token && headers.Authorization !== "") {
+  // Só insere o header Authorization quando há token e não houver
+  // um header `Authorization` explícito (ou quando ele for uma string vazia
+  // usada para desabilitar a injeção automática, por exemplo em refresh/logout).
+  if (token && (headers.Authorization === undefined || headers.Authorization === "")) {
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -791,24 +793,20 @@ describe("AuthContext", () => {
 
 // apps/web/src/core/auth/authContext.tsx
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
-import { HttpError, registerAccessTokenGetter, registerRefreshSessionHandler, registerUnauthorizedHandler } from "../api/httpClient";
+import { createContext, useCallback, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
+import { registerAccessTokenGetter, registerRefreshSessionHandler, registerUnauthorizedHandler } from "../api/httpClient";
 import { authStorage } from "./authStorage";
-import { login as loginRequest, logout as logoutRequest, me as meRequest, refresh as refreshRequest } from "../../features/auth/api/authApi";
-import type { AuthContextValue, LoginInput, SessionUser } from "./tipos";
+import { login as loginRequest, loginPlataforma as loginPlataformaRequest, logout as logoutRequest, me as meRequest, 
+  refresh as refreshRequest } from "../../features/auth/api/authApi";
+import type { AuthContextValue, LoginInput, LoginPlataformaInput, SessionUser } from "./tipos";
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function normalizeUser(user: SessionUser): SessionUser {
   return {
-    ...user,
+    usuarioId: user.usuarioId,
     locatarioId: user.locatarioId ?? null,
-    papeis: Array.isArray(user.papeis) ? user.papeis : [],
-    permissoes: Array.isArray(user.permissoes) ? user.permissoes : [],
-    modulosHabilitados: Array.isArray(user.modulosHabilitados)
-      ? user.modulosHabilitados
-      : [],
-    isSuperAdmin: user.isSuperAdmin === true,
+    perfil: user.perfil,
   };
 }
 
@@ -826,21 +824,51 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     setStatus("unauthenticated");
   }, []);
 
+  const applySession = useCallback((params: {
+    accessToken: string;
+    refreshToken?: string;
+    usuario: SessionUser;
+  }): SessionUser => {
+    const normalizedUser = normalizeUser(params.usuario);
+
+    authStorage.setAccessToken(params.accessToken);
+    authStorage.setUser(normalizedUser);
+    authStorage.setLocatarioId(normalizedUser.locatarioId);
+
+    if (params.refreshToken) {
+      authStorage.setRefreshToken(params.refreshToken);
+    } else {
+      authStorage.removeRefreshToken();
+    }
+
+    setAccessToken(params.accessToken);
+    setUser(normalizedUser);
+    setStatus("authenticated");
+
+    return normalizedUser;
+  }, []);
+
   const carregarUsuarioAutenticado = useCallback(async (): Promise<SessionUser> => {
     const meResponse = await meRequest();
     const normalizedUser = normalizeUser(meResponse.usuario);
 
     authStorage.setUser(normalizedUser);
-    authStorage.setLocatarioId(normalizedUser.locatarioId ?? null);
+    authStorage.setLocatarioId(normalizedUser.locatarioId);
     setUser(normalizedUser);
 
     return normalizedUser;
   }, []);
 
   const refreshTokens = useCallback(async (): Promise<boolean> => {
-    const refreshToken = authStorage.getRefreshToken();
+    const currentUser = authStorage.getUser();
 
-    const locatarioId = authStorage.getLocatarioId() ?? authStorage.getUser()?.locatarioId ?? null;
+    if (currentUser?.perfil === "PLATAFORMA") {
+      return false;
+    }
+
+    const refreshToken = authStorage.getRefreshToken();
+    const locatarioId =
+      authStorage.getLocatarioId() ?? currentUser?.locatarioId ?? null;
 
     if (!refreshToken) {
       return false;
@@ -853,152 +881,143 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       });
 
       authStorage.setAccessToken(response.accessToken);
+      setAccessToken(response.accessToken);
 
       if (response.refreshToken) {
         authStorage.setRefreshToken(response.refreshToken);
       }
 
-      if (locatarioId) {
-        authStorage.setLocatarioId(locatarioId);
-      }
-
-      setAccessToken(response.accessToken);
       return true;
     } catch {
+      clearSession();
       return false;
     }
-  }, []);
+  }, [clearSession]);
 
-  const logout = useCallback(async () => {
+  const login = useCallback(
+    async (input: LoginInput): Promise<SessionUser> => {
+      setStatus("loading");
+
+      try {
+        const response = await loginRequest(input);
+
+        return applySession({
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+          usuario: response.usuario,
+        });
+      } catch (error) {
+        clearSession();
+        throw error;
+      }
+    },
+    [applySession, clearSession],
+  );
+
+  const loginPlataforma = useCallback(
+    async (input: LoginPlataformaInput): Promise<SessionUser> => {
+      setStatus("loading");
+
+      try {
+        const response = await loginPlataformaRequest(input);
+
+        return applySession({
+          accessToken: response.accessToken,
+          usuario: response.usuario,
+        });
+      } catch (error) {
+        clearSession();
+        throw error;
+      }
+    },
+    [applySession, clearSession],
+  );
+
+  const logout = useCallback(async (): Promise<void> => {
+    const refreshToken = authStorage.getRefreshToken();
+    const locatarioId = authStorage.getLocatarioId();
+
     try {
-      const refreshToken = authStorage.getRefreshToken();
-      const locatarioId = user?.locatarioId ?? authStorage.getLocatarioId() ?? authStorage.getUser()?.locatarioId ?? null;
-
-      if (refreshToken) {
+      if (refreshToken && user?.perfil === "TENANT") {
         await logoutRequest({
-          locatarioId,
           refreshToken,
+          locatarioId,
         });
       }
-    } catch {
-      // noop
     } finally {
       clearSession();
     }
   }, [clearSession, user]);
 
-  const refreshSession = useCallback(async () => {
-    const storedAccessToken = authStorage.getAccessToken();
-
-    if (!storedAccessToken) {
-      clearSession();
-      return;
-    }
-
-    setStatus("loading");
-
-    try {
-      await carregarUsuarioAutenticado();
-      setAccessToken(authStorage.getAccessToken());
-      setStatus("authenticated");
-    } catch (error: unknown) {
-      if (error instanceof HttpError && error.status === 401) {
-        const refreshed = await refreshTokens();
-
-        if (!refreshed) {
-          clearSession();
-          return;
-        }
-
-        try {
-          await carregarUsuarioAutenticado();
-          setAccessToken(authStorage.getAccessToken());
-          setStatus("authenticated");
-          return;
-        } catch {
-          clearSession();
-          return;
-        }
-      }
-
-      clearSession();
-    }
-  }, [carregarUsuarioAutenticado, clearSession, refreshTokens]);
-
-  const login = useCallback(async (input: LoginInput): Promise<SessionUser> => {
-    setStatus("loading");
-
-    try {
-      const response = await loginRequest(input);
-
-      authStorage.setAccessToken(response.accessToken);
-
-      if (response.refreshToken) {
-        authStorage.setRefreshToken(response.refreshToken);
-      } else {
-        authStorage.removeRefreshToken();
-      }
-
-      setAccessToken(response.accessToken);
-
-      const authenticatedUser = await carregarUsuarioAutenticado();
-      setStatus("authenticated");
-
-      return authenticatedUser;
-    } catch (error) {
-      clearSession();
-      throw error;
-    }
-  }, [carregarUsuarioAutenticado, clearSession]);
-
   useEffect(() => {
     registerAccessTokenGetter(() => authStorage.getAccessToken());
-    registerRefreshSessionHandler(() => refreshTokens());
-    registerUnauthorizedHandler(() => {
-      void logout();
-    });
+    registerRefreshSessionHandler(refreshTokens);
+    registerUnauthorizedHandler(clearSession);
 
     return () => {
+      registerAccessTokenGetter(() => null);
       registerRefreshSessionHandler(null);
       registerUnauthorizedHandler(null);
     };
-  }, [logout, refreshTokens]);
+  }, [clearSession, refreshTokens]);
 
   useEffect(() => {
-    void refreshSession();
-  }, [refreshSession]);
+    let ativo = true;
+
+    async function bootstrap() {
+      const token = authStorage.getAccessToken();
+
+      if (!token) {
+        if (ativo) {
+          setStatus("unauthenticated");
+        }
+        return;
+      }
+
+      setStatus("loading");
+
+      try {
+        await carregarUsuarioAutenticado();
+
+        if (ativo) {
+          setStatus("authenticated");
+        }
+      } catch {
+        if (ativo) {
+          clearSession();
+        }
+      }
+    }
+
+    void bootstrap();
+
+    return () => {
+      ativo = false;
+    };
+  }, [carregarUsuarioAutenticado, clearSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       status,
-      isLoading: status === "idle" || status === "loading",
-      isAuthenticated: status === "authenticated",
       user,
       accessToken,
+      isLoading: status === "idle" || status === "loading",
+      isAuthenticated: status === "authenticated" && Boolean(user),
       login,
+      loginPlataforma,
       logout,
-      refreshSession,
+      refreshTokens,
     }),
-    [status, user, accessToken, login, logout, refreshSession],
+    [status, user, accessToken, login, loginPlataforma, logout, refreshTokens],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de AuthProvider");
-  }
-
-  return context;
-}
-
 
 ===== apps/web/src/core/auth/authStorage.ts =====
 
-// web/src/core/auth/authStorage.ts
+// apps/web/src/core/auth/authStorage.ts
 
 import type { SessionUser } from "./tipos";
 
@@ -1061,28 +1080,22 @@ export const authStorage = {
   },
 
   setLocatarioId(locatarioId: string | null): void {
-    if (!locatarioId) {
+    if (locatarioId) {
+      safeSet(LOCATARIO_ID_KEY, locatarioId);
+    } else {
       safeRemove(LOCATARIO_ID_KEY);
-      return;
     }
-
-    safeSet(LOCATARIO_ID_KEY, locatarioId);
-  },
-
-  removeLocatarioId(): void {
-    safeRemove(LOCATARIO_ID_KEY);
   },
 
   getUser(): SessionUser | null {
     const raw = safeGet(USER_KEY);
 
-    if (!raw) {
-      return null;
-    }
+    if (!raw) return null;
 
     try {
       return JSON.parse(raw) as SessionUser;
     } catch {
+      safeRemove(USER_KEY);
       return null;
     }
   },
@@ -1098,6 +1111,7 @@ export const authStorage = {
   clear(): void {
     safeRemove(ACCESS_TOKEN_KEY);
     safeRemove(REFRESH_TOKEN_KEY);
+    safeRemove(LOCATARIO_ID_KEY);
     safeRemove(USER_KEY);
   },
 };
@@ -1106,23 +1120,17 @@ export const authStorage = {
 
 // apps/web/src/core/auth/tipos.ts
 
-export type Permissao = string;
-export type Papel = string;
-export type ModuloHabilitado = string;
-
-export const AUTHZ_FLAGS = {
-  enableSuperadminFrontend: false,
-} as const;
+export type PerfilSessao = "TENANT" | "PLATAFORMA";
 
 export type SessionUser = {
   usuarioId: string;
   locatarioId: string | null;
-  papeis: Papel[];
-  permissoes: Permissao[];
-  modulosHabilitados: ModuloHabilitado[];
-  nome?: string;
+  perfil: PerfilSessao;
   email?: string;
-  isSuperAdmin?: boolean;
+  nome?: string;
+  papeis?: string[];
+  permissoes?: string[];
+  modulosHabilitados?: string[];
 };
 
 export type LoginInput = {
@@ -1131,12 +1139,22 @@ export type LoginInput = {
   locatarioSlug: string;
 };
 
-export type LoginResponse = {
-  accessToken: string;
-  refreshToken?: string;
-  accessExpiraEm?: string;
-  refreshExpiraEm?: string;
+export type LoginPlataformaInput = {
+  email: string;
+  senha: string;
 };
+
+export type SessaoResponse = {
+  accessToken: string;
+  accessExpiraEm: string;
+  refreshToken?: string;
+  refreshExpiraEm?: string;
+  usuario: SessionUser;
+};
+
+export type LoginResponse = SessaoResponse;
+
+export type LoginPlataformaResponse = SessaoResponse;
 
 export type RefreshInput = {
   refreshToken: string;
@@ -1145,8 +1163,8 @@ export type RefreshInput = {
 
 export type RefreshResponse = {
   accessToken: string;
-  refreshToken?: string;
   accessExpiraEm?: string;
+  refreshToken?: string;
   refreshExpiraEm?: string;
 };
 
@@ -1167,27 +1185,26 @@ export type AuthStatus =
 
 export type AuthContextValue = {
   status: AuthStatus;
-  isLoading: boolean;
-  isAuthenticated: boolean;
   user: SessionUser | null;
   accessToken: string | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
   login: (input: LoginInput) => Promise<SessionUser>;
+  loginPlataforma: (input: LoginPlataformaInput) => Promise<SessionUser>;
   logout: () => Promise<void>;
-  refreshSession: () => Promise<void>;
+  refreshTokens: () => Promise<boolean>;
 };
 
+export function isTenant(user: SessionUser | null | undefined): boolean {
+  return user?.perfil === "TENANT";
+}
+
+export function isPlataforma(user: SessionUser | null | undefined): boolean {
+  return user?.perfil === "PLATAFORMA";
+}
+
 export function isSuperAdmin(user: SessionUser | null | undefined): boolean {
-  if (!AUTHZ_FLAGS.enableSuperadminFrontend) {
-    return false;
-  }
-
-  if (!user) return false;
-
-  if (user.isSuperAdmin === true) {
-    return true;
-  }
-
-  return Array.isArray(user.papeis) && user.papeis.includes("SUPERADMIN");
+  return isPlataforma(user);
 }
 
 ===== apps/web/src/core/auth/useAuthorization.ts =====
@@ -1231,9 +1248,10 @@ export function useAuthorization() {
 // apps/web/src/core/auth/useAuth.ts
 
 import { useContext } from "react";
-import { AuthContext } from "./AuthContext";
+import { AuthContext } from "./authContext";
+import type { AuthContextValue } from "./tipos";
 
-export function useAuth() {
+export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {
     throw new Error("useAuth deve ser usado dentro de AuthProvider.");
@@ -1547,15 +1565,18 @@ export default ProtectedRoute;
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import { isPlataforma } from "../auth/tipos";
 import { JSX } from "react";
 
 type SuperAdminRouteProps = {
   loginPath?: string;
   forbiddenPath?: string;
-  fallbackPath?: string;
 };
 
-export function SuperAdminRoute({ loginPath = "/login", fallbackPath = "/app" }: SuperAdminRouteProps): JSX.Element {
+export function SuperAdminRoute({
+  loginPath = "/login",
+  forbiddenPath = "/app",
+}: SuperAdminRouteProps): JSX.Element {
   const location = useLocation();
   const { isLoading, isAuthenticated, user } = useAuth();
 
@@ -1573,7 +1594,11 @@ export function SuperAdminRoute({ loginPath = "/login", fallbackPath = "/app" }:
     );
   }
 
-  return <Navigate to={fallbackPath} replace />;
+  if (!isPlataforma(user)) {
+    return <Navigate to={forbiddenPath} replace />;
+  }
+
+  return <Outlet />;
 }
 
 export default SuperAdminRoute;
@@ -1583,36 +1608,40 @@ export default SuperAdminRoute;
 // apps/web/src/core/routing/tenantRoute.tsx
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuthorization } from "../auth/useAuthorization";
+import { useAuth } from "../auth/useAuth";
+import { isTenant } from "../auth/tipos";
 import { JSX } from "react";
 
 type TenantRouteProps = {
-  requiredPermissions?: string[];
-  requiredModule?: string;
-  requireAllPermissions?: boolean;
   loginPath?: string;
   forbiddenPath?: string;
 };
 
-function hasRequiredPermissions(currentPermissions: string[], requiredPermissions: string[], requireAllPermissions: boolean): boolean {
-  if (requiredPermissions.length === 0) {
-    return true;
-  }
+function isTenantLike(user: unknown): boolean {
+  if (!user || typeof user !== "object") return false;
 
-  if (requireAllPermissions) {
-    return requiredPermissions.every((permission) =>
-      currentPermissions.includes(permission),
-    );
-  }
+  const perfil = (user as { perfil?: string }).perfil;
+  const locatarioId = (user as { locatarioId?: string | null }).locatarioId;
 
-  return requiredPermissions.some((permission) =>
-    currentPermissions.includes(permission),
-  );
+  return perfil === "TENANT" || Boolean(locatarioId);
 }
 
-export function TenantRoute({ requiredPermissions = [], requiredModule, requireAllPermissions = true, loginPath = "/login", forbiddenPath = "/acesso-negado"}: TenantRouteProps): JSX.Element {
+export function TenantRoute({
+  loginPath = "/login",
+  forbiddenPath = "/acesso-negado",
+}: TenantRouteProps): JSX.Element {
   const location = useLocation();
-  const { isAuthenticated, user, permissions, hasModule } = useAuthorization();
+  const { isLoading, isAuthenticated, user } = useAuth();
+
+  console.log("TENANT ROUTE DEBUG", {
+    isLoading,
+    isAuthenticated,
+    user,
+  });
+
+  if (isLoading) {
+    return <div>Carregando sessão...</div>;
+  }
 
   if (!isAuthenticated || !user) {
     return (
@@ -1624,21 +1653,8 @@ export function TenantRoute({ requiredPermissions = [], requiredModule, requireA
     );
   }
 
-  if (!user.locatarioId || user.locatarioId.trim() === "") {
-    return <Navigate to={forbiddenPath} replace />;
-  }
-
-  if (requiredModule && !hasModule(requiredModule)) {
-    return <Navigate to={forbiddenPath} replace />;
-  }
-
-  const authorized = hasRequiredPermissions(
-    permissions,
-    requiredPermissions,
-    requireAllPermissions,
-  );
-
-  if (!authorized) {
+  if (!isTenantLike(user)) {
+    console.warn("TenantRoute bloqueou usuário:", user);
     return <Navigate to={forbiddenPath} replace />;
   }
 
@@ -1646,7 +1662,6 @@ export function TenantRoute({ requiredPermissions = [], requiredModule, requireA
 }
 
 export default TenantRoute;
-
 
 ===== apps/web/src/core/tenant/tenantApi.ts =====
 
@@ -1880,11 +1895,21 @@ export { useTenant } from "./tenantContext";
 
 // web/src/features/auth/api/authApi.ts
 
-import type { LoginInput, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "../../../core/auth/tipos";
 import { httpClient } from "../../../core/api/httpClient";
+import { LoginInput, LoginPlataformaInput, LoginPlataformaResponse, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "../../../core/auth/tipos";
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
   return httpClient.post<LoginResponse, LoginInput>("/auth/login", input);
+}
+
+export async function loginPlataforma(input: LoginPlataformaInput): Promise<LoginPlataformaResponse> {
+  return httpClient.post<LoginPlataformaResponse, LoginPlataformaInput>(
+    "/auth/plataforma/login",
+    input,
+    {
+      skipAuthRetry: true,
+    },
+  );
 }
 
 export async function me(): Promise<MeResponse> {
@@ -1915,57 +1940,57 @@ export async function logout(input: LogoutInput): Promise<void> {
   });
 }
 
-
 ===== apps/web/src/features/auth/hooks/useLogin.ts =====
 
 
 
-===== apps/web/src/features/auth/pages/loginPage.tsx =====
+===== apps/web/src/features/auth/pages/LoginPage.tsx =====
 
-// frontend/src/features/auth/pages/LoginPage.tsx
+// apps/web/src/features/auth/pages/LoginPage.tsx
 
-import { JSX, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { isSuperAdmin } from "../../../core/auth/tipos";
+import type { JSX, FormEvent } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
+import { isPlataforma } from "../../../core/auth/tipos";
 import { mapError } from "../../../core/errors/mapError";
 
-type LocationState = {
-  from?: {
-    pathname?: string;
-  };
-};
+type LoginMode = "TENANT" | "PLATAFORMA";
 
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { login, isLoading } = useAuth();
+  const { login, loginPlataforma, isLoading } = useAuth();
 
+  const [mode, setMode] = useState<LoginMode>("TENANT");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [locatarioSlug, setLocatarioSlug] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
 
     try {
-      const authenticatedUser = await login({
-        email,
-        senha,
-        locatarioSlug: locatarioSlug.trim(),
-      });
+      const authenticatedUser =
+        mode === "PLATAFORMA"
+          ? await loginPlataforma({ email, senha })
+          : await login({
+              email,
+              senha,
+              locatarioSlug: locatarioSlug.trim(),
+            });
 
-      const state = location.state as LocationState | null;
-      const fallbackPath = isSuperAdmin(authenticatedUser)
+      const targetPath = isPlataforma(authenticatedUser)
         ? "/superadmin"
         : "/app";
 
-      navigate(state?.from?.pathname || fallbackPath, { replace: true });
+      console.log("LOGIN USER", authenticatedUser);
+      console.log("REDIRECT", targetPath);
+
+      navigate(targetPath, { replace: true });
     } catch (error) {
-      const uiError = mapError(error);
-      setErro(uiError.message);
+      setErro(mapError(error).message);
     }
   }
 
@@ -1975,15 +2000,42 @@ export default function LoginPage(): JSX.Element {
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="locatarioSlug">Locatário (opcional)</label>
-          <input
-            id="locatarioSlug"
-            type="text"
-            value={locatarioSlug}
-            onChange={(event) => setLocatarioSlug(event.target.value)}
-            autoComplete="organization"
-          />
+          <label>
+            <input
+              type="radio"
+              name="loginMode"
+              value="TENANT"
+              checked={mode === "TENANT"}
+              onChange={() => setMode("TENANT")}
+            />
+            Locatário
+          </label>
+
+          <label style={{ marginLeft: 12 }}>
+            <input
+              type="radio"
+              name="loginMode"
+              value="PLATAFORMA"
+              checked={mode === "PLATAFORMA"}
+              onChange={() => setMode("PLATAFORMA")}
+            />
+            Plataforma
+          </label>
         </div>
+
+        {mode === "TENANT" ? (
+          <div>
+            <label htmlFor="locatarioSlug">Locatário</label>
+            <input
+              id="locatarioSlug"
+              type="text"
+              value={locatarioSlug}
+              onChange={(event) => setLocatarioSlug(event.target.value)}
+              autoComplete="organization"
+              required
+            />
+          </div>
+        ) : null}
 
         <div>
           <label htmlFor="email">E-mail</label>
@@ -1993,6 +2045,7 @@ export default function LoginPage(): JSX.Element {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
+            required
           />
         </div>
 
@@ -2004,6 +2057,7 @@ export default function LoginPage(): JSX.Element {
             value={senha}
             onChange={(event) => setSenha(event.target.value)}
             autoComplete="current-password"
+            required
           />
         </div>
 
@@ -9466,17 +9520,23 @@ export type CriarVendaResponse = {
 
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../core/auth/useAuth";
+import { isPlataforma } from "../core/auth/tipos";
 import { JSX } from "react";
 
 export default function AuthLayout(): JSX.Element {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, user } = useAuth();
 
   if (isLoading) {
     return <div>Carregando...</div>;
   }
 
-  if (isAuthenticated) {
-    return <Navigate to="/app" replace />;
+  if (isAuthenticated && user) {
+    return (
+      <Navigate
+        to={isPlataforma(user) ? "/superadmin" : "/app"}
+        replace
+      />
+    );
   }
 
   return (
@@ -9487,7 +9547,6 @@ export default function AuthLayout(): JSX.Element {
     </div>
   );
 }
-
 
 ===== apps/web/src/layouts/superAdminLayout.tsx =====
 

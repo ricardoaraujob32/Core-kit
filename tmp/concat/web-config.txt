@@ -8,7 +8,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mini SaaS Admin</title>
-    <script type="module" crossorigin src="/assets/index-COV4CYTY.js"></script>
+    <script type="module" crossorigin src="/assets/index-DIlbWpaU.js"></script>
   </head>
   <body>
     <div id="root"></div>

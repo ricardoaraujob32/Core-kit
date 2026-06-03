@@ -1,23 +1,16 @@
 // apps/web/src/features/auth/pages/LoginPage.tsx
 
-import { JSX, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import type { JSX, FormEvent } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
 import { isPlataforma } from "../../../core/auth/tipos";
 import { mapError } from "../../../core/errors/mapError";
-
-type LocationState = {
-  from?: {
-    pathname?: string;
-  };
-};
 
 type LoginMode = "TENANT" | "PLATAFORMA";
 
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();
-  const location = useLocation();
-
   const { login, loginPlataforma, isLoading } = useAuth();
 
   const [mode, setMode] = useState<LoginMode>("TENANT");
@@ -26,33 +19,34 @@ export default function LoginPage(): JSX.Element {
   const [locatarioSlug, setLocatarioSlug] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
 
     try {
       const authenticatedUser =
         mode === "PLATAFORMA"
-          ? await loginPlataforma({
-              email,
-              senha,
-            })
+          ? await loginPlataforma({ email, senha })
           : await login({
               email,
               senha,
               locatarioSlug: locatarioSlug.trim(),
             });
 
-      const state = location.state as LocationState | null;
-
-      const fallbackPath = isPlataforma(authenticatedUser)
+      const targetPath = isPlataforma(authenticatedUser)
         ? "/superadmin"
         : "/app";
 
-      navigate(state?.from?.pathname || fallbackPath, { replace: true });
+      console.log("LOGIN USER", authenticatedUser);
+      console.log("REDIRECT", targetPath);
+
+      queueMicrotask(() => {
+        navigate(targetPath, { replace: true });
+      });
+
+      navigate(targetPath, { replace: true });
     } catch (error) {
-      const uiError = mapError(error);
-      setErro(uiError.message);
+      setErro(mapError(error).message);
     }
   }
 

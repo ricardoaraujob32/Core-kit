@@ -789,5 +789,146 @@
         "clear": true
       }
     },
+    {
+      "label": "API · Health",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "http://localhost:3333/api/health"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Login Plataforma",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-X", "POST",
+        "http://localhost:3333/api/auth/plataforma/login",
+        "-H", "Content-Type: application/json",
+        "-d",
+        "{\"email\":\"superadmin@email.com.br\",\"senha\":\"123456\"}"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Login Locatário",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-X", "POST",
+        "http://localhost:3333/api/auth/login",
+        "-H", "Content-Type: application/json",
+        "-d",
+        "{\"email\":\"adminloja@email.com.br\",\"senha\":\"123456\"}"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Clientes",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-H",
+        "Authorization: Bearer $TOKEN",
+        "http://localhost:3333/api/clientes"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Produtos",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-H",
+        "Authorization: Bearer $TOKEN",
+        "http://localhost:3333/api/produtos"
+      ]
+    },
+    {
+      "label": "API · Transações",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-H",
+        "Authorization: Bearer $TOKEN",
+        "http://localhost:3333/api/transacoes"
+      ]
+    },
+    {
+      "label": "API · Smoke Test",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "API · Health",
+        "API · Login Plataforma",
+        "API · Login Locatário"
+      ]
+    },
+    {
+      "label": "API · Smoke Test Completo",
+      "type": "shell",
+      "command": "TOKEN=$(curl -s -X POST http://localhost:3333/api/auth/login -H \"Content-Type: application/json\" -d '{\"slug\":\"loja\",\"email\":\"adminloja@email.com.br\",\"senha\":\"123456\"}' | jq -r '.accessToken'); echo; echo \"=== TOKEN ===\"; echo \"${TOKEN:0:50}...\"; echo; echo \"=== HEALTH ===\"; curl -s http://localhost:3333/api/health | jq .; echo; echo \"=== CLIENTES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/clientes | jq .; echo; echo \"=== PRODUTOS ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/produtos | jq .; echo; echo \"=== TRANSACOES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/transacoes | jq .",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Smoke Test Plataforma",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "TOKEN=$(curl -s -X POST http://localhost:3333/api/auth/plataforma/login -H 'Content-Type: application/json' -d '{\"email\":\"superadmin@email.com.br\",\"senha\":\"123456\"}' | jq -r '.accessToken'); echo ''; echo '=== TOKEN PLATAFORMA ==='; echo ${TOKEN:0:50}...; echo ''; echo '=== LOCATARIOS ==='; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/plataforma/locatarios | jq ."
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Smoke Test Assistência",
+      "type": "shell",
+      "command": "TOKEN=$(curl -s -X POST http://localhost:3333/api/auth/login -H \"Content-Type: application/json\" -d '{\"slug\":\"assistencia\",\"email\":\"adminassistencia@email.com.br\",\"senha\":\"123456\"}' | jq -r '.accessToken'); echo; echo \"=== TOKEN ===\"; echo \"${TOKEN:0:50}...\"; echo; echo \"=== CLIENTES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/clientes | jq .; echo; echo \"=== PRODUTOS ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/produtos | jq .; echo; echo \"=== TRANSACOES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/transacoes | jq .",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Diagnóstico Login",
+      "type": "shell",
+      "command": "echo '=== HEALTH RAW ==='; curl -i http://localhost:3333/api/health; echo; echo; echo '=== LOGIN RAW ==='; curl -i -X POST http://localhost:3333/api/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"adminloja@email.com.br\",\"senha\":\"123456\"}'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
   ]
 }

@@ -112,9 +112,13 @@ function buildHeaders(config: HttpRequestConfig, token: string | null): Record<s
     headers["Content-Type"] = "application/json";
   }
 
-  if (token && headers.Authorization !== "") {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  // Só insere o header Authorization quando há token e não houver
+  // um header `Authorization` explícito (ou quando ele for uma string vazia
+  // usada para desabilitar a injeção automática, por exemplo em refresh/logout).
+  // if (token && (headers.Authorization === undefined || headers.Authorization === "")) {
+if (token && headers.Authorization !== "") {
+  headers.Authorization = `Bearer ${token}`;
+}
 
   return headers;
 }
