@@ -27,7 +27,7 @@ export function useProdutoDetails(produtoId?: string) {
         const response = await produtosApi.obter(produtoId);
 
         if (ativo) {
-          setProduto(response.item);
+          setProduto(response);
         }
       } catch (error) {
         if (ativo) {

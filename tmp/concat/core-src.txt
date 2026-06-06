@@ -3052,7 +3052,7 @@ export { createFnValidarSessao } from "./usecases/validarSessao";
 export { createFnRotacionarRefresh } from "./usecases/rotacionarRefresh";
 export { createFnResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";
 export { createFnLogout } from "./usecases/logout";
-// export { createFnEmitirSessaoPlataforma } from "./usecases/emitirSessaoPlataforma";
+export { createFnEmitirSessaoPlataforma } from "./usecases/emitirSessaoPlataforma";
 
 export type {
   EmitirSessaoPlataformaInput,
@@ -3211,7 +3211,7 @@ export interface TokensAuthPorta {
    */
   criarRefresh(params: {
     usuarioId: UsuarioId;
-    locatarioId: LocatarioId;
+    locatarioId: LocatarioId | null;
     agora: Date;
     ttlMs: number;
   }): Promise<
@@ -3230,7 +3230,7 @@ export interface TokensAuthPorta {
    */
   validarRefresh(params: {
     tokenBruto: string;
-    locatarioId: LocatarioId;
+    locatarioId: LocatarioId | null;
     agora: Date;
   }): Promise<
     Result<{
@@ -3481,7 +3481,7 @@ export interface JwtPayloadAuth {
 export type ChaveToken = {
   tokenId: TokenId;
   usuarioId: UsuarioId;
-  locatarioId: LocatarioId;
+  locatarioId: LocatarioId | null;
 };
 
 /**
@@ -16443,6 +16443,9 @@ export function validarSenhaUsuario(senha: string): Result<string, ErroApp> {
 import { createErroApp } from "../kernel";
 import type { TransacaoId, ItemTransacaoId } from "./tipos";
 
+export type CodigoErroVendas =
+  | "REGRA_NEGOCIO"
+
 export function transacaoNaoEncontrada(transacaoId: TransacaoId) {
   return createErroApp({ codigo: "NAO_ENCONTRADO", mensagem: "Transação comercial não encontrada.", detalhes: { operacao: "vendas.transacaoNaoEncontrada", transacaoId } });
 }
@@ -16464,7 +16467,7 @@ export function estoquePadraoNaoEncontrado() {
 
 export function transacaoNaoPermiteEdicao(transacaoId: TransacaoId) {
   return createErroApp({
-    codigo: "REGRA_NEGOCIO",
+    codigo: "INVALIDO",
     mensagem: "A transação não permite edição neste estado.",
     detalhes: {
       transacaoId,

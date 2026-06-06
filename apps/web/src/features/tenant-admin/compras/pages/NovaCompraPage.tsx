@@ -9,6 +9,7 @@ export default function NovaCompraPage() {
   const navigate = useNavigate();
 
   const [fornecedorId, setFornecedorId] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -20,7 +21,8 @@ export default function NovaCompraPage() {
 
     try {
       const response = await comprasApi.criar({
-        fornecedorId: fornecedorId || null,
+        fornecedorId: fornecedorId.trim() || null,
+        observacao: observacao.trim() || null,
       });
 
       navigate(`/app/transacoes/${response.item.transacaoId}`);
@@ -32,39 +34,34 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <form className="grid gap-4 rounded-2xl border bg-white p-6" onSubmit={handleSubmit}>
-      <div>
-        <h1 className="text-2xl font-semibold">Nova compra</h1>
-        <p className="text-sm text-slate-600">
-          Crie uma compra para depois adicionar os itens.
-        </p>
-      </div>
+    <form onSubmit={handleSubmit}>
+      <h1>Nova compra</h1>
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
+      <p>Crie uma compra para depois adicionar os itens.</p>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Fornecedor ID opcional</span>
+      {erro ? <p role="alert">{erro}</p> : null}
+
+      <label>
+        Fornecedor ID opcional
         <input
-          className="rounded-xl border px-3 py-2"
           value={fornecedorId}
           onChange={(event) => setFornecedorId(event.target.value)}
           placeholder="Fornecedor ID"
         />
       </label>
 
-      <div className="flex justify-end">
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? "Criando..." : "Criar compra"}
-        </button>
-      </div>
+      <label>
+        Observação
+        <textarea
+          value={observacao}
+          onChange={(event) => setObservacao(event.target.value)}
+          placeholder="Observação da compra"
+        />
+      </label>
+
+      <button type="submit" disabled={isSaving}>
+        {isSaving ? "Criando..." : "Criar compra"}
+      </button>
     </form>
   );
 }

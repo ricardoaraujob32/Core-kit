@@ -8,7 +8,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { authPlugin } from "./plugins/auth";
 import { requestIdPlugin } from "./middlewares/requestId";
-import { routes } from "./routes";
+import { routes } from ".";
 import { runApplicationBootstrap } from "./bootstrap/applicationBootstrap";
 import { initDb } from "./infra/prisma/initDb";
 
@@ -1425,6 +1425,37 @@ export function sendHttpError(reply: FastifyReply, erro: ErroApp | ErroHttpLike)
 }
 
 
+===== apps/api/src/index.ts =====
+
+// apps/api/src/index.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { healthRoutes } from "./routes/health.routes";
+import { authRoutes } from "./routes/auth.routes";
+import { locatariosRoutes } from "./routes/locatarios.routes";
+import { usuariosRoutes } from "./routes/usuarios.routes";
+import { assinaturaModulosRoutes } from "./routes/assinaturaModulos.routes";
+import { clientesRoutes } from "./routes/clientes.routes";
+import { fornecedoresRoutes } from "./routes/fornecedores.routes";
+import { produtosRoutes } from "./routes/produtos.routes";
+import { vendasRoutes } from "./routes/vendas.routes";
+import { auditoriaRoutes } from "./routes/auditoria.routes";
+import { plataformaRoutes } from "./routes/plataforma/plataforma.routes";
+
+export const routes: FastifyPluginAsync = async (app) => {
+  await app.register(healthRoutes, { prefix: "/api" });
+  await app.register(authRoutes, { prefix: "/api" });
+  await app.register(locatariosRoutes, { prefix: "/api" });
+  await app.register(usuariosRoutes, { prefix: "/api" });
+  await app.register(assinaturaModulosRoutes, { prefix: "/api" } );
+  await app.register(clientesRoutes, { prefix: "/api" });
+  await app.register(fornecedoresRoutes, { prefix: "/api" });
+  await app.register(produtosRoutes, { prefix: "/api" });
+  await app.register(vendasRoutes, { prefix: "/api" });
+  await app.register(auditoriaRoutes, { prefix: "/api" });
+  await app.register(plataformaRoutes, { prefix: "/api/plataforma" });
+};
+
 ===== apps/api/src/infra/hash/hashPortaAdapter.ts =====
 
 // apps/api/src/infra/hash/hashPortaAdapter.ts
@@ -1466,19 +1497,12 @@ export function createHashPortaAdapter(): HashPorta {
 
 // apps/api/src/infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.ts
 
-import type {
-  AssinaturaId,
-  AssinaturasModulosRepositorio,
-  ModuloHabilitadoAssinatura,
-  ModuloId,
-  RegistrarModuloAssinaturaParams,
-} from "@core-kit/core";
+import type { AssinaturaId, AssinaturasModulosRepositorio, ModuloHabilitadoAssinatura, ModuloId, RegistrarModuloAssinaturaParams } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
 
-type ModuloAssinaturaRow = {
-  assinatura_id: string;
+type ModuloLocatarioRow = {
   modulo_id: string;
   origem: string;
   habilitado: boolean;
@@ -1486,12 +1510,25 @@ type ModuloAssinaturaRow = {
   atualizado_em: Date;
 };
 
-function mapModuloAssinatura(row: ModuloAssinaturaRow): ModuloHabilitadoAssinatura {
+function mapOrigemAssinatura(origem: string): ModuloHabilitadoAssinatura["origem"] {
+  const normalizada = origem.trim().toUpperCase();
+
+  if (normalizada === "GRATUITO" || normalizada === "CORTESIA") {
+    return "GRATUITO";
+  }
+
+  return "ASSINATURA";
+}
+
+function mapModuloAssinatura(
+  assinaturaId: AssinaturaId,
+  row: ModuloLocatarioRow,
+): ModuloHabilitadoAssinatura {
   return {
-    assinaturaId: row.assinatura_id,
+    assinaturaId,
     moduloId: row.modulo_id,
-    gratuito: false,
-    origem: row.origem === "GRATUITO" ? "GRATUITO" : "ASSINATURA",
+    gratuito: mapOrigemAssinatura(row.origem) === "GRATUITO",
+    origem: mapOrigemAssinatura(row.origem),
     habilitadoEm: row.criado_em,
     desabilitadoEm: row.habilitado ? null : row.atualizado_em,
   };
@@ -1510,48 +1547,56 @@ export function createAssinaturasModulosRepositorioPrisma(
 
         if (!assinatura) {
           return mapearErroInfra(new Error("Assinatura não encontrada"), {
-            entidade: "modulos_assinatura",
+            entidade: "modulos_locatario",
             operacao: "infra.prisma.assinaturasModulos.vincularModulo.assinaturaAusente",
             detalhes: { assinaturaId: params.assinaturaId },
           });
         }
 
-        const vinculo = await db.modulos_assinatura.upsert({
-          where: {
-            locatario_id_assinatura_id_modulo_id: {
-              locatario_id: assinatura.locatario_id,
-              assinatura_id: params.assinaturaId,
-              modulo_id: params.moduloId,
-            },
-          },
-          create: {
-            locatario_id: assinatura.locatario_id,
-            assinatura_id: params.assinaturaId,
-            modulo_id: params.moduloId,
-            habilitado: true,
-            origem: "MANUAL",
-            criado_em: params.habilitadoEm,
-            atualizado_em: params.habilitadoEm,
-          },
-          update: {
-            habilitado: true,
-            origem: "MANUAL",
-            atualizado_em: params.habilitadoEm,
-          },
-          select: {
-            assinatura_id: true,
-            modulo_id: true,
-            origem: true,
-            habilitado: true,
-            criado_em: true,
-            atualizado_em: true,
-          },
-        });
+        const rows = await db.$queryRaw<ModuloLocatarioRow[]>`
+          INSERT INTO core.modulos_locatario (
+            locatario_id,
+            modulo_id,
+            habilitado,
+            origem,
+            criado_em,
+            atualizado_em
+          )
+          VALUES (
+            ${assinatura.locatario_id}::uuid,
+            ${params.moduloId}::uuid,
+            true,
+            'MANUAL_SUPERADMIN'::core.origem_modulo_assinatura,
+            ${params.habilitadoEm},
+            ${params.habilitadoEm}
+          )
+          ON CONFLICT (locatario_id, modulo_id)
+          DO UPDATE SET
+            habilitado = true,
+            origem = 'MANUAL_SUPERADMIN'::core.origem_modulo_assinatura,
+            atualizado_em = ${params.habilitadoEm}
+          RETURNING
+            modulo_id,
+            origem::text AS origem,
+            habilitado,
+            criado_em,
+            atualizado_em
+        `;
 
-        return wrapOk(mapModuloAssinatura(vinculo));
+        const vinculo = rows[0];
+
+        if (!vinculo) {
+          return mapearErroInfra(new Error("Falha ao vincular módulo ao locatário"), {
+            entidade: "modulos_locatario",
+            operacao: "infra.prisma.assinaturasModulos.vincularModulo.semRetorno",
+            detalhes: { assinaturaId: params.assinaturaId, moduloId: params.moduloId },
+          });
+        }
+
+        return wrapOk(mapModuloAssinatura(params.assinaturaId, vinculo));
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.vincularModulo",
           detalhes: { assinaturaId: params.assinaturaId, moduloId: params.moduloId },
         });
@@ -1571,21 +1616,19 @@ export function createAssinaturasModulosRepositorioPrisma(
 
         if (!assinatura) return wrapOk(undefined);
 
-        await db.modulos_assinatura.update({
-          where: {
-            locatario_id_assinatura_id_modulo_id: {
-              locatario_id: assinatura.locatario_id,
-              assinatura_id: assinaturaId,
-              modulo_id: moduloId,
-            },
-          },
-          data: { habilitado: false, atualizado_em: desabilitadoEm },
-        });
+        await db.$executeRaw`
+          UPDATE core.modulos_locatario
+          SET
+            habilitado = false,
+            atualizado_em = ${desabilitadoEm}
+          WHERE locatario_id = ${assinatura.locatario_id}::uuid
+            AND modulo_id = ${moduloId}::uuid
+        `;
 
         return wrapOk(undefined);
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.desvincularModulo",
           detalhes: { assinaturaId, moduloId },
         });
@@ -1594,22 +1637,32 @@ export function createAssinaturasModulosRepositorioPrisma(
 
     async buscarModuloVinculado(assinaturaId: AssinaturaId, moduloId: ModuloId) {
       try {
-        const vinculo = await db.modulos_assinatura.findFirst({
-          where: { assinatura_id: assinaturaId, modulo_id: moduloId },
-          select: {
-            assinatura_id: true,
-            modulo_id: true,
-            origem: true,
-            habilitado: true,
-            criado_em: true,
-            atualizado_em: true,
-          },
+        const assinatura = await db.assinaturas.findFirst({
+          where: { assinatura_id: assinaturaId, excluido_em: null },
+          select: { locatario_id: true },
         });
 
-        return wrapOk(vinculo ? mapModuloAssinatura(vinculo) : null);
+        if (!assinatura) return wrapOk(null);
+
+        const rows = await db.$queryRaw<ModuloLocatarioRow[]>`
+          SELECT
+            modulo_id,
+            origem::text AS origem,
+            habilitado,
+            criado_em,
+            atualizado_em
+          FROM core.modulos_locatario
+          WHERE locatario_id = ${assinatura.locatario_id}::uuid
+            AND modulo_id = ${moduloId}::uuid
+          LIMIT 1
+        `;
+
+        const vinculo = rows[0] ?? null;
+
+        return wrapOk(vinculo ? mapModuloAssinatura(assinaturaId, vinculo) : null);
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.buscarModuloVinculado",
           detalhes: { assinaturaId, moduloId },
         });
@@ -1618,23 +1671,30 @@ export function createAssinaturasModulosRepositorioPrisma(
 
     async listarModulosAtivosDaAssinatura(assinaturaId: AssinaturaId) {
       try {
-        const vinculos = await db.modulos_assinatura.findMany({
-          where: { assinatura_id: assinaturaId, habilitado: true },
-          orderBy: { modulo_id: "asc" },
-          select: {
-            assinatura_id: true,
-            modulo_id: true,
-            origem: true,
-            habilitado: true,
-            criado_em: true,
-            atualizado_em: true,
-          },
+        const assinatura = await db.assinaturas.findFirst({
+          where: { assinatura_id: assinaturaId, excluido_em: null },
+          select: { locatario_id: true },
         });
 
-        return wrapOk(vinculos.map(mapModuloAssinatura));
+        if (!assinatura) return wrapOk([]);
+
+        const vinculos = await db.$queryRaw<ModuloLocatarioRow[]>`
+          SELECT
+            modulo_id,
+            origem::text AS origem,
+            habilitado,
+            criado_em,
+            atualizado_em
+          FROM core.modulos_locatario
+          WHERE locatario_id = ${assinatura.locatario_id}::uuid
+            AND habilitado = true
+          ORDER BY modulo_id ASC
+        `;
+
+        return wrapOk(vinculos.map((row) => mapModuloAssinatura(assinaturaId, row)));
       } catch (causa) {
         return mapearErroInfra(causa, {
-          entidade: "modulos_assinatura",
+          entidade: "modulos_locatario",
           operacao: "infra.prisma.assinaturasModulos.listarModulosAtivosDaAssinatura",
           detalhes: { assinaturaId },
         });
@@ -1643,7 +1703,6 @@ export function createAssinaturasModulosRepositorioPrisma(
   };
 }
 
-
 ===== apps/api/src/infra/prisma/assinaturas/assinaturasRepositorioPrisma.ts =====
 
 // // apps/api/src/infra/assinaturas/assinaturasRepositorioPrisma.ts
@@ -1651,6 +1710,7 @@ export function createAssinaturasModulosRepositorioPrisma(
 import type { Assinatura, AssinaturaId, AssinaturasRepositorio, LocatarioId, RegistrarAssinaturaParams } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
+import type { status_assinatura } from "@prisma/client";
 import { mapearErroInfra } from "../erros";
 
 type AssinaturaRow = {
@@ -1677,6 +1737,25 @@ function mapAssinatura(row: AssinaturaRow): Assinatura {
   };
 }
 
+function mapStatusAssinaturaParaPersistencia(status: Assinatura["status"]): status_assinatura {
+  switch (status) {
+    case "RASCUNHO":
+      return "RASCUNHO";
+    case "ATIVA":
+      return "ATIVA";
+    case "SUSPENSA":
+      return "SUSPENSA";
+    case "CANCELADA":
+      return "CANCELADA";
+    case "ENCERRADA":
+      return "CANCELADA";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
 export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRepositorio {
   return {
     async criarAssinatura(params: RegistrarAssinaturaParams) {
@@ -1686,7 +1765,7 @@ export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRep
             assinatura_id: params.assinaturaId,
             locatario_id: params.locatarioId,
             plano_id: params.planoId,
-            status: params.status,
+            status: mapStatusAssinaturaParaPersistencia(params.status),
             inicio_em: params.iniciadaEm,
             fim_em: params.encerradaEm ?? null,
             criado_em: params.criadaEm,
@@ -1718,14 +1797,14 @@ export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRep
       try {
         const atualizada = await db.assinaturas.update({
           where: {
-            assinatura_id_locatario_id: {
-              assinatura_id: assinatura.assinaturaId,
+            locatario_id_assinatura_id: {
               locatario_id: assinatura.locatarioId,
+              assinatura_id: assinatura.assinaturaId,
             },
           },
           data: {
             plano_id: assinatura.planoId,
-            status: assinatura.status,
+            status: mapStatusAssinaturaParaPersistencia(assinatura.status),
             inicio_em: assinatura.iniciadaEm,
             fim_em: assinatura.encerradaEm,
             atualizado_em: assinatura.atualizadaEm,
@@ -2489,61 +2568,37 @@ export function createModulosHabilitadosRepositorio(db: PrismaDb): ModulosHabili
      */
     async listarPorLocatario(locatarioId: LocatarioId) {
       try {
-        const assinaturas = await db.assinaturas.findMany({
-          where: {
-            locatario_id: locatarioId,
-            status: "ATIVA",
-            excluido_em: null,
-            modulos_assinatura: {
-              some: {
-                habilitado: true,
-                modulos: {
-                  ativo: true,
-                },
-              },
-            },
-          },
-          select: {
-            assinatura_id: true,
-            modulos_assinatura: {
-              where: {
-                habilitado: true,
-                modulos: {
-                  ativo: true,
-                },
-              },
-              select: {
-                origem: true,
-                modulos: {
-                  select: {
-                    codigo: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: {
-            assinatura_id: "asc",
-          },
-        });
+        const vinculos = await db.$queryRaw<{
+          codigo: string;
+          origem: string;
+        }[]>`
+          SELECT
+            m.codigo,
+            ml.origem::text AS origem
+          FROM core.modulos_locatario ml
+          JOIN core.modulos m
+            ON m.modulo_id = ml.modulo_id
+          WHERE ml.locatario_id = ${locatarioId}::uuid
+            AND ml.habilitado = true
+            AND m.ativo = true
+          ORDER BY m.codigo ASC
+        `;
 
         const porCodigo = new Map<string, ModuloHabilitado>();
 
-        for (const assinatura of assinaturas) {
-          for (const vinculo of assinatura.modulos_assinatura) {
-            const codigo = vinculo.modulos.codigo.trim().toUpperCase();
-            const origem = normalizarOrigemModulo(vinculo.origem);
+        for (const vinculo of vinculos) {
+          const codigo = vinculo.codigo.trim().toUpperCase();
+          const origem = normalizarOrigemModulo(vinculo.origem);
 
-            const atual = porCodigo.get(codigo);
-            if (
-              !atual ||
-              prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)
-            ) {
-              porCodigo.set(codigo, {
-                codigo,
-                origem,
-              });
-            }
+          const atual = porCodigo.get(codigo);
+          if (
+            !atual ||
+            prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)
+          ) {
+            porCodigo.set(codigo, {
+              codigo,
+              origem,
+            });
           }
         }
 
@@ -2851,11 +2906,11 @@ export async function executarAuthComContexto<T>(
 
 // apps/api/src/infra/prisma/auth/authRuntimeFromDeps.ts
 
-import { createContextoExecucao, createFnEmitirSessao, createFnListarModulosHabilitados, createFnLogout, createFnRotacionarRefresh, createFnValidarSessao, wrapOk } from "@core-kit/core";
+import { createContextoExecucao, createFnEmitirSessao, createFnListarModulosHabilitados, createFnLogout, createFnRotacionarRefresh, createFnValidarSessao, 
+  createFnEmitirSessaoPlataforma, wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import type { AuthUseCaseDeps } from "./authUseCaseDeps";
 import type { IdPorta, LocatarioId, RelogioPorta, UsuarioId } from "@core-kit/core";
-import { createFnEmitirSessaoPlataforma } from "packages/core/src/auth/usecases/emitirSessaoPlataforma";
 
 /**
  * Portas técnicas já resolvidas para a composição do runtime.
@@ -3896,7 +3951,7 @@ export function createRelogioPorta(): RelogioPorta {
 import bcrypt from "bcryptjs";
 
 async function main() {
-  const senha = "1234";
+  const senha = "12345678";
   const hash = await bcrypt.hash(senha, 10);
   console.log("HASH:", hash);
 }
@@ -3945,33 +4000,28 @@ import { gerarRefreshTokenBruto, hashRefreshToken } from "./tokenHash";
 import { erroInfraAuth } from "../errosInfraAuth";
 import { PrismaDb } from "../../tipos";
 
+type TokenRow = {
+  token_id: string;
+  usuario_id: string;
+  locatario_id: string | null;
+  expira_em: Date;
+  revogado_em: Date | null;
+};
+
 /**
  * Adapter Prisma -> TokensAuthPorta.
  *
- * Responsabilidades:
- * - criar refresh tokens seguros (token + hash);
- * - validar refresh tokens;
- * - revogar tokens.
+ * Modelo novo:
+ * - core.tokens_locatario: refresh tokens de usuários de locatário.
+ * - core.tokens_plataforma: refresh tokens de usuários da plataforma.
  *
  * Segurança:
- * - apenas o hash do token é persistido no banco;
+ * - apenas o hash do token é persistido;
  * - o token bruto nunca é armazenado;
- * - validação ocorre via hash (similar a senha).
+ * - validação ocorre via hash.
  */
 export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAuthPorta {
   return {
-    /**
-     * Cria um novo refresh token.
-     *
-     * Fluxo:
-     * 1. gera token bruto aleatório;
-     * 2. gera hash do token;
-     * 3. persiste apenas o hash;
-     * 4. retorna token bruto ao chamador.
-     *
-     * @param params Dados necessários para materializar o token.
-     * @returns `Ok({ tokenId, tokenBruto, expiraEm })` em caso de sucesso.
-     */
     async criarRefresh(params) {
       try {
         const tokenBruto = gerarRefreshTokenBruto();
@@ -3979,16 +4029,43 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
         const tokenId = idPorta.gerarId() as TokenId;
         const expiraEm = new Date(params.agora.getTime() + params.ttlMs);
 
-        await db.tokens.create({
-          data: {
-            token_id: tokenId,
-            usuario_id: params.usuarioId,
-            locatario_id: params.locatarioId,
-            hash_token: hashToken,
-            tipo: "REFRESH",
-            expira_em: expiraEm,
-          },
-        });
+        if (params.locatarioId === null) {
+          await db.$executeRaw`
+            INSERT INTO core.tokens_plataforma (
+              token_id,
+              usuario_id,
+              hash_token,
+              tipo,
+              expira_em
+            )
+            VALUES (
+              ${tokenId}::uuid,
+              ${params.usuarioId}::uuid,
+              ${hashToken},
+              'REFRESH'::core.tipo_token,
+              ${expiraEm}
+            )
+          `;
+        } else {
+          await db.$executeRaw`
+            INSERT INTO core.tokens_locatario (
+              token_id,
+              usuario_id,
+              locatario_id,
+              hash_token,
+              tipo,
+              expira_em
+            )
+            VALUES (
+              ${tokenId}::uuid,
+              ${params.usuarioId}::uuid,
+              ${params.locatarioId}::uuid,
+              ${hashToken},
+              'REFRESH'::core.tipo_token,
+              ${expiraEm}
+            )
+          `;
+        }
 
         return wrapOk({
           chave: {
@@ -4012,35 +4089,38 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
       }
     },
 
-    /**
-     * Valida o refresh token recebido do cliente.
-     *
-     * Fluxo:
-     * 1. aplica hash ao token recebido;
-     * 2. busca no banco;
-     * 3. valida existência, revogação e expiração.
-     *
-     * @param params Token bruto, locatário e relógio da operação.
-     * @returns `Ok(...)` quando o refresh é válido.
-     */
     async validarRefresh(params) {
       try {
         const hashToken = hashRefreshToken(params.tokenBruto);
 
-        const row = await db.tokens.findFirst({
-          where: {
-            locatario_id: params.locatarioId,
-            hash_token: hashToken,
-            tipo: "REFRESH",
-          },
-          select: {
-            token_id: true,
-            usuario_id: true,
-            locatario_id: true,
-            expira_em: true,
-            revogado_em: true,
-          },
-        });
+        const rows = params.locatarioId === null
+          ? await db.$queryRaw<TokenRow[]>`
+              SELECT
+                token_id,
+                usuario_id,
+                NULL::uuid AS locatario_id,
+                expira_em,
+                revogado_em
+              FROM core.tokens_plataforma
+              WHERE hash_token = ${hashToken}
+                AND tipo = 'REFRESH'::core.tipo_token
+              LIMIT 1
+            `
+          : await db.$queryRaw<TokenRow[]>`
+              SELECT
+                token_id,
+                usuario_id,
+                locatario_id,
+                expira_em,
+                revogado_em
+              FROM core.tokens_locatario
+              WHERE locatario_id = ${params.locatarioId}::uuid
+                AND hash_token = ${hashToken}
+                AND tipo = 'REFRESH'::core.tipo_token
+              LIMIT 1
+            `;
+
+        const row = rows[0] ?? null;
 
         if (!row) {
           return createErroApp({
@@ -4082,7 +4162,7 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
 
         return wrapOk({
           chave: {
-            tokenId: row.token_id,
+            tokenId: row.token_id as TokenId,
             usuarioId: row.usuario_id,
             locatarioId: row.locatario_id,
           },
@@ -4099,30 +4179,30 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
       }
     },
 
-    /**
-     * Revoga um refresh token existente.
-     *
-     * @param params.tokenId Identificador do token.
-     * @param params.agora Timestamp da revogação.
-     * @returns `Ok(void)` quando a operação é concluída.
-     */
     async revogar(params) {
       try {
-        await db.tokens.update({
-          where: {
-            token_id_usuario_id_locatario_id: {
-              token_id: params.chave.tokenId,
-              usuario_id: params.chave.usuarioId,
-              locatario_id: params.chave.locatarioId,
-            },
-          },
-          data: {
-            revogado_em: params.agora,
-            proximo_token_id: params.proximo?.tokenId ?? null,
-            proximo_usuario_id: params.proximo?.usuarioId ?? null,
-            proximo_locatario_id: params.proximo?.locatarioId ?? null,
-          },
-        });
+        if (params.chave.locatarioId === null) {
+          await db.$executeRaw`
+            UPDATE core.tokens_plataforma
+            SET
+              revogado_em = ${params.agora},
+              proximo_token_id = ${params.proximo?.tokenId ?? null}::uuid
+            WHERE token_id = ${params.chave.tokenId}::uuid
+              AND usuario_id = ${params.chave.usuarioId}::uuid
+          `;
+        } else {
+          await db.$executeRaw`
+            UPDATE core.tokens_locatario
+            SET
+              revogado_em = ${params.agora},
+              proximo_token_id = ${params.proximo?.tokenId ?? null}::uuid,
+              proximo_usuario_id = ${params.proximo?.usuarioId ?? null}::uuid,
+              proximo_locatario_id = ${params.proximo?.locatarioId ?? null}::uuid
+            WHERE token_id = ${params.chave.tokenId}::uuid
+              AND usuario_id = ${params.chave.usuarioId}::uuid
+              AND locatario_id = ${params.chave.locatarioId}::uuid
+          `;
+        }
 
         return wrapOk(undefined);
       } catch (causa) {
@@ -4141,7 +4221,6 @@ export function createTokensAuthPorta(db: PrismaDb, idPorta: IdPorta): TokensAut
     },
   };
 }
-
 
 ===== apps/api/src/infra/prisma/auth/TransacaoPorta.ts =====
 
@@ -4181,6 +4260,7 @@ export function createTransacaoPorta(prisma: PrismaClient): TransacaoPorta {
 
 import { wrapOk } from "@core-kit/core";
 import type { LocatarioId, Result, ErroApp, UsuarioId, UsuarioAuth, UsuariosRepositorioAuth } from "@core-kit/core";
+import type { status_usuario } from "@prisma/client";
 import { erroInfraAuth } from "../errosInfraAuth";
 import { PrismaDb } from "../../tipos";
 import { mapearErroInfra } from "../../erros";
@@ -4192,7 +4272,7 @@ import { mapearErroInfra } from "../../erros";
  * @returns Status adaptado para o contrato de autenticação.
  */
 function mapStatusUsuarioAuth(
-  status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO",
+  status: status_usuario,
 ): UsuarioAuth["status"] {
   switch (status) {
     case "ATIVO":
@@ -4200,8 +4280,15 @@ function mapStatusUsuarioAuth(
     case "INATIVO":
       return "INATIVO";
     case "SUSPENSO":
+      return "BLOQUEADO";
+    case "BLOQUEADO":
+      return "BLOQUEADO";
     case "ENCERRADO":
       return "BLOQUEADO";
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
   }
 }
 
@@ -4311,15 +4398,13 @@ export function createUsuariosRepositorioAuth(db: PrismaDb): UsuariosRepositorio
 
     async buscarUsuarioPlataformaPorEmail(params) {
       try {
-        const row = await db.usuarios.findFirst({
+        const row = await db.usuarios_plataforma.findFirst({
           where: {
             email: params.email,
-            locatario_id: null,
             excluido_em: null,
           },
           select: {
             usuario_id: true,
-            locatario_id: true,
             email: true,
             senha_hash: true,
             status: true,
@@ -4330,7 +4415,7 @@ export function createUsuariosRepositorioAuth(db: PrismaDb): UsuariosRepositorio
           row
             ? {
                 usuarioId: row.usuario_id,
-                locatarioId: row.locatario_id,
+                locatarioId: null,
                 email: row.email,
                 senhaHash: row.senha_hash,
                 status: mapStatusUsuarioAuth(row.status),
@@ -4643,8 +4728,8 @@ export function createBootstrapAutorizacaoRepositorio(db: PrismaDb): BootstrapAu
 
 import type { AutorizacaoRepositorio, AutorizacaoSnapshot, LocatarioId, ModuloHabilitado, OrigemModuloHabilitado, Papel, Permissao, UsuarioId } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../../tipos"; 
-import { mapearErroInfra } from "../../erros"; 
+import type { PrismaDb } from "../../tipos";
+import { mapearErroInfra } from "../../erros";
 import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./autorizacaoSnapshotCache";
 
 function normalizarOrigemModulo(origem: string | null | undefined): OrigemModuloHabilitado {
@@ -4652,9 +4737,12 @@ function normalizarOrigemModulo(origem: string | null | undefined): OrigemModulo
     case "SISTEMA":
       return "SISTEMA";
     case "PLANO":
+    case "PLANO_SUGERIDO":
       return "PLANO";
     case "MANUAL":
-      return "MANUAL";
+    case "MANUAL_SUPERADMIN":
+    case "ADDON":
+    case "CORTESIA":
     default:
       return "MANUAL";
   }
@@ -4672,20 +4760,17 @@ function prioridadeOrigem(origem: OrigemModuloHabilitado): number {
   }
 }
 
-function normalizarCodigo<T extends string>(codigo: T): T {
-  return codigo.trim() as T;
-}
-
 type CreateAutorizacaoRepositorioParams = {
   cache?: AutorizacaoSnapshotCache;
 };
 
-/**
- * 
- * @param db 
- * @param params 
- * @returns 
- */
+type RowModuloRbac = {
+  modulo_id: string;
+  codigo: string;
+  ativo: boolean;
+  origem: string;
+};
+
 export function createAutorizacaoRepositorio(
   db: PrismaDb,
   params: CreateAutorizacaoRepositorioParams = {},
@@ -4703,32 +4788,13 @@ export function createAutorizacaoRepositorio(
       isPlataforma?: boolean;
     }) {
       try {
-        console.log("🔥 RBAC REPOSITORIO CARREGADO 🔥", {
-          locatarioId,
-          usuarioId,
-          isPlataforma,
-        });
-
         const cached = cache.get({
           locatarioId,
           usuarioId,
           isPlataforma,
         });
 
-        console.log("🔥 SNAPSHOT CACHE RESULT 🔥", {
-          locatarioId,
-          usuarioId,
-          isPlataforma,
-          hit: !!cached,
-        });
-
         if (cached) {
-          console.info("[autorizacao.snapshot] cacheHit", {
-            locatarioId,
-            usuarioId,
-            isPlataforma,
-            snapshot: cached,
-          });
           return wrapOk(cached);
         }
 
@@ -4759,68 +4825,20 @@ export function createAutorizacaoRepositorio(
             },
           }),
 
-          // Importante:
-          // nesta versão, a resolução de módulos parte diretamente da tabela
-          // modulos_assinatura. Isso evita falso-negativo causado por filtro
-          // relacional excessivo em `assinaturas` durante a depuração.
-          db.modulos_assinatura.findMany({
-            where: {
-              locatario_id: locatarioId,
-              habilitado: true,
-            },
-            select: {
-              origem: true,
-              modulo_id: true,
-              assinatura_id: true,
-              modulos: {
-                select: {
-                  codigo: true,
-                  ativo: true,
-                },
-              },
-              assinaturas: {
-                select: {
-                  assinatura_id: true,
-                  locatario_id: true,
-                  status: true,
-                  excluido_em: true,
-                },
-              },
-            },
-            orderBy: [
-              { assinatura_id: "asc" },
-              { modulo_id: "asc" },
-            ],
-          }),
+          db.$queryRaw<RowModuloRbac[]>`
+            SELECT
+              ml.modulo_id,
+              m.codigo,
+              m.ativo,
+              ml.origem::text AS origem
+            FROM core.modulos_locatario ml
+            JOIN core.modulos m
+              ON m.modulo_id = ml.modulo_id
+            WHERE ml.locatario_id = ${locatarioId}::uuid
+              AND ml.habilitado = true
+            ORDER BY m.codigo ASC
+          `,
         ]);
-
-        console.info("[autorizacao.snapshot] rowsPapeis", {
-          locatarioId,
-          usuarioId,
-          quantidade: rowsPapeis.length,
-          itens: rowsPapeis.map((row) => ({
-            papelCodigo: row.papeis.codigo,
-            permissoes: row.papeis.papel_permissoes.map(
-              (pp) => pp.permissoes.codigo,
-            ),
-          })),
-        });
-
-        console.info("[autorizacao.snapshot] rowsModulos.raw", {
-          locatarioId,
-          usuarioId,
-          quantidade: rowsModulos.length,
-          itens: rowsModulos.map((row) => ({
-            assinaturaId: row.assinatura_id,
-            moduloId: row.modulo_id,
-            codigo: row.modulos.codigo,
-            moduloAtivo: row.modulos.ativo,
-            origem: row.origem,
-            assinaturaStatus: row.assinaturas?.status ?? null,
-            assinaturaExcluida: row.assinaturas?.excluido_em ?? null,
-            assinaturaLocatarioId: row.assinaturas?.locatario_id ?? null,
-          })),
-        });
 
         const papeis = Array.from(
           new Set(rowsPapeis.map((row) => row.papeis.codigo as Papel)),
@@ -4839,53 +4857,15 @@ export function createAutorizacaoRepositorio(
         const porCodigo = new Map<string, ModuloHabilitado>();
 
         for (const vinculo of rowsModulos) {
-          if (!vinculo.modulos.ativo) {
-            console.info("[autorizacao.snapshot] moduloIgnorado", {
-              motivo: "modulo_inativo",
-              codigo: vinculo.modulos.codigo,
-              moduloId: vinculo.modulo_id,
-            });
+          if (!vinculo.ativo) {
             continue;
           }
 
-          if (vinculo.assinaturas.excluido_em) {
-            console.info("[autorizacao.snapshot] moduloIgnorado", {
-              motivo: "assinatura_excluida",
-              codigo: vinculo.modulos.codigo,
-              assinaturaId: vinculo.assinatura_id,
-            });
-            continue;
-          }
-
-          if (vinculo.assinaturas.status !== "ATIVA") {
-            console.info("[autorizacao.snapshot] moduloIgnorado", {
-              motivo: "assinatura_inativa",
-              codigo: vinculo.modulos.codigo,
-              assinaturaId: vinculo.assinatura_id,
-              status: vinculo.assinaturas.status,
-            });
-            continue;
-          }
-
-          if (vinculo.assinaturas.locatario_id !== locatarioId) {
-            console.info("[autorizacao.snapshot] moduloIgnorado", {
-              motivo: "locatario_assinatura_divergente",
-              codigo: vinculo.modulos.codigo,
-              assinaturaId: vinculo.assinatura_id,
-              assinaturaLocatarioId: vinculo.assinaturas.locatario_id,
-              locatarioIdEsperado: locatarioId,
-            });
-            continue;
-          }
-
-          const codigo = vinculo.modulos.codigo.trim().toUpperCase();
+          const codigo = vinculo.codigo.trim().toUpperCase();
           const origem = normalizarOrigemModulo(vinculo.origem);
 
           const atual = porCodigo.get(codigo);
-          if (
-            !atual ||
-            prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)
-          ) {
+          if (!atual || prioridadeOrigem(origem) > prioridadeOrigem(atual.origem)) {
             porCodigo.set(codigo, { codigo, origem });
           }
         }
@@ -4894,12 +4874,6 @@ export function createAutorizacaoRepositorio(
           a.localeCompare(b),
         );
 
-        console.info("[autorizacao.snapshot] modulosFinal", {
-          locatarioId,
-          usuarioId,
-          modulos,
-        });
-
         const snapshot: AutorizacaoSnapshot = {
           locatarioId,
           usuarioId,
@@ -4907,8 +4881,6 @@ export function createAutorizacaoRepositorio(
           permissoes,
           modulos,
         };
-
-        console.info("[autorizacao.snapshot] snapshotFinal", snapshot);
 
         cache.set(
           {
@@ -4921,13 +4893,6 @@ export function createAutorizacaoRepositorio(
 
         return wrapOk(snapshot);
       } catch (causa) {
-        console.error("[autorizacao.snapshot] erro", {
-          locatarioId,
-          usuarioId,
-          isPlataforma,
-          causa,
-        });
-
         return mapearErroInfra(causa, {
           entidade: "autorizacao",
           operacao: "infra.prisma.autorizacao.obterSnapshot",
@@ -4941,8 +4906,6 @@ export function createAutorizacaoRepositorio(
     },
   };
 }
-
-
 
 ===== apps/api/src/infra/prisma/autorizacao/rbac/autorizacaoSnapshotCache.ts =====
 
@@ -5258,7 +5221,7 @@ export function createClientesRepositorio(db: PrismaDb): ClientesRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  cliente_id_locatario_id: {
+                  locatario_id_cliente_id: {
                     cliente_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -5284,7 +5247,7 @@ export function createClientesRepositorio(db: PrismaDb): ClientesRepositorio {
       try {
         await db.clientes.update({
           where: {
-            cliente_id_locatario_id: {
+            locatario_id_cliente_id: {
               cliente_id: cliente.clienteId,
               locatario_id: cliente.locatarioId,
             },
@@ -5628,7 +5591,7 @@ export function createFornecedoresRepositorio(db: PrismaDb): FornecedoresReposit
           ...(params.cursor
             ? {
                 cursor: {
-                  fornecedor_id_locatario_id: {
+                  locatario_id_fornecedor_id: {
                     fornecedor_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -5654,7 +5617,7 @@ export function createFornecedoresRepositorio(db: PrismaDb): FornecedoresReposit
       try {
         await db.fornecedores.update({
           where: {
-            fornecedor_id_locatario_id: {
+            locatario_id_fornecedor_id: {
               fornecedor_id: fornecedor.fornecedorId,
               locatario_id: fornecedor.locatarioId,
             },
@@ -6302,40 +6265,56 @@ export function createLocatariosRepositorio(db: PrismaDb): LocatariosRepositorio
 
 import { ErroApp, erroRepositorioModulos, LocatarioId, ModuloHabilitado, ModulosHabilitadosRepositorio, Result, wrapOk } from "@core-kit/core";
 
-/**
- * 
- */
 type PrismaLike = {
   $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: unknown[]): Promise<T>;
 };
 
-/**
- * 
- */
 type RowModuloHabilitado = {
   codigo: string;
-  origem: "SISTEMA" | "PLANO" | "MANUAL";
+  origem: "SISTEMA" | "PLANO" | "MANUAL" | "MANUAL_SUPERADMIN" | "PLANO_SUGERIDO" | "ADDON" | "CORTESIA";
 };
-/**
- * 
- * @param prisma 
- * @returns 
- */
-export function criarModulosHabilitadosRepositorioPrisma(prisma: PrismaLike): ModulosHabilitadosRepositorio {
+
+function normalizarOrigem(origem: RowModuloHabilitado["origem"]): ModuloHabilitado["origem"] {
+  switch (origem) {
+    case "SISTEMA":
+      return "SISTEMA";
+    case "PLANO":
+    case "PLANO_SUGERIDO":
+      return "PLANO";
+    case "MANUAL":
+    case "MANUAL_SUPERADMIN":
+    case "ADDON":
+    case "CORTESIA":
+    default:
+      return "MANUAL";
+  }
+}
+
+export function criarModulosHabilitadosRepositorioPrisma(
+  prisma: PrismaLike,
+): ModulosHabilitadosRepositorio {
   return {
-    async listarPorLocatario(locatarioId: LocatarioId): Promise<Result<ModuloHabilitado[], ErroApp>> {
+    async listarPorLocatario(
+      locatarioId: LocatarioId,
+    ): Promise<Result<ModuloHabilitado[], ErroApp>> {
       try {
         const rows = await prisma.$queryRaw<RowModuloHabilitado[]>`
-          SELECT codigo, origem
-          FROM vw_modulos_habilitados_locatario
-          WHERE locatario_id = ${locatarioId}
-          ORDER BY codigo ASC
+          SELECT
+            m.codigo,
+            ml.origem::text AS origem
+          FROM core.modulos_locatario ml
+          JOIN core.modulos m
+            ON m.modulo_id = ml.modulo_id
+          WHERE ml.locatario_id = ${locatarioId}::uuid
+            AND ml.habilitado = true
+            AND m.ativo = true
+          ORDER BY m.codigo ASC
         `;
 
         return wrapOk(
           rows.map((row) => ({
             codigo: row.codigo.toUpperCase(),
-            origem: row.origem,
+            origem: normalizarOrigem(row.origem),
           })),
         );
       } catch (error) {
@@ -6344,7 +6323,6 @@ export function criarModulosHabilitadosRepositorioPrisma(prisma: PrismaLike): Mo
     },
   };
 }
-
 
 ===== apps/api/src/infra/prisma/produtos/produtosRepositorioPrisma.ts =====
 
@@ -6355,6 +6333,8 @@ import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
 
+type DecimalLike = { toString(): string } | number | string;
+
 type ProdutoRow = {
   produto_id: string;
   locatario_id: string;
@@ -6362,6 +6342,7 @@ type ProdutoRow = {
   nome: string;
   unidade: string | null;
   tipo: string;
+  preco: DecimalLike;
   ativo: boolean;
   criado_em: Date;
   atualizado_em: Date;
@@ -6377,6 +6358,7 @@ const produtoSelect = {
   nome: true,
   unidade: true,
   tipo: true,
+  preco: true,
   ativo: true,
   criado_em: true,
   atualizado_em: true,
@@ -6406,7 +6388,7 @@ function mapProduto(row: ProdutoRow): Produto {
     tipo: mapTipoProduto(row.tipo),
     status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
     // O schema atual não possui preço/custo; valores neutros até evoluir o banco.
-    precoVenda: 0,
+    precoVenda: Number(row.preco.toString()),
     custoReferencia: null,
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
@@ -6435,6 +6417,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
+            preco: produto.precoVenda,
             ativo: produto.status === "ATIVO",
             criado_em: produto.criadoEm,
             atualizado_em: produto.atualizadoEm,
@@ -6491,7 +6474,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  produto_id_locatario_id: {
+                  locatario_id_produto_id: {
                     produto_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -6517,7 +6500,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
       try {
         await db.produtos.update({
           where: {
-            produto_id_locatario_id: {
+            locatario_id_produto_id: {
               produto_id: produto.produtoId,
               locatario_id: produto.locatarioId,
             },
@@ -6527,6 +6510,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
+            preco: produto.precoVenda,
             ativo: produto.status === "ATIVO",
             atualizado_em: produto.atualizadoEm,
             excluido_em: produto.excluidoEm,
@@ -6611,11 +6595,12 @@ const usuarioSelect = {
  * @param status Status persistido no banco.
  * @returns Status adaptado para o contrato do domínio.
  */
-function mapStatusUsuario(status: "ATIVO" | "INATIVO" | "SUSPENSO" | "ENCERRADO"): Usuario["status"] {
+function mapStatusUsuario(status: status_usuario): Usuario["status"] {
   switch (status) {
     case "ATIVO":
       return "ATIVO";
     case "INATIVO":
+    case "BLOQUEADO":
       return "INATIVO";
     case "SUSPENSO":
       return "SUSPENSO";
@@ -6775,24 +6760,53 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      * @param params Escopo do locatário e e-mail normalizado.
      * @returns `Ok(usuario | null)` quando a consulta é concluída.
      */
-    async buscarPorEmailNoLocatario(params): Promise<Result<Usuario | null, ErroApp>> {
+    async buscarPorEmailNoLocatario(params: { locatarioId: LocatarioId | null; emailNormalizado: string; }): Promise<Result<Usuario | null, ErroApp>> {
       try {
         const emailNormalizado = params.emailNormalizado.toLowerCase();
 
-        const row = await db.usuarios.findFirst({
-          where: {
-            locatario_id: params.locatarioId,
-            email: emailNormalizado,
-            excluido_em: null,
-          },
-          select: usuarioSelect,
-        });
+        const row = params.locatarioId === null
+          ? await db.usuarios_plataforma.findFirst({
+              where: {
+                email: emailNormalizado,
+                excluido_em: null,
+              },
+              select: {
+                usuario_id: true,
+                email: true,
+                nome: true,
+                senha_hash: true,
+                status: true,
+                ultimo_login_em: true,
+                criado_em: true,
+                atualizado_em: true,
+                excluido_em: true,
+              },
+            })
+          : await db.usuarios.findFirst({
+              where: {
+                locatario_id: params.locatarioId,
+                email: emailNormalizado,
+                excluido_em: null,
+              },
+              select: usuarioSelect,
+            });
 
         if (!row) {
           return wrapOk(null);
         }
 
-        return wrapOk(mapUsuario(row));
+        return wrapOk(mapUsuario({
+          usuario_id: row.usuario_id,
+          locatario_id: params.locatarioId,
+          email: row.email,
+          nome: row.nome,
+          senha_hash: row.senha_hash,
+          status: row.status,
+          ultimo_login_em: row.ultimo_login_em,
+          criado_em: row.criado_em,
+          atualizado_em: row.atualizado_em,
+          excluido_em: row.excluido_em,
+        }));
       } catch (causa) {
         console.error("ERRO REAL:", causa);
 
@@ -6818,7 +6832,7 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      * @param params Escopo do locatário e paginação opcional.
      * @returns `Ok(usuarios)` quando a consulta é concluída.
      */
-    async listarPorLocatario(params): Promise<Result<Usuario[], ErroApp>> {
+    async listarPorLocatario(params: { locatarioId: LocatarioId; limite?: number; cursor?: string; }): Promise<Result<Usuario[], ErroApp>> {
       try {
         const rows = await db.usuarios.findMany({
           where: {
@@ -6831,7 +6845,10 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  usuario_id: params.cursor,
+                  locatario_id_usuario_id: {
+                    locatario_id: params.locatarioId,
+                    usuario_id: params.cursor,
+                  },
                 },
                 skip: 1,
               }
@@ -6864,6 +6881,17 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
      */
     async atualizar(usuario): Promise<Result<Usuario, ErroApp>> {
       try {
+        if (usuario.locatarioId === null) {
+          return mapearErroInfra(new Error("Usuário de plataforma não é suportado por este repositório"), {
+            entidade: "usuarios",
+            operacao: "infra.usuarios.atualizar",
+            detalhes: {
+              usuarioId: usuario.usuarioId,
+              locatarioId: usuario.locatarioId,
+            },
+          });
+        }
+
         await db.usuarios.updateMany({
           where: {
             usuario_id: usuario.usuarioId,
@@ -7096,18 +7124,39 @@ function mapTipoTransacao(tipo: string): TipoTransacaoComercial {
   return tipo.toUpperCase() === "COMPRA" ? "COMPRA" : "VENDA";
 }
 
-function mapStatusTransacao(status: string, excluidoEm: Date | null): StatusTransacaoComercial {
-  if (excluidoEm) return "CANCELADA";
-
-  switch (status.toUpperCase()) {
+function mapStatusTransacaoParaDb(status: string) {
+  switch (status) {
     case "RASCUNHO":
-    case "ABERTA":
-    case "CONFIRMADA":
-    case "CONCLUIDA":
-    case "CANCELADA":
-      return status.toUpperCase() as StatusTransacaoComercial;
-    default:
       return "ABERTA";
+    case "ABERTA":
+      return "ABERTA";
+    case "CONFIRMADA":
+      return "EM_PROCESSAMENTO";
+    case "CONCLUIDA":
+      return "CONCLUIDA";
+    case "CANCELADA":
+      return "CANCELADA";
+    default:
+      return status;
+  }
+}
+
+function mapStatusTransacaoParaDominio(status: string): StatusTransacaoComercial {
+  switch (status) {
+    case "ABERTA":
+      return "RASCUNHO";
+
+    case "EM_PROCESSAMENTO":
+      return "CONFIRMADA";
+
+    case "CONCLUIDA":
+      return "CONCLUIDA";
+
+    case "CANCELADA":
+      return "CANCELADA";
+
+    default:
+      return "RASCUNHO";
   }
 }
 
@@ -7128,7 +7177,7 @@ function mapTransacao(row: TransacaoRow): TransacaoComercial {
     tipo: mapTipoTransacao(row.tipo),
     clienteId: row.cliente_id,
     fornecedorId: row.fornecedor_id,
-    status: mapStatusTransacao(row.status, row.excluido_em),
+    status: mapStatusTransacaoParaDominio(row.status),
     // O schema atual possui apenas `valor`; subtotal/ajustes são derivados.
     valorSubtotal: valorTotal,
     valorDesconto: 0,
@@ -7193,10 +7242,10 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             fornecedor_id: transacao.fornecedorId,
             ordem_servico_id: null,
             tipo: transacao.tipo,
-            origem: "COMERCIAL",
+            origem: "AVULSA",
             valor: transacao.valorTotal,
             vencimento_em: transacao.criadoEm,
-            status: transacao.status,
+            status: mapStatusTransacaoParaDb(transacao.status),
             criado_em: transacao.criadoEm,
             atualizado_em: transacao.atualizadoEm,
             excluido_em: transacao.excluidoEm,
@@ -7252,7 +7301,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           ...(params.cursor
             ? {
                 cursor: {
-                  transacao_id_locatario_id: {
+                  locatario_id_transacao_id: {
                     transacao_id: params.cursor,
                     locatario_id: params.locatarioId,
                   },
@@ -7278,7 +7327,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
       try {
         await db.transacoes.update({
           where: {
-            transacao_id_locatario_id: {
+            locatario_id_transacao_id: {
               transacao_id: transacao.transacaoId,
               locatario_id: transacao.locatarioId,
             },
@@ -7288,7 +7337,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             fornecedor_id: transacao.fornecedorId,
             tipo: transacao.tipo,
             valor: transacao.valorTotal,
-            status: transacao.status,
+            status: mapStatusTransacaoParaDb(transacao.status),
             atualizado_em: transacao.atualizadoEm,
             excluido_em: transacao.excluidoEm,
             excluido_por: transacao.excluidoPor,
@@ -7427,7 +7476,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
         await db.itens_transacao.update({
           where: {
-            locatario_id_item_transacao_id_transacao_id: {
+            locatario_id_transacao_id_item_transacao_id: {
               locatario_id: item.locatarioId,
               item_transacao_id: item.itemTransacaoId,
               transacao_id: item.transacaoId,
@@ -7473,12 +7522,54 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
       return wrapOk([...(historicoTransacoesEmMemoria.get(key) ?? [])]);
     },
 
-    async listarItensPorTransacao(params) {
-      return wrapOk([]);
+    async listarItensPorTransacao(params): Promise<Result<ItemTransacaoComercial[], ErroApp>> {
+      try {
+        const rows = await db.itens_transacao.findMany({
+          where: {
+            locatario_id: params.locatarioId,
+            transacao_id: params.transacaoId,
+            excluido_em: null,
+          },
+          orderBy: { item_transacao_id: "asc" },
+          select: itemTransacaoSelect,
+        });
+
+        return wrapOk(rows.map(mapItem));
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "itens_transacao",
+          operacao: "infra.vendas.listarItensPorTransacao",
+          detalhes: params,
+        });
+      }
     },
 
-    async removerItem(params) {
-      return wrapOk(undefined);
+    async removerItem(params): Promise<Result<void, ErroApp>> {
+      try {
+        await db.itens_transacao.update({
+          where: {
+            locatario_id_transacao_id_item_transacao_id: {
+              locatario_id: params.locatarioId,
+              transacao_id: params.transacaoId,
+              item_transacao_id: params.itemTransacaoId,
+            },
+          },
+          data: {
+            excluido_em: new Date(),
+            excluido_por: null,
+            excluido_motivo: "Item removido da transação.",
+            atualizado_em: new Date(),
+          },
+        });
+
+        return wrapOk(undefined);
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "itens_transacao",
+          operacao: "infra.vendas.removerItem",
+          detalhes: params,
+        });
+      }
     }
   };
 }
@@ -7579,7 +7670,7 @@ export function createMovimentacaoEstoquePortaPrisma(db: PrismaDb): Movimentacao
       try {
         const delta = movimento.tipo === "SAIDA" ? -Math.abs(movimento.quantidade) : Math.abs(movimento.quantidade);
 
-        await db.movimentos_estoque.create({
+        await db.movimentacoes_estoque.create({
           data: {
             locatario_id: movimento.locatarioId,
             estoque_id: movimento.estoqueId,
@@ -12085,7 +12176,6 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConfirmarTransacao, createFnCriarCompra,
   createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, 
   metaAcao} from "@core-kit/core";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
 import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
@@ -12110,29 +12200,22 @@ function criarDepsVendasBase() {
   };
 }
 
-function criarDepsAdicionarItemTransacao(): Parameters<
-  typeof createFnAdicionarItemTransacao
->[0] {
+function criarDepsAdicionarItemTransacao(): Parameters<typeof createFnAdicionarItemTransacao>[0] {
   const produtosRepositorio = createProdutosRepositorio(clientePrisma);
 
   return {
     ...criarDepsVendasBase(),
-    produtosConsulta: produtosRepositorio as unknown as Parameters<
-      typeof createFnAdicionarItemTransacao
-    >[0]["produtosConsulta"],
+    produtosConsulta: produtosRepositorio as unknown as Parameters<typeof createFnAdicionarItemTransacao>[0]["produtosConsulta"],
     estoquePadraoConsulta: {
       obterEstoquePadrao: async () => ({
         ok: true as const,
         value: null,
       }),
-    } as unknown as Parameters<
-      typeof createFnAdicionarItemTransacao
-    >[0]["estoquePadraoConsulta"],
+    } as unknown as Parameters<typeof createFnAdicionarItemTransacao>[0]["estoquePadraoConsulta"],
   };
 }
 
-function responderErroValidacao(
-  reply: FastifyReply,
+function responderErroValidacao(reply: FastifyReply,
   parseResult: {
     error: {
       flatten: () => {
@@ -12593,7 +12676,7 @@ export const adicionarItemTransacaoBodySchema = z.object({
   estoqueId: z.string().trim().optional().nullable(),
   descricao: z.string().trim().optional().nullable(),
   quantidade: z.coerce.number().positive("Quantidade deve ser maior que zero."),
-  valorUnitario: z.coerce.number().nonnegative("Valor unitário não pode ser negativo."),
+  valorUnitario: z.coerce.number().nonnegative("Valor unitário não pode ser negativo.").optional(),
   valorDesconto: z.coerce.number().nonnegative().default(0),
 });
 
@@ -12934,37 +13017,6 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
       service: "core-kit-api",
     };
   });
-};
-
-===== apps/api/src/routes/index.ts =====
-
-// apps/api/src/routes/index.ts
-
-import type { FastifyPluginAsync } from "fastify";
-import { healthRoutes } from "./health.routes";
-import { authRoutes } from "./auth.routes";
-import { locatariosRoutes } from "./locatarios.routes";
-import { usuariosRoutes } from "./usuarios.routes";
-import { assinaturaModulosRoutes } from "./assinaturaModulos.routes";
-import { clientesRoutes } from "./clientes.routes";
-import { fornecedoresRoutes } from "./fornecedores.routes";
-import { produtosRoutes } from "./produtos.routes";
-import { vendasRoutes } from "./vendas.routes";
-import { auditoriaRoutes } from "./auditoria.routes";
-import { plataformaRoutes } from "./plataforma/plataforma.routes";
-
-export const routes: FastifyPluginAsync = async (app) => {
-  await app.register(healthRoutes, { prefix: "/api" });
-  await app.register(authRoutes, { prefix: "/api" });
-  await app.register(locatariosRoutes, { prefix: "/api" });
-  await app.register(usuariosRoutes, { prefix: "/api" });
-  await app.register(assinaturaModulosRoutes, { prefix: "/api" } );
-  await app.register(clientesRoutes, { prefix: "/api" });
-  await app.register(fornecedoresRoutes, { prefix: "/api" });
-  await app.register(produtosRoutes, { prefix: "/api" });
-  await app.register(vendasRoutes, { prefix: "/api" });
-  await app.register(auditoriaRoutes, { prefix: "/api" });
-  await app.register(plataformaRoutes, { prefix: "/api/plataforma" });
 };
 
 ===== apps/api/src/routes/locatarios.routes.ts =====
@@ -13383,6 +13435,7 @@ export const vendasRoutes: FastifyPluginAsync = async (app) => {
 
 // apps/api/src/server.ts
 
+import "dotenv/config";
 import { env } from "./env";
 import { criarApp } from "./app";
 

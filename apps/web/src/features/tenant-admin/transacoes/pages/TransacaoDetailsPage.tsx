@@ -35,6 +35,21 @@ export default function TransacaoDetailsPage() {
   const [quantidadeEditando, setQuantidadeEditando] = useState("");
   const [valorUnitarioEditando, setValorUnitarioEditando] = useState("");
 
+function parseNumero(value: string): number {
+  const normalized = value.trim().replace(",", ".");
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatarMoeda(valor?: number | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+
   async function handleAdicionarItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -89,6 +104,7 @@ export default function TransacaoDetailsPage() {
   }
 
   const podeEditar = transacao.status === "ABERTA";
+  const itens = transacao.itens ?? [];
 
   return (
     <div className="grid gap-6">
@@ -148,7 +164,11 @@ export default function TransacaoDetailsPage() {
         <div><strong>Status:</strong> {transacao.status}</div>
         <div><strong>Cliente:</strong> {transacao.clienteId ?? "—"}</div>
         <div><strong>Fornecedor:</strong> {transacao.fornecedorId ?? "—"}</div>
-        <div><strong>Total:</strong> {transacao.valorTotal ?? 0}</div>
+        <div><strong>Subtotal:</strong> {formatarMoeda(transacao.valorSubtotal)}</div>
+        <div><strong>Desconto:</strong> {formatarMoeda(transacao.valorDesconto)}</div>
+        <div><strong>Acréscimo:</strong> {formatarMoeda(transacao.valorAcrescimo)}</div>
+        <div><strong>Total:</strong> {formatarMoeda(transacao.valorTotal)}</div>
+        <div><strong>Observação:</strong> {transacao.observacao ?? "—"}</div>
       </div>
 
       {podeEditar ? (
@@ -252,18 +272,22 @@ export default function TransacaoDetailsPage() {
           <thead>
             <tr className="border-b bg-slate-50 text-left">
               <th className="px-4 py-3">Produto</th>
+              <th className="px-4 py-3">Descrição</th>
+              <th className="px-4 py-3">Tipo</th>
               <th className="px-4 py-3">Quantidade</th>
               <th className="px-4 py-3">Valor unitário</th>
+              <th className="px-4 py-3">Desconto</th>
               <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">Movimenta estoque</th>
               <th className="px-4 py-3">Ações</th>
             </tr>
           </thead>
 
           <tbody>
             {(transacao.itens ?? []).map((item) => (
-              <tr key={item.itemId} className="border-b last:border-b-0">
+              <tr key={item.itemTransacaoId} className="border-b last:border-b-0">
                 <td className="px-4 py-3">
-                  {item.nomeProduto ?? item.produtoId}
+                  {item.descricao ?? item.produtoId}
                 </td>
                 <td className="px-4 py-3">{item.quantidade}</td>
                 <td className="px-4 py-3">{item.valorUnitario}</td>
@@ -276,7 +300,7 @@ export default function TransacaoDetailsPage() {
                         type="button"
                         disabled={isSubmitting}
                         onClick={() => {
-                          setItemEditandoId(item.itemId);
+                          setItemEditandoId(item.itemTransacaoId);
                           setQuantidadeEditando(String(item.quantidade));
                           setValorUnitarioEditando(String(item.valorUnitario));
                         }}
@@ -288,7 +312,6 @@ export default function TransacaoDetailsPage() {
                         className="text-red-600 underline"
                         type="button"
                         disabled={isSubmitting}
-                        onClick={() => void removerItem(item.itemId)}
                       >
                         Remover
                       </button>

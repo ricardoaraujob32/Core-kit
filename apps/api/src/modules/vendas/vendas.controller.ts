@@ -4,9 +4,8 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConfirmarTransacao, createFnCriarCompra,
   createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, 
   metaAcao} from "@core-kit/core";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
 import { clientePrisma } from "../../infra/prisma/client";
-import { createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
+import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
 import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
 import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma";
 import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma";
@@ -29,29 +28,15 @@ function criarDepsVendasBase() {
   };
 }
 
-function criarDepsAdicionarItemTransacao(): Parameters<
-  typeof createFnAdicionarItemTransacao
->[0] {
-  const produtosRepositorio = createProdutosRepositorio(clientePrisma);
-
+function criarDepsAdicionarItemTransacao(): Parameters<typeof createFnAdicionarItemTransacao>[0] {
   return {
     ...criarDepsVendasBase(),
-    produtosConsulta: produtosRepositorio as unknown as Parameters<
-      typeof createFnAdicionarItemTransacao
-    >[0]["produtosConsulta"],
-    estoquePadraoConsulta: {
-      obterEstoquePadrao: async () => ({
-        ok: true as const,
-        value: null,
-      }),
-    } as unknown as Parameters<
-      typeof createFnAdicionarItemTransacao
-    >[0]["estoquePadraoConsulta"],
+    produtosConsulta: createProdutoComercialConsultaPortaPrisma(clientePrisma),
+    estoquePadraoConsulta: createEstoquePadraoConsultaPortaPrisma(clientePrisma),
   };
 }
 
-function responderErroValidacao(
-  reply: FastifyReply,
+function responderErroValidacao(reply: FastifyReply,
   parseResult: {
     error: {
       flatten: () => {

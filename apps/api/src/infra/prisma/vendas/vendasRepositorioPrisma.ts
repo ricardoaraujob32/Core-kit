@@ -50,6 +50,7 @@ type ProdutoConsultaRow = {
   tipo: string;
   ativo: boolean;
   excluido_em: Date | null;
+  preco: DecimalLike,
 };
 
 const transacaoSelect = {
@@ -95,6 +96,7 @@ const produtoConsultaSelect = {
   tipo: true,
   ativo: true,
   excluido_em: true,
+  preco: true,
 } as const;
 
 /**
@@ -119,18 +121,39 @@ function mapTipoTransacao(tipo: string): TipoTransacaoComercial {
   return tipo.toUpperCase() === "COMPRA" ? "COMPRA" : "VENDA";
 }
 
-function mapStatusTransacao(status: string, excluidoEm: Date | null): StatusTransacaoComercial {
-  if (excluidoEm) return "CANCELADA";
-
-  switch (status.toUpperCase()) {
+function mapStatusTransacaoParaDb(status: string) {
+  switch (status) {
     case "RASCUNHO":
-    case "ABERTA":
-    case "CONFIRMADA":
-    case "CONCLUIDA":
-    case "CANCELADA":
-      return status.toUpperCase() as StatusTransacaoComercial;
-    default:
       return "ABERTA";
+    case "ABERTA":
+      return "ABERTA";
+    case "CONFIRMADA":
+      return "EM_PROCESSAMENTO";
+    case "CONCLUIDA":
+      return "CONCLUIDA";
+    case "CANCELADA":
+      return "CANCELADA";
+    default:
+      return status;
+  }
+}
+
+function mapStatusTransacaoParaDominio(status: string): StatusTransacaoComercial {
+  switch (status) {
+    case "ABERTA":
+      return "RASCUNHO";
+
+    case "EM_PROCESSAMENTO":
+      return "CONFIRMADA";
+
+    case "CONCLUIDA":
+      return "CONCLUIDA";
+
+    case "CANCELADA":
+      return "CANCELADA";
+
+    default:
+      return "RASCUNHO";
   }
 }
 
@@ -151,7 +174,7 @@ function mapTransacao(row: TransacaoRow): TransacaoComercial {
     tipo: mapTipoTransacao(row.tipo),
     clienteId: row.cliente_id,
     fornecedorId: row.fornecedor_id,
-    status: mapStatusTransacao(row.status, row.excluido_em),
+    status: mapStatusTransacaoParaDominio(row.status),
     // O schema atual possui apenas `valor`; subtotal/ajustes são derivados.
     valorSubtotal: valorTotal,
     valorDesconto: 0,
@@ -216,10 +239,10 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             fornecedor_id: transacao.fornecedorId,
             ordem_servico_id: null,
             tipo: transacao.tipo,
-            origem: "COMERCIAL",
+            origem: "AVULSA",
             valor: transacao.valorTotal,
             vencimento_em: transacao.criadoEm,
-            status: transacao.status,
+            status: mapStatusTransacaoParaDb(transacao.status),
             criado_em: transacao.criadoEm,
             atualizado_em: transacao.atualizadoEm,
             excluido_em: transacao.excluidoEm,
@@ -311,7 +334,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             fornecedor_id: transacao.fornecedorId,
             tipo: transacao.tipo,
             valor: transacao.valorTotal,
-            status: transacao.status,
+            status: mapStatusTransacaoParaDb(transacao.status),
             atualizado_em: transacao.atualizadoEm,
             excluido_em: transacao.excluidoEm,
             excluido_por: transacao.excluidoPor,
@@ -496,12 +519,54 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
       return wrapOk([...(historicoTransacoesEmMemoria.get(key) ?? [])]);
     },
 
-    async listarItensPorTransacao(params) {
-      return wrapOk([]);
+    async listarItensPorTransacao(params): Promise<Result<ItemTransacaoComercial[], ErroApp>> {
+      try {
+        const rows = await db.itens_transacao.findMany({
+          where: {
+            locatario_id: params.locatarioId,
+            transacao_id: params.transacaoId,
+            excluido_em: null,
+          },
+          orderBy: { item_transacao_id: "asc" },
+          select: itemTransacaoSelect,
+        });
+
+        return wrapOk(rows.map(mapItem));
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "itens_transacao",
+          operacao: "infra.vendas.listarItensPorTransacao",
+          detalhes: params,
+        });
+      }
     },
 
-    async removerItem(params) {
-      return wrapOk(undefined);
+    async removerItem(params): Promise<Result<void, ErroApp>> {
+      try {
+        await db.itens_transacao.update({
+          where: {
+            locatario_id_transacao_id_item_transacao_id: {
+              locatario_id: params.locatarioId,
+              transacao_id: params.transacaoId,
+              item_transacao_id: params.itemTransacaoId,
+            },
+          },
+          data: {
+            excluido_em: new Date(),
+            excluido_por: null,
+            excluido_motivo: "Item removido da transação.",
+            atualizado_em: new Date(),
+          },
+        });
+
+        return wrapOk(undefined);
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "itens_transacao",
+          operacao: "infra.vendas.removerItem",
+          detalhes: params,
+        });
+      }
     }
   };
 }
@@ -562,7 +627,6 @@ export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): Produto
         });
 
         if (!row) {
-          // O Core atual não tipa retorno nulo nesta porta; devolvemos item inativo para o usecase barrar.
           return wrapOk({
             produtoId: params.produtoId,
             nome: "Produto não encontrado",
@@ -573,13 +637,18 @@ export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): Produto
           });
         }
 
+        const produto = row;
+
         return wrapOk({
-          produtoId: row.produto_id as ProdutoId,
-          nome: row.nome,
-          tipo: mapTipoProduto(row.tipo),
-          status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
-          // O schema atual ainda não possui preço/custo.
-          precoVenda: 0,
+          produtoId: produto.produto_id as ProdutoId,
+          nome: produto.nome,
+          tipo: mapTipoProduto(produto.tipo),
+          status: produto.excluido_em
+            ? "EXCLUIDO"
+            : produto.ativo
+              ? "ATIVO"
+              : "INATIVO",
+          precoVenda: numberFromDecimal(produto.preco),
           custoReferencia: null,
         });
       } catch (causa) {

@@ -198,14 +198,6 @@ export const router = createBrowserRouter([
             element: <EditarProdutoPage />,
           },
           {
-            path: "transacoes",
-            element: <TransacoesListPage />,
-          },
-          {
-            path: "transacoes/:transacaoId",
-            element: <TransacaoDetailsPage />,
-          },
-          {
             path: "vendas/nova",
             element: <NovaVendaPage />,
           },
@@ -346,9 +338,10 @@ function buildHeaders(config: HttpRequestConfig, token: string | null): Record<s
   // Só insere o header Authorization quando há token e não houver
   // um header `Authorization` explícito (ou quando ele for uma string vazia
   // usada para desabilitar a injeção automática, por exemplo em refresh/logout).
-  if (token && (headers.Authorization === undefined || headers.Authorization === "")) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  // if (token && (headers.Authorization === undefined || headers.Authorization === "")) {
+if (token && headers.Authorization !== "") {
+  headers.Authorization = `Bearer ${token}`;
+}
 
   return headers;
 }
@@ -803,10 +796,15 @@ import type { AuthContextValue, LoginInput, LoginPlataformaInput, SessionUser } 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function normalizeUser(user: SessionUser): SessionUser {
+  const perfil =
+    user.perfil ??
+    (user.locatarioId ? "TENANT" : "PLATAFORMA");
+
   return {
+    ...user,
     usuarioId: user.usuarioId,
     locatarioId: user.locatarioId ?? null,
-    perfil: user.perfil,
+    perfil,
   };
 }
 
@@ -901,10 +899,25 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       try {
         const response = await loginRequest(input);
 
+        // O login tenant retorna tokens. O usuário da sessão vem de /auth/me.
+        // Por isso, persistimos temporariamente o access token antes de chamar meRequest().
+        authStorage.setAccessToken(response.accessToken);
+        setAccessToken(response.accessToken);
+
+        if (response.refreshToken) {
+          authStorage.setRefreshToken(response.refreshToken);
+        } else {
+          authStorage.removeRefreshToken();
+        }
+
+        const usuario =
+          (response as { usuario?: SessionUser }).usuario ??
+          (await meRequest()).usuario;
+
         return applySession({
           accessToken: response.accessToken,
           refreshToken: response.refreshToken,
-          usuario: response.usuario,
+          usuario,
         });
       } catch (error) {
         clearSession();
@@ -1013,7 +1026,6 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
 
 ===== apps/web/src/core/auth/authStorage.ts =====
 
@@ -1609,7 +1621,6 @@ export default SuperAdminRoute;
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { isTenant } from "../auth/tipos";
 import { JSX } from "react";
 
 type TenantRouteProps = {
@@ -1633,12 +1644,6 @@ export function TenantRoute({
   const location = useLocation();
   const { isLoading, isAuthenticated, user } = useAuth();
 
-  console.log("TENANT ROUTE DEBUG", {
-    isLoading,
-    isAuthenticated,
-    user,
-  });
-
   if (isLoading) {
     return <div>Carregando sessão...</div>;
   }
@@ -1654,7 +1659,6 @@ export function TenantRoute({
   }
 
   if (!isTenantLike(user)) {
-    console.warn("TenantRoute bloqueou usuário:", user);
     return <Navigate to={forbiddenPath} replace />;
   }
 
@@ -3378,9 +3382,7 @@ export * from "./tipos";
 
 // apps/web/src/features/tenant-admin/assinatura/pages/AssinaturaModulosPage.tsx
 
-import { PageGuard } from "../../../../core/routing/pageGuard";
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
-import { AssinaturaModulosTable } from "../components/AssinaturaModulosTable";
 import { VincularModuloForm } from "../components/VincularModuloForm";
 import { useAssinaturaModuloActions } from "../hooks/useAssinaturaModuloActions";
 import { useAssinaturaModulos } from "../hooks/useAssinaturaModulos";
@@ -3388,9 +3390,72 @@ import { useAssinaturaModulos } from "../hooks/useAssinaturaModulos";
 const ASSINATURAS_MODULE = "ASSINATURAS";
 
 const ASSINATURAS_PERMISSIONS = {
-  LER: "tenant.assinatura.ler",
   ATUALIZAR: "tenant.assinatura.atualizar",
 } as const;
+
+type ModuloAssinatura = {
+  codigo: string;
+  origem?: string | null;
+};
+
+type AssinaturaModulosTableProps = {
+  modulos: ModuloAssinatura[];
+  podeAtualizar: boolean;
+  isRunning: boolean;
+  onDesvincular: (moduloId: string) => void;
+};
+
+function AssinaturaModulosTableLocal({
+  modulos,
+  podeAtualizar,
+  isRunning,
+  onDesvincular,
+}: AssinaturaModulosTableProps) {
+  if (modulos.length === 0) {
+    return (
+      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+        Nenhum módulo habilitado para este locatário.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-2xl border bg-white">
+      <table className="min-w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b bg-slate-50 text-left">
+            <th className="px-4 py-3">Código</th>
+            <th className="px-4 py-3">Origem</th>
+            <th className="px-4 py-3">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {modulos.map((modulo) => (
+            <tr key={modulo.codigo} className="border-b last:border-b-0">
+              <td className="px-4 py-3 font-medium">{modulo.codigo}</td>
+              <td className="px-4 py-3">{modulo.origem ?? "—"}</td>
+              <td className="px-4 py-3">
+                {podeAtualizar ? (
+                  <button
+                    className="text-red-600 underline disabled:opacity-50"
+                    type="button"
+                    disabled={isRunning}
+                    onClick={() => onDesvincular(modulo.codigo)}
+                  >
+                    Desvincular
+                  </button>
+                ) : (
+                  <span className="text-slate-500">Sem permissão</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function AssinaturaModulosPage() {
   const { hasPermission, hasModule } = useAuthorization();
@@ -3430,7 +3495,7 @@ export default function AssinaturaModulosPage() {
       <div>
         <h1 className="text-2xl font-semibold">Módulos da assinatura</h1>
         <p className="text-sm text-slate-600">
-          Consulte e gerencie os módulos habilitados para o locatário.
+          Consulte os módulos habilitados para o locatário.
         </p>
       </div>
 
@@ -3458,47 +3523,29 @@ export default function AssinaturaModulosPage() {
         </div>
       ) : null}
 
-      <PageGuard
-        requiredModule={ASSINATURAS_MODULE}
-        requiredPermissions={[ASSINATURAS_PERMISSIONS.LER]}
-        fallback={
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Você não possui permissão para consultar os módulos da assinatura.
-          </div>
-        }
-      >
-        <div className="flex gap-3">
-          <button
-            className="rounded-xl border px-4 py-2"
-            type="button"
-            onClick={() => void recarregar()}
-          >
-            Recarregar
-          </button>
-        </div>
+      <div className="flex gap-3">
+        <button
+          className="rounded-xl border px-4 py-2"
+          type="button"
+          onClick={() => void recarregar()}
+        >
+          Recarregar
+        </button>
+      </div>
 
-        <AssinaturaModulosTable
-          modulos={modulos}
-          podeAtualizar={podeAtualizar}
-          isRunning={isRunning !== null}
-          onDesvincular={(moduloId) => void desvincular(moduloId)}
-        />
-      </PageGuard>
+      <AssinaturaModulosTableLocal
+        modulos={modulos}
+        podeAtualizar={podeAtualizar}
+        isRunning={isRunning !== null}
+        onDesvincular={(moduloId) => void desvincular(moduloId)}
+      />
 
-      <PageGuard
-        requiredModule={ASSINATURAS_MODULE}
-        requiredPermissions={[ASSINATURAS_PERMISSIONS.ATUALIZAR]}
-        fallback={
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Você não possui permissão para alterar módulos da assinatura.
-          </div>
-        }
-      >
+      {podeAtualizar ? (
         <VincularModuloForm
           isSaving={isRunning === "vincular"}
           onSubmit={(moduloId) => void vincular(moduloId)}
         />
-      </PageGuard>
+      ) : null}
     </div>
   );
 }
@@ -4247,23 +4294,6 @@ export default function NovoClientePage() {
 
 // apps/web/src/features/tenant-admin/clientes/tipos.ts
 
-export type CriarClienteInput = {
-  nome: string;
-  documento?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-};
-
-export type CriarClienteResponse = {
-  clienteId?: string;
-  locatarioId?: string;
-  nome?: string;
-  documento?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-  criadoEm?: string;
-};
-
 export type Cliente = {
   clienteId: string;
   locatarioId: string;
@@ -4280,25 +4310,19 @@ export type ListarClientesResponse = {
   itens: Cliente[];
 };
 
-export type ObterClienteResponse = {
-  item: Cliente;
-};
+export type ObterClienteResponse = Cliente;
+export type CriarClienteResponse = Cliente;
+export type AtualizarClienteResponse = Cliente;
+export type ExcluirClienteResponse = void;
 
-export type AtualizarClienteInput = {
-  nome?: string;
+export type CriarClienteInput = {
+  nome: string;
   documento?: string | null;
   email?: string | null;
   telefone?: string | null;
 };
 
-export type AtualizarClienteResponse = {
-  item: Cliente;
-};
-
-export type ExcluirClienteResponse = {
-  item?: Cliente;
-  sucesso?: boolean;
-};
+export type AtualizarClienteInput = Partial<CriarClienteInput>;
 
 ===== apps/web/src/features/tenant-admin/compras/api/comprasApi.ts =====
 
@@ -4334,6 +4358,7 @@ export default function NovaCompraPage() {
   const navigate = useNavigate();
 
   const [fornecedorId, setFornecedorId] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -4345,7 +4370,8 @@ export default function NovaCompraPage() {
 
     try {
       const response = await comprasApi.criar({
-        fornecedorId: fornecedorId || null,
+        fornecedorId: fornecedorId.trim() || null,
+        observacao: observacao.trim() || null,
       });
 
       navigate(`/app/transacoes/${response.item.transacaoId}`);
@@ -4357,39 +4383,34 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <form className="grid gap-4 rounded-2xl border bg-white p-6" onSubmit={handleSubmit}>
-      <div>
-        <h1 className="text-2xl font-semibold">Nova compra</h1>
-        <p className="text-sm text-slate-600">
-          Crie uma compra para depois adicionar os itens.
-        </p>
-      </div>
+    <form onSubmit={handleSubmit}>
+      <h1>Nova compra</h1>
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
+      <p>Crie uma compra para depois adicionar os itens.</p>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Fornecedor ID opcional</span>
+      {erro ? <p role="alert">{erro}</p> : null}
+
+      <label>
+        Fornecedor ID opcional
         <input
-          className="rounded-xl border px-3 py-2"
           value={fornecedorId}
           onChange={(event) => setFornecedorId(event.target.value)}
           placeholder="Fornecedor ID"
         />
       </label>
 
-      <div className="flex justify-end">
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? "Criando..." : "Criar compra"}
-        </button>
-      </div>
+      <label>
+        Observação
+        <textarea
+          value={observacao}
+          onChange={(event) => setObservacao(event.target.value)}
+          placeholder="Observação da compra"
+        />
+      </label>
+
+      <button type="submit" disabled={isSaving}>
+        {isSaving ? "Criando..." : "Criar compra"}
+      </button>
     </form>
   );
 }
@@ -4413,10 +4434,7 @@ export const fornecedoresApi = {
   },
 
   criar(input: CriarFornecedorInput): Promise<CriarFornecedorResponse> {
-    return httpClient.post<CriarFornecedorResponse, CriarFornecedorInput>(
-      BASE,
-      input,
-    );
+    return httpClient.post<CriarFornecedorResponse, CriarFornecedorInput>(BASE, input);
   },
 
   atualizar(fornecedorId: string, input: AtualizarFornecedorInput): Promise<AtualizarFornecedorResponse> {
@@ -4676,9 +4694,9 @@ export function useFornecedorDetails(fornecedorId?: string) {
       try {
         const response = await fornecedoresApi.obter(fornecedorId);
 
-        if (ativo) {
-          setFornecedor(response.item);
-        }
+      if (ativo) {
+        setFornecedor(response.item);
+      }
       } catch (error) {
         if (ativo) {
           setErro(mapError(error).message);
@@ -5090,7 +5108,7 @@ export type Fornecedor = {
   fornecedorId: string;
   locatarioId: string;
   nome: string;
-  documento: string | null;
+  documento?: string | null;
   email?: string | null;
   telefone?: string | null;
   criadoEm?: string;
@@ -5102,9 +5120,10 @@ export type ListarFornecedoresResponse = {
   itens: Fornecedor[];
 };
 
-export type ObterFornecedorResponse = {
-  item: Fornecedor;
-};
+export type ObterFornecedorResponse = Fornecedor;
+export type CriarFornecedorResponse = Fornecedor;
+export type AtualizarFornecedorResponse = Fornecedor;
+export type ExcluirFornecedorResponse = void;
 
 export type CriarFornecedorInput = {
   nome: string;
@@ -5113,25 +5132,7 @@ export type CriarFornecedorInput = {
   telefone?: string | null;
 };
 
-export type CriarFornecedorResponse = {
-  item: Fornecedor;
-};
-
-export type AtualizarFornecedorInput = {
-  nome?: string;
-  documento?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-};
-
-export type AtualizarFornecedorResponse = {
-  item: Fornecedor;
-};
-
-export type ExcluirFornecedorResponse = {
-  item?: Fornecedor;
-  sucesso?: boolean;
-};
+export type AtualizarFornecedorInput = Partial<CriarFornecedorInput>;
 
 ===== apps/web/src/features/tenant-admin/locatario/api/meuLocatarioApi.ts =====
 
@@ -6214,7 +6215,7 @@ export function useProdutoDetails(produtoId?: string) {
         const response = await produtosApi.obter(produtoId);
 
         if (ativo) {
-          setProduto(response.item);
+          setProduto(response);
         }
       } catch (error) {
         if (ativo) {
@@ -6703,10 +6704,13 @@ export type TipoProduto = "PRODUTO" | "SERVICO";
 export type Produto = {
   produtoId: string;
   locatarioId: string;
+  sku?: string | null;
   nome: string;
+  descricao?: string | null;
+  unidade: string;
   tipo: TipoProduto;
   precoVenda: number;
-  descricao?: string | null;
+  custoReferencia?: number | null;
   ativo?: boolean;
   criadoEm?: string;
   atualizadoEm?: string;
@@ -6717,36 +6721,23 @@ export type ListarProdutosResponse = {
   itens: Produto[];
 };
 
-export type ObterProdutoResponse = {
-  item: Produto;
-};
+export type ObterProdutoResponse = Produto;
+export type CriarProdutoResponse = Produto;
+export type AtualizarProdutoResponse = Produto;
+export type ExcluirProdutoResponse = void;
 
 export type CriarProdutoInput = {
+  sku?: string | null;
   nome: string;
+  descricao?: string | null;
+  unidade?: string;
   tipo: TipoProduto;
-  precoVenda: number;
-  descricao?: string | null;
-};
-
-export type CriarProdutoResponse = {
-  item: Produto;
-};
-
-export type AtualizarProdutoInput = {
-  nome?: string;
-  tipo?: TipoProduto;
   precoVenda?: number;
-  descricao?: string | null;
+  custoReferencia?: number | null;
+  ativo?: boolean;
 };
 
-export type AtualizarProdutoResponse = {
-  item: Produto;
-};
-
-export type ExcluirProdutoResponse = {
-  item?: Produto;
-  sucesso?: boolean;
-};
+export type AtualizarProdutoInput = Partial<CriarProdutoInput>;
 
 ===== apps/web/src/features/tenant-admin/tipos.ts =====
 
@@ -6958,7 +6949,7 @@ export function useTransacaoDetails(transacaoId?: string) {
 
     try {
       const response = await transacoesApi.obter(transacaoId);
-      setTransacao(response.item);
+      setTransacao(response);
     } catch (error) {
       setErro(mapError(error).message);
     } finally {
@@ -7325,9 +7316,9 @@ export default function TransacaoDetailsPage() {
 
           <tbody>
             {(transacao.itens ?? []).map((item) => (
-              <tr key={item.itemId} className="border-b last:border-b-0">
+              <tr key={item.itemTransacaoId} className="border-b last:border-b-0">
                 <td className="px-4 py-3">
-                  {item.nomeProduto ?? item.produtoId}
+                  {item.descricao ?? item.produtoId}
                 </td>
                 <td className="px-4 py-3">{item.quantidade}</td>
                 <td className="px-4 py-3">{item.valorUnitario}</td>
@@ -7340,7 +7331,7 @@ export default function TransacaoDetailsPage() {
                         type="button"
                         disabled={isSubmitting}
                         onClick={() => {
-                          setItemEditandoId(item.itemId);
+                          setItemEditandoId(item.itemTransacaoId);
                           setQuantidadeEditando(String(item.quantidade));
                           setValorUnitarioEditando(String(item.valorUnitario));
                         }}
@@ -7352,7 +7343,6 @@ export default function TransacaoDetailsPage() {
                         className="text-red-600 underline"
                         type="button"
                         disabled={isSubmitting}
-                        onClick={() => void removerItem(item.itemId)}
                       >
                         Remover
                       </button>
@@ -7478,13 +7468,18 @@ export type StatusTransacao =
   | "CANCELADA";
 
 export type TransacaoItem = {
-  itemId: string;
+  itemTransacaoId: string;
   transacaoId: string;
+  locatarioId: string;
   produtoId: string;
-  nomeProduto?: string;
+  estoqueId?: string | null;
+  descricao?: string | null;
+  tipoProduto: "PRODUTO" | "SERVICO";
   quantidade: number;
   valorUnitario: number;
+  valorDesconto: number;
   valorTotal: number;
+  movimentaEstoque: boolean;
   criadoEm?: string;
   atualizadoEm?: string;
 };
@@ -7493,15 +7488,18 @@ export type Transacao = {
   transacaoId: string;
   locatarioId: string;
   tipo: TipoTransacao;
-  status: StatusTransacao;
   clienteId?: string | null;
   fornecedorId?: string | null;
-  valorTotal?: number;
-  itens?: TransacaoItem[];
+  status: StatusTransacao;
+  valorSubtotal: number;
+  valorDesconto: number;
+  valorAcrescimo: number;
+  valorTotal: number;
+  observacao?: string | null;
   criadoEm?: string;
   atualizadoEm?: string;
-  confirmadoEm?: string | null;
   canceladoEm?: string | null;
+  itens?: TransacaoItem[];
 };
 
 export type ListarTransacoesResponse = {
@@ -7509,25 +7507,34 @@ export type ListarTransacoesResponse = {
 };
 
 export type ObterTransacaoResponse = {
-  item: Transacao;
+  item: Transacao & {
+    itens: TransacaoItem[];
+  };
+};
+
+export type CriarTransacaoResponse = {
+  item: {
+    transacaoId: string;
+  };
 };
 
 export type CriarVendaInput = {
   clienteId?: string | null;
+  observacao?: string | null;
 };
 
 export type CriarCompraInput = {
   fornecedorId?: string | null;
-};
-
-export type CriarTransacaoResponse = {
-  item: Transacao;
+  observacao?: string | null;
 };
 
 export type AdicionarItemTransacaoInput = {
   produtoId: string;
+  estoqueId?: string | null;
+  descricao?: string | null;
   quantidade: number;
   valorUnitario: number;
+  valorDesconto?: number;
 };
 
 export type AdicionarItemTransacaoResponse = {
@@ -7535,16 +7542,21 @@ export type AdicionarItemTransacaoResponse = {
 };
 
 export type AtualizarItemTransacaoInput = {
+  descricao?: string | null;
   quantidade?: number;
   valorUnitario?: number;
+  valorDesconto?: number;
 };
 
 export type AtualizarItemTransacaoResponse = {
-  item: TransacaoItem;
+  item: {
+    item: TransacaoItem;
+    transacao: Transacao;
+  };
 };
 
 export type RemoverItemTransacaoResponse = {
-  sucesso?: boolean;
+  item: Transacao;
 };
 
 export type ConfirmarTransacaoResponse = {
@@ -7552,7 +7564,7 @@ export type ConfirmarTransacaoResponse = {
 };
 
 export type CancelarTransacaoInput = {
-  motivo?: string;
+  motivo?: string | null;
 };
 
 export type CancelarTransacaoResponse = {
@@ -9431,14 +9443,15 @@ export { default as NovaVendaPage } from "./pages/NovaVendaPage";
 // apps/web/src/features/tenant-admin/vendas/pages/NovaVendaPage.tsx
 
 import { useState } from "react";
-import { vendasApi } from "../api/vendasApi";
-import { mapError } from "../../../../core/errors/mapError";
 import { useNavigate } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { vendasApi } from "../api/vendasApi";
 
 export default function NovaVendaPage() {
   const navigate = useNavigate();
 
   const [clienteId, setClienteId] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -9450,7 +9463,8 @@ export default function NovaVendaPage() {
 
     try {
       const response = await vendasApi.criar({
-        clienteId: clienteId || null,
+        clienteId: clienteId.trim() || null,
+        observacao: observacao.trim() || null,
       });
 
       navigate(`/app/transacoes/${response.item.transacaoId}`);
@@ -9462,39 +9476,34 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <form className="grid gap-4 rounded-2xl border bg-white p-6" onSubmit={handleSubmit}>
-      <div>
-        <h1 className="text-2xl font-semibold">Nova venda</h1>
-        <p className="text-sm text-slate-600">
-          Crie uma venda para depois adicionar os itens.
-        </p>
-      </div>
+    <form onSubmit={handleSubmit}>
+      <h1>Nova venda</h1>
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
+      <p>Crie uma venda para depois adicionar os itens.</p>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Cliente ID opcional</span>
+      {erro ? <p role="alert">{erro}</p> : null}
+
+      <label>
+        Cliente ID opcional
         <input
-          className="rounded-xl border px-3 py-2"
           value={clienteId}
           onChange={(event) => setClienteId(event.target.value)}
           placeholder="Cliente ID"
         />
       </label>
 
-      <div className="flex justify-end">
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? "Criando..." : "Criar venda"}
-        </button>
-      </div>
+      <label>
+        Observação
+        <textarea
+          value={observacao}
+          onChange={(event) => setObservacao(event.target.value)}
+          placeholder="Observação da venda"
+        />
+      </label>
+
+      <button type="submit" disabled={isSaving}>
+        {isSaving ? "Criando..." : "Criar venda"}
+      </button>
     </form>
   );
 }

@@ -2,7 +2,6 @@
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
-import { isTenant } from "../auth/tipos";
 import { JSX } from "react";
 
 type TenantRouteProps = {
@@ -26,12 +25,6 @@ export function TenantRoute({
   const location = useLocation();
   const { isLoading, isAuthenticated, user } = useAuth();
 
-  console.log("TENANT ROUTE DEBUG", {
-    isLoading,
-    isAuthenticated,
-    user,
-  });
-
   if (isLoading) {
     return <div>Carregando sessão...</div>;
   }
@@ -47,7 +40,6 @@ export function TenantRoute({
   }
 
   if (!isTenantLike(user)) {
-    console.warn("TenantRoute bloqueou usuário:", user);
     return <Navigate to={forbiddenPath} replace />;
   }
 

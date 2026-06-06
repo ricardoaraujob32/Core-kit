@@ -1,8 +1,6 @@
 // apps/web/src/features/tenant-admin/assinatura/pages/AssinaturaModulosPage.tsx
 
-import { PageGuard } from "../../../../core/routing/pageGuard";
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
-import { AssinaturaModulosTable } from "../components/AssinaturaModulosTable";
 import { VincularModuloForm } from "../components/VincularModuloForm";
 import { useAssinaturaModuloActions } from "../hooks/useAssinaturaModuloActions";
 import { useAssinaturaModulos } from "../hooks/useAssinaturaModulos";
@@ -10,9 +8,72 @@ import { useAssinaturaModulos } from "../hooks/useAssinaturaModulos";
 const ASSINATURAS_MODULE = "ASSINATURAS";
 
 const ASSINATURAS_PERMISSIONS = {
-  LER: "tenant.assinatura.ler",
   ATUALIZAR: "tenant.assinatura.atualizar",
 } as const;
+
+type ModuloAssinatura = {
+  codigo: string;
+  origem?: string | null;
+};
+
+type AssinaturaModulosTableProps = {
+  modulos: ModuloAssinatura[];
+  podeAtualizar: boolean;
+  isRunning: boolean;
+  onDesvincular: (moduloId: string) => void;
+};
+
+function AssinaturaModulosTableLocal({
+  modulos,
+  podeAtualizar,
+  isRunning,
+  onDesvincular,
+}: AssinaturaModulosTableProps) {
+  if (modulos.length === 0) {
+    return (
+      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+        Nenhum módulo habilitado para este locatário.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-2xl border bg-white">
+      <table className="min-w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b bg-slate-50 text-left">
+            <th className="px-4 py-3">Código</th>
+            <th className="px-4 py-3">Origem</th>
+            <th className="px-4 py-3">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {modulos.map((modulo) => (
+            <tr key={modulo.codigo} className="border-b last:border-b-0">
+              <td className="px-4 py-3 font-medium">{modulo.codigo}</td>
+              <td className="px-4 py-3">{modulo.origem ?? "—"}</td>
+              <td className="px-4 py-3">
+                {podeAtualizar ? (
+                  <button
+                    className="text-red-600 underline disabled:opacity-50"
+                    type="button"
+                    disabled={isRunning}
+                    onClick={() => onDesvincular(modulo.codigo)}
+                  >
+                    Desvincular
+                  </button>
+                ) : (
+                  <span className="text-slate-500">Sem permissão</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function AssinaturaModulosPage() {
   const { hasPermission, hasModule } = useAuthorization();
@@ -52,7 +113,7 @@ export default function AssinaturaModulosPage() {
       <div>
         <h1 className="text-2xl font-semibold">Módulos da assinatura</h1>
         <p className="text-sm text-slate-600">
-          Consulte e gerencie os módulos habilitados para o locatário.
+          Consulte os módulos habilitados para o locatário.
         </p>
       </div>
 
@@ -80,47 +141,29 @@ export default function AssinaturaModulosPage() {
         </div>
       ) : null}
 
-      <PageGuard
-        requiredModule={ASSINATURAS_MODULE}
-        requiredPermissions={[ASSINATURAS_PERMISSIONS.LER]}
-        fallback={
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Você não possui permissão para consultar os módulos da assinatura.
-          </div>
-        }
-      >
-        <div className="flex gap-3">
-          <button
-            className="rounded-xl border px-4 py-2"
-            type="button"
-            onClick={() => void recarregar()}
-          >
-            Recarregar
-          </button>
-        </div>
+      <div className="flex gap-3">
+        <button
+          className="rounded-xl border px-4 py-2"
+          type="button"
+          onClick={() => void recarregar()}
+        >
+          Recarregar
+        </button>
+      </div>
 
-        <AssinaturaModulosTable
-          modulos={modulos}
-          podeAtualizar={podeAtualizar}
-          isRunning={isRunning !== null}
-          onDesvincular={(moduloId) => void desvincular(moduloId)}
-        />
-      </PageGuard>
+      <AssinaturaModulosTableLocal
+        modulos={modulos}
+        podeAtualizar={podeAtualizar}
+        isRunning={isRunning !== null}
+        onDesvincular={(moduloId) => void desvincular(moduloId)}
+      />
 
-      <PageGuard
-        requiredModule={ASSINATURAS_MODULE}
-        requiredPermissions={[ASSINATURAS_PERMISSIONS.ATUALIZAR]}
-        fallback={
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Você não possui permissão para alterar módulos da assinatura.
-          </div>
-        }
-      >
+      {podeAtualizar ? (
         <VincularModuloForm
           isSaving={isRunning === "vincular"}
           onSubmit={(moduloId) => void vincular(moduloId)}
         />
-      </PageGuard>
+      ) : null}
     </div>
   );
 }

@@ -15,10 +15,7 @@ export const fornecedoresApi = {
   },
 
   criar(input: CriarFornecedorInput): Promise<CriarFornecedorResponse> {
-    return httpClient.post<CriarFornecedorResponse, CriarFornecedorInput>(
-      BASE,
-      input,
-    );
+    return httpClient.post<CriarFornecedorResponse, CriarFornecedorInput>(BASE, input);
   },
 
   atualizar(fornecedorId: string, input: AtualizarFornecedorInput): Promise<AtualizarFornecedorResponse> {

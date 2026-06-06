@@ -5,10 +5,13 @@ export type TipoProduto = "PRODUTO" | "SERVICO";
 export type Produto = {
   produtoId: string;
   locatarioId: string;
+  sku?: string | null;
   nome: string;
+  descricao?: string | null;
+  unidade: string;
   tipo: TipoProduto;
   precoVenda: number;
-  descricao?: string | null;
+  custoReferencia?: number | null;
   ativo?: boolean;
   criadoEm?: string;
   atualizadoEm?: string;
@@ -19,33 +22,20 @@ export type ListarProdutosResponse = {
   itens: Produto[];
 };
 
-export type ObterProdutoResponse = {
-  item: Produto;
-};
+export type ObterProdutoResponse = Produto;
+export type CriarProdutoResponse = Produto;
+export type AtualizarProdutoResponse = Produto;
+export type ExcluirProdutoResponse = void;
 
 export type CriarProdutoInput = {
+  sku?: string | null;
   nome: string;
+  descricao?: string | null;
+  unidade?: string;
   tipo: TipoProduto;
-  precoVenda: number;
-  descricao?: string | null;
-};
-
-export type CriarProdutoResponse = {
-  item: Produto;
-};
-
-export type AtualizarProdutoInput = {
-  nome?: string;
-  tipo?: TipoProduto;
   precoVenda?: number;
-  descricao?: string | null;
+  custoReferencia?: number | null;
+  ativo?: boolean;
 };
 
-export type AtualizarProdutoResponse = {
-  item: Produto;
-};
-
-export type ExcluirProdutoResponse = {
-  item?: Produto;
-  sucesso?: boolean;
-};
+export type AtualizarProdutoInput = Partial<CriarProdutoInput>;

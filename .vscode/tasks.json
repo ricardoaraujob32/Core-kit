@@ -364,6 +364,30 @@
       }
     },
     {
+      "label": "Database: Testar Restore",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/testar-restore.sh ${input:backupFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Database: Comparar Restore",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/comparar-restore.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Staging: Backup Completo",
+      "type": "shell",
+      "command": "bash scripts-backup/scripts/staging/backup-completo.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
       "label": "typecheck:core",
       "type": "shell",
       "command": "pnpm -C packages/core exec tsc --noEmit",
@@ -929,6 +953,113 @@
         "panel": "dedicated",
         "clear": true
       }
+    },
+    {
+      "label": "Docker: Build API Staging",
+      "type": "shell",
+      "command": "docker build -f apps/api/Dockerfile -t corekit-api:staging .",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build Web Staging",
+      "type": "shell",
+      "command": "docker build -f apps/web/Dockerfile -t corekit-web:staging .",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build All Staging",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Docker: Build API Staging",
+        "Docker: Build Web Staging"
+      ]
+    },
+    {
+      "label": "Docker: Up Staging",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.staging.yml up -d",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Recreate Staging",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.staging.yml up -d --force-recreate",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Deploy Staging Local",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Docker: Build API Staging",
+        "Docker: Build Web Staging",
+        "Docker: Recreate Staging"
+      ]
+    },
+    {
+      "label": "Docker: Down Staging",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.staging.yml down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: PS",
+      "type": "shell",
+      "command": "docker ps",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Logs API",
+      "type": "shell",
+      "command": "docker logs -f corekit-api-staging",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Logs Web",
+      "type": "shell",
+      "command": "docker logs -f corekit-web-staging",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Health API",
+      "type": "shell",
+      "command": "curl -i http://localhost:3334/api/auth/me",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
     },
   ]
 }

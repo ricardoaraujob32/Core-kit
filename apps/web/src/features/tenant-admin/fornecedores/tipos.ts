@@ -4,7 +4,7 @@ export type Fornecedor = {
   fornecedorId: string;
   locatarioId: string;
   nome: string;
-  documento: string | null;
+  documento?: string | null;
   email?: string | null;
   telefone?: string | null;
   criadoEm?: string;
@@ -20,6 +20,16 @@ export type ObterFornecedorResponse = {
   item: Fornecedor;
 };
 
+export type CriarFornecedorResponse = {
+  item: Fornecedor;
+};
+
+export type AtualizarFornecedorResponse = {
+  item: Fornecedor;
+};
+
+export type ExcluirFornecedorResponse = void;
+
 export type CriarFornecedorInput = {
   nome: string;
   documento?: string | null;
@@ -27,22 +37,4 @@ export type CriarFornecedorInput = {
   telefone?: string | null;
 };
 
-export type CriarFornecedorResponse = {
-  item: Fornecedor;
-};
-
-export type AtualizarFornecedorInput = {
-  nome?: string;
-  documento?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-};
-
-export type AtualizarFornecedorResponse = {
-  item: Fornecedor;
-};
-
-export type ExcluirFornecedorResponse = {
-  item?: Fornecedor;
-  sucesso?: boolean;
-};
+export type AtualizarFornecedorInput = Partial<CriarFornecedorInput>;

@@ -26,7 +26,7 @@ export const adicionarItemTransacaoBodySchema = z.object({
   estoqueId: z.string().trim().optional().nullable(),
   descricao: z.string().trim().optional().nullable(),
   quantidade: z.coerce.number().positive("Quantidade deve ser maior que zero."),
-  valorUnitario: z.coerce.number().nonnegative("Valor unitário não pode ser negativo."),
+  valorUnitario: z.coerce.number().nonnegative("Valor unitário não pode ser negativo.").optional(),
   valorDesconto: z.coerce.number().nonnegative().default(0),
 });
 

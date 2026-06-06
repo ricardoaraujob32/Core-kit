@@ -1,22 +1,5 @@
 // apps/web/src/features/tenant-admin/clientes/tipos.ts
 
-export type CriarClienteInput = {
-  nome: string;
-  documento?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-};
-
-export type CriarClienteResponse = {
-  clienteId?: string;
-  locatarioId?: string;
-  nome?: string;
-  documento?: string | null;
-  email?: string | null;
-  telefone?: string | null;
-  criadoEm?: string;
-};
-
 export type Cliente = {
   clienteId: string;
   locatarioId: string;
@@ -37,18 +20,21 @@ export type ObterClienteResponse = {
   item: Cliente;
 };
 
-export type AtualizarClienteInput = {
-  nome?: string;
-  documento?: string | null;
-  email?: string | null;
-  telefone?: string | null;
+export type CriarClienteResponse = {
+  item: Cliente;
 };
 
 export type AtualizarClienteResponse = {
   item: Cliente;
 };
 
-export type ExcluirClienteResponse = {
-  item?: Cliente;
-  sucesso?: boolean;
+export type ExcluirClienteResponse = void;
+
+export type CriarClienteInput = {
+  nome: string;
+  documento?: string | null;
+  email?: string | null;
+  telefone?: string | null;
 };
+
+export type AtualizarClienteInput = Partial<CriarClienteInput>;

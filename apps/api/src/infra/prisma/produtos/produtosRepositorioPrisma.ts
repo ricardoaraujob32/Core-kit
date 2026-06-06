@@ -5,6 +5,8 @@ import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
 
+type DecimalLike = { toString(): string } | number | string;
+
 type ProdutoRow = {
   produto_id: string;
   locatario_id: string;
@@ -12,6 +14,7 @@ type ProdutoRow = {
   nome: string;
   unidade: string | null;
   tipo: string;
+  preco: DecimalLike;
   ativo: boolean;
   criado_em: Date;
   atualizado_em: Date;
@@ -27,6 +30,7 @@ const produtoSelect = {
   nome: true,
   unidade: true,
   tipo: true,
+  preco: true,
   ativo: true,
   criado_em: true,
   atualizado_em: true,
@@ -56,7 +60,7 @@ function mapProduto(row: ProdutoRow): Produto {
     tipo: mapTipoProduto(row.tipo),
     status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
     // O schema atual não possui preço/custo; valores neutros até evoluir o banco.
-    precoVenda: 0,
+    precoVenda: Number(row.preco.toString()),
     custoReferencia: null,
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
@@ -85,6 +89,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
+            preco: produto.precoVenda,
             ativo: produto.status === "ATIVO",
             criado_em: produto.criadoEm,
             atualizado_em: produto.atualizadoEm,
@@ -177,6 +182,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
+            preco: produto.precoVenda,
             ativo: produto.status === "ATIVO",
             atualizado_em: produto.atualizadoEm,
             excluido_em: produto.excluidoEm,

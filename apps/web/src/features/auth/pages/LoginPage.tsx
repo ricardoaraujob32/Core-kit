@@ -40,10 +40,6 @@ export default function LoginPage(): JSX.Element {
       console.log("LOGIN USER", authenticatedUser);
       console.log("REDIRECT", targetPath);
 
-      queueMicrotask(() => {
-        navigate(targetPath, { replace: true });
-      });
-
       navigate(targetPath, { replace: true });
     } catch (error) {
       setErro(mapError(error).message);

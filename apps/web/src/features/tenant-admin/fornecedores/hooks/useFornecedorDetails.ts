@@ -26,9 +26,9 @@ export function useFornecedorDetails(fornecedorId?: string) {
       try {
         const response = await fornecedoresApi.obter(fornecedorId);
 
-        if (ativo) {
-          setFornecedor(response.item);
-        }
+      if (ativo) {
+        setFornecedor(response.item);
+      }
       } catch (error) {
         if (ativo) {
           setErro(mapError(error).message);

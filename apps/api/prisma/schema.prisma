@@ -453,6 +453,7 @@ model produtos {
   excluido_em           DateTime?               @db.Timestamptz(6)
   excluido_por          String?                 @db.Uuid
   excluido_motivo       String?
+  preco                 Decimal                 @default(0) @db.Decimal(18, 3)
   itens_transacao       itens_transacao[]
   movimentacoes_estoque movimentacoes_estoque[]
   locatarios            locatarios              @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "produtos_locatarios_fk")

@@ -2,11 +2,11 @@
 
 export type CriarVendaInput = {
   clienteId?: string | null;
+  observacao?: string | null;
 };
 
 export type CriarVendaResponse = {
-  vendaId?: string;
-  locatarioId?: string;
-  clienteId?: string | null;
-  criadoEm?: string;
+  item: {
+    transacaoId: string;
+  };
 };

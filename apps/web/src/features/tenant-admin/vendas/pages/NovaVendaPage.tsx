@@ -1,14 +1,15 @@
 // apps/web/src/features/tenant-admin/vendas/pages/NovaVendaPage.tsx
 
 import { useState } from "react";
-import { vendasApi } from "../api/vendasApi";
-import { mapError } from "../../../../core/errors/mapError";
 import { useNavigate } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { vendasApi } from "../api/vendasApi";
 
 export default function NovaVendaPage() {
   const navigate = useNavigate();
 
   const [clienteId, setClienteId] = useState("");
+  const [observacao, setObservacao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -20,7 +21,8 @@ export default function NovaVendaPage() {
 
     try {
       const response = await vendasApi.criar({
-        clienteId: clienteId || null,
+        clienteId: clienteId.trim() || null,
+        observacao: observacao.trim() || null,
       });
 
       navigate(`/app/transacoes/${response.item.transacaoId}`);
@@ -32,39 +34,34 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <form className="grid gap-4 rounded-2xl border bg-white p-6" onSubmit={handleSubmit}>
-      <div>
-        <h1 className="text-2xl font-semibold">Nova venda</h1>
-        <p className="text-sm text-slate-600">
-          Crie uma venda para depois adicionar os itens.
-        </p>
-      </div>
+    <form onSubmit={handleSubmit}>
+      <h1>Nova venda</h1>
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
+      <p>Crie uma venda para depois adicionar os itens.</p>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Cliente ID opcional</span>
+      {erro ? <p role="alert">{erro}</p> : null}
+
+      <label>
+        Cliente ID opcional
         <input
-          className="rounded-xl border px-3 py-2"
           value={clienteId}
           onChange={(event) => setClienteId(event.target.value)}
           placeholder="Cliente ID"
         />
       </label>
 
-      <div className="flex justify-end">
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? "Criando..." : "Criar venda"}
-        </button>
-      </div>
+      <label>
+        Observação
+        <textarea
+          value={observacao}
+          onChange={(event) => setObservacao(event.target.value)}
+          placeholder="Observação da venda"
+        />
+      </label>
+
+      <button type="submit" disabled={isSaving}>
+        {isSaving ? "Criando..." : "Criar venda"}
+      </button>
     </form>
   );
 }
