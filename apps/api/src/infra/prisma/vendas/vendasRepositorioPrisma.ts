@@ -2,7 +2,7 @@
 
 import type { ErroApp, EstoqueId, EstoquePadraoConsultaPorta, HistoricoTransacaoComercial, ItemTransacaoComercial, ItemTransacaoId, LocatarioId, MovimentacaoEstoquePorta,
   ProdutoComercialConsultaPorta, ProdutoId, Result, StatusTransacaoComercial, TipoProduto, TipoTransacaoComercial, TransacaoComercial, TransacaoId, UsuarioId,
-  VendasRepositorio } from "@core-kit/core";
+  VendasRepositorio, MovimentoEstoqueComercial } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
@@ -567,6 +567,10 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           detalhes: params,
         });
       }
+    },
+
+    async registrarMovimentoEstoque(movimento: MovimentoEstoqueComercial) {
+      return createMovimentacaoEstoquePortaPrisma(db).registrarMovimento(movimento);
     }
   };
 }

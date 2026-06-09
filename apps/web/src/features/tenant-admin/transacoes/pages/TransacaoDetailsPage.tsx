@@ -5,12 +5,25 @@ import { useParams } from "react-router-dom";
 import { useTransacaoActions } from "../hooks/useTransacaoActions";
 import { useTransacaoDetails } from "../hooks/useTransacaoDetails";
 
+function parseNumero(value: string): number {
+  const normalized = value.trim().replace(",", ".");
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatarMoeda(valor?: number | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export default function TransacaoDetailsPage() {
   const params = useParams<{ transacaoId: string }>();
   const transacaoId = params.transacaoId?.trim();
 
-  const { transacao, isLoading, erro, recarregar } =
-    useTransacaoDetails(transacaoId);
+  const { transacao, isLoading, erro, recarregar } = useTransacaoDetails(transacaoId);
 
   const {
     adicionarItem,
@@ -26,42 +39,38 @@ export default function TransacaoDetailsPage() {
   });
 
   const [produtoId, setProdutoId] = useState("");
+  const [estoqueId, setEstoqueId] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [quantidade, setQuantidade] = useState("1");
   const [valorUnitario, setValorUnitario] = useState("0");
+  const [valorDesconto, setValorDesconto] = useState("0");
 
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
 
   const [itemEditandoId, setItemEditandoId] = useState<string | null>(null);
+  const [descricaoEditando, setDescricaoEditando] = useState("");
   const [quantidadeEditando, setQuantidadeEditando] = useState("");
   const [valorUnitarioEditando, setValorUnitarioEditando] = useState("");
-
-function parseNumero(value: string): number {
-  const normalized = value.trim().replace(",", ".");
-  const parsed = Number(normalized);
-
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatarMoeda(valor?: number | null): string {
-  return Number(valor ?? 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
+  const [valorDescontoEditando, setValorDescontoEditando] = useState("");
 
   async function handleAdicionarItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     await adicionarItem({
-      produtoId,
-      quantidade: Number(quantidade),
-      valorUnitario: Number(valorUnitario),
+      produtoId: produtoId.trim(),
+      estoqueId: estoqueId.trim() || null,
+      descricao: descricao.trim() || null,
+      quantidade: parseNumero(quantidade),
+      valorUnitario: parseNumero(valorUnitario),
+      valorDesconto: parseNumero(valorDesconto),
     });
 
     setProdutoId("");
+    setEstoqueId("");
+    setDescricao("");
     setQuantidade("1");
     setValorUnitario("0");
+    setValorDesconto("0");
   }
 
   async function handleAtualizarItem(event: React.FormEvent<HTMLFormElement>) {
@@ -70,13 +79,17 @@ function formatarMoeda(valor?: number | null): string {
     if (!itemEditandoId) return;
 
     await atualizarItem(itemEditandoId, {
-      quantidade: Number(quantidadeEditando),
-      valorUnitario: Number(valorUnitarioEditando),
+      descricao: descricaoEditando.trim() || null,
+      quantidade: parseNumero(quantidadeEditando),
+      valorUnitario: parseNumero(valorUnitarioEditando),
+      valorDesconto: parseNumero(valorDescontoEditando),
     });
 
     setItemEditandoId(null);
+    setDescricaoEditando("");
     setQuantidadeEditando("");
     setValorUnitarioEditando("");
+    setValorDescontoEditando("");
   }
 
   if (isLoading) {
@@ -103,7 +116,7 @@ function formatarMoeda(valor?: number | null): string {
     );
   }
 
-  const podeEditar = transacao.status === "ABERTA";
+  const podeEditar = transacao.status === "ABERTA" || transacao.status === "RASCUNHO";
   const itens = transacao.itens ?? [];
 
   return (
@@ -126,7 +139,7 @@ function formatarMoeda(valor?: number | null): string {
             onChange={(event) => setMotivoCancelamento(event.target.value)}
           />
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <button
               className="rounded-xl border px-4 py-2"
               type="button"
@@ -142,7 +155,7 @@ function formatarMoeda(valor?: number | null): string {
               disabled={isSubmitting || transacao.status === "CANCELADA"}
               onClick={() =>
                 void cancelar({
-                  motivo: motivoCancelamento || undefined,
+                  motivo: motivoCancelamento.trim() || null,
                 })
               }
             >
@@ -188,9 +201,22 @@ function formatarMoeda(valor?: number | null): string {
 
           <input
             className="rounded-xl border px-3 py-2"
-            type="number"
-            min="1"
-            step="1"
+            placeholder="Estoque ID opcional"
+            value={estoqueId}
+            onChange={(event) => setEstoqueId(event.target.value)}
+          />
+
+          <input
+            className="rounded-xl border px-3 py-2"
+            placeholder="Descrição opcional"
+            value={descricao}
+            onChange={(event) => setDescricao(event.target.value)}
+          />
+
+          <input
+            className="rounded-xl border px-3 py-2"
+            type="text"
+            inputMode="decimal"
             placeholder="Quantidade"
             value={quantidade}
             onChange={(event) => setQuantidade(event.target.value)}
@@ -199,13 +225,21 @@ function formatarMoeda(valor?: number | null): string {
 
           <input
             className="rounded-xl border px-3 py-2"
-            type="number"
-            min="0"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             placeholder="Valor unitário"
             value={valorUnitario}
             onChange={(event) => setValorUnitario(event.target.value)}
             required
+          />
+
+          <input
+            className="rounded-xl border px-3 py-2"
+            type="text"
+            inputMode="decimal"
+            placeholder="Desconto"
+            value={valorDesconto}
+            onChange={(event) => setValorDesconto(event.target.value)}
           />
 
           <div className="flex justify-end">
@@ -229,9 +263,15 @@ function formatarMoeda(valor?: number | null): string {
 
           <input
             className="rounded-xl border px-3 py-2"
-            type="number"
-            min="1"
-            step="1"
+            placeholder="Descrição opcional"
+            value={descricaoEditando}
+            onChange={(event) => setDescricaoEditando(event.target.value)}
+          />
+
+          <input
+            className="rounded-xl border px-3 py-2"
+            type="text"
+            inputMode="decimal"
             value={quantidadeEditando}
             onChange={(event) => setQuantidadeEditando(event.target.value)}
             required
@@ -239,15 +279,22 @@ function formatarMoeda(valor?: number | null): string {
 
           <input
             className="rounded-xl border px-3 py-2"
-            type="number"
-            min="0"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             value={valorUnitarioEditando}
             onChange={(event) => setValorUnitarioEditando(event.target.value)}
             required
           />
 
-          <div className="flex gap-2 justify-end">
+          <input
+            className="rounded-xl border px-3 py-2"
+            type="text"
+            inputMode="decimal"
+            value={valorDescontoEditando}
+            onChange={(event) => setValorDescontoEditando(event.target.value)}
+          />
+
+          <div className="flex justify-end gap-2">
             <button
               className="rounded-xl border px-4 py-2"
               type="button"
@@ -284,14 +331,16 @@ function formatarMoeda(valor?: number | null): string {
           </thead>
 
           <tbody>
-            {(transacao.itens ?? []).map((item) => (
+            {itens.map((item) => (
               <tr key={item.itemTransacaoId} className="border-b last:border-b-0">
-                <td className="px-4 py-3">
-                  {item.descricao ?? item.produtoId}
-                </td>
+                <td className="px-4 py-3">{item.produtoId}</td>
+                <td className="px-4 py-3">{item.descricao ?? "—"}</td>
+                <td className="px-4 py-3">{item.tipoProduto}</td>
                 <td className="px-4 py-3">{item.quantidade}</td>
-                <td className="px-4 py-3">{item.valorUnitario}</td>
-                <td className="px-4 py-3">{item.valorTotal}</td>
+                <td className="px-4 py-3">{formatarMoeda(item.valorUnitario)}</td>
+                <td className="px-4 py-3">{formatarMoeda(item.valorDesconto)}</td>
+                <td className="px-4 py-3">{formatarMoeda(item.valorTotal)}</td>
+                <td className="px-4 py-3">{item.movimentaEstoque ? "Sim" : "Não"}</td>
                 <td className="px-4 py-3">
                   {podeEditar ? (
                     <div className="flex gap-3">
@@ -301,8 +350,10 @@ function formatarMoeda(valor?: number | null): string {
                         disabled={isSubmitting}
                         onClick={() => {
                           setItemEditandoId(item.itemTransacaoId);
+                          setDescricaoEditando(item.descricao ?? "");
                           setQuantidadeEditando(String(item.quantidade));
                           setValorUnitarioEditando(String(item.valorUnitario));
+                          setValorDescontoEditando(String(item.valorDesconto));
                         }}
                       >
                         Editar
@@ -312,6 +363,7 @@ function formatarMoeda(valor?: number | null): string {
                         className="text-red-600 underline"
                         type="button"
                         disabled={isSubmitting}
+                        onClick={() => void removerItem(item.itemTransacaoId)}
                       >
                         Remover
                       </button>
@@ -323,9 +375,9 @@ function formatarMoeda(valor?: number | null): string {
               </tr>
             ))}
 
-            {(transacao.itens ?? []).length === 0 ? (
+            {itens.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-slate-500" colSpan={5}>
+                <td className="px-4 py-8 text-center text-slate-500" colSpan={9}>
                   Nenhum item adicionado.
                 </td>
               </tr>

@@ -7055,6 +7055,7 @@ type ProdutoConsultaRow = {
   tipo: string;
   ativo: boolean;
   excluido_em: Date | null;
+  preco: DecimalLike,
 };
 
 const transacaoSelect = {
@@ -7100,6 +7101,7 @@ const produtoConsultaSelect = {
   tipo: true,
   ativo: true,
   excluido_em: true,
+  preco: true,
 } as const;
 
 /**
@@ -7630,7 +7632,6 @@ export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): Produto
         });
 
         if (!row) {
-          // O Core atual não tipa retorno nulo nesta porta; devolvemos item inativo para o usecase barrar.
           return wrapOk({
             produtoId: params.produtoId,
             nome: "Produto não encontrado",
@@ -7641,13 +7642,18 @@ export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): Produto
           });
         }
 
+        const produto = row;
+
         return wrapOk({
-          produtoId: row.produto_id as ProdutoId,
-          nome: row.nome,
-          tipo: mapTipoProduto(row.tipo),
-          status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
-          // O schema atual ainda não possui preço/custo.
-          precoVenda: 0,
+          produtoId: produto.produto_id as ProdutoId,
+          nome: produto.nome,
+          tipo: mapTipoProduto(produto.tipo),
+          status: produto.excluido_em
+            ? "EXCLUIDO"
+            : produto.ativo
+              ? "ATIVO"
+              : "INATIVO",
+          precoVenda: numberFromDecimal(produto.preco),
           custoReferencia: null,
         });
       } catch (causa) {
@@ -12177,7 +12183,7 @@ import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createF
   createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, 
   metaAcao} from "@core-kit/core";
 import { clientePrisma } from "../../infra/prisma/client";
-import { createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
+import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
 import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
 import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma";
 import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma";
@@ -12201,17 +12207,10 @@ function criarDepsVendasBase() {
 }
 
 function criarDepsAdicionarItemTransacao(): Parameters<typeof createFnAdicionarItemTransacao>[0] {
-  const produtosRepositorio = createProdutosRepositorio(clientePrisma);
-
   return {
     ...criarDepsVendasBase(),
-    produtosConsulta: produtosRepositorio as unknown as Parameters<typeof createFnAdicionarItemTransacao>[0]["produtosConsulta"],
-    estoquePadraoConsulta: {
-      obterEstoquePadrao: async () => ({
-        ok: true as const,
-        value: null,
-      }),
-    } as unknown as Parameters<typeof createFnAdicionarItemTransacao>[0]["estoquePadraoConsulta"],
+    produtosConsulta: createProdutoComercialConsultaPortaPrisma(clientePrisma),
+    estoquePadraoConsulta: createEstoquePadraoConsultaPortaPrisma(clientePrisma),
   };
 }
 

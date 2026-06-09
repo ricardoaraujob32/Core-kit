@@ -71,15 +71,26 @@ export interface VendasRepositorio {
   listarHistorico(params: { locatarioId: LocatarioId; transacaoId: TransacaoId }): Promise<Result<HistoricoTransacaoComercial[], ErroApp>>;
 
   listarItensPorTransacao(params: {
-  locatarioId: LocatarioId;
-  transacaoId: TransacaoId;
-}): Promise<Result<ItemTransacaoComercial[], ErroApp>>;
+    locatarioId: LocatarioId;
+    transacaoId: TransacaoId;
+  }): Promise<Result<ItemTransacaoComercial[], ErroApp>>;
 
-removerItem(params: {
-  locatarioId: LocatarioId;
-  transacaoId: TransacaoId;
-  itemTransacaoId: ItemTransacaoId;
-}): Promise<Result<void, ErroApp>>;
+  removerItem(params: {
+    locatarioId: LocatarioId;
+    transacaoId: TransacaoId;
+    itemTransacaoId: ItemTransacaoId;
+  }): Promise<Result<void, ErroApp>>;
+
+  registrarMovimentoEstoque(movimento: {
+    locatarioId: LocatarioId;
+    estoqueId: EstoqueId | null;
+    produtoId: ProdutoId;
+    transacaoId: TransacaoId;
+    itemTransacaoId: ItemTransacaoId;
+    tipo: "ENTRADA" | "SAIDA";
+    quantidade: number;
+    ocorridoEm: Date;
+  }): Promise<Result<void, ErroApp>>;
 }
 
 /**

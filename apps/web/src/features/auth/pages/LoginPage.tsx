@@ -4,16 +4,12 @@ import type { JSX, FormEvent } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
-import { isPlataforma } from "../../../core/auth/tipos";
 import { mapError } from "../../../core/errors/mapError";
-
-type LoginMode = "TENANT" | "PLATAFORMA";
 
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();
-  const { login, loginPlataforma, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
 
-  const [mode, setMode] = useState<LoginMode>("TENANT");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [locatarioSlug, setLocatarioSlug] = useState("");
@@ -24,23 +20,13 @@ export default function LoginPage(): JSX.Element {
     setErro(null);
 
     try {
-      const authenticatedUser =
-        mode === "PLATAFORMA"
-          ? await loginPlataforma({ email, senha })
-          : await login({
-              email,
-              senha,
-              locatarioSlug: locatarioSlug.trim(),
-            });
+      await login({
+        email: email.trim(),
+        senha,
+        locatarioSlug: locatarioSlug.trim(),
+      });
 
-      const targetPath = isPlataforma(authenticatedUser)
-        ? "/superadmin"
-        : "/app";
-
-      console.log("LOGIN USER", authenticatedUser);
-      console.log("REDIRECT", targetPath);
-
-      navigate(targetPath, { replace: true });
+      navigate("/app", { replace: true });
     } catch (error) {
       setErro(mapError(error).message);
     }
@@ -50,44 +36,20 @@ export default function LoginPage(): JSX.Element {
     <main>
       <h1>Entrar</h1>
 
+      <p>Área administrativa do locatário.</p>
+
       <form onSubmit={handleSubmit}>
         <div>
-          <label>
-            <input
-              type="radio"
-              name="loginMode"
-              value="TENANT"
-              checked={mode === "TENANT"}
-              onChange={() => setMode("TENANT")}
-            />
-            Locatário
-          </label>
-
-          <label style={{ marginLeft: 12 }}>
-            <input
-              type="radio"
-              name="loginMode"
-              value="PLATAFORMA"
-              checked={mode === "PLATAFORMA"}
-              onChange={() => setMode("PLATAFORMA")}
-            />
-            Plataforma
-          </label>
+          <label htmlFor="locatarioSlug">Locatário</label>
+          <input
+            id="locatarioSlug"
+            type="text"
+            value={locatarioSlug}
+            onChange={(event) => setLocatarioSlug(event.target.value)}
+            autoComplete="organization"
+            required
+          />
         </div>
-
-        {mode === "TENANT" ? (
-          <div>
-            <label htmlFor="locatarioSlug">Locatário</label>
-            <input
-              id="locatarioSlug"
-              type="text"
-              value={locatarioSlug}
-              onChange={(event) => setLocatarioSlug(event.target.value)}
-              autoComplete="organization"
-              required
-            />
-          </div>
-        ) : null}
 
         <div>
           <label htmlFor="email">E-mail</label>

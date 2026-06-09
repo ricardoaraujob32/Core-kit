@@ -36,6 +36,15 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 /**
+ * 
+ * @param value 
+ * @returns 
+ */
+function isLocClaimValido(value: unknown): value is LocatarioId | null {
+  return value === null || isNonEmptyString(value);
+}
+
+/**
  * Implementação da porta de JWT usada por `auth`.
  *
  * Responsabilidades:
@@ -79,7 +88,7 @@ export const jwtPorta: JwtAuthPorta = {
 
       if (
         !isNonEmptyString(payload.sub) ||
-        !isNonEmptyString(payload.loc) ||
+        !isLocClaimValido(payload.loc) ||
         !isNonEmptyString(payload.session) ||
         typeof payload.exp !== "number"
       ) {
@@ -140,7 +149,7 @@ export const jwtPorta: JwtAuthPorta = {
 
       if (
         !isNonEmptyString(payload.sub) ||
-        !isNonEmptyString(payload.loc) ||
+        !isLocClaimValido(payload.loc) ||
         !isNonEmptyString(payload.session) ||
         typeof payload.exp !== "number"
       ) {

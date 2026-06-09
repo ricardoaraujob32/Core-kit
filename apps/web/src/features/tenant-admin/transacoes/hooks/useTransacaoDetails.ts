@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { mapError } from "../../../../core/errors/mapError";
 import { transacoesApi } from "../api/transacoesApi";
-import type { Transacao } from "../tipos";
+import type { TransacaoDetalhada } from "../tipos";
 
 export function useTransacaoDetails(transacaoId?: string) {
-  const [transacao, setTransacao] = useState<Transacao | null>(null);
+  const [transacao, setTransacao] = useState<TransacaoDetalhada | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 

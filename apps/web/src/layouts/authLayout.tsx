@@ -15,7 +15,7 @@ export default function AuthLayout(): JSX.Element {
   if (isAuthenticated && user) {
     return (
       <Navigate
-        to={isPlataforma(user) ? "/superadmin" : "/app"}
+        to={isPlataforma(user) ? "/plataforma" : "/app"}
         replace
       />
     );

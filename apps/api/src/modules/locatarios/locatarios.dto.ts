@@ -86,6 +86,15 @@ export const atualizarConfiguracaoBodySchema = z.object({
   { message: "Informe ao menos um campo para atualização da configuração." },
 );
 
+export const moduloIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+  moduloId: z.string().trim().min(1, "O parâmetro 'moduloId' é obrigatório."),
+});
+
+export const vincularModuloAssinaturaBodySchema = z.object({
+  moduloId: z.string().trim().min(1, "O campo 'moduloId' é obrigatório."),
+});
+
 export type LocatarioIdParamsDto = z.infer<typeof locatarioIdParamsSchema>;
 export type ConfiguracaoIdParamsDto = z.infer<typeof configuracaoIdParamsSchema>;
 export type ConfiguracaoIdOnlyParamsDto = z.infer<typeof configuracaoIdOnlyParamsSchema>;
@@ -96,6 +105,8 @@ export type ReativarLocatarioBodyDto = z.infer<typeof reativarLocatarioBodySchem
 export type EncerrarLocatarioBodyDto = z.infer<typeof encerrarLocatarioBodySchema>;
 export type CriarConfiguracaoBodyDto = z.infer<typeof criarConfiguracaoBodySchema>;
 export type AtualizarConfiguracaoBodyDto = z.infer<typeof atualizarConfiguracaoBodySchema>;
+export type ModuloIdParamsDto = z.infer<typeof moduloIdParamsSchema>;
+export type VincularModuloAssinaturaBodyDto = z.infer<typeof vincularModuloAssinaturaBodySchema>;
 
 export type ConfiguracaoLocatarioResponseDto = {
   locatarioId: string;
@@ -176,4 +187,12 @@ export function parseCriarConfiguracaoBody(input: unknown) {
 
 export function parseAtualizarConfiguracaoBody(input: unknown) {
   return atualizarConfiguracaoBodySchema.safeParse(input);
+}
+
+export function parseModuloIdParams(input: unknown) {
+  return moduloIdParamsSchema.safeParse(input);
+}
+
+export function parseVincularModuloAssinaturaBody(input: unknown) {
+  return vincularModuloAssinaturaBodySchema.safeParse(input);
 }

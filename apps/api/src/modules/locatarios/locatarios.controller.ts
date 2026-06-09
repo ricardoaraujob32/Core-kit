@@ -4,21 +4,27 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { sendHttpError } from "../../http/serializarErroApp";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createFnAtivarConfiguracaoLocatario, createFnAtualizarConfiguracaoLocatario, createFnAtualizarLocatario, createFnCriarConfiguracaoLocatario, 
-  createFnCriarLocatario, createFnEncerrarLocatario, createFnListarLocatarios, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, 
+  createFnCriarLocatario, createFnDesvincularModuloDaAssinatura, createFnEncerrarLocatario, createFnListarLocatarios, createFnListarModulosHabilitadosLocatario, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, 
+  createFnVincularModuloNaAssinatura, 
   metaAcao } from "@core-kit/core";
 import { exigirMesmoLocatarioHttp } from "../../http/routeGuards";
 //import { auditar } from "../auditoria/auditoria.dispatcher.instance";
 import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
 import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma";
 import { AtualizarConfiguracaoBodyDto, AtualizarLocatarioBodyDto, ConfiguracaoIdOnlyParamsDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, CriarLocatarioBodyDto, EncerrarLocatarioBodyDto, 
-  LocatarioIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
-  parseEncerrarLocatarioBody, parseLocatarioIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, ReativarLocatarioBodyDto, 
-  SuspenderLocatarioBodyDto } from "./locatarios.dto";
+  LocatarioIdParamsDto, ModuloIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
+  parseEncerrarLocatarioBody, parseLocatarioIdParams, parseModuloIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, parseVincularModuloAssinaturaBody, ReativarLocatarioBodyDto, 
+  SuspenderLocatarioBodyDto, 
+  VincularModuloAssinaturaBodyDto} from "./locatarios.dto";
 import { autorizarHttp } from "../../http/autorizarHttp";
 import { auditarController } from "../auditoria/auditarController";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
 import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp";
 import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma";
+import { createAssinaturasRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/assinaturasRepositorioPrisma";
+import { createAssinaturasModulosRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma";
+import { createModulosConsultaRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/modulosConsultaRepositorioPrisma";
+import { responderErroValidacaoZod } from "../helpersValidacao";
 
 function criarDepsLocatarios() {
   const locatariosRepositorio = createLocatariosRepositorio(clientePrisma);
@@ -28,6 +34,17 @@ function criarDepsLocatarios() {
     transacao: getAuthBootstrap().runtime.transacao,
     relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
     idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+  };
+}
+
+function criarDepsAssinaturas() {
+  return {
+    assinaturasRepositorio: createAssinaturasRepositorioPrisma(clientePrisma),
+    assinaturasModulosRepositorio: createAssinaturasModulosRepositorioPrisma(clientePrisma),
+    modulosConsultaRepositorio: createModulosConsultaRepositorioPrisma(clientePrisma),
+    relogio: {
+      agora: () => new Date(),
+    },
   };
 }
 
@@ -575,4 +592,125 @@ export async function ativarConfiguracaoLocatarioController(request: FastifyRequ
   if (!resultado.ok) return sendHttpError(reply, resultado.error);
 
   return reply.status(200).send({ item: resultado.value.configuracao });
+}
+
+export async function listarModulosLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseLocatarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const listar = createFnListarModulosHabilitadosLocatario(criarDepsAssinaturas());
+
+  const resultado = await listar({
+    locatarioId: paramsParse.data.id,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: resultado.value,
+  });
+}
+
+export async function vincularModuloLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: VincularModuloAssinaturaBodyDto; }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseLocatarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const bodyParse = parseVincularModuloAssinaturaBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacaoZod(reply, bodyParse, "http.plataforma.locatarios.modulos.body");
+  }
+
+  const deps = criarDepsAssinaturas();
+
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
+    paramsParse.data.id,
+  );
+
+  if (!assinaturaAtiva.ok) {
+    return sendHttpError(reply, assinaturaAtiva.error);
+  }
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Locatário não possui assinatura ativa.",
+      detalhes: {
+        locatarioId: paramsParse.data.id,
+        operacao: "http.plataforma.locatarios.modulos.vincular.assinaturaAtiva",
+      },
+    });
+  }
+
+  const vincular = createFnVincularModuloNaAssinatura(deps);
+
+  const resultado = await vincular({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: bodyParse.data.moduloId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: resultado.value,
+  });
+}
+
+export async function desvincularModuloLocatarioPlataformaController(request: FastifyRequest<{ Params: ModuloIdParamsDto }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseModuloIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const deps = criarDepsAssinaturas();
+
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
+    paramsParse.data.id,
+  );
+
+  if (!assinaturaAtiva.ok) {
+    return sendHttpError(reply, assinaturaAtiva.error);
+  }
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Locatário não possui assinatura ativa.",
+      detalhes: {
+        locatarioId: paramsParse.data.id,
+        operacao: "http.plataforma.locatarios.modulos.desvincular.assinaturaAtiva",
+      },
+    });
+  }
+
+  const desvincular = createFnDesvincularModuloDaAssinatura(deps);
+
+  const resultado = await desvincular({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: paramsParse.data.moduloId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: resultado.value,
+  });
 }

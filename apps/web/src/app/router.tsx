@@ -25,6 +25,9 @@ import { EditarProdutoPage, NovoProdutoPage, ProdutoDetailsPage, ProdutosListPag
 import { NovaVendaPage } from "../features/tenant-admin/vendas";
 import { TransacaoDetailsPage, TransacoesListPage } from "../features/tenant-admin/transacoes";
 import { NovaCompraPage } from "../features/tenant-admin/compras";
+import { EditarLocatarioPage, LocatarioDetailsPage, LocatariosListPage, NovoLocatarioPage, NovoUsuarioLocatarioPage } from "../features/superadmin/locatarios";
+import PlataformaLoginPage from "../features/auth/pages/PlataformaLoginPage";
+import UsuariosLocatarioListPage from "../features/superadmin/locatarios/pages/UsuariosLocatarioListPage";
 
 /**
  * 
@@ -41,6 +44,10 @@ export const router = createBrowserRouter([
         path: "/login",
         element: <LoginPage />,
       },
+      {
+        path: "/plataforma/login",
+        element: <PlataformaLoginPage />,
+      },
     ],
   },
   {
@@ -53,15 +60,39 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <SuperAdminRoute />,
+    element: <SuperAdminRoute loginPath="/plataforma/login" />,
     children: [
       {
-        path: "/superadmin",
+        path: "/plataforma",
         element: <SuperAdminLayout />,
         children: [
-          {
-            index: true,
-            element: <SuperAdminDashboard />,
+          { 
+            index: true, 
+            element: <SuperAdminDashboard /> 
+          },
+          { 
+            path: "locatarios", 
+            element: <LocatariosListPage /> 
+          },
+          { 
+            path: "locatarios/novo", 
+            element: <NovoLocatarioPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId", 
+            element: <LocatarioDetailsPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId/editar", 
+            element: <EditarLocatarioPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId/usuarios", 
+            element: <UsuariosLocatarioListPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId/usuarios/novo", 
+            element: <NovoUsuarioLocatarioPage /> 
           },
         ],
       },

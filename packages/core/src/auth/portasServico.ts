@@ -51,7 +51,7 @@ export interface JwtAuthPorta {
         token: string;
         payload: {
           sub: UsuarioId;
-          loc: LocatarioId;
+          loc: LocatarioId | null;
           session: string;
           exp: number;
         };

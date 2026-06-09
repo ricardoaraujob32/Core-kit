@@ -46,7 +46,7 @@ export class HttpError extends Error {
   }
 }
 
-const API_BASE_URL = "http://localhost:3334/api";
+const API_BASE_URL = "http://localhost:3333/api";
 
 let accessTokenGetter: (() => string | null) | null = null;
 let refreshSessionHandler: (() => Promise<boolean>) | null = null;

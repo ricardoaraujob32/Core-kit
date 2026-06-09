@@ -12,6 +12,7 @@ import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.pr
 import { autorizarHttp } from "../../http/autorizarHttp";
 import { auditarController } from "../auditoria/auditarController";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { autorizarPlataformaHttp } from "@core-kit/api/http/autorizarPlataformaHttp";
 
 /**
  * Monta as dependências operacionais do módulo de usuários na API.
@@ -484,5 +485,28 @@ export async function reativarUsuarioController(request: FastifyRequest<{ Params
 
   return reply.status(200).send({
     item: toUsuarioResponseDto(resultado.value.usuario),
+  });
+}
+
+export async function listarUsuariosLocatarioPlataformaController(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const locatarioId = request.params.id;
+
+  const listarUsuarios = createFnListarUsuariosPorLocatario({
+    usuariosRepositorio: createUsuariosRepositorio(clientePrisma),
+  });
+
+  const resultado = await listarUsuarios({
+    locatarioId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarUsuariosResponseDto(resultado.value.itens),
   });
 }

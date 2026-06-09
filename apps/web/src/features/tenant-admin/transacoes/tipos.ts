@@ -8,7 +8,8 @@ export type StatusTransacao =
   | "AGUARDANDO_PAGAMENTO"
   | "ENVIADA"
   | "CONCLUIDA"
-  | "CANCELADA";
+  | "CANCELADA"
+  | "RASCUNHO";
 
 export type TransacaoItem = {
   itemTransacaoId: string;
@@ -45,14 +46,16 @@ export type Transacao = {
   itens?: TransacaoItem[];
 };
 
+export type TransacaoDetalhada = Transacao & {
+  itens: TransacaoItem[];
+};
+
 export type ListarTransacoesResponse = {
   itens: Transacao[];
 };
 
 export type ObterTransacaoResponse = {
-  item: Transacao & {
-    itens: TransacaoItem[];
-  };
+  item: TransacaoDetalhada;
 };
 
 export type CriarTransacaoResponse = {

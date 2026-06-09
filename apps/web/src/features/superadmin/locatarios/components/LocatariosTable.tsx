@@ -3,17 +3,11 @@
 import { Link } from "react-router-dom";
 import type { Locatario } from "../tipos";
 
-type Props = {
-  itens: Locatario[];
-};
+type Props = { itens: Locatario[] };
 
 export function LocatariosTable({ itens }: Props) {
   if (itens.length === 0) {
-    return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhum locatário encontrado.
-      </div>
-    );
+    return <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">Nenhum locatário encontrado.</div>;
   }
 
   return (
@@ -36,19 +30,10 @@ export function LocatariosTable({ itens }: Props) {
               <td className="px-4 py-3">{item.email}</td>
               <td className="px-4 py-3">{item.status}</td>
               <td className="px-4 py-3">
-                <div className="flex gap-3">
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/superadmin/locatarios/${item.locatarioId}`}
-                  >
-                    Detalhes
-                  </Link>
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/superadmin/locatarios/${item.locatarioId}/editar`}
-                  >
-                    Editar
-                  </Link>
+                <div className="flex flex-wrap gap-3">
+                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}`}>Detalhes</Link>
+                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}/editar`}>Editar</Link>
+                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}/usuarios/novo`}>Novo usuário</Link>
                 </div>
               </td>
             </tr>
