@@ -1,11 +1,11 @@
 // packages/core/src/tokens/usecases/obterTokenPorHash.ts
 
-import { RelogioPorta, wrapOk } from "../../kernel";
-import type { ObterTokenPorHashInput, ObterTokenPorHashOutput, ObterTokenPorHashResult } from "../tipos";
-import type { TokensRepositorio } from "../portasRepositorio";
-import { exigirEstadoUtilizavelToken } from "../maquinaEstados";
-import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
-import { obterTokenObrigatorioPorHash } from "./helpers";
+import { RelogioPorta, wrapOk } from "../../kernel/index.js";
+import type { ObterTokenPorHashInput, ObterTokenPorHashOutput, ObterTokenPorHashResult } from "../tipos.js";
+import type { TokensRepositorio } from "../portasRepositorio.js";
+import { exigirEstadoUtilizavelToken } from "../maquinaEstados.js";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas.js";
+import { obterTokenObrigatorioPorHash } from "./helpers.js";
 
 /**
  * Cria a função de caso de uso responsável por obter um token a partir de seu hash.

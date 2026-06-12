@@ -1,10 +1,10 @@
 // packages/core/src/locatarios/usecases/helpers.ts
 
-import type { LocatariosRepositorio } from "../portasRepositorio";
-import { validarLocatarioId } from "../validadores";
-import { locatarioInvalido, locatarioNaoEncontrado } from "../erros";
-import type { ConfiguracaoLocatarioId, Locatario, LocatarioId } from "../tipos";
-import { wrapOk } from "../../kernel";
+import type { LocatariosRepositorio } from "../portasRepositorio.js";
+import { validarLocatarioId } from "../validadores.js";
+import { locatarioInvalido, locatarioNaoEncontrado } from "../erros.js";
+import type { ConfiguracaoLocatarioId, Locatario, LocatarioId } from "../tipos.js";
+import { wrapOk } from "../../kernel/index.js";
 
 /**
  * 

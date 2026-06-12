@@ -1,11 +1,11 @@
 // packages/core/src/vendas/tipos.ts
 
-import type { ErroApp, Result } from "../kernel";
-import type { ClienteId } from "../clientes";
-import type { FornecedorId } from "../fornecedores";
-import type { ProdutoId, TipoProduto } from "../produtos";
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
+import type { ErroApp, Result } from "../kernel/index.js";
+import type { ClienteId } from "../clientes/index.js";
+import type { FornecedorId } from "../fornecedores/index.js";
+import type { ProdutoId, TipoProduto } from "../produtos/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
 
 export type TransacaoId = string;
 export type ItemTransacaoId = string;

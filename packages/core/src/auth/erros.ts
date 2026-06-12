@@ -1,6 +1,6 @@
 // packages/core/src/auth/erros.ts
 
-import { createErroApp } from "../kernel";
+import { createErroApp } from "../kernel/index.js";
 
 export type CodigoErroAuth =
   | "AUTH_CREDENCIAIS_INVALIDAS"

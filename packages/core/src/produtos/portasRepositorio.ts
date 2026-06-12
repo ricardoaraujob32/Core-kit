@@ -1,8 +1,8 @@
 // packages/core/src/produtos/portasRepositorio.ts
 
-import type { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import type { Produto, ProdutoId, TipoProduto } from "./tipos";
+import type { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import type { Produto, ProdutoId, TipoProduto } from "./tipos.js";
 
 /**
  * 

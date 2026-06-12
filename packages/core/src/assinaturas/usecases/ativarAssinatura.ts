@@ -1,12 +1,12 @@
 // packages/core/src/assinaturas/usecases/ativarAssinatura.ts
 
-import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
-import { erroAssinaturaNaoEncontrada } from "../erros";
-import { transicionarEstadoAssinatura } from "../maquinaEstados";
-import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
-import { AssinaturasRepositorio } from "../portasRepositorio";
-import { AtivarAssinaturaInput, AtivarAssinaturaOutput, AtivarAssinaturaResult } from "../tipos";
-import { validarAtivarAssinaturaInput } from "../validadores";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel/index.js";
+import { erroAssinaturaNaoEncontrada } from "../erros.js";
+import { transicionarEstadoAssinatura } from "../maquinaEstados.js";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas.js";
+import { AssinaturasRepositorio } from "../portasRepositorio.js";
+import { AtivarAssinaturaInput, AtivarAssinaturaOutput, AtivarAssinaturaResult } from "../tipos.js";
+import { validarAtivarAssinaturaInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

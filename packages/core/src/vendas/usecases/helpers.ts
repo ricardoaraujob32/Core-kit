@@ -1,8 +1,8 @@
 // packages/core/src/vendas/usecases/helpers.ts
 
-import type { IdPorta, RelogioPorta } from "../../kernel";
-import { UsuarioId } from "../../usuarios";
-import type { HistoricoTransacaoComercial, StatusTransacaoComercial, TransacaoComercial } from "../tipos";
+import type { IdPorta, RelogioPorta } from "../../kernel/index.js";
+import { UsuarioId } from "../../usuarios/index.js";
+import type { HistoricoTransacaoComercial, StatusTransacaoComercial, TransacaoComercial } from "../tipos.js";
 
 export function calcularTotais(
   itens: Array<{

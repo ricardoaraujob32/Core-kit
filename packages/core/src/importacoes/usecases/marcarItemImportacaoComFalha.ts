@@ -1,10 +1,10 @@
 // packages/core/src/importacoes/usecases/marcarItemImportacaoComFalha.ts
 
-import { ErroApp, Result } from "../../kernel";
-import { erroItemImportacaoNaoEncontrado, erroTransicaoStatusImportacaoInvalida } from "../erros";
-import { ItensImportacaoRepositorio } from "../portasRepositorio";
-import { ItemImportacao, MarcarItemImportacaoComFalhaInput } from "../tipos";
-import { validarMarcarItemImportacaoComFalhaInput } from "../validadores";
+import { ErroApp, Result } from "../../kernel/index.js";
+import { erroItemImportacaoNaoEncontrado, erroTransicaoStatusImportacaoInvalida } from "../erros.js";
+import { ItensImportacaoRepositorio } from "../portasRepositorio.js";
+import { ItemImportacao, MarcarItemImportacaoComFalhaInput } from "../tipos.js";
+import { validarMarcarItemImportacaoComFalhaInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

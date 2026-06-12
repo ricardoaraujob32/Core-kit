@@ -1,9 +1,9 @@
 // packages/core/src/auth/portasServico.ts
 
-import { ContextoExecucao, ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
-import { ChaveToken } from "./tipos";
+import { ContextoExecucao, ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
+import { ChaveToken } from "./tipos.js";
 
 /**
  * Porta de hashing/comparação de senha usada por `auth`.

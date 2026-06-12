@@ -1,9 +1,9 @@
 // packages/core/src/rbac/tipos.ts
 
-import { ContextoExecucao, ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { ModuloCodigo } from "../modulos";
-import { UsuarioId } from "../usuarios";
+import { ContextoExecucao, ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { ModuloCodigo } from "../modulos/index.js";
+import { UsuarioId } from "../usuarios/index.js";
 
 /**
  * Papéis sugeridos de uso comum.

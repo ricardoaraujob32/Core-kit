@@ -1,10 +1,10 @@
 // packages/core/src/importacoes/usecases/registrarItemImportacao.ts
 
-import { ErroApp, IdPorta, RelogioPorta, Result } from "../../kernel";
-import { erroImportacaoNaoEncontrada } from "../erros";
-import { ImportacoesRepositorio, ItensImportacaoRepositorio } from "../portasRepositorio";
-import { ItemImportacao, RegistrarItemImportacaoInput } from "../tipos";
-import { validarRegistrarItemImportacaoInput } from "../validadores";
+import { ErroApp, IdPorta, RelogioPorta, Result } from "../../kernel/index.js";
+import { erroImportacaoNaoEncontrada } from "../erros.js";
+import { ImportacoesRepositorio, ItensImportacaoRepositorio } from "../portasRepositorio.js";
+import { ItemImportacao, RegistrarItemImportacaoInput } from "../tipos.js";
+import { validarRegistrarItemImportacaoInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

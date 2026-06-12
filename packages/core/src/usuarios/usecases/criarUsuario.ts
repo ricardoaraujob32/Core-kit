@@ -1,12 +1,12 @@
 // packages/core/src/usuarios/usecases/criarUsuario.ts
 
-import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
-import type { CriarUsuarioInput, CriarUsuarioOutput, CriarUsuarioResult } from "../tipos";
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import { validarEmailUsuario, validarNomeUsuario, validarSenhaHash } from "../validadores";
-import { emailUsuarioJaExiste } from "../erros";
-import { validarLocatarioId } from "../../locatarios";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { CriarUsuarioInput, CriarUsuarioOutput, CriarUsuarioResult } from "../tipos.js";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import { validarEmailUsuario, validarNomeUsuario, validarSenhaHash } from "../validadores.js";
+import { emailUsuarioJaExiste } from "../erros.js";
+import { validarLocatarioId } from "../../locatarios/index.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
 
 /**
  * Cria a função de caso de uso responsável por registrar um novo usuário.

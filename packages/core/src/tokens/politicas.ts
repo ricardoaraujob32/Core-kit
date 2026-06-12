@@ -1,9 +1,9 @@
 // packages/core/src/tokens/politicas.ts
 
-import type { Result, ErroApp } from "../kernel";
-import type { LocatarioId } from "../locatarios";
-import type { UsuarioId } from "../usuarios";
-import type { TokenId, TokenPersistido } from "./tipos";
+import type { Result, ErroApp } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { UsuarioId } from "../usuarios/index.js";
+import type { TokenId, TokenPersistido } from "./tipos.js";
 
 export type OperacaoPoliticaToken =
   | "TOKEN_EMITIR"

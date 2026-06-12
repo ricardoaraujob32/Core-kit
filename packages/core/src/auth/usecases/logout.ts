@@ -1,9 +1,9 @@
 // packages/core/src/auth/usecases/logout.ts
 
-import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
-import { EventosSegurancaPorta, TokensAuthPorta } from "../portasServico";
-import { LogoutInput, LogoutOutput, LogoutResult } from "../tipos";
-import { validarLocatarioIdAuth, validarTokenNaoVazio } from "../validadores";
+import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { EventosSegurancaPorta, TokensAuthPorta } from "../portasServico.js";
+import { LogoutInput, LogoutOutput, LogoutResult } from "../tipos.js";
+import { validarLocatarioIdAuth, validarTokenNaoVazio } from "../validadores.js";
 
 /**
  * 

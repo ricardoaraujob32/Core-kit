@@ -1,9 +1,9 @@
 // packages/core/src/kernel/utils.ts
 
-import type { ErroApp } from "./erros";
-import type { Result } from "./result";
-import { wrapOk } from "./result";
-import { createErroApp } from "./ROPHelpers";
+import type { ErroApp } from "./erros.js";
+import type { Result } from "./result.js";
+import { wrapOk } from "./result.js";
+import { createErroApp } from "./ROPHelpers.js";
 
 /**
  * Propósito do arquivo:

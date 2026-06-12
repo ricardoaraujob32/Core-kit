@@ -1,12 +1,12 @@
 // packages/core/src/auditoria/usecases/registrarEventoAuditoriaPlataforma.ts
 
-import { wrapOk } from "../../kernel";
-import { erroAuditoriaInvalida } from "../erros";
-import type { AuditoriaPlataformaRepositorio } from "../portasRepositorio";
-import { resolverEventoAuditoria } from "../resolverEventoAuditoria";
-import type { RegistrarEventoAuditoriaPlataformaInput, RegistrarEventoAuditoriaPlataformaOutput, RegistrarEventoAuditoriaPlataformaResult } from "../tipos";
-import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas";
-import { validarRegistrarEventoAuditoriaPlataformaInput } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { erroAuditoriaInvalida } from "../erros.js";
+import type { AuditoriaPlataformaRepositorio } from "../portasRepositorio.js";
+import { resolverEventoAuditoria } from "../resolverEventoAuditoria.js";
+import type { RegistrarEventoAuditoriaPlataformaInput, RegistrarEventoAuditoriaPlataformaOutput, RegistrarEventoAuditoriaPlataformaResult } from "../tipos.js";
+import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas.js";
+import { validarRegistrarEventoAuditoriaPlataformaInput } from "../validadores.js";
 
 /**
  * 

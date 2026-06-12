@@ -1,9 +1,9 @@
 // packages/core/src/auth/usecases/rotacionarRefresh.ts
 
-import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
-import { EventosSegurancaPorta, JwtAuthPorta, TokensAuthPorta } from "../portasServico";
-import { RotacionarRefreshResult, RotacionarRefreshInput, Sessao, RotacionarRefreshOutput } from "../tipos";
-import { validarLocatarioIdAuth, validarTokenNaoVazio } from "../validadores";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { EventosSegurancaPorta, JwtAuthPorta, TokensAuthPorta } from "../portasServico.js";
+import { RotacionarRefreshResult, RotacionarRefreshInput, Sessao, RotacionarRefreshOutput } from "../tipos.js";
+import { validarLocatarioIdAuth, validarTokenNaoVazio } from "../validadores.js";
 
 /**
  * Cria o caso de uso responsável por rotacionar um refresh token

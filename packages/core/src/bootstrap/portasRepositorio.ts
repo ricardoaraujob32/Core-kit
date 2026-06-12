@@ -1,7 +1,7 @@
 // packages/core/src/bootstrap/portasRepositorio.ts
 
-import type { ErroApp, Result } from "../kernel";
-import type { CatalogoAutorizacaoBootstrap } from "./tipos";
+import type { ErroApp, Result } from "../kernel/index.js";
+import type { CatalogoAutorizacaoBootstrap } from "./tipos.js";
 
 /**
  * 

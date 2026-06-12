@@ -1,10 +1,10 @@
 // packages/core/src/modulos/usecases/resolverModulosHabilitados.ts
 
-import { comModulosHabilitados, wrapOk } from "../../kernel";
-import type { ModulosHabilitadosRepositorio } from "../portasRepositorio";
+import { comModulosHabilitados, wrapOk } from "../../kernel/index.js";
+import type { ModulosHabilitadosRepositorio } from "../portasRepositorio.js";
 import type { ListarModulosHabilitadosInput, ModuloCodigo, ModuloHabilitado, ResolverModulosHabilitadosInput, ResolverModulosHabilitadosOutput,
-   ResolverModulosHabilitadosResult } from "../tipos";
-import { validarListarModulosHabilitadosInput } from "../validadores";
+   ResolverModulosHabilitadosResult } from "../tipos.js";
+import { validarListarModulosHabilitadosInput } from "../validadores.js";
 
 /**
  * Enriquece o contexto com os módulos habilitados do locatário atual.

@@ -1,10 +1,10 @@
 // packages/core/src/auditoria/usecases/listarAuditoriaLocatario.ts
 
-import { wrapOk } from "../../kernel";
-import type { AuditoriaLocatarioRepositorio } from "../portasRepositorio";
-import type { ListarAuditoriaLocatarioInput, ListarAuditoriaLocatarioOutput, ListarAuditoriaLocatarioResult } from "../tipos";
-import { validarListarAuditoriaLocatarioInput } from "../validadores";
-import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas";
+import { wrapOk } from "../../kernel/index.js";
+import type { AuditoriaLocatarioRepositorio } from "../portasRepositorio.js";
+import type { ListarAuditoriaLocatarioInput, ListarAuditoriaLocatarioOutput, ListarAuditoriaLocatarioResult } from "../tipos.js";
+import { validarListarAuditoriaLocatarioInput } from "../validadores.js";
+import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas.js";
 
 /**
  * 

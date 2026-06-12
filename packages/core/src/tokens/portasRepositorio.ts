@@ -1,9 +1,9 @@
 // packages/core/src/tokens/portasRepositorio.ts
 
-import { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
-import { TokenId, TokenPersistido, TokenTipo } from "./tipos";
+import { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
+import { TokenId, TokenPersistido, TokenTipo } from "./tipos.js";
 
 /**
  * Porta de persistência do domínio de tokens.

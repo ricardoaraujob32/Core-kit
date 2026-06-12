@@ -1,12 +1,12 @@
 // packages/core/src/produtos/usecases/atualizarProduto.ts
 
-import type { ProdutosRepositorio } from "../portasRepositorio";
-import type { AtualizarProdutoInput, AtualizarProdutoOutput, AtualizarProdutoResult } from "../tipos";
+import type { ProdutosRepositorio } from "../portasRepositorio.js";
+import type { AtualizarProdutoInput, AtualizarProdutoOutput, AtualizarProdutoResult } from "../tipos.js";
 import { validarLocatarioId, validarProdutoId, validarNomeProduto, validarSkuProduto, validarDescricaoProduto, validarUnidadeProduto, validarTipoProduto, validarPrecoVendaProduto,
   validarCustoReferenciaProduto, 
-  validarValorOpcionalNaoNegativo} from "../validadores";
-import { produtoNaoEncontrado } from "../erros";
-import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+  validarValorOpcionalNaoNegativo} from "../validadores.js";
+import { produtoNaoEncontrado } from "../erros.js";
+import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
 
 /**
  * 

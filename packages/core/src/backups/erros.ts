@@ -1,8 +1,8 @@
 // packages/core/src/backups/erros.ts
 
-import { createErroApp, ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { BackupId } from "./tipos";
+import { createErroApp, ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { BackupId } from "./tipos.js";
 
 export type CodigoErroBackup =
   | "BACKUP_INVALIDO"

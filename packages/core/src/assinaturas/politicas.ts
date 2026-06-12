@@ -1,9 +1,9 @@
 // packages/core/src/assinaturas/politicas.ts
 
-import type { Result, ErroApp } from "../kernel";
-import type { LocatarioId } from "../locatarios";
-import type { Assinatura, AssinaturaId, PlanoId } from "./tipos";
-import type { ModuloId } from "../modulos";
+import type { Result, ErroApp } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { Assinatura, AssinaturaId, PlanoId } from "./tipos.js";
+import type { ModuloId } from "../modulos/index.js";
 
 export type OperacaoPoliticaAssinatura =
   | "ASSINATURA_CRIAR"

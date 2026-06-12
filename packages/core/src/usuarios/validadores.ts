@@ -1,8 +1,8 @@
 // packages/core/src/usuarios/validadores.ts
 
-import { validarEmail, validarIdGenerico, validarTextoObrigatorio, type ErroApp, type Result } from "../kernel";
-import { usuarioInvalido } from "./erros";
-import { UsuarioId } from "./tipos";
+import { validarEmail, validarIdGenerico, validarTextoObrigatorio, type ErroApp, type Result } from "../kernel/index.js";
+import { usuarioInvalido } from "./erros.js";
+import { UsuarioId } from "./tipos.js";
 
 /**
  * Converte erro genérico de validação transversal em erro específico do

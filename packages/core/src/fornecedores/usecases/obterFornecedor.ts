@@ -1,10 +1,10 @@
 // packages/core/src/fornecedores/usecases/obterFornecedor.ts
 
-import { wrapOk } from "../../kernel";
-import type { FornecedoresRepositorio } from "../portasRepositorio";
-import type { ObterFornecedorInput, ObterFornecedorOutput, ObterFornecedorResult } from "../tipos";
-import { fornecedorNaoEncontrado } from "../erros";
-import { validarFornecedorId, validarLocatarioId } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import type { FornecedoresRepositorio } from "../portasRepositorio.js";
+import type { ObterFornecedorInput, ObterFornecedorOutput, ObterFornecedorResult } from "../tipos.js";
+import { fornecedorNaoEncontrado } from "../erros.js";
+import { validarFornecedorId, validarLocatarioId } from "../validadores.js";
 
 /**
  * 

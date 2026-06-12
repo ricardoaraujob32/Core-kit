@@ -1,9 +1,9 @@
 // packages/core/src/exportacoes/validadores.ts
 
-import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel";
-import { erroExportacaoInvalida } from "./erros";
+import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel/index.js";
+import { erroExportacaoInvalida } from "./erros.js";
 import { ListarExportacoesLocatarioInput, MarcarExportacaoComFalhaInput, MarcarExportacaoConcluidaInput,
-  MarcarExportacaoEmExecucaoInput, SolicitarExportacaoInput } from "./tipos";
+  MarcarExportacaoEmExecucaoInput, SolicitarExportacaoInput } from "./tipos.js";
 
 /**
  * Converte falhas dos validadores transversais em erro específico

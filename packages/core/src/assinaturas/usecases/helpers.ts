@@ -1,10 +1,10 @@
 // packages/core/src/assinaturas/usecases/helpers.ts
 
-import { wrapOk } from "../../kernel";
-import { erroAssinaturaNaoEncontrada } from "../erros";
-import type { AssinaturasRepositorio } from "../portasRepositorio";
-import type { AssinaturaId } from "../tipos";
-import { validarAtivarAssinaturaInput } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { erroAssinaturaNaoEncontrada } from "../erros.js";
+import type { AssinaturasRepositorio } from "../portasRepositorio.js";
+import type { AssinaturaId } from "../tipos.js";
+import { validarAtivarAssinaturaInput } from "../validadores.js";
 
 /**
  * 

@@ -1,9 +1,9 @@
 // packages/core/src/auth/tipos.ts
 
-import type { ContextoExecucao, ErroApp, Result } from "../kernel";
-import type { LocatarioId, LocatarioSlug } from "../locatarios";
-import { TokenId } from "../tokens";
-import type { UsuarioId } from "../usuarios";
+import type { ContextoExecucao, ErroApp, Result } from "../kernel/index.js";
+import type { LocatarioId, LocatarioSlug } from "../locatarios/index.js";
+import { TokenId } from "../tokens/index.js";
+import type { UsuarioId } from "../usuarios/index.js";
 
 /**
  * Conjunto de tokens e metadados temporais que materializam uma sessão.

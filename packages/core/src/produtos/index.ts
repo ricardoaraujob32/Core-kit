@@ -1,10 +1,10 @@
 // packages/core/src/produtos/index.ts
 
-export * from "./tipos";
-export * from "./erros";
-export * from "./portasRepositorio";
-export * from "./usecases/criarProduto";
-export * from "./usecases/listarProdutos";
-export * from "./usecases/obterProduto";
-export * from "./usecases/atualizarProduto";
-export * from "./usecases/excluirProduto";
+export * from "./tipos.js";
+export * from "./erros.js";
+export * from "./portasRepositorio.js";
+export * from "./usecases/criarProduto.js";
+export * from "./usecases/listarProdutos.js";
+export * from "./usecases/obterProduto.js";
+export * from "./usecases/atualizarProduto.js";
+export * from "./usecases/excluirProduto.js";

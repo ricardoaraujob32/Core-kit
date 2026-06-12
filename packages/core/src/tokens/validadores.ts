@@ -1,8 +1,8 @@
 // packages/core/src/tokens/validadores.ts
 
-import { ErroApp, Result, validarData, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel";
-import { entradaInvalida, tokenInvalido } from "./erros";
-import { TokenId, TokenTipo } from "./tipos";
+import { ErroApp, Result, validarData, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel/index.js";
+import { entradaInvalida, tokenInvalido } from "./erros.js";
+import { TokenId, TokenTipo } from "./tipos.js";
 
 /**
  * Converte falhas de validação ligadas à entidade persistida de token

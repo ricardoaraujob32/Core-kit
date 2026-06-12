@@ -1,9 +1,9 @@
 // packages/core/src/auth/portasRepositorio.ts
 
-import { ErroApp, Result } from "../kernel";
-import { LocatarioId, LocatarioSlug } from "../locatarios";
-import { UsuarioId } from "../usuarios";
-import { LocatarioAuth, UsuarioAuth } from "./tipos";
+import { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId, LocatarioSlug } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
+import { LocatarioAuth, UsuarioAuth } from "./tipos.js";
 
 /**
  * Porta de consulta e atualização de usuários para o fluxo de autenticação.

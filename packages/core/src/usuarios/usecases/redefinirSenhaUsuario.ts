@@ -1,12 +1,12 @@
 // packages/core/src/usuarios/usecases/redefinirSenhaUsuario.ts
 
-import { executarEmTransacao, HashPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { RedefinirSenhaUsuarioInput, RedefinirSenhaUsuarioOutput, RedefinirSenhaUsuarioResult } from "../tipos";
-import { validarSenhaUsuario } from "../validadores";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
-import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
-import { obterUsuarioObrigatorio } from "./helpers";
+import { executarEmTransacao, HashPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import type { RedefinirSenhaUsuarioInput, RedefinirSenhaUsuarioOutput, RedefinirSenhaUsuarioResult } from "../tipos.js";
+import { validarSenhaUsuario } from "../validadores.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados.js";
+import { obterUsuarioObrigatorio } from "./helpers.js";
 
 /**
  * 

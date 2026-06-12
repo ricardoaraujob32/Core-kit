@@ -1,8 +1,8 @@
 // packages/core/src/auth/validadores.ts
 
-import { ErroApp, Result, validarEmail, validarIdGenerico, validarTextoObrigatorio } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { authEntradaInvalida } from "./erros";
+import { ErroApp, Result, validarEmail, validarIdGenerico, validarTextoObrigatorio } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { authEntradaInvalida } from "./erros.js";
 
 /**
  * Converte falhas dos validadores transversais em erro específico

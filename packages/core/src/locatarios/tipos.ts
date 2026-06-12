@@ -1,7 +1,7 @@
 // packages/core/src/locatarios/tipos.ts
 
-import type { ErroApp, Result, wrapOk } from "../kernel";
-import { locatarioInvalido } from "./erros";
+import type { ErroApp, Result, wrapOk } from "../kernel/index.js";
+import { locatarioInvalido } from "./erros.js";
 
 /**
  * Identificador lógico de um locatário.

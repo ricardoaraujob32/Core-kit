@@ -1,8 +1,8 @@
-import { wrapOk } from "../../kernel";
-import type { ClientesRepositorio } from "../portasRepositorio";
-import type { ObterClienteInput, ObterClienteOutput, ObterClienteResult } from "../tipos";
-import { clienteNaoEncontrado } from "../erros";
-import { validarClienteId, validarLocatarioId } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import type { ClientesRepositorio } from "../portasRepositorio.js";
+import type { ObterClienteInput, ObterClienteOutput, ObterClienteResult } from "../tipos.js";
+import { clienteNaoEncontrado } from "../erros.js";
+import { validarClienteId, validarLocatarioId } from "../validadores.js";
 
 export function createFnObterCliente(deps: { clientesRepositorio: ClientesRepositorio }) {
   return async function obterCliente(input: ObterClienteInput): ObterClienteResult {

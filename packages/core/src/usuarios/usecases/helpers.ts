@@ -1,11 +1,11 @@
 // packages/core/src/usuarios/usecases/helpers.ts
 
-import { wrapOk } from "../../kernel";
-import { validarLocatarioId } from "../../locatarios";
-import { usuarioNaoEncontrado } from "../erros";
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { UsuarioId } from "../tipos";
-import { validarUsuarioId } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { validarLocatarioId } from "../../locatarios/index.js";
+import { usuarioNaoEncontrado } from "../erros.js";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import type { UsuarioId } from "../tipos.js";
+import { validarUsuarioId } from "../validadores.js";
 
 /**
  * 

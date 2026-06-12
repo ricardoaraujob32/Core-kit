@@ -1,10 +1,10 @@
 // packages/core/src/vendas/portasRepositorio.ts
 
-import type { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import type { ProdutoId } from "../produtos";
+import type { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import type { ProdutoId } from "../produtos/index.js";
 import type { EstoqueId, HistoricoTransacaoComercial, ItemTransacaoComercial, MovimentoEstoqueComercial, StatusTransacaoComercial, TipoTransacaoComercial, 
-  TransacaoComercial, TransacaoId, ItemTransacaoId } from "./tipos";
+  TransacaoComercial, TransacaoId, ItemTransacaoId } from "./tipos.js";
 
 /**
  * 

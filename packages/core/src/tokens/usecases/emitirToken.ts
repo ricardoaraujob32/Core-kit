@@ -1,13 +1,13 @@
 // packages/core/src/tokens/usecases/emitirToken.ts
 
-import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
-import type { EmitirTokenInput, EmitirTokenOutput, EmitirTokenResult } from "../tipos";
-import type { TokensRepositorio } from "../portasRepositorio";
-import { validarHashToken, validarExpiraEm, validarTokenTipo } from "../validadores";
-import { hashTokenJaExiste, tokenInvalido } from "../erros";
-import { validarLocatarioId } from "../../locatarios";
-import { validarUsuarioId } from "../../usuarios";
-import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { EmitirTokenInput, EmitirTokenOutput, EmitirTokenResult } from "../tipos.js";
+import type { TokensRepositorio } from "../portasRepositorio.js";
+import { validarHashToken, validarExpiraEm, validarTokenTipo } from "../validadores.js";
+import { hashTokenJaExiste, tokenInvalido } from "../erros.js";
+import { validarLocatarioId } from "../../locatarios/index.js";
+import { validarUsuarioId } from "../../usuarios/index.js";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas.js";
 
 /**
  * Cria a função de caso de uso responsável por emitir e persistir um token.

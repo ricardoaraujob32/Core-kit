@@ -5,21 +5,21 @@ export type {
   FiltrosAuditoriaBase, ListarAuditoriaLocatarioOutput, ListarAuditoriaLocatarioResult, ListarAuditoriaPlataformaInput, ListarAuditoriaPlataformaOutput,
   ListarAuditoriaPlataformaResult, RegistrarEventoAuditoriaLocatarioInput, RegistrarEventoAuditoriaLocatarioOutput, RegistrarEventoAuditoriaLocatarioResult,
   RegistrarEventoAuditoriaPlataformaInput, RegistrarEventoAuditoriaPlataformaOutput, RegistrarEventoAuditoriaPlataformaResult 
-} from "./tipos";
+} from "./tipos.js";
 
-export type { AuditoriaLocatarioRepositorio, AuditoriaPlataformaRepositorio } from "./portasRepositorio";
+export type { AuditoriaLocatarioRepositorio, AuditoriaPlataformaRepositorio } from "./portasRepositorio.js";
 
-export { createFnListarAuditoriaLocatario } from "./usecases/listarAuditoriaLocatario";
+export { createFnListarAuditoriaLocatario } from "./usecases/listarAuditoriaLocatario.js";
 
-export { createFnRegistrarEventoAuditoriaLocatario } from "./usecases/registrarEventoAuditoriaLocatario";
+export { createFnRegistrarEventoAuditoriaLocatario } from "./usecases/registrarEventoAuditoriaLocatario.js";
 
-export { createFnListarAuditoriaPlataforma } from "./usecases/listarAuditoriaPlataforma";
+export { createFnListarAuditoriaPlataforma } from "./usecases/listarAuditoriaPlataforma.js";
 
-export { createFnRegistrarEventoAuditoriaPlataforma } from "./usecases/registrarEventoAuditoriaPlataforma";
+export { createFnRegistrarEventoAuditoriaPlataforma } from "./usecases/registrarEventoAuditoriaPlataforma.js";
 
-export { EVENTOS_AUDITORIA } from "./eventos";
+export { EVENTOS_AUDITORIA } from "./eventos.js";
 
-export type { MetadadosAuditoria } from "./metadados";
-export { metaAcao, metaAtualizacao, metaCriacao, metaImpersonacao } from "./metadados";
+export type { MetadadosAuditoria } from "./metadados.js";
+export { metaAcao, metaAtualizacao, metaCriacao, metaImpersonacao } from "./metadados.js";
 
-export { resolverEventoAuditoria } from "./resolverEventoAuditoria";
+export { resolverEventoAuditoria } from "./resolverEventoAuditoria.js";

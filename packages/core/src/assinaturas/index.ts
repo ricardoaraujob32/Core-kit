@@ -34,26 +34,26 @@ export type {
   ListarModulosHabilitadosLocatarioInput,
   ListarModulosHabilitadosLocatarioOutput,
   ListarModulosHabilitadosLocatarioResult
-} from "./tipos";
+} from "./tipos.js";
 
 export type {
   AssinaturasRepositorio,
   AssinaturasModulosRepositorio,
   PlanosConsultaRepositorio,
   ModulosConsultaRepositorio,
-} from "./portasRepositorio";
+} from "./portasRepositorio.js";
 
-export { createFnAtivarAssinatura } from "./usecases/ativarAssinatura";
-export { createFnCancelarAssinatura } from "./usecases/cancelarAssinatura";
-export { createFnCriarAssinatura } from "./usecases/criarAssinatura";
-export { createFnDesvincularModuloDaAssinatura } from "./usecases/desvincularModuloDaAssinatura";
-export { createFnListarModulosHabilitadosLocatario } from "./usecases/listarModulosHabilitadosLocatario";
-export { createFnSuspenderAssinatura } from "./usecases/suspenderAssinatura";
-export { createFnVincularModuloNaAssinatura } from "./usecases/vincularModuloNaAssinatura";
+export { createFnAtivarAssinatura } from "./usecases/ativarAssinatura.js";
+export { createFnCancelarAssinatura } from "./usecases/cancelarAssinatura.js";
+export { createFnCriarAssinatura } from "./usecases/criarAssinatura.js";
+export { createFnDesvincularModuloDaAssinatura } from "./usecases/desvincularModuloDaAssinatura.js";
+export { createFnListarModulosHabilitadosLocatario } from "./usecases/listarModulosHabilitadosLocatario.js";
+export { createFnSuspenderAssinatura } from "./usecases/suspenderAssinatura.js";
+export { createFnVincularModuloNaAssinatura } from "./usecases/vincularModuloNaAssinatura.js";
 
 // export {
 //   AssinaturasRepositorioMemoria,
 //   AssinaturasModulosRepositorioMemoria,
 //   PlanosConsultaRepositorioMemoria,
 //   ModulosConsultaRepositorioMemoria,
-// } from "./repositorioMemoria";
+// } from "./repositorioMemoria.js";

@@ -1,11 +1,11 @@
 // packages/core/src/assinaturas/usecases/criarAssinatura.ts
 
-import { IdPorta, RelogioPorta, wrapOk } from "../../kernel";
-import { erroAssinaturaJaExisteParaLocatario, erroPlanoInvalido } from "../erros";
-import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
-import { AssinaturasRepositorio, PlanosConsultaRepositorio } from "../portasRepositorio";
-import { CriarAssinaturaInput, CriarAssinaturaOutput, CriarAssinaturaResult } from "../tipos";
-import { validarCriarAssinaturaInput } from "../validadores";
+import { IdPorta, RelogioPorta, wrapOk } from "../../kernel/index.js";
+import { erroAssinaturaJaExisteParaLocatario, erroPlanoInvalido } from "../erros.js";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas.js";
+import { AssinaturasRepositorio, PlanosConsultaRepositorio } from "../portasRepositorio.js";
+import { CriarAssinaturaInput, CriarAssinaturaOutput, CriarAssinaturaResult } from "../tipos.js";
+import { validarCriarAssinaturaInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

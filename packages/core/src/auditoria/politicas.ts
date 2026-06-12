@@ -1,9 +1,9 @@
 // packages/core/src/auditoria/politicas.ts
 
-import type { Result, ErroApp } from "../kernel";
-import type { LocatarioId } from "../locatarios";
-import type { UsuarioId } from "../usuarios";
-import type { CategoriaAuditoria } from "./tipos";
+import type { Result, ErroApp } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { UsuarioId } from "../usuarios/index.js";
+import type { CategoriaAuditoria } from "./tipos.js";
 
 export type OperacaoPoliticaAuditoria =
   | "AUDITORIA_LOCATARIO_REGISTRAR"

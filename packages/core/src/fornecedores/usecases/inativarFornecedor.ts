@@ -1,8 +1,8 @@
-import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { FornecedoresRepositorio } from "../portasRepositorio";
-import type { InativarFornecedorInput, InativarFornecedorOutput, InativarFornecedorResult } from "../tipos";
-import { fornecedorNaoEncontrado } from "../erros";
-import { validarFornecedorId, validarLocatarioId } from "../validadores";
+import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { FornecedoresRepositorio } from "../portasRepositorio.js";
+import type { InativarFornecedorInput, InativarFornecedorOutput, InativarFornecedorResult } from "../tipos.js";
+import { fornecedorNaoEncontrado } from "../erros.js";
+import { validarFornecedorId, validarLocatarioId } from "../validadores.js";
 
 export function createFnInativarFornecedor(deps: { fornecedorsRepositorio: FornecedoresRepositorio; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
   return async function inativarFornecedor(input: InativarFornecedorInput): InativarFornecedorResult {

@@ -1,10 +1,10 @@
 // packages/core/src/exportacoes/usecases/marcarExportacaoEmExecucao.ts
 
-import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel";
-import { erroExportacaoNaoEncontrada, erroTransicaoStatusExportacaoInvalida } from "../erros";
-import { ExportacoesRepositorio } from "../portasRepositorio";
-import { Exportacao, MarcarExportacaoEmExecucaoInput } from "../tipos";
-import { validarMarcarExportacaoEmExecucaoInput } from "../validadores";
+import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel/index.js";
+import { erroExportacaoNaoEncontrada, erroTransicaoStatusExportacaoInvalida } from "../erros.js";
+import { ExportacoesRepositorio } from "../portasRepositorio.js";
+import { Exportacao, MarcarExportacaoEmExecucaoInput } from "../tipos.js";
+import { validarMarcarExportacaoEmExecucaoInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

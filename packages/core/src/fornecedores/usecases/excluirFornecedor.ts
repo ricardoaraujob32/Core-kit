@@ -1,10 +1,10 @@
 // packages/core/src/fornecedores/usecases/excluirFornecedor.ts
 
-import type { FornecedoresRepositorio } from "../portasRepositorio";
-import type { ExcluirFornecedorInput, ExcluirFornecedorOutput, ExcluirFornecedorResult } from "../tipos";
-import { validarFornecedorId, validarLocatarioId } from "../validadores";
-import { fornecedorNaoEncontrado } from "../erros";
-import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+import type { FornecedoresRepositorio } from "../portasRepositorio.js";
+import type { ExcluirFornecedorInput, ExcluirFornecedorOutput, ExcluirFornecedorResult } from "../tipos.js";
+import { validarFornecedorId, validarLocatarioId } from "../validadores.js";
+import { fornecedorNaoEncontrado } from "../erros.js";
+import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
 
 export function createFnExcluirFornecedor(deps: {
   fornecedoresRepositorio: FornecedoresRepositorio;

@@ -13,7 +13,7 @@ export type {
   RotacionarRefreshInput,
   RotacionarRefreshOutput,
   RotacionarRefreshResult,
-} from "./tipos";
+} from "./tipos.js";
 
 export {
   credenciaisInvalidas,
@@ -22,23 +22,23 @@ export {
   locatarioNaoPodeAutenticar,
   authEntradaInvalida,
   sessaoInvalida,
-} from "./erros";
+} from "./erros.js";
 
-export { validarEmailAuth, validarSenha, validarLocatarioIdAuth, validarTokenNaoVazio } from "./validadores";
+export { validarEmailAuth, validarSenha, validarLocatarioIdAuth, validarTokenNaoVazio } from "./validadores.js";
 
-export type { HashAuthPorta, JwtAuthPorta, TokensAuthPorta, RbacAuthPorta, EventosSegurancaPorta } from "./portasServico";
+export type { HashAuthPorta, JwtAuthPorta, TokensAuthPorta, RbacAuthPorta, EventosSegurancaPorta } from "./portasServico.js";
 
-export type { LocatariosRepositorioAuth, UsuariosRepositorioAuth } from "./portasRepositorio";
+export type { LocatariosRepositorioAuth, UsuariosRepositorioAuth } from "./portasRepositorio.js";
 
-export { createFnEmitirSessao } from "./usecases/emitirSessao";
-export { createFnValidarSessao } from "./usecases/validarSessao";
-export { createFnRotacionarRefresh } from "./usecases/rotacionarRefresh";
-export { createFnResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado";
-export { createFnLogout } from "./usecases/logout";
-export { createFnEmitirSessaoPlataforma } from "./usecases/emitirSessaoPlataforma";
+export { createFnEmitirSessao } from "./usecases/emitirSessao.js";
+export { createFnValidarSessao } from "./usecases/validarSessao.js";
+export { createFnRotacionarRefresh } from "./usecases/rotacionarRefresh.js";
+export { createFnResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado.js";
+export { createFnLogout } from "./usecases/logout.js";
+export { createFnEmitirSessaoPlataforma } from "./usecases/emitirSessaoPlataforma.js";
 
 export type {
   EmitirSessaoPlataformaInput,
   EmitirSessaoPlataformaOutput,
   EmitirSessaoPlataformaDeps,
-} from "./usecases/emitirSessaoPlataforma";
+} from "./usecases/emitirSessaoPlataforma.js";

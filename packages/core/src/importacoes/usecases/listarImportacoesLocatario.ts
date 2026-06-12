@@ -1,9 +1,9 @@
 // packages/core/src/importacoes/usecases/listarImportacoesLocatario.ts
 
-import { ErroApp, Result } from "../../kernel";
-import { ImportacoesRepositorio } from "../portasRepositorio";
-import { Importacao, ListarImportacoesLocatarioInput } from "../tipos";
-import { validarListarImportacoesLocatarioInput } from "../validadores";
+import { ErroApp, Result } from "../../kernel/index.js";
+import { ImportacoesRepositorio } from "../portasRepositorio.js";
+import { Importacao, ListarImportacoesLocatarioInput } from "../tipos.js";
+import { validarListarImportacoesLocatarioInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

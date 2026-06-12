@@ -1,8 +1,8 @@
-import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { ClientesRepositorio } from "../portasRepositorio";
-import type { ReativarClienteInput, ReativarClienteOutput, ReativarClienteResult } from "../tipos";
-import { clienteNaoEncontrado } from "../erros";
-import { validarClienteId, validarLocatarioId } from "../validadores";
+import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { ClientesRepositorio } from "../portasRepositorio.js";
+import type { ReativarClienteInput, ReativarClienteOutput, ReativarClienteResult } from "../tipos.js";
+import { clienteNaoEncontrado } from "../erros.js";
+import { validarClienteId, validarLocatarioId } from "../validadores.js";
 
 export function createFnReativarCliente(deps: { clientesRepositorio: ClientesRepositorio; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
   return async function reativarCliente(input: ReativarClienteInput): ReativarClienteResult {

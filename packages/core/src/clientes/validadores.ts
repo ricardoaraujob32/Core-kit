@@ -1,7 +1,7 @@
-import { createErroApp, wrapOk } from "../kernel";
-import type { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import type { ClienteId } from "./tipos";
+import { createErroApp, wrapOk } from "../kernel/index.js";
+import type { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import type { ClienteId } from "./tipos.js";
 
 export function validarLocatarioId(locatarioId: unknown): Result<LocatarioId, ErroApp> {
   if (typeof locatarioId !== "string" || locatarioId.trim().length === 0) {

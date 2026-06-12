@@ -1,11 +1,11 @@
 // packages/core/src/backups/usecases/solicitarBackupLocatario.ts
 
-import { ExportacoesRepositorio } from "../../exportacoes";
-import { ErroApp, executarEmTransacao, IdPorta, TransacaoPorta, RelogioPorta, Result, wrapOk } from "../../kernel";
-import { erroJaExisteBackupEmAberto } from "../erros";
-import { ehBackupLocatario, mapBackup } from "../temp";
-import { SolicitarBackupLocatarioInput, SolicitarBackupLocatarioOutput } from "../tipos";
-import { validarSolicitarBackupLocatarioInput } from "../validadores";
+import { ExportacoesRepositorio } from "../../exportacoes/index.js";
+import { ErroApp, executarEmTransacao, IdPorta, TransacaoPorta, RelogioPorta, Result, wrapOk } from "../../kernel/index.js";
+import { erroJaExisteBackupEmAberto } from "../erros.js";
+import { ehBackupLocatario, mapBackup } from "../temp.js";
+import { SolicitarBackupLocatarioInput, SolicitarBackupLocatarioOutput } from "../tipos.js";
+import { validarSolicitarBackupLocatarioInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

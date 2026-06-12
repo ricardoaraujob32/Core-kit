@@ -1,7 +1,7 @@
 // packages/core/src/locatarios/erros.ts
 
-import { createErroApp } from "../kernel";
-import { LocatarioId, LocatarioSlug } from "./tipos";
+import { createErroApp } from "../kernel/index.js";
+import { LocatarioId, LocatarioSlug } from "./tipos.js";
 
 /**
  * 

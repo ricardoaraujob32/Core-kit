@@ -1,8 +1,8 @@
 // packages/core/src/usuarios/maquinaEstados.ts
 
-import { createErroApp, ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel";
-import { usuarioEncerrado, usuarioInativo, usuarioSuspenso } from "./erros";
-import type { EventoUsuario, StatusUsuario, Usuario, UsuarioId } from "./tipos";
+import { createErroApp, ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel/index.js";
+import { usuarioEncerrado, usuarioInativo, usuarioSuspenso } from "./erros.js";
+import type { EventoUsuario, StatusUsuario, Usuario, UsuarioId } from "./tipos.js";
 
 /**
  * 

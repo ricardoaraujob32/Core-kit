@@ -1,9 +1,9 @@
 // packages/core/src/rbac/portasRepositorio.ts
 
-import { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
-import { AutorizacaoSnapshot, Papel, Permissao } from "./tipos";
+import { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
+import { AutorizacaoSnapshot, Papel, Permissao } from "./tipos.js";
 
 /**
  * Porta de leitura de dados de RBAC.

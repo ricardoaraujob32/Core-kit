@@ -1,8 +1,8 @@
-import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { VendasRepositorio } from "../portasRepositorio";
-import type { CriarVendaInput, CriarVendaOutput, CriarVendaResult } from "../tipos";
-import { validarLocatarioId, validarTextoOpcional } from "../validadores";
-import { criarHistoricoTransacao } from "./helpers";
+import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { VendasRepositorio } from "../portasRepositorio.js";
+import type { CriarVendaInput, CriarVendaOutput, CriarVendaResult } from "../tipos.js";
+import { validarLocatarioId, validarTextoOpcional } from "../validadores.js";
+import { criarHistoricoTransacao } from "./helpers.js";
 
 export function createFnCriarVenda(deps: { vendasRepositorio: VendasRepositorio; idPorta: IdPorta; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
   return async function criarVenda(input: CriarVendaInput): CriarVendaResult {

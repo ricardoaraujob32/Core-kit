@@ -1,8 +1,8 @@
 // packages/core/src/kernel/executarEmTransacao.ts
 
-import type { ErroApp } from "./erros";
-import type { TransacaoPorta } from "./portasGenericas";
-import type { Result } from "./result";
+import type { ErroApp } from "./erros.js";
+import type { TransacaoPorta } from "./portasGenericas.js";
+import type { Result } from "./result.js";
 
 /**
  * Observação arquitetural:

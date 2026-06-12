@@ -13,8 +13,8 @@ export type {
   SolicitarRestauracaoLocatarioOutput,
   StatusBackup,
   StatusRestauracao,
-} from "./tipos";
+} from "./tipos.js";
 
-export { createFnListarBackupsLocatario } from "./usecases/listarBackupsLocatario";
-export { createFnSolicitarBackupLocatario } from "./usecases/solicitarBackupLocatario";
-export { createFnSolicitarRestauracaoLocatario } from "./usecases/solicitarRestauracaoLocatario";
+export { createFnListarBackupsLocatario } from "./usecases/listarBackupsLocatario.js";
+export { createFnSolicitarBackupLocatario } from "./usecases/solicitarBackupLocatario.js";
+export { createFnSolicitarRestauracaoLocatario } from "./usecases/solicitarRestauracaoLocatario.js";

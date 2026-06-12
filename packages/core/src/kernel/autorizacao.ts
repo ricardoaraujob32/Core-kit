@@ -1,11 +1,11 @@
-import { createContextoExecucao, type ContextoExecucao } from "./contextoExecucao";
-import type { ErroApp } from "./erros";
-import type { Result } from "./result";
-import { wrapOk } from "./result";
-import { UsuarioId } from "../usuarios";
-import { ModuloCodigo } from "../modulos";
-import { createErroApp } from "./ROPHelpers";
-import { Papel, Permissao } from "../rbac";
+import { createContextoExecucao, type ContextoExecucao } from "./contextoExecucao.js";
+import type { ErroApp } from "./erros.js";
+import type { Result } from "./result.js";
+import { wrapOk } from "./result.js";
+import { UsuarioId } from "../usuarios/index.js";
+import { ModuloCodigo } from "../modulos/index.js";
+import { createErroApp } from "./ROPHelpers.js";
+import { Papel, Permissao } from "../rbac/index.js";
 
 /**
  * Propósito do arquivo:

@@ -1,12 +1,12 @@
 // packages/core/src/auth/usecases/emitirSessao.ts
 
-import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
-import { validarLocatarioSlug } from "../../locatarios/validadores";
-import { credenciaisInvalidas, locatarioNaoPodeAutenticar, usuarioNaoPodeAutenticar } from "../erros";
-import { LocatariosRepositorioAuth, UsuariosRepositorioAuth } from "../portasRepositorio";
-import { EventosSegurancaPorta, HashAuthPorta, JwtAuthPorta, TokensAuthPorta } from "../portasServico";
-import { EmitirSessaoInput, EmitirSessaoOutput, EmitirSessaoResult, Sessao } from "../tipos";
-import { validarEmailAuth, validarSenha } from "../validadores";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { validarLocatarioSlug } from "../../locatarios/validadores.js";
+import { credenciaisInvalidas, locatarioNaoPodeAutenticar, usuarioNaoPodeAutenticar } from "../erros.js";
+import { LocatariosRepositorioAuth, UsuariosRepositorioAuth } from "../portasRepositorio.js";
+import { EventosSegurancaPorta, HashAuthPorta, JwtAuthPorta, TokensAuthPorta } from "../portasServico.js";
+import { EmitirSessaoInput, EmitirSessaoOutput, EmitirSessaoResult, Sessao } from "../tipos.js";
+import { validarEmailAuth, validarSenha } from "../validadores.js";
 
 /**
  * Cria o caso de uso responsável por autenticar um usuário e emitir uma nova sessão.

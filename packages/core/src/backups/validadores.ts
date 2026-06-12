@@ -1,8 +1,8 @@
 // packages/core/src/backups/validadores.ts
 
-import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel";
-import { erroBackupInvalido } from "./erros";
-import { ListarBackupsLocatarioInput, SolicitarBackupLocatarioInput, SolicitarRestauracaoLocatarioInput } from "./tipos";
+import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel/index.js";
+import { erroBackupInvalido } from "./erros.js";
+import { ListarBackupsLocatarioInput, SolicitarBackupLocatarioInput, SolicitarRestauracaoLocatarioInput } from "./tipos.js";
 
 /**
  * Converte falhas dos validadores transversais em erro específico

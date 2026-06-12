@@ -1,7 +1,7 @@
 // packages/core/src/importacoes/erros.ts
 
-import { createErroApp, ErroApp, Result } from "../kernel";
-import { ImportacaoId, ItemImportacaoId } from "./tipos";
+import { createErroApp, ErroApp, Result } from "../kernel/index.js";
+import { ImportacaoId, ItemImportacaoId } from "./tipos.js";
 
 
 export type CodigoErroImportacao =

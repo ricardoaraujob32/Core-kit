@@ -1,6 +1,6 @@
 // packages/core/src/auditoria/erros.ts
 
-import { createErroApp, ErroApp, Result } from "../kernel";
+import { createErroApp, ErroApp, Result } from "../kernel/index.js";
 
 export type CodigoErroAuditoria =
   | "AUDITORIA_INVALIDA"

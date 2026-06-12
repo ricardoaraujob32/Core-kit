@@ -1,10 +1,10 @@
-import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { MovimentacaoEstoquePorta, VendasRepositorio } from "../portasRepositorio";
-import type { ConcluirTransacaoInput, ConcluirTransacaoOutput, ConcluirTransacaoResult } from "../tipos";
-import { transacaoNaoEncontrada, transacaoSemItens } from "../erros";
-import { transicionarEstadoTransacao } from "../maquinaEstados";
-import { validarLocatarioId, validarTransacaoId } from "../validadores";
-import { criarHistoricoTransacao } from "./helpers";
+import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { MovimentacaoEstoquePorta, VendasRepositorio } from "../portasRepositorio.js";
+import type { ConcluirTransacaoInput, ConcluirTransacaoOutput, ConcluirTransacaoResult } from "../tipos.js";
+import { transacaoNaoEncontrada, transacaoSemItens } from "../erros.js";
+import { transicionarEstadoTransacao } from "../maquinaEstados.js";
+import { validarLocatarioId, validarTransacaoId } from "../validadores.js";
+import { criarHistoricoTransacao } from "./helpers.js";
 
 export function createFnConcluirTransacao(deps: { vendasRepositorio: VendasRepositorio; movimentacaoEstoque?: MovimentacaoEstoquePorta; idPorta: IdPorta; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
   return async function concluirTransacao(input: ConcluirTransacaoInput): ConcluirTransacaoResult {

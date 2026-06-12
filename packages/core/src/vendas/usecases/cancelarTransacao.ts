@@ -1,10 +1,10 @@
-import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { VendasRepositorio } from "../portasRepositorio";
-import type { CancelarTransacaoInput, CancelarTransacaoOutput, CancelarTransacaoResult } from "../tipos";
-import { transacaoNaoEncontrada } from "../erros";
-import { transicionarEstadoTransacao } from "../maquinaEstados";
-import { validarLocatarioId, validarTextoOpcional, validarTransacaoId } from "../validadores";
-import { criarHistoricoTransacao } from "./helpers";
+import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { VendasRepositorio } from "../portasRepositorio.js";
+import type { CancelarTransacaoInput, CancelarTransacaoOutput, CancelarTransacaoResult } from "../tipos.js";
+import { transacaoNaoEncontrada } from "../erros.js";
+import { transicionarEstadoTransacao } from "../maquinaEstados.js";
+import { validarLocatarioId, validarTextoOpcional, validarTransacaoId } from "../validadores.js";
+import { criarHistoricoTransacao } from "./helpers.js";
 
 export function createFnCancelarTransacao(deps: { vendasRepositorio: VendasRepositorio; idPorta: IdPorta; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
   return async function cancelarTransacao(input: CancelarTransacaoInput): CancelarTransacaoResult {

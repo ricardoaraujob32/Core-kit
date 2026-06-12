@@ -14,24 +14,24 @@ export type {
   ResolverAutorizacaoInput,
   ResolverAutorizacaoOutput,
   ResolverAutorizacaoResult
-} from "./tipos";
+} from "./tipos.js";
 
-export { Permissoes } from "./tipos";
+export { Permissoes } from "./tipos.js";
 
 export {
   permissaoInvalida,
   naoAutenticado,
   naoAutorizado,
-} from "./erros";
+} from "./erros.js";
 
-export { validarPermissao } from "./validadores";
+export { validarPermissao } from "./validadores.js";
 
-export type { RbacRepositorio, AutorizacaoRepositorio } from "./portasRepositorio";
+export type { RbacRepositorio, AutorizacaoRepositorio } from "./portasRepositorio.js";
 
-// export { criarRbacRepositorioMemoria } from "./repositorioMemoria";
+// export { criarRbacRepositorioMemoria } from "./repositorioMemoria.js";
 
-export { createFnResolverPermissoes } from "./usecases/resolverPermissoes";
+export { createFnResolverPermissoes } from "./usecases/resolverPermissoes.js";
 
-export { autorizarOperacao } from "./usecases/autorizarOperacao";
+export { autorizarOperacao } from "./usecases/autorizarOperacao.js";
 
-export { createFnResolverAutorizacao } from "./usecases/resolverAutorizacao";
+export { createFnResolverAutorizacao } from "./usecases/resolverAutorizacao.js";

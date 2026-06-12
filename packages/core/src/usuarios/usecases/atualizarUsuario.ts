@@ -1,13 +1,13 @@
 // packages/core/src/usuarios/usecases/atualizarUsuario.ts
 
-import { validarEmailUsuario, validarNomeUsuario } from "../validadores";
-import { emailUsuarioJaExiste } from "../erros";
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { AtualizarUsuarioInput, AtualizarUsuarioOutput, AtualizarUsuarioResult } from "../tipos";
-import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
-import { obterUsuarioObrigatorio } from "./helpers";
+import { validarEmailUsuario, validarNomeUsuario } from "../validadores.js";
+import { emailUsuarioJaExiste } from "../erros.js";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import type { AtualizarUsuarioInput, AtualizarUsuarioOutput, AtualizarUsuarioResult } from "../tipos.js";
+import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel/index.js";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
+import { obterUsuarioObrigatorio } from "./helpers.js";
 
 /**
  * Cria a função de caso de uso responsável por atualizar dados cadastrais

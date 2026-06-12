@@ -1,9 +1,9 @@
 // packages/core/src/importacoes/usecases/solicitarImportacao.ts
 
-import { ErroApp, IdPorta, RelogioPorta, Result, wrapOk } from "../../kernel";
-import { ImportacoesRepositorio } from "../portasRepositorio";
-import { SolicitarImportacaoInput, SolicitarImportacaoOutput } from "../tipos";
-import { validarSolicitarImportacaoInput } from "../validadores";
+import { ErroApp, IdPorta, RelogioPorta, Result, wrapOk } from "../../kernel/index.js";
+import { ImportacoesRepositorio } from "../portasRepositorio.js";
+import { SolicitarImportacaoInput, SolicitarImportacaoOutput } from "../tipos.js";
+import { validarSolicitarImportacaoInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

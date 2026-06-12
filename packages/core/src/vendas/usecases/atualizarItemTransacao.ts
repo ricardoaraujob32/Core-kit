@@ -1,10 +1,10 @@
 // packages/core/src/vendas/usecases/atualizarItemTransacao.ts
 
-import type { VendasRepositorio } from "../portasRepositorio";
-import type { AtualizarItemTransacaoInput, AtualizarItemTransacaoOutput, AtualizarItemTransacaoResult, ItemTransacaoComercial } from "../tipos";
-import { validarItemTransacaoId, validarLocatarioId, validarQuantidadeItem, validarTransacaoId, validarValorDesconto, validarValorUnitario } from "../validadores";
-import { itemTransacaoNaoEncontrado, transacaoNaoEncontrada, transacaoNaoPermiteEdicao } from "../erros";
-import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+import type { VendasRepositorio } from "../portasRepositorio.js";
+import type { AtualizarItemTransacaoInput, AtualizarItemTransacaoOutput, AtualizarItemTransacaoResult, ItemTransacaoComercial } from "../tipos.js";
+import { validarItemTransacaoId, validarLocatarioId, validarQuantidadeItem, validarTransacaoId, validarValorDesconto, validarValorUnitario } from "../validadores.js";
+import { itemTransacaoNaoEncontrado, transacaoNaoEncontrada, transacaoNaoPermiteEdicao } from "../erros.js";
+import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
 
 function podeEditarTransacao(status: string) {
   return status === "RASCUNHO" || status === "ABERTA";

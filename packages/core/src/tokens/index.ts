@@ -19,7 +19,7 @@ export type {
   ListarTokensDoUsuarioInput,
   ListarTokensDoUsuarioOutput,
   ListarTokensDoUsuarioResult
-} from "./tipos";
+} from "./tipos.js";
 
 export {
   tokenInvalido,
@@ -27,21 +27,21 @@ export {
   tokenRevogado,
   tokenExpirado,
   hashTokenJaExiste,
-} from "./erros";
+} from "./erros.js";
 
 export {
   validarTokenId,
   validarHashToken,
   validarTokenTipo,
   validarExpiraEm,
-} from "./validadores";
+} from "./validadores.js";
 
-export type { TokensRepositorio } from "./portasRepositorio";
+export type { TokensRepositorio } from "./portasRepositorio.js";
 
 
 
-export { createFnEmitirToken } from "./usecases/emitirToken";
-export { createFnObterTokenPorHash } from "./usecases/obterTokenPorHash";
-export { createFnListarTokensDoUsuario } from "./usecases/listarTokensDoUsuario";
-export { createFnRevogarToken } from "./usecases/revogarToken";
-export { createFnRotacionarToken } from "./usecases/rotacionarToken";
+export { createFnEmitirToken } from "./usecases/emitirToken.js";
+export { createFnObterTokenPorHash } from "./usecases/obterTokenPorHash.js";
+export { createFnListarTokensDoUsuario } from "./usecases/listarTokensDoUsuario.js";
+export { createFnRevogarToken } from "./usecases/revogarToken.js";
+export { createFnRotacionarToken } from "./usecases/rotacionarToken.js";

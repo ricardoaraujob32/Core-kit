@@ -1,9 +1,9 @@
 // packages/core/src/contextoExecucao.ts
 
-import { LocatarioId } from "../locatarios/tipos";
-import { UsuarioId } from "../usuarios/index";
-import { ModuloCodigo } from "../modulos";
-import { Papel, Permissao } from "../rbac";
+import { LocatarioId } from "../locatarios/tipos.js";
+import { UsuarioId } from "../usuarios/index.js";
+import { ModuloCodigo } from "../modulos/index.js";
+import { Papel, Permissao } from "../rbac/index.js";
 
 /**
  * Propósito do arquivo:

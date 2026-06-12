@@ -1,14 +1,14 @@
 // packages/core/src/locatarios/usecases/criarConfiguracaoLocatario.ts
 
-import type { LocatariosRepositorio } from "../portasRepositorio";
-import type { RelogioPorta, IdPorta, TransacaoPorta } from "../../kernel";
-import { executarEmTransacao, wrapOk } from "../../kernel";
+import type { LocatariosRepositorio } from "../portasRepositorio.js";
+import type { RelogioPorta, IdPorta, TransacaoPorta } from "../../kernel/index.js";
+import { executarEmTransacao, wrapOk } from "../../kernel/index.js";
 import { validarConfiguracoesLocatario, validarCorTema, validarIdentidadeVisualLocatario, validarLocatarioId, validarModoTemaLocatario, 
-  validarUrlLogoLocatario } from "../validadores";
-import type { CriarConfiguracaoLocatarioInput, CriarConfiguracaoLocatarioOutput, CriarConfiguracaoLocatarioResult } from "../tipos";
-import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
-import { obterLocatarioObrigatorio } from "./helpers";
-import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
+  validarUrlLogoLocatario } from "../validadores.js";
+import type { CriarConfiguracaoLocatarioInput, CriarConfiguracaoLocatarioOutput, CriarConfiguracaoLocatarioResult } from "../tipos.js";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas.js";
+import { obterLocatarioObrigatorio } from "./helpers.js";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados.js";
 
 /**
  * 

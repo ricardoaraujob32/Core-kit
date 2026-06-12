@@ -1,5 +1,5 @@
-import { createErroApp } from "../kernel";
-import type { TransacaoId, ItemTransacaoId } from "./tipos";
+import { createErroApp } from "../kernel/index.js";
+import type { TransacaoId, ItemTransacaoId } from "./tipos.js";
 
 export type CodigoErroVendas =
   | "REGRA_NEGOCIO"

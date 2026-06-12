@@ -1,11 +1,11 @@
 // packages/core/src/tokens/usecases/listarTokensDoUsuario.ts
 
-import { wrapOk } from "../../kernel";
-import type { ListarTokensDoUsuarioInput, ListarTokensDoUsuarioOutput, ListarTokensDoUsuarioResult } from "../tipos";
-import type { TokensRepositorio } from "../portasRepositorio";
-import { validarUsuarioId } from "../../usuarios";
-import { validarLocatarioId } from "../../locatarios";
-import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
+import { wrapOk } from "../../kernel/index.js";
+import type { ListarTokensDoUsuarioInput, ListarTokensDoUsuarioOutput, ListarTokensDoUsuarioResult } from "../tipos.js";
+import type { TokensRepositorio } from "../portasRepositorio.js";
+import { validarUsuarioId } from "../../usuarios/index.js";
+import { validarLocatarioId } from "../../locatarios/index.js";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas.js";
 
 /**
  * Cria a função de caso de uso responsável por listar tokens de um usuário

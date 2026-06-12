@@ -1,7 +1,7 @@
-import { wrapOk } from "../../kernel";
-import type { ClientesRepositorio } from "../portasRepositorio";
-import type { ListarClientesInput, ListarClientesOutput, ListarClientesResult } from "../tipos";
-import { validarLocatarioId } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import type { ClientesRepositorio } from "../portasRepositorio.js";
+import type { ListarClientesInput, ListarClientesOutput, ListarClientesResult } from "../tipos.js";
+import { validarLocatarioId } from "../validadores.js";
 
 export function createFnListarClientes(deps: { clientesRepositorio: ClientesRepositorio }) {
   return async function listarClientes(input: ListarClientesInput): ListarClientesResult {

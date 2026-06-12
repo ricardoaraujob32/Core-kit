@@ -7,18 +7,18 @@ import type {
   Result,
   IdPorta,
   RelogioPorta,
-} from "../../kernel";
-import { createErroApp, wrapOk } from "../../kernel";
+} from "../../kernel/index.js";
+import { createErroApp, wrapOk } from "../../kernel/index.js";
 
 import type {
   EventosSegurancaPorta,
   HashAuthPorta,
   JwtAuthPorta,
-} from "../portasServico";
+} from "../portasServico.js";
 
 import type {
   UsuariosRepositorioAuth,
-} from "../portasRepositorio";
+} from "../portasRepositorio.js";
 
 export type EmitirSessaoPlataformaInput = {
   email: string;

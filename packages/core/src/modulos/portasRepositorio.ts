@@ -1,8 +1,8 @@
 // packages/core/src/modulos/portasRepositorio.ts
 
-import { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { ModuloHabilitado } from "./tipos";
+import { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { ModuloHabilitado } from "./tipos.js";
 
 /**
  * Porta de consulta de módulos habilitados.

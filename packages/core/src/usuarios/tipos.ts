@@ -1,7 +1,7 @@
 // packages/core/src/usuarios/tipos.ts
 
-import type { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
+import type { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
 
 /**
  * Identificador lógico de um usuário.

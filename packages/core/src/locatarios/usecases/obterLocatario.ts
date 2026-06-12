@@ -1,11 +1,11 @@
 // packages/core/src/locatarios/usecases/obterLocatario.ts
 
-import type { ObterLocatarioInput, ObterLocatarioOutput, ObterLocatarioResult } from "../tipos";
-import type { LocatariosRepositorio } from "../portasRepositorio";
-import { wrapOk } from "../../kernel";
-import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
-import { obterLocatarioObrigatorio } from "./helpers";
-import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import type { ObterLocatarioInput, ObterLocatarioOutput, ObterLocatarioResult } from "../tipos.js";
+import type { LocatariosRepositorio } from "../portasRepositorio.js";
+import { wrapOk } from "../../kernel/index.js";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados.js";
+import { obterLocatarioObrigatorio } from "./helpers.js";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas.js";
 
 /**
  * Cria a função de caso de uso responsável por obter um locatário por ID.

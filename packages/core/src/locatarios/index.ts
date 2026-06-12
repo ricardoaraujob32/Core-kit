@@ -26,7 +26,7 @@ export type {
   ReativarLocatarioInput,
   SuspenderLocatarioInput,
   SuspenderLocatarioResult  
-} from "./tipos";
+} from "./tipos.js";
 
 export {
   locatarioInvalido,
@@ -35,7 +35,7 @@ export {
   locatarioEncerrado,
   emailLocatarioJaExiste,
   slugLocatarioJaExiste
-} from "./erros";
+} from "./erros.js";
 
 export {
   validarNomeLocatario,
@@ -44,17 +44,17 @@ export {
   configuracaoLocatarioEstaCompleta,
   obterConfiguracaoAtiva,
   validarConfiguracaoLocatarioId
-} from "./validadores";
+} from "./validadores.js";
 
-export type { LocatariosRepositorio } from "./portasRepositorio";
+export type { LocatariosRepositorio } from "./portasRepositorio.js";
 
-export { createFnCriarLocatario } from "./usecases/criarLocatario";
-export { createFnObterLocatario } from "./usecases/obterLocatario";
-export { createFnAtivarConfiguracaoLocatario } from "./usecases/ativarConfiguracaoLocatario";
-export { createFnAtualizarConfiguracaoLocatario } from "./usecases/atualizarConfiguracaoLocatario";
-export { createFnAtualizarLocatario } from "./usecases/atualizarLocatario";
-export { createFnCriarConfiguracaoLocatario } from "./usecases/criarConfiguracaoLocatario";
-export { createFnEncerrarLocatario } from "./usecases/encerrarLocatario";
-export { createFnListarLocatarios } from "./usecases/listarLocatarios";
-export { createFnReativarLocatario } from "./usecases/reativarLocatario";
-export { createFnSuspenderLocatario } from "./usecases/suspenderLocatario";
+export { createFnCriarLocatario } from "./usecases/criarLocatario.js";
+export { createFnObterLocatario } from "./usecases/obterLocatario.js";
+export { createFnAtivarConfiguracaoLocatario } from "./usecases/ativarConfiguracaoLocatario.js";
+export { createFnAtualizarConfiguracaoLocatario } from "./usecases/atualizarConfiguracaoLocatario.js";
+export { createFnAtualizarLocatario } from "./usecases/atualizarLocatario.js";
+export { createFnCriarConfiguracaoLocatario } from "./usecases/criarConfiguracaoLocatario.js";
+export { createFnEncerrarLocatario } from "./usecases/encerrarLocatario.js";
+export { createFnListarLocatarios } from "./usecases/listarLocatarios.js";
+export { createFnReativarLocatario } from "./usecases/reativarLocatario.js";
+export { createFnSuspenderLocatario } from "./usecases/suspenderLocatario.js";

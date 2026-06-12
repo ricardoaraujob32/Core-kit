@@ -1,7 +1,7 @@
 // packages/core/src/modulos/tipos.ts
 
-import { ContextoExecucao, ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
+import { ContextoExecucao, ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
 
 /**
  * Código lógico de um módulo funcional do sistema.

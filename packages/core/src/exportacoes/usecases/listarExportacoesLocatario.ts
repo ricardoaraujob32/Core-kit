@@ -1,9 +1,9 @@
 // packages/core/src/exportacoes/usecases/listarExportacoesLocatario.ts
 
-import { ErroApp, Result, wrapOk } from "../../kernel";
-import { ExportacoesRepositorio } from "../portasRepositorio";
-import { ListarExportacoesLocatarioInput, ListarExportacoesLocatarioOutput } from "../tipos";
-import { validarListarExportacoesLocatarioInput } from "../validadores";
+import { ErroApp, Result, wrapOk } from "../../kernel/index.js";
+import { ExportacoesRepositorio } from "../portasRepositorio.js";
+import { ListarExportacoesLocatarioInput, ListarExportacoesLocatarioOutput } from "../tipos.js";
+import { validarListarExportacoesLocatarioInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

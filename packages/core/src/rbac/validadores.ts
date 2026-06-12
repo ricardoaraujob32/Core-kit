@@ -1,8 +1,8 @@
 // packages/core/src/rbac/validadores.ts
 
-import { ErroApp, Result, validarTextoObrigatorio } from "../kernel";
-import { permissaoInvalida } from "./erros";
-import { Permissao } from "./tipos";
+import { ErroApp, Result, validarTextoObrigatorio } from "../kernel/index.js";
+import { permissaoInvalida } from "./erros.js";
+import { Permissao } from "./tipos.js";
 
 /**
  * Valida uma permissão textual no contexto de RBAC.

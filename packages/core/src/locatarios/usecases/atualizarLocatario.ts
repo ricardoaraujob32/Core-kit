@@ -1,13 +1,13 @@
 // packages/core/src/locatarios/usecases/atualizarLocatario.ts
 
-import type { AtualizarLocatarioInput, AtualizarLocatarioOutput, AtualizarLocatarioResult } from "../tipos";
-import type { LocatariosRepositorio } from "../portasRepositorio";
-import { validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarNomeLocatario } from "../validadores";
-import { emailLocatarioJaExiste } from "../erros";
-import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
-import { obterLocatarioObrigatorio } from "./helpers";
-import { exigirEstadoOperacionalLocatario } from "../maquinaEstados";
+import type { AtualizarLocatarioInput, AtualizarLocatarioOutput, AtualizarLocatarioResult } from "../tipos.js";
+import type { LocatariosRepositorio } from "../portasRepositorio.js";
+import { validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarNomeLocatario } from "../validadores.js";
+import { emailLocatarioJaExiste } from "../erros.js";
+import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel/index.js";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas.js";
+import { obterLocatarioObrigatorio } from "./helpers.js";
+import { exigirEstadoOperacionalLocatario } from "../maquinaEstados.js";
 
 /**
  * 

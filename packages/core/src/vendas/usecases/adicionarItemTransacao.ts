@@ -1,12 +1,12 @@
 // packages/core/src/vendas/usecases/adicionarItemTransacao.ts
 
-import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import { produtoInativo } from "../../produtos";
-import type { EstoquePadraoConsultaPorta, ProdutoComercialConsultaPorta, VendasRepositorio } from "../portasRepositorio";
-import type { AdicionarItemTransacaoInput, AdicionarItemTransacaoOutput, AdicionarItemTransacaoResult } from "../tipos";
-import { estoquePadraoNaoEncontrado, transacaoNaoEditavel, transacaoNaoEncontrada } from "../erros";
-import { validarLocatarioId, validarQuantidade, validarTransacaoId, validarValorNaoNegativo } from "../validadores";
-import { calcularTotais, criarHistoricoTransacao } from "./helpers";
+import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { produtoInativo } from "../../produtos/index.js";
+import type { EstoquePadraoConsultaPorta, ProdutoComercialConsultaPorta, VendasRepositorio } from "../portasRepositorio.js";
+import type { AdicionarItemTransacaoInput, AdicionarItemTransacaoOutput, AdicionarItemTransacaoResult } from "../tipos.js";
+import { estoquePadraoNaoEncontrado, transacaoNaoEditavel, transacaoNaoEncontrada } from "../erros.js";
+import { validarLocatarioId, validarQuantidade, validarTransacaoId, validarValorNaoNegativo } from "../validadores.js";
+import { calcularTotais, criarHistoricoTransacao } from "./helpers.js";
 
 function resolverValorUnitario(params: {
   valorUnitarioInformado?: number;

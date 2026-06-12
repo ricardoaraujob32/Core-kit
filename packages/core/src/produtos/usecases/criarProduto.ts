@@ -1,9 +1,9 @@
 // packages/core/src/produtos/usecases/criarProduto.ts
 
-import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { ProdutosRepositorio } from "../portasRepositorio";
-import type { CriarProdutoInput, CriarProdutoOutput, CriarProdutoResult } from "../tipos";
-import { validarLocatarioId, validarNomeProduto, validarTextoOpcional, validarTipoProduto, validarUnidade, validarValorNaoNegativo, validarValorOpcionalNaoNegativo } from "../validadores";
+import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { ProdutosRepositorio } from "../portasRepositorio.js";
+import type { CriarProdutoInput, CriarProdutoOutput, CriarProdutoResult } from "../tipos.js";
+import { validarLocatarioId, validarNomeProduto, validarTextoOpcional, validarTipoProduto, validarUnidade, validarValorNaoNegativo, validarValorOpcionalNaoNegativo } from "../validadores.js";
 
 /**
  * 

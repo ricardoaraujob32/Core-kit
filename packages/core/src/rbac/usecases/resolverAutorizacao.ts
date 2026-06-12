@@ -1,8 +1,8 @@
 // packages/core/src/rbac/usecases/resolverAutorizacao.ts
 
-import { createContextoExecucao, exigirUsuario, wrapOk } from "../../kernel";
-import { AutorizacaoRepositorio } from "../portasRepositorio";
-import { ResolverAutorizacaoInput, ResolverAutorizacaoOutput, ResolverAutorizacaoResult } from "../tipos";
+import { createContextoExecucao, exigirUsuario, wrapOk } from "../../kernel/index.js";
+import { AutorizacaoRepositorio } from "../portasRepositorio.js";
+import { ResolverAutorizacaoInput, ResolverAutorizacaoOutput, ResolverAutorizacaoResult } from "../tipos.js";
 
 /**
  * 

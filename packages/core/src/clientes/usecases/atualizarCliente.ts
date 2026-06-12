@@ -1,10 +1,10 @@
 // packages/core/src/clientes/usecases/atualizarCliente.ts
 
-import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { ClientesRepositorio } from "../portasRepositorio";
-import type { AtualizarClienteInput, AtualizarClienteOutput, AtualizarClienteResult } from "../tipos";
-import { clienteNaoEncontrado } from "../erros";
-import { validarClienteId, validarEmailOpcional, validarLocatarioId, validarNomeCliente, validarTextoOpcional } from "../validadores";
+import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { ClientesRepositorio } from "../portasRepositorio.js";
+import type { AtualizarClienteInput, AtualizarClienteOutput, AtualizarClienteResult } from "../tipos.js";
+import { clienteNaoEncontrado } from "../erros.js";
+import { validarClienteId, validarEmailOpcional, validarLocatarioId, validarNomeCliente, validarTextoOpcional } from "../validadores.js";
 
 /**
  * 

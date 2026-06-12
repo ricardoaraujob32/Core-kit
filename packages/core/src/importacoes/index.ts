@@ -11,19 +11,19 @@ export type {
   SolicitarImportacaoInput,
   SolicitarImportacaoOutput,
   TipoOrigemImportacao,
-} from "./tipos";
+} from "./tipos.js";
 
 export type {
   ImportacoesRepositorio,
   ItensImportacaoRepositorio,
-} from "./portasRepositorio";
+} from "./portasRepositorio.js";
 
-export { createFnListarImportacoesLocatario } from "./usecases/listarImportacoesLocatario";
-export { createFnListarItensImportacao } from "./usecases/listarItensImportacao";
-export { createFnMarcarImportacaoComFalha } from "./usecases/marcarImportacaoComFalha";
-export { createFnMarcarImportacaoConcluida } from "./usecases/marcarImportacaoConcluida";
-export { createFnMarcarImportacaoEmExecucao } from "./usecases/marcarImportacaoEmExecucao";
-export { createFnMarcarItemImportacaoComFalha } from "./usecases/marcarItemImportacaoComFalha";
-export { createFnMarcarItemImportacaoProcessado } from "./usecases/marcarItemImportacaoProcessado";
-export { createFnRegistrarItemImportacao } from "./usecases/registrarItemImportacao";
-export { createFnSolicitarImportacao } from "./usecases/solicitarImportacao";
+export { createFnListarImportacoesLocatario } from "./usecases/listarImportacoesLocatario.js";
+export { createFnListarItensImportacao } from "./usecases/listarItensImportacao.js";
+export { createFnMarcarImportacaoComFalha } from "./usecases/marcarImportacaoComFalha.js";
+export { createFnMarcarImportacaoConcluida } from "./usecases/marcarImportacaoConcluida.js";
+export { createFnMarcarImportacaoEmExecucao } from "./usecases/marcarImportacaoEmExecucao.js";
+export { createFnMarcarItemImportacaoComFalha } from "./usecases/marcarItemImportacaoComFalha.js";
+export { createFnMarcarItemImportacaoProcessado } from "./usecases/marcarItemImportacaoProcessado.js";
+export { createFnRegistrarItemImportacao } from "./usecases/registrarItemImportacao.js";
+export { createFnSolicitarImportacao } from "./usecases/solicitarImportacao.js";

@@ -1,10 +1,10 @@
 // packages/core/src/auth/usecases/validarSessao.ts
 
-import { wrapOk } from "../../kernel";
-import { sessaoInvalida } from "../erros";
-import { JwtAuthPorta } from "../portasServico";
-import { ValidarSessaoResult, SessaoValidada, ValidarSessaoInput, ValidarSessaoOutput } from "../tipos";
-import { validarTokenNaoVazio } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { sessaoInvalida } from "../erros.js";
+import { JwtAuthPorta } from "../portasServico.js";
+import { ValidarSessaoResult, SessaoValidada, ValidarSessaoInput, ValidarSessaoOutput } from "../tipos.js";
+import { validarTokenNaoVazio } from "../validadores.js";
 
 /**
  * Cria o caso de uso responsável por validar um access token

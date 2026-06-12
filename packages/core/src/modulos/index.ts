@@ -15,7 +15,7 @@ export type {
   ResolverModulosHabilitadosInput,
   ResolverModulosHabilitadosOutput,
   ResolverModulosHabilitadosResult,
-} from "./tipos";
+} from "./tipos.js";
 
 // Erros
 export {
@@ -23,19 +23,19 @@ export {
   erroModuloCodigoInvalido,
   erroRepositorioModulos,
   erroModuloNaoHabilitado,
-} from "./erros";
+} from "./erros.js";
 
 // Validadores
 export {
   validarListarModulosHabilitadosInput,
   validarModuloEstaHabilitadoInput,
-} from "./validadores";
+} from "./validadores.js";
 
 // Repositório
-export type { ModulosHabilitadosRepositorio } from "./portasRepositorio";
+export type { ModulosHabilitadosRepositorio } from "./portasRepositorio.js";
 
 // Casos de uso
-export { createFnListarModulosHabilitados } from "./usecases/listarModulosHabilitados";
-export { createFnModuloEstaHabilitado } from "./usecases/moduloEstaHabilitado";
-export { createFnExigirModuloHabilitado } from "./usecases/exigirModuloHabilitado";
-export { createFnResolverModulosHabilitados } from "./usecases/resolverModulosHabilitados";
+export { createFnListarModulosHabilitados } from "./usecases/listarModulosHabilitados.js";
+export { createFnModuloEstaHabilitado } from "./usecases/moduloEstaHabilitado.js";
+export { createFnExigirModuloHabilitado } from "./usecases/exigirModuloHabilitado.js";
+export { createFnResolverModulosHabilitados } from "./usecases/resolverModulosHabilitados.js";

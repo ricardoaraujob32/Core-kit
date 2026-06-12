@@ -1,9 +1,9 @@
 // packages/core/src/locatarios/usecases/listarLocatarios.ts
 
-import type { ListarLocatariosInput, ListarLocatariosOutput, ListarLocatariosResult } from "../tipos";
-import type { LocatariosRepositorio } from "../portasRepositorio";
-import { wrapOk } from "../../kernel";
-import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+import type { ListarLocatariosInput, ListarLocatariosOutput, ListarLocatariosResult } from "../tipos.js";
+import type { LocatariosRepositorio } from "../portasRepositorio.js";
+import { wrapOk } from "../../kernel/index.js";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas.js";
 
 /**
  * Cria a função de caso de uso responsável por listar locatários.

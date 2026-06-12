@@ -1,9 +1,9 @@
 // packages/core/src/clientes/usecases/criarCliente.ts
 
-import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { ClientesRepositorio } from "../portasRepositorio";
-import type { CriarClienteInput, CriarClienteOutput, CriarClienteResult } from "../tipos";
-import { validarEmailOpcional, validarLocatarioId, validarNomeCliente, validarTextoOpcional } from "../validadores";
+import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { ClientesRepositorio } from "../portasRepositorio.js";
+import type { CriarClienteInput, CriarClienteOutput, CriarClienteResult } from "../tipos.js";
+import { validarEmailOpcional, validarLocatarioId, validarNomeCliente, validarTextoOpcional } from "../validadores.js";
 
 export function createFnCriarCliente(deps: { clientesRepositorio: ClientesRepositorio; idPorta: IdPorta; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
   return async function criarCliente(input: CriarClienteInput): CriarClienteResult {

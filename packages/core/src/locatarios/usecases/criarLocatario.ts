@@ -1,12 +1,12 @@
 // packages/core/src/locatarios/usecases/criarLocatario.ts
 
-import type { CriarLocatarioInput, CriarLocatarioOutput, CriarLocatarioResult } from "../tipos";
-import type { LocatariosRepositorio } from "../portasRepositorio";
+import type { CriarLocatarioInput, CriarLocatarioOutput, CriarLocatarioResult } from "../tipos.js";
+import type { LocatariosRepositorio } from "../portasRepositorio.js";
 import { validarCorTema, validarDocumentoLocatario, validarEmailLocatario, validarFusoHorarioLocatario, validarIdentidadeVisualLocatario, validarLocatarioSlug, 
-  validarModoTemaLocatario, validarNomeLocatario, validarUrlLogoLocatario } from "../validadores";
-import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
-import { emailLocatarioJaExiste, slugLocatarioJaExiste } from "../erros";
-import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
+  validarModoTemaLocatario, validarNomeLocatario, validarUrlLogoLocatario } from "../validadores.js";
+import { executarEmTransacao, IdPorta, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { emailLocatarioJaExiste, slugLocatarioJaExiste } from "../erros.js";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas.js";
 
 /**
  * Cria a função de caso de uso responsável por registrar um novo locatário.

@@ -1,12 +1,12 @@
 // packages/core/src/vendas/usecases/confirmarTransacao.ts
 
-import { createErroApp, executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { VendasRepositorio } from "../portasRepositorio";
-import type { ConfirmarTransacaoInput, ConfirmarTransacaoOutput, ConfirmarTransacaoResult } from "../tipos";
-import { transacaoNaoEncontrada, transacaoSemItens } from "../erros";
-import { transicionarEstadoTransacao } from "../maquinaEstados";
-import { validarLocatarioId, validarTransacaoId } from "../validadores";
-import { criarHistoricoTransacao } from "./helpers";
+import { createErroApp, executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { VendasRepositorio } from "../portasRepositorio.js";
+import type { ConfirmarTransacaoInput, ConfirmarTransacaoOutput, ConfirmarTransacaoResult } from "../tipos.js";
+import { transacaoNaoEncontrada, transacaoSemItens } from "../erros.js";
+import { transicionarEstadoTransacao } from "../maquinaEstados.js";
+import { validarLocatarioId, validarTransacaoId } from "../validadores.js";
+import { criarHistoricoTransacao } from "./helpers.js";
 
 /**
  * 

@@ -1,12 +1,12 @@
 // packages/core/src/locatarios/usecases/suspenderLocatario.ts
 
-import type { LocatariosRepositorio } from "../portasRepositorio";
-import type { RelogioPorta, TransacaoPorta } from "../../kernel";
-import type { SuspenderLocatarioInput } from "../tipos";
-import { executarEmTransacao, wrapOk } from "../../kernel";
-import { transicionarEstadoLocatario } from "../maquinaEstados";
-import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas";
-import { obterLocatarioObrigatorio } from "./helpers";
+import type { LocatariosRepositorio } from "../portasRepositorio.js";
+import type { RelogioPorta, TransacaoPorta } from "../../kernel/index.js";
+import type { SuspenderLocatarioInput } from "../tipos.js";
+import { executarEmTransacao, wrapOk } from "../../kernel/index.js";
+import { transicionarEstadoLocatario } from "../maquinaEstados.js";
+import { autorizarLocatario, PoliticaSegurancaLocatariosPorta } from "../politicas.js";
+import { obterLocatarioObrigatorio } from "./helpers.js";
 
 /**
  * 

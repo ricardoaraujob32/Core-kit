@@ -1,8 +1,8 @@
 // packages/core/src/usuarios/politicas.ts
 
-import type { Result, ErroApp } from "../kernel";
-import type { LocatarioId } from "../locatarios";
-import type { Usuario, UsuarioId } from "./tipos";
+import type { Result, ErroApp } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { Usuario, UsuarioId } from "./tipos.js";
 
 /**
  * 

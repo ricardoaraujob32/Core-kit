@@ -1,10 +1,10 @@
 // packages/core/src/modulos/usecases/exigirModuloHabilitado.ts
 
-import { wrapOk } from "../../kernel";
-import { erroModuloNaoHabilitado } from "../erros";
-import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
-import { ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput, ModuloEstaHabilitadoResult } from "../tipos";
-import { createFnModuloEstaHabilitado } from "./moduloEstaHabilitado";
+import { wrapOk } from "../../kernel/index.js";
+import { erroModuloNaoHabilitado } from "../erros.js";
+import { ModulosHabilitadosRepositorio } from "../portasRepositorio.js";
+import { ModuloEstaHabilitadoInput, ModuloEstaHabilitadoOutput, ModuloEstaHabilitadoResult } from "../tipos.js";
+import { createFnModuloEstaHabilitado } from "./moduloEstaHabilitado.js";
 
 /**
  * Propósito do arquivo:

@@ -1,8 +1,8 @@
 // packages/core/src/locatarios/validadores.ts
 
-import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio } from "../kernel";
-import { locatarioInvalido } from "./erros";
-import { ConfiguracaoLocatario, ConfiguracaoLocatarioId, LocatarioId, LocatarioSlug, ModoTemaLocatario } from "./tipos";
+import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio } from "../kernel/index.js";
+import { locatarioInvalido } from "./erros.js";
+import { ConfiguracaoLocatario, ConfiguracaoLocatarioId, LocatarioId, LocatarioSlug, ModoTemaLocatario } from "./tipos.js";
 
 /**
  * Converte erro genérico de validação transversal em erro específico do

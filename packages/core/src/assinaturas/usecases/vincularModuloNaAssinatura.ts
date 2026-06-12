@@ -1,11 +1,11 @@
 // packages/core/src/assinaturas/usecases/vincularModuloNaAssinatura.ts
 
-import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
-import { erroAssinaturaNaoEncontrada, erroModuloInvalido, erroModuloJaVinculado } from "../erros";
-import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
-import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio";
-import { VincularModuloNaAssinaturaInput, VincularModuloNaAssinaturaOutput, VincularModuloNaAssinaturaResult } from "../tipos";
-import { validarVincularModuloNaAssinaturaInput } from "../validadores";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel/index.js";
+import { erroAssinaturaNaoEncontrada, erroModuloInvalido, erroModuloJaVinculado } from "../erros.js";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas.js";
+import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio.js";
+import { VincularModuloNaAssinaturaInput, VincularModuloNaAssinaturaOutput, VincularModuloNaAssinaturaResult } from "../tipos.js";
+import { validarVincularModuloNaAssinaturaInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

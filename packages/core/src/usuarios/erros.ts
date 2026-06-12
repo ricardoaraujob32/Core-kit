@@ -1,8 +1,8 @@
 // packages/core/src/usuarios/erros.ts
 
-import { LocatarioId } from "../locatarios";
-import { createErroApp } from "../kernel";
-import { UsuarioId } from "./tipos";
+import { LocatarioId } from "../locatarios/index.js";
+import { createErroApp } from "../kernel/index.js";
+import { UsuarioId } from "./tipos.js";
 
 /**
  * 

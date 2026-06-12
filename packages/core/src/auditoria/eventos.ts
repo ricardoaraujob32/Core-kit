@@ -1,6 +1,6 @@
 // packages/core/src/auditoria/eventos.ts
 
-import { CategoriaAuditoria } from "./tipos";
+import { CategoriaAuditoria } from "./tipos.js";
 
 export type DestinoAuditoria = "LOCATARIO" | "PLATAFORMA";
 

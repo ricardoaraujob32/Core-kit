@@ -1,7 +1,7 @@
 // packages/core/src/kernel/ROPHelpers.ts
 
-import { Result, wrapErr, wrapOk } from "./result";
-import { CodigoErroApp, ErroApp, erroApp, isErroApp } from "./erros";
+import { Result, wrapErr, wrapOk } from "./result.js";
+import { CodigoErroApp, ErroApp, erroApp, isErroApp } from "./erros.js";
 
 /**
  * Propósito do arquivo:

@@ -1,11 +1,11 @@
 // packages/core/src/assinaturas/usecases/desvincularModuloDaAssinatura.ts
 
-import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
-import { erroAssinaturaNaoEncontrada, erroModuloNaoVinculado } from "../erros";
-import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
-import { AssinaturasModulosRepositorio, AssinaturasRepositorio } from "../portasRepositorio";
-import { DesvincularModuloDaAssinaturaInput, DesvincularModuloDaAssinaturaOutput, DesvincularModuloDaAssinaturaResult } from "../tipos";
-import { validarDesvincularModuloDaAssinaturaInput } from "../validadores";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel/index.js";
+import { erroAssinaturaNaoEncontrada, erroModuloNaoVinculado } from "../erros.js";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas.js";
+import { AssinaturasModulosRepositorio, AssinaturasRepositorio } from "../portasRepositorio.js";
+import { DesvincularModuloDaAssinaturaInput, DesvincularModuloDaAssinaturaOutput, DesvincularModuloDaAssinaturaResult } from "../tipos.js";
+import { validarDesvincularModuloDaAssinaturaInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

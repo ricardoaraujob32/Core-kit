@@ -1,10 +1,10 @@
 // packages/core/src/assinaturas/validadores.ts
 
-import { ErroApp, Result, validarData, validarIdGenerico, wrapOk } from "../kernel";
-import { erroAssinaturaInvalida } from "./erros";
+import { ErroApp, Result, validarData, validarIdGenerico, wrapOk } from "../kernel/index.js";
+import { erroAssinaturaInvalida } from "./erros.js";
 import { AtivarAssinaturaInput, CancelarAssinaturaInput, CriarAssinaturaInput, DesvincularModuloDaAssinaturaInput,
   ListarModulosHabilitadosLocatarioInput,
-  SuspenderAssinaturaInput, VincularModuloNaAssinaturaInput } from "./tipos";
+  SuspenderAssinaturaInput, VincularModuloNaAssinaturaInput } from "./tipos.js";
 
 /**
  * Converte falhas dos validadores transversais em erro específico

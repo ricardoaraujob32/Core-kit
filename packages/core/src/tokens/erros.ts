@@ -1,7 +1,7 @@
 // packages/core/src/tokens/erros.ts
 
-import { createErroApp } from "../kernel";
-import { TokenId } from "./tipos";
+import { createErroApp } from "../kernel/index.js";
+import { TokenId } from "./tipos.js";
 
 /**
  * 

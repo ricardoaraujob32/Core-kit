@@ -1,14 +1,14 @@
 // packages/core/src/usuarios/usecases/alterarSenhaUsuario.ts
 
-import type { HashPorta } from "../../kernel";
-import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import { senhaAtualInvalida } from "../erros";
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { AlterarSenhaUsuarioInput, AlterarSenhaUsuarioOutput, AlterarSenhaUsuarioResult } from "../tipos";
-import { validarSenhaUsuario } from "../validadores";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
-import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
-import { obterUsuarioObrigatorio } from "./helpers";
+import type { HashPorta } from "../../kernel/index.js";
+import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { senhaAtualInvalida } from "../erros.js";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import type { AlterarSenhaUsuarioInput, AlterarSenhaUsuarioOutput, AlterarSenhaUsuarioResult } from "../tipos.js";
+import { validarSenhaUsuario } from "../validadores.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados.js";
+import { obterUsuarioObrigatorio } from "./helpers.js";
 
 /**
  * 

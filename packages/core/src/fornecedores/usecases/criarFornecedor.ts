@@ -1,7 +1,7 @@
-import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel";
-import type { FornecedoresRepositorio } from "../portasRepositorio";
-import type { CriarFornecedorInput, CriarFornecedorOutput, CriarFornecedorResult } from "../tipos";
-import { validarEmailOpcional, validarLocatarioId, validarNomeFornecedor, validarTextoOpcional } from "../validadores";
+import { executarEmTransacao, type IdPorta, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { FornecedoresRepositorio } from "../portasRepositorio.js";
+import type { CriarFornecedorInput, CriarFornecedorOutput, CriarFornecedorResult } from "../tipos.js";
+import { validarEmailOpcional, validarLocatarioId, validarNomeFornecedor, validarTextoOpcional } from "../validadores.js";
 
 export function createFnCriarFornecedor(deps: { fornecedoresRepositorio: FornecedoresRepositorio; idPorta: IdPorta; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
   return async function criarFornecedor(input: CriarFornecedorInput): CriarFornecedorResult {

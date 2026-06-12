@@ -1,12 +1,12 @@
 // packages/core/src/tokens/usecases/revogarToken.ts
 
-import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import type { RevogarTokenInput, RevogarTokenOutput, RevogarTokenResult } from "../tipos";
-import type { TokensRepositorio } from "../portasRepositorio";
-import { validarAgora } from "../validadores";
-import { exigirTransicaoToken } from "../maquinaEstados";
-import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
-import { obterTokenObrigatorioPorId } from "./helpers";
+import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel/index.js";
+import type { RevogarTokenInput, RevogarTokenOutput, RevogarTokenResult } from "../tipos.js";
+import type { TokensRepositorio } from "../portasRepositorio.js";
+import { validarAgora } from "../validadores.js";
+import { exigirTransicaoToken } from "../maquinaEstados.js";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas.js";
+import { obterTokenObrigatorioPorId } from "./helpers.js";
 
 /**
  * Cria a função de caso de uso responsável por revogar um token existente.

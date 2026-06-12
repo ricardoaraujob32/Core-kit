@@ -1,12 +1,12 @@
 // packages/core/src/assinaturas/usecases/suspenderAssinatura.ts
 
-import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel";
-import { erroAssinaturaNaoEncontrada } from "../erros";
-import { transicionarEstadoAssinatura } from "../maquinaEstados";
-import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
-import { AssinaturasRepositorio } from "../portasRepositorio";
-import { SuspenderAssinaturaInput, SuspenderAssinaturaOutput, SuspenderAssinaturaResult } from "../tipos";
-import { validarSuspenderAssinaturaInput } from "../validadores";
+import { executarEmTransacao, TransacaoPorta, RelogioPorta, wrapOk } from "../../kernel/index.js";
+import { erroAssinaturaNaoEncontrada } from "../erros.js";
+import { transicionarEstadoAssinatura } from "../maquinaEstados.js";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas.js";
+import { AssinaturasRepositorio } from "../portasRepositorio.js";
+import { SuspenderAssinaturaInput, SuspenderAssinaturaOutput, SuspenderAssinaturaResult } from "../tipos.js";
+import { validarSuspenderAssinaturaInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

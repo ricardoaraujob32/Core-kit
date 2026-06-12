@@ -1,6 +1,6 @@
-import { Exportacao } from "../exportacoes";
-import { Importacao } from "../importacoes";
-import { BackupLocatario, RestauracaoLocatario } from "./tipos";
+import { Exportacao } from "../exportacoes/index.js";
+import { Importacao } from "../importacoes/index.js";
+import { BackupLocatario, RestauracaoLocatario } from "./tipos.js";
 
 /**
  * Verifica se uma exportação representa semanticamente um backup de locatário.

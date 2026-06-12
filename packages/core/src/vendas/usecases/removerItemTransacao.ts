@@ -1,27 +1,27 @@
 // 
 
-import type { VendasRepositorio } from "../portasRepositorio";
+import type { VendasRepositorio } from "../portasRepositorio.js";
 import type {
   RemoverItemTransacaoInput,
   RemoverItemTransacaoOutput,
   RemoverItemTransacaoResult,
-} from "../tipos";
+} from "../tipos.js";
 import {
   validarItemTransacaoId,
   validarLocatarioId,
   validarTransacaoId,
-} from "../validadores";
+} from "../validadores.js";
 import {
   itemTransacaoNaoEncontrado,
   transacaoNaoEncontrada,
   transacaoNaoPermiteEdicao,
-} from "../erros";
+} from "../erros.js";
 import {
   executarEmTransacao,
   RelogioPorta,
   TransacaoPorta,
   wrapOk,
-} from "../../kernel";
+} from "../../kernel/index.js";
 
 function podeEditarTransacao(status: string) {
   return status === "RASCUNHO" || status === "ABERTA";

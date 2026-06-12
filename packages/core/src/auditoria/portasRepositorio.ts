@@ -1,8 +1,8 @@
 // packages/core/src/auditoria/portasRepositorio.ts
 
-import type { ErroApp, Result } from "../kernel";
+import type { ErroApp, Result } from "../kernel/index.js";
 import type { EventoAuditoriaLocatario, EventoAuditoriaPlataforma, ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoAuditoriaLocatarioInput,
-  RegistrarEventoAuditoriaPlataformaInput } from "./tipos";
+  RegistrarEventoAuditoriaPlataformaInput } from "./tipos.js";
 
 export interface AuditoriaLocatarioRepositorio {
   registrarEvento(

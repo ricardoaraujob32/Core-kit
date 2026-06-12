@@ -1,8 +1,8 @@
 // packages/core/src/auth/usecases/resolverContextoAutorizado.ts
 
-import { createContextoExecucao, createErroApp, wrapOk } from "../../kernel";
-import { RbacAuthPorta } from "../portasServico";
-import { ResolverContextoAutorizadoInput, ResolverContextoAutorizadoOutput, ResolverContextoAutorizadoResult } from "../tipos";
+import { createContextoExecucao, createErroApp, wrapOk } from "../../kernel/index.js";
+import { RbacAuthPorta } from "../portasServico.js";
+import { ResolverContextoAutorizadoInput, ResolverContextoAutorizadoOutput, ResolverContextoAutorizadoResult } from "../tipos.js";
 
 /**
  * Cria o caso de uso responsável por resolver o contexto autorizado

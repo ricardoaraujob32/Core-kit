@@ -1,8 +1,8 @@
 // packages/core/src/importacoes/tipos.ts
 
-import { StatusJob } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
+import { StatusJob } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
 
 /**
  * Identificador lógico de uma importação.

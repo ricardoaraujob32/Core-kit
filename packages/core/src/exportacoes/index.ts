@@ -13,12 +13,12 @@ export type {
   MarcarExportacaoEmExecucaoInput,
   SolicitarExportacaoInput,
   SolicitarExportacaoOutput,
-} from "./tipos";
+} from "./tipos.js";
 
-export type { ExportacoesRepositorio } from "./portasRepositorio";
+export type { ExportacoesRepositorio } from "./portasRepositorio.js";
 
-export { createFnListarExportacoesLocatario } from "./usecases/listarExportacoesLocatario";
-export { createFnMarcarExportacaoComFalha } from "./usecases/marcarExportacaoComFalha";
-export { createFnMarcarExportacaoConcluida } from "./usecases/marcarExportacaoConcluida";
-export { createFnMarcarExportacaoEmExecucao} from "./usecases/marcarExportacaoEmExecucao";
-export { createFnSolicitarExportacao } from "./usecases/solicitarExportacao";
+export { createFnListarExportacoesLocatario } from "./usecases/listarExportacoesLocatario.js";
+export { createFnMarcarExportacaoComFalha } from "./usecases/marcarExportacaoComFalha.js";
+export { createFnMarcarExportacaoConcluida } from "./usecases/marcarExportacaoConcluida.js";
+export { createFnMarcarExportacaoEmExecucao} from "./usecases/marcarExportacaoEmExecucao.js";
+export { createFnSolicitarExportacao } from "./usecases/solicitarExportacao.js";

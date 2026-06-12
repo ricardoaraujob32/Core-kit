@@ -1,8 +1,8 @@
 // packages/core/src/locatarios/maquinaEstados.ts
 
-import { ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel";
-import { locatarioEncerrado, locatarioSuspenso } from "./erros";
-import type { EventoLocatario, Locatario, LocatarioId, LocatarioStatus } from "./tipos";
+import { ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel/index.js";
+import { locatarioEncerrado, locatarioSuspenso } from "./erros.js";
+import type { EventoLocatario, Locatario, LocatarioId, LocatarioStatus } from "./tipos.js";
 
 /**
  * Tabela formal de transições do ciclo de vida de locatários.

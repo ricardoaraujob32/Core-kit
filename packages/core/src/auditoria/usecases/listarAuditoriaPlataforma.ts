@@ -1,10 +1,10 @@
 // packages/core/src/auditoria/usecases/listarAuditoriaPlataforma.ts
 
-import { wrapOk } from "../../kernel";
-import type { AuditoriaPlataformaRepositorio } from "../portasRepositorio";
-import type { ListarAuditoriaPlataformaInput, ListarAuditoriaPlataformaOutput, ListarAuditoriaPlataformaResult } from "../tipos";
-import { validarListarAuditoriaPlataformaInput } from "../validadores";
-import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas";
+import { wrapOk } from "../../kernel/index.js";
+import type { AuditoriaPlataformaRepositorio } from "../portasRepositorio.js";
+import type { ListarAuditoriaPlataformaInput, ListarAuditoriaPlataformaOutput, ListarAuditoriaPlataformaResult } from "../tipos.js";
+import { validarListarAuditoriaPlataformaInput } from "../validadores.js";
+import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas.js";
 
 /**
  * 

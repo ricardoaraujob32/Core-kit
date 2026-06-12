@@ -1,8 +1,8 @@
 // packages/core/src/clientes/tipos.ts
 
-import type { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
+import type { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
 
 export type ClienteId = string;
 export type ClienteStatus = "ATIVO" | "INATIVO" | "EXCLUIDO";

@@ -1,7 +1,7 @@
 // packages/core/src/auditoria/resolverEventoAuditoria.ts
 
-import type { EventoAuditoriaDef } from "./eventos";
-import { EVENTOS_AUDITORIA } from "./eventos";
+import type { EventoAuditoriaDef } from "./eventos.js";
+import { EVENTOS_AUDITORIA } from "./eventos.js";
 
 /**
  * Resolve a definição canônica de um evento de auditoria.

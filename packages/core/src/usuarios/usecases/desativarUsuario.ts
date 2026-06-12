@@ -1,12 +1,12 @@
 // packages/core/src/usuarios/usecases/desativarUsuario.ts
 
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { DesativarUsuarioInput, DesativarUsuarioOutput, DesativarUsuarioResult } from "../tipos";
-import { wrapOk, RelogioPorta, TransacaoPorta } from "../../kernel";
-import { executarEmTransacao } from "../../kernel";
-import { transicionarEstadoUsuario } from "../maquinaEstados";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
-import { obterUsuarioObrigatorio } from "./helpers";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import type { DesativarUsuarioInput, DesativarUsuarioOutput, DesativarUsuarioResult } from "../tipos.js";
+import { wrapOk, RelogioPorta, TransacaoPorta } from "../../kernel/index.js";
+import { executarEmTransacao } from "../../kernel/index.js";
+import { transicionarEstadoUsuario } from "../maquinaEstados.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
+import { obterUsuarioObrigatorio } from "./helpers.js";
 
 /**
  * Cria a função de caso de uso responsável por marcar um usuário como inativo.

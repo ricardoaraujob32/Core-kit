@@ -1,10 +1,10 @@
 // packages/core/src/importacoes/usecases/marcarItemImportacaoProcessado.ts
 
-import { ErroApp, Result } from "../../kernel";
-import { erroItemImportacaoNaoEncontrado, erroTransicaoStatusImportacaoInvalida } from "../erros";
-import { ItensImportacaoRepositorio } from "../portasRepositorio";
-import { ItemImportacao, MarcarItemImportacaoProcessadoInput } from "../tipos";
-import { validarMarcarItemImportacaoProcessadoInput } from "../validadores";
+import { ErroApp, Result } from "../../kernel/index.js";
+import { erroItemImportacaoNaoEncontrado, erroTransicaoStatusImportacaoInvalida } from "../erros.js";
+import { ItensImportacaoRepositorio } from "../portasRepositorio.js";
+import { ItemImportacao, MarcarItemImportacaoProcessadoInput } from "../tipos.js";
+import { validarMarcarItemImportacaoProcessadoInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

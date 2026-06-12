@@ -1,12 +1,12 @@
 // packages/core/src/backups/usecases/solicitarRestauracaoLocatario.ts
 
-import { ExportacoesRepositorio } from "../../exportacoes";
-import { ImportacoesRepositorio } from "../../importacoes";
-import { ErroApp, executarEmTransacao, IdPorta, TransacaoPorta, RelogioPorta, Result, wrapOk } from "../../kernel";
-import { erroBackupNaoDisponivelParaRestauracao, erroBackupNaoEncontrado, erroBackupNaoPertenceAoLocatario, erroJaExisteRestauracaoEmAberto } from "../erros";
-import { ehBackupLocatario, ehRestauracaoLocatario, mapRestauracao } from "../temp";
-import { SolicitarRestauracaoLocatarioInput, SolicitarRestauracaoLocatarioOutput } from "../tipos";
-import { validarSolicitarRestauracaoLocatarioInput } from "../validadores";
+import { ExportacoesRepositorio } from "../../exportacoes/index.js";
+import { ImportacoesRepositorio } from "../../importacoes/index.js";
+import { ErroApp, executarEmTransacao, IdPorta, TransacaoPorta, RelogioPorta, Result, wrapOk } from "../../kernel/index.js";
+import { erroBackupNaoDisponivelParaRestauracao, erroBackupNaoEncontrado, erroBackupNaoPertenceAoLocatario, erroJaExisteRestauracaoEmAberto } from "../erros.js";
+import { ehBackupLocatario, ehRestauracaoLocatario, mapRestauracao } from "../temp.js";
+import { SolicitarRestauracaoLocatarioInput, SolicitarRestauracaoLocatarioOutput } from "../tipos.js";
+import { validarSolicitarRestauracaoLocatarioInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

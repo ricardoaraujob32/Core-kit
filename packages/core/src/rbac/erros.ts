@@ -1,7 +1,7 @@
 // packages/core/src/rbac/erros.ts
 
-import { createErroApp } from "../kernel";
-import { Permissao } from "./tipos";
+import { createErroApp } from "../kernel/index.js";
+import { Permissao } from "./tipos.js";
 
 export type CodigoErroRbac =
   | "RBAC_PERMISSAO_INVALIDA"

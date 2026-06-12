@@ -1,10 +1,10 @@
 // packages/core/src/importacoes/validadores.ts
 
-import { ErroApp, Result, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel";
-import { erroImportacaoInvalida } from "./erros";
+import { ErroApp, Result, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel/index.js";
+import { erroImportacaoInvalida } from "./erros.js";
 import { ListarImportacoesLocatarioInput, ListarItensImportacaoInput, MarcarImportacaoComFalhaInput, MarcarImportacaoConcluidaInput,
   MarcarImportacaoEmExecucaoInput, MarcarItemImportacaoComFalhaInput, MarcarItemImportacaoProcessadoInput,
-  RegistrarItemImportacaoInput, SolicitarImportacaoInput } from "./tipos";
+  RegistrarItemImportacaoInput, SolicitarImportacaoInput } from "./tipos.js";
 
 /**
  * Converte falhas dos validadores transversais em erro específico

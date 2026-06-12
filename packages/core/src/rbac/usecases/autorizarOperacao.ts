@@ -1,9 +1,9 @@
 // packages/core/src/rbac/usecases/autorizarOperacao.ts
 
-import { normalizarPermissoes, wrapOk } from "../../kernel";
-import type { AutorizarOperacaoInput, Permissao, AutorizarOperacaoResult } from "../tipos";
-import { naoAutenticado, naoAutorizado } from "../erros";
-import { validarPermissao } from "../validadores";
+import { normalizarPermissoes, wrapOk } from "../../kernel/index.js";
+import type { AutorizarOperacaoInput, Permissao, AutorizarOperacaoResult } from "../tipos.js";
+import { naoAutenticado, naoAutorizado } from "../erros.js";
+import { validarPermissao } from "../validadores.js";
 
 /**
  * Autoriza uma operação a partir do contexto corrente e da permissão exigida.

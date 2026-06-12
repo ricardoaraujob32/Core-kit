@@ -1,8 +1,8 @@
 // packages/core/src/modulos/validadores.ts
 
-import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel";
-import { erroLocatarioIdInvalido, erroModuloCodigoInvalido } from "./erros";
-import { ListarModulosHabilitadosInput, ModuloEstaHabilitadoInput } from "./tipos";
+import { ErroApp, Result, validarIdGenerico, validarTextoObrigatorio, wrapOk } from "../kernel/index.js";
+import { erroLocatarioIdInvalido, erroModuloCodigoInvalido } from "./erros.js";
+import { ListarModulosHabilitadosInput, ModuloEstaHabilitadoInput } from "./tipos.js";
 
 /**
  * Valida a entrada da operação que lista módulos habilitados para um locatário.

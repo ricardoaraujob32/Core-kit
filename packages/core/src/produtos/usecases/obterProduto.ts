@@ -1,8 +1,8 @@
-import { wrapOk } from "../../kernel";
-import type { ProdutosRepositorio } from "../portasRepositorio";
-import type { ObterProdutoInput, ObterProdutoOutput, ObterProdutoResult } from "../tipos";
-import { produtoNaoEncontrado } from "../erros";
-import { validarLocatarioId, validarProdutoId } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import type { ProdutosRepositorio } from "../portasRepositorio.js";
+import type { ObterProdutoInput, ObterProdutoOutput, ObterProdutoResult } from "../tipos.js";
+import { produtoNaoEncontrado } from "../erros.js";
+import { validarLocatarioId, validarProdutoId } from "../validadores.js";
 
 export function createFnObterProduto(deps: { produtosRepositorio: ProdutosRepositorio }) {
   return async function obterProduto(input: ObterProdutoInput): ObterProdutoResult {

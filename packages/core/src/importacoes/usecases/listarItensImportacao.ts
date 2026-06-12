@@ -1,9 +1,9 @@
 // packages/core/src/importacoes/usecases/listarItensImportacao.ts
 
-import { ErroApp, Result } from "../../kernel";
-import { ItensImportacaoRepositorio } from "../portasRepositorio";
-import { ItemImportacao, ListarItensImportacaoInput } from "../tipos";
-import { validarListarItensImportacaoInput } from "../validadores";
+import { ErroApp, Result } from "../../kernel/index.js";
+import { ItensImportacaoRepositorio } from "../portasRepositorio.js";
+import { ItemImportacao, ListarItensImportacaoInput } from "../tipos.js";
+import { validarListarItensImportacaoInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

@@ -1,8 +1,8 @@
-import { wrapOk } from "../../kernel";
-import type { VendasRepositorio } from "../portasRepositorio";
-import type { ObterTransacaoInput, ObterTransacaoOutput, ObterTransacaoResult } from "../tipos";
-import { transacaoNaoEncontrada } from "../erros";
-import { validarLocatarioId, validarTransacaoId } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import type { VendasRepositorio } from "../portasRepositorio.js";
+import type { ObterTransacaoInput, ObterTransacaoOutput, ObterTransacaoResult } from "../tipos.js";
+import { transacaoNaoEncontrada } from "../erros.js";
+import { validarLocatarioId, validarTransacaoId } from "../validadores.js";
 
 export function createFnObterTransacao(deps: { vendasRepositorio: VendasRepositorio }) {
   return async function obterTransacao(input: ObterTransacaoInput): ObterTransacaoResult {

@@ -1,9 +1,9 @@
 // packages/core/src/vendas/validadores.ts
 
-import { createErroApp, wrapOk } from "../kernel";
-import type { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import type { TransacaoId, ItemTransacaoId, TipoTransacaoComercial, StatusTransacaoComercial } from "./tipos";
+import { createErroApp, wrapOk } from "../kernel/index.js";
+import type { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import type { TransacaoId, ItemTransacaoId, TipoTransacaoComercial, StatusTransacaoComercial } from "./tipos.js";
 
 export function validarLocatarioId(v: unknown): Result<LocatarioId, ErroApp> {
   if (typeof v !== "string" || !v.trim()) return createErroApp({ codigo: "LOCATARIO_OBRIGATORIO" as never, mensagem: "Locatário obrigatório.", detalhes: { operacao: "vendas.validarLocatarioId" } });

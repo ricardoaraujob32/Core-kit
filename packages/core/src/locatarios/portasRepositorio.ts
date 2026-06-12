@@ -1,7 +1,7 @@
 // packages/core/src/locatarios/portasRepositorio.ts
 
-import type { ErroApp, Result } from "../kernel";
-import type { ConfiguracaoLocatario, ConfiguracaoLocatarioId, Locatario, LocatarioId, LocatarioSlug, ModoTemaLocatario } from "./tipos";
+import type { ErroApp, Result } from "../kernel/index.js";
+import type { ConfiguracaoLocatario, ConfiguracaoLocatarioId, Locatario, LocatarioId, LocatarioSlug, ModoTemaLocatario } from "./tipos.js";
 
 /**
  * Porta de persistência do domínio de locatários.

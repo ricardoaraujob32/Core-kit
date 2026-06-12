@@ -1,8 +1,8 @@
 // packages/core/src/auditoria/validadores.ts
 
-import { type ErroApp, type Result, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel";
-import { erroAuditoriaInvalida } from "./erros";
-import type { ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoAuditoriaLocatarioInput, RegistrarEventoAuditoriaPlataformaInput } from "./tipos";
+import { type ErroApp, type Result, validarIdGenerico, validarNumeroPositivo, validarTextoObrigatorio, wrapOk } from "../kernel/index.js";
+import { erroAuditoriaInvalida } from "./erros.js";
+import type { ListarAuditoriaLocatarioInput, ListarAuditoriaPlataformaInput, RegistrarEventoAuditoriaLocatarioInput, RegistrarEventoAuditoriaPlataformaInput } from "./tipos.js";
 
 /**
  * Converte erro de validação transversal em erro específico de auditoria.

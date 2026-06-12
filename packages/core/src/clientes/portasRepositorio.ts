@@ -1,8 +1,8 @@
 // packages/core/src/clientes/portasRepositorio.ts
 
-import type { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import type { Cliente, ClienteId } from "./tipos";
+import type { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import type { Cliente, ClienteId } from "./tipos.js";
 
 /**
  * 

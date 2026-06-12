@@ -1,6 +1,6 @@
 // packages/core/src/kernel/errosInfra.ts
 
-import { wrapErr } from "../../src/kernel/result";
+import { wrapErr } from "../../src/kernel/result.js";
 
 export function erroSimulado(detalhes?: Record<string, unknown>) {
   return wrapErr({

@@ -1,10 +1,10 @@
 // packages/core/src/importacoes/usecases/marcarImportacaoComFalha.ts
 
-import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel";
-import { erroImportacaoNaoEncontrada, erroTransicaoStatusImportacaoInvalida } from "../erros";
-import { ImportacoesRepositorio } from "../portasRepositorio";
-import { Importacao, MarcarImportacaoComFalhaInput } from "../tipos";
-import { validarMarcarImportacaoComFalhaInput } from "../validadores";
+import { ErroApp, executarEmTransacao, TransacaoPorta, RelogioPorta, Result } from "../../kernel/index.js";
+import { erroImportacaoNaoEncontrada, erroTransicaoStatusImportacaoInvalida } from "../erros.js";
+import { ImportacoesRepositorio } from "../portasRepositorio.js";
+import { Importacao, MarcarImportacaoComFalhaInput } from "../tipos.js";
+import { validarMarcarImportacaoComFalhaInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

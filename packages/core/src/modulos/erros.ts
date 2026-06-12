@@ -1,7 +1,7 @@
 // packages/core/src/modulos/erros.ts
 
-import { createErroApp, ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
+import { createErroApp, ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
 
 export type CodigoErroModulo =
   | "MODULOS_LOCATARIO_ID_INVALIDO"

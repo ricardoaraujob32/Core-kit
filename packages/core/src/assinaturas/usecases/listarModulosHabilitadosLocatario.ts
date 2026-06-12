@@ -1,10 +1,10 @@
 // packages/core/src/assinaturas/usecases/listarModulosHabilitadosLocatario.ts
 
-import { wrapOk } from "../../kernel";
-import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas";
-import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio";
-import { ListarModulosHabilitadosLocatarioInput, ListarModulosHabilitadosLocatarioOutput, ListarModulosHabilitadosLocatarioResult, ModuloHabilitadoLocatario } from "../tipos";
-import { validarListarModulosHabilitadosLocatarioInput } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { autorizarAssinatura, PoliticaSegurancaAssinaturasPorta } from "../politicas.js";
+import { AssinaturasModulosRepositorio, AssinaturasRepositorio, ModulosConsultaRepositorio } from "../portasRepositorio.js";
+import { ListarModulosHabilitadosLocatarioInput, ListarModulosHabilitadosLocatarioOutput, ListarModulosHabilitadosLocatarioResult, ModuloHabilitadoLocatario } from "../tipos.js";
+import { validarListarModulosHabilitadosLocatarioInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

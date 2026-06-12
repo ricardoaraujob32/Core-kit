@@ -1,5 +1,5 @@
-import { createErroApp } from "../kernel";
-import type { ClienteId } from "./tipos";
+import { createErroApp } from "../kernel/index.js";
+import type { ClienteId } from "./tipos.js";
 
 export function clienteNaoEncontrado(clienteId: ClienteId) {
   return createErroApp({ codigo: "NAO_ENCONTRADO", mensagem: "Cliente não encontrado.", detalhes: { operacao: "clientes.naoEncontrado", clienteId } });

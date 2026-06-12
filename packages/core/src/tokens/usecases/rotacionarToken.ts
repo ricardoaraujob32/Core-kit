@@ -1,13 +1,13 @@
 // packages/core/src/tokens/usecases/rotacionarToken.ts
 
-import { executarEmTransacao, wrapOk, type IdPorta, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import { tokenInvalido, tokenNaoEncontrado, hashTokenJaExiste } from "../erros";
-import type { RotacionarTokenInput, RotacionarTokenResult } from "../tipos";
-import type { TokensRepositorio } from "../portasRepositorio";
-import { validarExpiraEm, validarHashToken } from "../validadores";
-import { exigirTransicaoToken } from "../maquinaEstados";
-import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas";
-import { obterTokenObrigatorioPorId } from "./helpers";
+import { executarEmTransacao, wrapOk, type IdPorta, type RelogioPorta, type TransacaoPorta } from "../../kernel/index.js";
+import { tokenInvalido, tokenNaoEncontrado, hashTokenJaExiste } from "../erros.js";
+import type { RotacionarTokenInput, RotacionarTokenResult } from "../tipos.js";
+import type { TokensRepositorio } from "../portasRepositorio.js";
+import { validarExpiraEm, validarHashToken } from "../validadores.js";
+import { exigirTransicaoToken } from "../maquinaEstados.js";
+import { autorizarToken, PoliticaSegurancaTokensPorta } from "../politicas.js";
+import { obterTokenObrigatorioPorId } from "./helpers.js";
 
 /**
  * Cria a função de caso de uso responsável por rotacionar um token persistido.

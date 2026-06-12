@@ -1,8 +1,8 @@
 // packages/core/src/assinaturas/maquinaEstados.ts
 
-import { TabelaTransicoes, transicionarEstado } from "../kernel";
-import { erroTransicaoStatusInvalida } from "./erros";
-import { AssinaturaId, EventoAssinatura, StatusAssinatura } from "./tipos";
+import { TabelaTransicoes, transicionarEstado } from "../kernel/index.js";
+import { erroTransicaoStatusInvalida } from "./erros.js";
+import { AssinaturaId, EventoAssinatura, StatusAssinatura } from "./tipos.js";
 
 /**
  * Tabela formal de transições permitidas para o ciclo de vida de assinaturas.

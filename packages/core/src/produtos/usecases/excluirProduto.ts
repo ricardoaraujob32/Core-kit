@@ -1,14 +1,14 @@
 //
 
-import type { ProdutosRepositorio } from "../portasRepositorio";
+import type { ProdutosRepositorio } from "../portasRepositorio.js";
 import type {
   ExcluirProdutoInput,
   ExcluirProdutoOutput,
   ExcluirProdutoResult,
-} from "../tipos";
-import { validarLocatarioId, validarProdutoId } from "../validadores";
-import { produtoNaoEncontrado } from "../erros";
-import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+} from "../tipos.js";
+import { validarLocatarioId, validarProdutoId } from "../validadores.js";
+import { produtoNaoEncontrado } from "../erros.js";
+import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
 
 export function createFnExcluirProduto(deps: {
   produtosRepositorio: ProdutosRepositorio;

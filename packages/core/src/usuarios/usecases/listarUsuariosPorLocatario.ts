@@ -1,10 +1,10 @@
 // packages/core/src/usuarios/usecases/listarUsuariosPorLocatario.ts
 
-import { wrapOk } from "../../kernel";
-import type { ListarUsuariosPorLocatarioInput, ListarUsuariosPorLocatarioOutput, ListarUsuariosPorLocatarioResult } from "../tipos";
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import { validarLocatarioId } from "../../locatarios";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
+import { wrapOk } from "../../kernel/index.js";
+import type { ListarUsuariosPorLocatarioInput, ListarUsuariosPorLocatarioOutput, ListarUsuariosPorLocatarioResult } from "../tipos.js";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import { validarLocatarioId } from "../../locatarios/index.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
 
 /**
  * Cria a função de caso de uso responsável por listar usuários de um locatário.

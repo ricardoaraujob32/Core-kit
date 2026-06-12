@@ -1,8 +1,8 @@
 // packages/core/src/kernel/maquinaEstados.ts
 
-import type { ErroApp } from "./erros";
-import { Result, wrapOk } from "./result";
-import { createErroApp } from "./ROPHelpers";
+import type { ErroApp } from "./erros.js";
+import { Result, wrapOk } from "./result.js";
+import { createErroApp } from "./ROPHelpers.js";
 
 /**
  * Tabela genérica de transições:

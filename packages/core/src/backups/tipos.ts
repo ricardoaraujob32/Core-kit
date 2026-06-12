@@ -1,7 +1,7 @@
 // packages/core/src/backups/tipos.ts
 
-import { LocatarioId } from "../locatarios";
-import { UsuarioId } from "../usuarios";
+import { LocatarioId } from "../locatarios/index.js";
+import { UsuarioId } from "../usuarios/index.js";
 
 /**
  * Identificador lógico de uma solicitação de backup.

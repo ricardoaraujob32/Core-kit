@@ -1,8 +1,8 @@
 // packages/core/src/assinaturas/tipos.ts
 
-import { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
-import { ModuloId } from "../modulos";
+import { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
+import { ModuloId } from "../modulos/index.js";
 
 /**
  * Identificador lógico de uma assinatura.

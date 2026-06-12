@@ -1,5 +1,5 @@
-import { createErroApp } from "../kernel";
-import type { FornecedorId } from "./tipos";
+import { createErroApp } from "../kernel/index.js";
+import type { FornecedorId } from "./tipos.js";
 
 export function fornecedorNaoEncontrado(fornecedorId: FornecedorId) {
   return createErroApp({ codigo: "NAO_ENCONTRADO", mensagem: "Fornecedor não encontrado.", detalhes: { operacao: "fornecedors.naoEncontrado", fornecedorId } });

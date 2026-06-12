@@ -1,7 +1,7 @@
-import { wrapOk } from "../../kernel";
-import type { VendasRepositorio } from "../portasRepositorio";
-import type { ListarTransacoesInput, ListarTransacoesOutput, ListarTransacoesResult } from "../tipos";
-import { validarLocatarioId, validarStatusTransacao, validarTipoTransacao } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import type { VendasRepositorio } from "../portasRepositorio.js";
+import type { ListarTransacoesInput, ListarTransacoesOutput, ListarTransacoesResult } from "../tipos.js";
+import { validarLocatarioId, validarStatusTransacao, validarTipoTransacao } from "../validadores.js";
 
 export function createFnListarTransacoes(deps: { vendasRepositorio: VendasRepositorio }) {
   return async function listarTransacoes(input: ListarTransacoesInput): ListarTransacoesResult {

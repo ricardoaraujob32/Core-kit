@@ -1,10 +1,10 @@
 // packages/core/src/clientes/usecases/excluirCliente.ts
 
-import type { ClientesRepositorio } from "../portasRepositorio";
-import type { ExcluirClienteInput, ExcluirClienteOutput, ExcluirClienteResult } from "../tipos";
-import { validarClienteId, validarLocatarioId } from "../validadores";
-import { clienteNaoEncontrado } from "../erros";
-import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel";
+import type { ClientesRepositorio } from "../portasRepositorio.js";
+import type { ExcluirClienteInput, ExcluirClienteOutput, ExcluirClienteResult } from "../tipos.js";
+import { validarClienteId, validarLocatarioId } from "../validadores.js";
+import { clienteNaoEncontrado } from "../erros.js";
+import { executarEmTransacao, RelogioPorta, TransacaoPorta, wrapOk } from "../../kernel/index.js";
 
 /**
  * 

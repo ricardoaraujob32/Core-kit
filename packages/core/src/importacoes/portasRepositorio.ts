@@ -1,9 +1,9 @@
 // packages/core/src/importacoes/portasRepositorio.ts
 
-import { ErroApp, Result } from "../kernel";
-import { LocatarioId } from "../locatarios";
+import { ErroApp, Result } from "../kernel/index.js";
+import { LocatarioId } from "../locatarios/index.js";
 import { Importacao, ImportacaoId, ItemImportacao, ItemImportacaoId, RegistrarImportacaoParams, RegistrarItemImportacaoParams
- } from "./tipos";
+ } from "./tipos.js";
 
 /**
  * Porta de persistência do agregado de importações.

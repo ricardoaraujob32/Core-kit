@@ -1,7 +1,7 @@
-import { wrapOk } from "../../kernel";
-import type { ProdutosRepositorio } from "../portasRepositorio";
-import type { ListarProdutosInput, ListarProdutosOutput, ListarProdutosResult } from "../tipos";
-import { validarLocatarioId, validarTipoProduto } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import type { ProdutosRepositorio } from "../portasRepositorio.js";
+import type { ListarProdutosInput, ListarProdutosOutput, ListarProdutosResult } from "../tipos.js";
+import { validarLocatarioId, validarTipoProduto } from "../validadores.js";
 
 export function createFnListarProdutos(deps: { produtosRepositorio: ProdutosRepositorio }) {
   return async function listarProdutos(input: ListarProdutosInput): ListarProdutosResult {

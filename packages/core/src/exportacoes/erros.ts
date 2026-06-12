@@ -1,7 +1,7 @@
 // packages/core/src/exportacoes/erros.ts
 
-import { createErroApp, ErroApp, Result } from "../kernel";
-import { ExportacaoId } from "./tipos";
+import { createErroApp, ErroApp, Result } from "../kernel/index.js";
+import { ExportacaoId } from "./tipos.js";
 
 export type CodigoErroExportacao =
   | "EXPORTACAO_INVALIDA"

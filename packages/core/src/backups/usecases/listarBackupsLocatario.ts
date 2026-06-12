@@ -1,10 +1,10 @@
 // packages/core/src/backups/usecases/listarBackupsLocatario.ts
 
-import { ExportacoesRepositorio } from "../../exportacoes";
-import { ErroApp, Result, wrapOk } from "../../kernel";
-import { ehBackupLocatario, mapBackup } from "../temp";
-import { ListarBackupsLocatarioInput, ListarBackupsLocatarioOutput } from "../tipos";
-import { validarListarBackupsLocatarioInput } from "../validadores";
+import { ExportacoesRepositorio } from "../../exportacoes/index.js";
+import { ErroApp, Result, wrapOk } from "../../kernel/index.js";
+import { ehBackupLocatario, mapBackup } from "../temp.js";
+import { ListarBackupsLocatarioInput, ListarBackupsLocatarioOutput } from "../tipos.js";
+import { validarListarBackupsLocatarioInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

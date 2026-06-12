@@ -1,11 +1,11 @@
 // packages/core/src/usuarios/usecases/obterUsuario.ts
 
-import { wrapOk } from "../../kernel";
-import type { ObterUsuarioInput, ObterUsuarioOutput, ObterUsuarioResult } from "../tipos";
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import { exigirEstadoOperacionalUsuario } from "../maquinaEstados";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
-import { obterUsuarioObrigatorio } from "./helpers";
+import { wrapOk } from "../../kernel/index.js";
+import type { ObterUsuarioInput, ObterUsuarioOutput, ObterUsuarioResult } from "../tipos.js";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import { exigirEstadoOperacionalUsuario } from "../maquinaEstados.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
+import { obterUsuarioObrigatorio } from "./helpers.js";
 
 /**
  * Cria a função de caso de uso responsável por obter um usuário por ID.

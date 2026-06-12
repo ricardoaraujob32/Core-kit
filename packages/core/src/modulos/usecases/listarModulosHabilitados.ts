@@ -1,9 +1,9 @@
 // packages/core/src/modulos/usecases/listarModulosHabilitados.ts
 
-import { wrapOk } from "../../kernel";
-import { ModulosHabilitadosRepositorio } from "../portasRepositorio";
-import { ListarModulosHabilitadosInput, ListarModulosHabilitadosOutput, ListarModulosHabilitadosResult } from "../tipos";
-import { validarListarModulosHabilitadosInput } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { ModulosHabilitadosRepositorio } from "../portasRepositorio.js";
+import { ListarModulosHabilitadosInput, ListarModulosHabilitadosOutput, ListarModulosHabilitadosResult } from "../tipos.js";
+import { validarListarModulosHabilitadosInput } from "../validadores.js";
 
 /**
  * Propósito do arquivo:

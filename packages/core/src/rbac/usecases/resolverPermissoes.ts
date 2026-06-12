@@ -1,8 +1,8 @@
 // packages/core/src/rbac/usecases/resolverPermissoes.ts
 
-import { comPapeis, comPermissoes, exigirUsuario, wrapOk } from "../../kernel";
-import type { Papel, Permissao, ResolverPermissoesInput, ResolverPermissoesOutput, ResolverPermissoesResult } from "../tipos";
-import type { RbacRepositorio } from "../portasRepositorio";
+import { comPapeis, comPermissoes, exigirUsuario, wrapOk } from "../../kernel/index.js";
+import type { Papel, Permissao, ResolverPermissoesInput, ResolverPermissoesOutput, ResolverPermissoesResult } from "../tipos.js";
+import type { RbacRepositorio } from "../portasRepositorio.js";
 
 /**
  * Entrada de cache em memória associada a um contexto de execução.

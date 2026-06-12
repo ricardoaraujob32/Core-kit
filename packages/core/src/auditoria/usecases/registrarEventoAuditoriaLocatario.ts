@@ -1,12 +1,12 @@
 // packages/core/src/auditoria/usecases/registrarEventoAuditoriaLocatario.ts
 
-import { wrapOk } from "../../kernel";
-import { erroAuditoriaInvalida } from "../erros";
-import type { AuditoriaLocatarioRepositorio } from "../portasRepositorio";
-import { resolverEventoAuditoria } from "../resolverEventoAuditoria";
-import type { RegistrarEventoAuditoriaLocatarioInput, RegistrarEventoAuditoriaLocatarioOutput, RegistrarEventoAuditoriaLocatarioResult } from "../tipos";
-import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas";
-import { validarRegistrarEventoAuditoriaLocatarioInput } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { erroAuditoriaInvalida } from "../erros.js";
+import type { AuditoriaLocatarioRepositorio } from "../portasRepositorio.js";
+import { resolverEventoAuditoria } from "../resolverEventoAuditoria.js";
+import type { RegistrarEventoAuditoriaLocatarioInput, RegistrarEventoAuditoriaLocatarioOutput, RegistrarEventoAuditoriaLocatarioResult } from "../tipos.js";
+import { autorizarAuditoria, type PoliticaSegurancaAuditoriaPorta } from "../politicas.js";
+import { validarRegistrarEventoAuditoriaLocatarioInput } from "../validadores.js";
 
 /**
  * 

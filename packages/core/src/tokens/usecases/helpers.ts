@@ -1,12 +1,12 @@
 // packages/core/src/tokens/usecases/helpers.ts
 
-import { wrapOk } from "../../kernel";
-import { validarLocatarioId } from "../../locatarios";
-import { validarUsuarioId } from "../../usuarios";
-import { tokenNaoEncontrado } from "../erros";
-import type { TokensRepositorio } from "../portasRepositorio";
-import type { TokenId } from "../tipos";
-import { validarHashToken, validarTokenId } from "../validadores";
+import { wrapOk } from "../../kernel/index.js";
+import { validarLocatarioId } from "../../locatarios/index.js";
+import { validarUsuarioId } from "../../usuarios/index.js";
+import { tokenNaoEncontrado } from "../erros.js";
+import type { TokensRepositorio } from "../portasRepositorio.js";
+import type { TokenId } from "../tipos.js";
+import { validarHashToken, validarTokenId } from "../validadores.js";
 
 export async function obterTokenObrigatorioPorId(params: {
   tokensRepo: TokensRepositorio;

@@ -1,8 +1,8 @@
 // packages/core/src/tokens/maquinaEstados.ts
 
-import { ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel";
-import { tokenExpirado, tokenRevogado } from "./erros";
-import type { EventoToken, StatusToken, TokenId, TokenPersistido } from "./tipos";
+import { ErroApp, Result, transicionarEstado, wrapOk, type TabelaTransicoes } from "../kernel/index.js";
+import { tokenExpirado, tokenRevogado } from "./erros.js";
+import type { EventoToken, StatusToken, TokenId, TokenPersistido } from "./tipos.js";
 
 /**
  * Tabela formal de transições permitidas para o ciclo de vida lógico de tokens.

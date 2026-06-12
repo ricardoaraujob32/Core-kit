@@ -1,7 +1,7 @@
 // packages/core/src/kernel/portasGenericas.ts
 
-import type { ErroApp } from "./erros";
-import { type Result } from "./result";
+import type { ErroApp } from "./erros.js";
+import { type Result } from "./result.js";
 
 /**
  * Propósito do arquivo:

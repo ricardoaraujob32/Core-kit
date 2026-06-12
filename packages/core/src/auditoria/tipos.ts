@@ -1,8 +1,8 @@
 // packages/core/src/auditoria/tipos.ts
 
-import { ErroApp, Result } from "../kernel";
-import type { LocatarioId } from "../locatarios";
-import type { UsuarioId } from "../usuarios";
+import { ErroApp, Result } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { UsuarioId } from "../usuarios/index.js";
 
 export type AuditoriaId = string;
 

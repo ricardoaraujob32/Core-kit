@@ -1,6 +1,6 @@
-import { transicionarEstado, type TabelaTransicoes } from "../kernel";
-import { transicaoTransacaoInvalida } from "./erros";
-import type { EventoTransacaoComercial, StatusTransacaoComercial, TransacaoId } from "./tipos";
+import { transicionarEstado, type TabelaTransicoes } from "../kernel/index.js";
+import { transicaoTransacaoInvalida } from "./erros.js";
+import type { EventoTransacaoComercial, StatusTransacaoComercial, TransacaoId } from "./tipos.js";
 
 const TRANSICOES_TRANSACAO: TabelaTransicoes<StatusTransacaoComercial, EventoTransacaoComercial> = {
   RASCUNHO: { ABRIR: "ABERTA", CONFIRMAR: "CONFIRMADA", CANCELAR: "CANCELADA" },

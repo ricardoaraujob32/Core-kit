@@ -1,11 +1,11 @@
 // packages/core/src/usuarios/usecases/reativarUsuario.ts
 
-import type { UsuariosRepositorio } from "../portasRepositorio";
-import type { ReativarUsuarioInput, ReativarUsuarioOutput, ReativarUsuarioResult } from "../tipos";
-import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel";
-import { transicionarEstadoUsuario } from "../maquinaEstados";
-import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas";
-import { obterUsuarioObrigatorio } from "./helpers";
+import type { UsuariosRepositorio } from "../portasRepositorio.js";
+import type { ReativarUsuarioInput, ReativarUsuarioOutput, ReativarUsuarioResult } from "../tipos.js";
+import { executarEmTransacao, wrapOk, type RelogioPorta, type TransacaoPorta } from "../../kernel/index.js";
+import { transicionarEstadoUsuario } from "../maquinaEstados.js";
+import { autorizarUsuario, PoliticaSegurancaUsuariosPorta } from "../politicas.js";
+import { obterUsuarioObrigatorio } from "./helpers.js";
 
 /**
  * Cria a função de caso de uso responsável por reativar um usuário.
