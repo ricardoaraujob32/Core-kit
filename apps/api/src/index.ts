@@ -1,17 +1,17 @@
 // apps/api/src/index.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { healthRoutes } from "./routes/health.routes";
-import { authRoutes } from "./routes/auth.routes";
-import { locatariosRoutes } from "./routes/locatarios.routes";
-import { usuariosRoutes } from "./routes/usuarios.routes";
-import { assinaturaModulosRoutes } from "./routes/assinaturaModulos.routes";
-import { clientesRoutes } from "./routes/clientes.routes";
-import { fornecedoresRoutes } from "./routes/fornecedores.routes";
-import { produtosRoutes } from "./routes/produtos.routes";
-import { vendasRoutes } from "./routes/vendas.routes";
-import { auditoriaRoutes } from "./routes/auditoria.routes";
-import { plataformaRoutes } from "./routes/plataforma/plataforma.routes";
+import { healthRoutes } from "./routes/health.routes.js";
+import { authRoutes } from "./routes/auth.routes.js";
+import { locatariosRoutes } from "./routes/locatarios.routes.js";
+import { usuariosRoutes } from "./routes/usuarios.routes.js";
+import { assinaturaModulosRoutes } from "./routes/assinaturaModulos.routes.js";
+import { clientesRoutes } from "./routes/clientes.routes.js";
+import { fornecedoresRoutes } from "./routes/fornecedores.routes.js";
+import { produtosRoutes } from "./routes/produtos.routes.js";
+import { vendasRoutes } from "./routes/vendas.routes.js";
+import { auditoriaRoutes } from "./routes/auditoria.routes.js";
+import { plataformaRoutes } from "./routes/plataforma/plataforma.routes.js";
 
 export const routes: FastifyPluginAsync = async (app) => {
   await app.register(healthRoutes, { prefix: "/api" });
