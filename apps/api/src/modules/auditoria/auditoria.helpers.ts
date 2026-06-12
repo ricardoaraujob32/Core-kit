@@ -1,6 +1,6 @@
 // apps/api/src/modules/auditoria/auditoria.helpers.ts
 
-import { ContextoPlataformaAutorizado } from "@core-kit/api/http/autorizarPlataformaHttp";
+import { ContextoPlataformaAutorizado } from "../../http/autorizarPlataformaHttp.js";
 import { ContextoExecucao, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
 import { FastifyRequest } from "fastify";
 

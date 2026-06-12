@@ -21,9 +21,9 @@ import { auditarController } from "../auditoria/auditarController.js";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp.js";
 import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma.js";
-import { createAssinaturasRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/assinaturasRepositorioPrisma";
-import { createAssinaturasModulosRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma";
-import { createModulosConsultaRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/modulosConsultaRepositorioPrisma";
+import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma.js";
+import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.js";
+import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma.js";
 import { responderErroValidacaoZod } from "../helpersValidacao.js";
 
 function criarDepsLocatarios() {

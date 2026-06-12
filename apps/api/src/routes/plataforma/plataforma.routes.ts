@@ -13,7 +13,7 @@ import { listarLocatariosPlataformaController, obterLocatarioPlataformaControlle
 import type { LocatarioIdParamsDto, CriarLocatarioBodyDto, AtualizarLocatarioBodyDto, SuspenderLocatarioBodyDto, ReativarLocatarioBodyDto, EncerrarLocatarioBodyDto, AtualizarConfiguracaoBodyDto, ConfiguracaoIdOnlyParamsDto, CriarConfiguracaoBodyDto, ConfiguracaoIdParamsDto,
 } from "../../modules/locatarios/locatarios.dto.js";
 import { listarUsuariosLocatarioPlataformaController } from "../../modules/usuarios/usuarios.controller.js";
-import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "@core-kit/api/modules/assinaturas/assinaturaModulos.dto";
+import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "../../modules/assinaturas/assinaturaModulos.dto.js";
 
 export async function plataformaRoutes(app: FastifyInstance) {
   app.get(

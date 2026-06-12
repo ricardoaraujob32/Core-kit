@@ -9,7 +9,7 @@ import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto.js";
 import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto.js";
 import { autorizarHttp } from "../../http/autorizarHttp.js";
-import { createHashPortaAdapter } from "@core-kit/api/infra/hash/hashPortaAdapter";
+import { createHashPortaAdapter } from "../../infra/hash/hashPortaAdapter.js";
 
 function criarDepsUsuariosSenha() {
   return {

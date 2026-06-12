@@ -5,8 +5,8 @@ import { auditar } from "./auditoria.dispatcher.js";
 import { criarContextoAuditoriaPlataforma } from "./auditoria.helpers.js";
 import type { ContextoPlataformaAutorizado } from "../../http/autorizarPlataformaHttp.js";
 import { createFnRegistrarEventoAuditoriaPlataforma, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
-import { clientePrisma } from "@core-kit/api/infra/prisma/client";
-import { createAuditoriaPlataformaRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaInternaRepositorioPrisma";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuditoriaPlataformaRepositorio } from "../../infra/prisma/auditoria/auditoriaInternaRepositorioPrisma.js";
 
 export type EventoAuditoriaPlataformaControllerInput = {
   evento: string;

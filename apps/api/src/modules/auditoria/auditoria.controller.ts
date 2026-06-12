@@ -1,14 +1,14 @@
 // // apps/api/src/modules/auditoria/auditoria.controller.ts
 
-import { sendHttpError } from "@core-kit/api/http/serializarErroApp";
+import { sendHttpError } from "../../http/serializarErroApp.js";
 import { toListarAuditoriaResponseDto } from "./auditoria.presenter.js";
 import { createFnListarAuditoriaLocatario, createFnListarAuditoriaPlataforma, Permissoes } from "@core-kit/core";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { createAuditoriaLocatarioRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaAtivaLocatarioRepositorioPrisma";
-import { clientePrisma } from "@core-kit/api/infra/prisma/client";
+import { createAuditoriaLocatarioRepositorio } from "../../infra/prisma/auditoria/auditoriaAtivaLocatarioRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
 import { ListarAuditoriaQueryDto, parseListarAuditoriaQuery } from "./auditoria.dto.js";
-import { autorizarHttp } from "@core-kit/api/http/autorizarHttp";
-import { createAuditoriaPlataformaRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaInternaRepositorioPrisma";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { createAuditoriaPlataformaRepositorio } from "../../infra/prisma/auditoria/auditoriaInternaRepositorioPrisma.js";
 
 function responderErroValidacao(reply: FastifyReply, parseResult: {
     error: {

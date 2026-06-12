@@ -12,7 +12,7 @@ import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.pr
 import { autorizarHttp } from "../../http/autorizarHttp.js";
 import { auditarController } from "../auditoria/auditarController.js";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
-import { autorizarPlataformaHttp } from "@core-kit/api/http/autorizarPlataformaHttp";
+import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp.js";
 
 /**
  * Monta as dependências operacionais do módulo de usuários na API.
