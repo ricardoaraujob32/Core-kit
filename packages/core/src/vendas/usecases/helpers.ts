@@ -5,16 +5,23 @@ import { UsuarioId } from "../../usuarios";
 import type { HistoricoTransacaoComercial, StatusTransacaoComercial, TransacaoComercial } from "../tipos";
 
 export function calcularTotais(
-  itens: Array<{ quantidade: number; valorUnitario: number; valorDesconto: number }>,
+  itens: Array<{
+    quantidade: number;
+    valorUnitario: number;
+    valorDesconto: number;
+  }>,
   base: TransacaoComercial,
 ): TransacaoComercial {
   const valorSubtotal = itens.reduce((acc, item) => acc + item.quantidade * item.valorUnitario, 0);
   const valorDesconto = itens.reduce((acc, item) => acc + item.valorDesconto, 0);
+  const valorAcrescimo = base.valorAcrescimo;
+  
   return {
     ...base,
     valorSubtotal,
     valorDesconto,
-    valorTotal: valorSubtotal - valorDesconto + base.valorAcrescimo,
+    valorAcrescimo,
+    valorTotal: valorSubtotal - valorDesconto + valorAcrescimo,
   };
 }
 
