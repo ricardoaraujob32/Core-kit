@@ -4,7 +4,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { authPlugin } from "./plugins/auth.js";
 import { requestIdPlugin } from "./middlewares/requestId.js";
-import { routes } from ".";
+import { routes } from "./index.js";
 import { runApplicationBootstrap } from "./bootstrap/applicationBootstrap.js";
 import { initDb } from "./infra/prisma/initDb.js";
 
