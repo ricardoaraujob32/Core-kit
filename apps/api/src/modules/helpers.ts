@@ -2,8 +2,8 @@
 
 import { ContextoExecucao, createContextoExecucao, ModuloCodigo, Permissao } from "@core-kit/core";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { autorizarHttp } from "../http/autorizarHttp";
-import { sendHttpError } from "../http/serializarErroApp";
+import { autorizarHttp } from "../http/autorizarHttp.js";
+import { sendHttpError } from "../http/serializarErroApp.js";
 
 /**
  * Contexto parcial aceito pelo helper de auditoria.

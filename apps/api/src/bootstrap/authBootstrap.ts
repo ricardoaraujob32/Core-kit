@@ -1,8 +1,8 @@
 // apps/api/src/bootstrap/authBootstrap.ts
 
-import { clientePrisma } from "../infra/prisma/client";
-import { createAuthHttpRuntime, type CreateAuthDepsParams } from "../infra/prisma/auth/authHttpRuntime";
-import { createEventosSegurancaPorta } from "../infra/prisma/auth/eventosSegurancaPorta";
+import { clientePrisma } from "../infra/prisma/client.js";
+import { createAuthHttpRuntime, type CreateAuthDepsParams } from "../infra/prisma/auth/authHttpRuntime.js";
+import { createEventosSegurancaPorta } from "../infra/prisma/auth/eventosSegurancaPorta.js";
 
 export type AuthBootstrap = {
   runtime: ReturnType<typeof createAuthHttpRuntime>;

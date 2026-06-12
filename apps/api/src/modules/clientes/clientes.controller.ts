@@ -1,16 +1,16 @@
 // apps/api/src/modules/clientes/clientes.controller.ts
 
 import { createFnAtualizarCliente, createFnCriarCliente, createFnExcluirCliente, createFnListarClientes, createFnObterCliente, metaAcao, metaAtualizacao, metaCriacao } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto, parseAtualizarClienteBody, parseClienteIdParams, parseCriarClienteBody } from "./clientes.dto";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto, parseAtualizarClienteBody, parseClienteIdParams, parseCriarClienteBody } from "./clientes.dto.js";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { toClienteResponseDto, toListarClientesResponseDto } from "./clientes.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { toClienteResponseDto, toListarClientesResponseDto } from "./clientes.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsClientes() {
   return {

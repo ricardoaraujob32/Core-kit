@@ -1,10 +1,10 @@
 // apps/api/src/infra/prisma/autorizacao/autorizacaoPrismaAdapters.ts
 
-import type { PrismaDb } from "../tipos";
-import type { AutorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache";
-import { createAutorizacaoRepositorio } from "./rbac/autorizacaoRepositorioPrisma";
-import { createModulosHabilitadosRepositorio } from "../auth/assinatura/modulosHabilitadosRepositorioPrisma";
-import { createRbacAuthPorta } from "../auth/rbac/rbacAuthPortaPrisma";
+import type { PrismaDb } from "../tipos.js";
+import type { AutorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache.js";
+import { createAutorizacaoRepositorio } from "./rbac/autorizacaoRepositorioPrisma.js";
+import { createModulosHabilitadosRepositorio } from "../auth/assinatura/modulosHabilitadosRepositorioPrisma.js";
+import { createRbacAuthPorta } from "../auth/rbac/rbacAuthPortaPrisma.js";
 
 /**
  * 

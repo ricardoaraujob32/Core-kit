@@ -1,7 +1,7 @@
 // apps/api/src/modules/auditoria/auditoria.dispatcher.ts
 
 import { createFnRegistrarEventoAuditoriaPlataforma, RegistrarEventoAuditoriaPlataformaInput, resolverEventoAuditoria } from "@core-kit/core";
-import { ContextoAuditoriaHttp, montarEventoAuditoria } from "./auditoria.helpers";
+import { ContextoAuditoriaHttp, montarEventoAuditoria } from "./auditoria.helpers.js";
 import { clientePrisma } from "@core-kit/api/infra/prisma/client";
 import { createAuditoriaPlataformaRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaInternaRepositorioPrisma";
 

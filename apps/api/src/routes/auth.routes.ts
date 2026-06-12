@@ -1,10 +1,10 @@
 // apps/api/src/routes/auth.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { loginController, logoutController, meController, refreshController } from "../modules/auth/auth.controller";
-import { authGuard } from "../middlewares/authGuard";
-import { LoginPlataformaBodyDto } from "../modules/auth/auth.plataforma.dto";
-import { loginPlataformaController } from "../modules/auth/auth.plataforma.controller";
+import { loginController, logoutController, meController, refreshController } from "../modules/auth/auth.controller.js";
+import { authGuard } from "../middlewares/authGuard.js";
+import { LoginPlataformaBodyDto } from "../modules/auth/auth.plataforma.dto.js";
+import { loginPlataformaController } from "../modules/auth/auth.plataforma.controller.js";
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post(

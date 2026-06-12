@@ -1,9 +1,9 @@
 // apps/api/src/infra/prisma/auth/tokens/tokensAuthPortaPrisma.ts
 
 import { createErroApp, IdPorta, TokenId, TokensAuthPorta, wrapOk } from "@core-kit/core";
-import { gerarRefreshTokenBruto, hashRefreshToken } from "./tokenHash";
-import { erroInfraAuth } from "../errosInfraAuth";
-import { PrismaDb } from "../../tipos";
+import { gerarRefreshTokenBruto, hashRefreshToken } from "./tokenHash.js";
+import { erroInfraAuth } from "../errosInfraAuth.js";
+import { PrismaDb } from "../../tipos.js";
 
 type TokenRow = {
   token_id: string;

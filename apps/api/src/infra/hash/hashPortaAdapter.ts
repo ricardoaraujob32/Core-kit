@@ -1,7 +1,7 @@
 // apps/api/src/infra/hash/hashPortaAdapter.ts
 
 import type { HashPorta } from "@core-kit/core";
-import { hashPorta } from "../prisma/auth/hashPorta";
+import { hashPorta } from "../prisma/auth/hashPorta.js";
 
 export function createHashPortaAdapter(): HashPorta {
   return {

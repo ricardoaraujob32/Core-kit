@@ -2,9 +2,9 @@
 
 import type { ContextoExecucao, ErroApp, Result, RbacAuthPorta } from "@core-kit/core";
 import { createContextoExecucao, wrapOk } from "@core-kit/core";
-import { erroInfraAuth } from "../../auth/errosInfraAuth"; 
-import type { PrismaDb } from "../../tipos";
-import { createAutorizacaoRepositorio } from "./autorizacaoRepositorioPrisma";
+import { erroInfraAuth } from "../../auth/errosInfraAuth.js"; 
+import type { PrismaDb } from "../../tipos.js";
+import { createAutorizacaoRepositorio } from "./autorizacaoRepositorioPrisma.js";
 
 /**
  * 

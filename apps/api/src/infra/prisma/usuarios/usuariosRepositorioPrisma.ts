@@ -2,8 +2,8 @@
 
 import type { ErroApp, LocatarioId, Usuario, UsuarioId, UsuariosRepositorio, Result } from "@core-kit/core";
 import { wrapOk} from "@core-kit/core";
-import { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 import { status_usuario } from "@prisma/client";
 
 type UsuarioRow = {

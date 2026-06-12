@@ -3,9 +3,9 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ContextoExecucao, Permissao, ModuloCodigo } from "@core-kit/core";
 import { autorizarOperacao } from "@core-kit/core";
-import { buildContextFromRequest, buildContextoHttpFromRequest } from "./context";
-import { sendHttpError } from "./serializarErroApp";
-import { exigirMesmoLocatarioHttp, exigirSuperAdminHttp } from "./routeGuards";
+import { buildContextFromRequest, buildContextoHttpFromRequest } from "./context.js";
+import { sendHttpError } from "./serializarErroApp.js";
+import { exigirMesmoLocatarioHttp, exigirSuperAdminHttp } from "./routeGuards.js";
 
 /**
  * Política declarativa de autorização da borda HTTP.

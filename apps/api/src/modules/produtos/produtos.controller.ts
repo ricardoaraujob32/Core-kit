@@ -1,16 +1,16 @@
 // apps/api/src/modules/produtos/produtos.controller.ts
 
 import { createFnAtualizarProduto, createFnCriarProduto, createFnExcluirProduto, createFnListarProdutos, createFnObterProduto, metaAcao } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, parseAtualizarProdutoBody, parseCriarProdutoBody, parseProdutoIdParams, ProdutoIdParamsDto } from "./produtos.dto";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, parseAtualizarProdutoBody, parseCriarProdutoBody, parseProdutoIdParams, ProdutoIdParamsDto } from "./produtos.dto.js";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { toListarProdutosResponseDto, toProdutoResponseDto } from "./produtos.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { toListarProdutosResponseDto, toProdutoResponseDto } from "./produtos.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsProdutos() {
   return {

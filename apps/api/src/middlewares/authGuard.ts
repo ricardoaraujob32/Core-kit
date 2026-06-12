@@ -1,8 +1,8 @@
 // apps/api/src/middlewares/authGuard.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { getAuthBootstrap } from "../bootstrap/authBootstrap";
-import { sendHttpError } from "../http/serializarErroApp";
+import { getAuthBootstrap } from "../bootstrap/authBootstrap.js";
+import { sendHttpError } from "../http/serializarErroApp.js";
 
 /**
  * Dependências necessárias para criar o middleware de autenticação.

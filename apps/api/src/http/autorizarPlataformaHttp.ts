@@ -1,8 +1,8 @@
 // apps/api/src/http/autorizarPlataformaHttp.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { buildContextoHttpFromRequest } from "./context";
-import { sendHttpError } from "./serializarErroApp";
+import { buildContextoHttpFromRequest } from "./context.js";
+import { sendHttpError } from "./serializarErroApp.js";
 
 export type ContextoPlataformaAutorizado = {
   tipo: "PLATAFORMA";

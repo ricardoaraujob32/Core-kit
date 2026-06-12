@@ -1,13 +1,13 @@
 // apps/api/src/infra/prisma/auth/authPrismaAdapters.ts
 
 import type { IdPorta } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { createLocatariosRepositorioAuth } from "./locatario/locatariosRepositorioAuthPrisma";
-import { createUsuariosRepositorioAuth } from "./usuario/usuariosRepositorioAuthPrisma";
-import { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma";
-import { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma";
-import { createAutorizacaoRepositorio } from "../autorizacao/rbac/autorizacaoRepositorioPrisma";
-import { createModulosHabilitadosRepositorio } from "./assinatura/modulosHabilitadosRepositorioPrisma";
+import type { PrismaDb } from "../tipos.js";
+import { createLocatariosRepositorioAuth } from "./locatario/locatariosRepositorioAuthPrisma.js";
+import { createUsuariosRepositorioAuth } from "./usuario/usuariosRepositorioAuthPrisma.js";
+import { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma.js";
+import { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma.js";
+import { createAutorizacaoRepositorio } from "../autorizacao/rbac/autorizacaoRepositorioPrisma.js";
+import { createModulosHabilitadosRepositorio } from "./assinatura/modulosHabilitadosRepositorioPrisma.js";
 
 /**
  * Dependências Prisma de autenticação montadas sobre um `db`.

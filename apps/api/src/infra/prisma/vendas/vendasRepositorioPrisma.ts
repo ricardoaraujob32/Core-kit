@@ -4,8 +4,8 @@ import type { ErroApp, EstoqueId, EstoquePadraoConsultaPorta, HistoricoTransacao
   ProdutoComercialConsultaPorta, ProdutoId, Result, StatusTransacaoComercial, TipoProduto, TipoTransacaoComercial, TransacaoComercial, TransacaoId, UsuarioId,
   VendasRepositorio, MovimentoEstoqueComercial } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 type DecimalLike = { toString(): string } | number | string;
 

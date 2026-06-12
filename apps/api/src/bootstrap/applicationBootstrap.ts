@@ -1,8 +1,8 @@
 // apps/api/src/bootstrap/applicationBootstrap.ts
 
 import type { FastifyInstance } from "fastify";
-import { createAuthorizationBootstrap } from "./authorizationBootstrap";
-import { createAuthBootstrap } from "./authBootstrap";
+import { createAuthorizationBootstrap } from "./authorizationBootstrap.js";
+import { createAuthBootstrap } from "./authBootstrap.js";
 
 export type ApplicationBootstrap = {
   auth: ReturnType<typeof createAuthBootstrap>;

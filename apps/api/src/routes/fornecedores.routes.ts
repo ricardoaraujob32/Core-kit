@@ -1,9 +1,9 @@
 // apps/api/src/routes/fornecedores.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { atualizarFornecedorController, criarFornecedorController, excluirFornecedorController, listarFornecedoresController, obterFornecedorController } from "../modules/fornecedores/fornecedores.controller";
-import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto } from "../modules/fornecedores/fornecedores.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarFornecedorController, criarFornecedorController, excluirFornecedorController, listarFornecedoresController, obterFornecedorController } from "../modules/fornecedores/fornecedores.controller.js";
+import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto } from "../modules/fornecedores/fornecedores.dto.js";
 
 export const fornecedoresRoutes: FastifyPluginAsync = async (app) => {
   app.get(

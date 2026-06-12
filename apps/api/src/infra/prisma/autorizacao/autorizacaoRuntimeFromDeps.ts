@@ -1,8 +1,8 @@
 // apps/api/src/infra/prisma/autorizacao/autorizacaoRuntimeFromDeps.ts
 
 import { createFnListarModulosHabilitados, createFnResolverContextoAutorizado } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import type { AutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps";
+import type { PrismaDb } from "../tipos.js";
+import type { AutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps.js";
 
 /**
  * 

@@ -3,7 +3,7 @@
 import jwt from "jsonwebtoken";
 import { createErroApp, wrapOk } from "@core-kit/core";
 import type { JwtAuthPorta, UsuarioId, LocatarioId } from "@core-kit/core";
-import { env } from "../../../env";
+import { env } from "../../../env.js";
 
 /**
  * Payload interno esperado para os JWTs de autenticação.

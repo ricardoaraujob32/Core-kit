@@ -2,8 +2,8 @@
 
 import type { ConfiguracaoLocatario, ErroApp, Locatario, LocatarioId, LocatariosRepositorio, ModoTemaLocatario, Result } from "@core-kit/core";
 import { createErroApp, wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 import { status_locatario } from "@prisma/client";
 
 type ConfiguracaoLocatarioRow = {

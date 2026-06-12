@@ -1,11 +1,11 @@
 // apps/api/src/infra/prisma/autorizacao/autorizacaoHttpRuntime.ts
 
 import type { PrismaClient } from "@prisma/client";
-import { clientePrisma } from "../client";
-import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache";
-import { type AutorizacaoPrismaAdapters, createAutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters";
-import { type AutorizacaoUseCaseDeps, createAutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps";
-import { createAutorizacaoRuntimeFromDeps } from "./autorizacaoRuntimeFromDeps";
+import { clientePrisma } from "../client.js";
+import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache.js";
+import { type AutorizacaoPrismaAdapters, createAutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters.js";
+import { type AutorizacaoUseCaseDeps, createAutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps.js";
+import { createAutorizacaoRuntimeFromDeps } from "./autorizacaoRuntimeFromDeps.js";
 
 /**
  * 

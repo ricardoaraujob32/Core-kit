@@ -3,7 +3,7 @@
 import type { FastifyRequest } from "fastify";
 import { createContextoExecucao, createErroApp, wrapOk } from "@core-kit/core";
 import type { ContextoExecucao, ErroApp, Result } from "@core-kit/core";
-import { getAuthorizationBootstrap } from "../bootstrap/authorizationBootstrap";
+import { getAuthorizationBootstrap } from "../bootstrap/authorizationBootstrap.js";
 
 /**
  * Tipo da função oficial de resolução de contexto autorizado.

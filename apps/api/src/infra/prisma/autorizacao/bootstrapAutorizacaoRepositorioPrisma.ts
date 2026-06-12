@@ -2,8 +2,8 @@
 
 import { wrapOk } from "@core-kit/core";
 import type { BootstrapAutorizacaoRepositorio, CatalogoAutorizacaoBootstrap } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 /**
  *

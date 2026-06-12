@@ -1,8 +1,8 @@
 // apps/api/src/infra/prisma/auth/authUseCaseDeps.ts
 
 import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, RelogioPorta } from "@core-kit/core";
-import { env, type Env } from "../../../env";
-import type { AuthPrismaAdapters } from "./authPrismaAdapters";
+import { env, type Env } from "../../../env.js";
+import type { AuthPrismaAdapters } from "./authPrismaAdapters.js";
 
 /**
  * 

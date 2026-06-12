@@ -1,8 +1,8 @@
 // apps/api/src/infra/prisma/auth/locatarios/locatariosRepositorioAuthPrisma.ts
 
 import { ErroApp, LocatarioAuth, LocatarioSlug, LocatariosRepositorioAuth, Result, wrapOk } from "@core-kit/core";
-import { erroInfraAuth } from "../errosInfraAuth";
-import { PrismaDb } from "../../tipos";
+import { erroInfraAuth } from "../errosInfraAuth.js";
+import { PrismaDb } from "../../tipos.js";
 
 /**
  * Repositório de locatários para autenticação.

@@ -1,7 +1,7 @@
 // // apps/api/src/routes/rbac.routes.ts
 
 // import type { FastifyPluginAsync } from "fastify";
-// import { authGuard } from "../middlewares/authGuard";
+// import { authGuard } from "../middlewares/authGuard.js";
 
 
 // /**

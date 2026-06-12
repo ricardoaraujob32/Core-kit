@@ -1,6 +1,6 @@
 //
 
-import { clientePrisma } from "./client";
+import { clientePrisma } from "./client.js";
 
 /**
  * Inicializa a conexão com o banco de dados.

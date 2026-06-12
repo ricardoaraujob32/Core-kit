@@ -2,7 +2,7 @@
 
 import fp from "fastify-plugin";
 import jwt from "@fastify/jwt";
-import { env } from "../env";
+import { env } from "../env.js";
 
 /**
  * 

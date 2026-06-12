@@ -2,8 +2,8 @@
 
 import type { ErroApp, Fornecedor, FornecedorId, FornecedoresRepositorio, LocatarioId, Result, UsuarioId } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 type FornecedorRow = {
   fornecedor_id: string;

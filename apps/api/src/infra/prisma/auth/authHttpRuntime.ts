@@ -1,18 +1,18 @@
 // apps/api/src/infra/prisma/auth/authHttpRuntime.ts
 
 import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, RelogioPorta, TransacaoPorta } from "@core-kit/core";
-import { AuthUseCaseDeps, createAuthUseCaseDeps } from "./authUseCaseDeps";
-import { AuthContextoBanco, executarAuthComContexto } from "./authPrismaContexto";
-import { hashPorta } from "./hashPorta";
-import { jwtPorta } from "./jwtPorta";
-import { createRelogioPorta } from "./relogioPorta";
-import { createIdPorta } from "./idPorta";
-import { PrismaDb } from "../tipos";
-import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters";
+import { AuthUseCaseDeps, createAuthUseCaseDeps } from "./authUseCaseDeps.js";
+import { AuthContextoBanco, executarAuthComContexto } from "./authPrismaContexto.js";
+import { hashPorta } from "./hashPorta.js";
+import { jwtPorta } from "./jwtPorta.js";
+import { createRelogioPorta } from "./relogioPorta.js";
+import { createIdPorta } from "./idPorta.js";
+import { PrismaDb } from "../tipos.js";
+import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters.js";
 import { PrismaClient } from "@prisma/client"; 
-import { clientePrisma } from "../client";
-import { createTransacaoPorta } from "./TransacaoPorta";
-import { AuthRuntimeTechnicalPorts, createAuthRuntimeFromDeps } from "./authRuntimeFromDeps";
+import { clientePrisma } from "../client.js";
+import { createTransacaoPorta } from "./TransacaoPorta.js";
+import { AuthRuntimeTechnicalPorts, createAuthRuntimeFromDeps } from "./authRuntimeFromDeps.js";
 
 
 /**

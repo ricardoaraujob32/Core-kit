@@ -1,9 +1,9 @@
 // apps/api/src/bootstrap/authorizationBootstrap.ts
 
-import { clientePrisma } from "../infra/prisma/client";
-import { createBootstrapAutorizacaoRepositorio } from "../infra/prisma/autorizacao/bootstrapAutorizacaoRepositorioPrisma";
-import { createAutorizacaoHttpRuntime } from "../infra/prisma/autorizacao/autorizacaoHttpRuntime";
-import { authorizationCatalogStore, AuthorizationCatalogStore } from "./authorizationCatalogStore";
+import { clientePrisma } from "../infra/prisma/client.js";
+import { createBootstrapAutorizacaoRepositorio } from "../infra/prisma/autorizacao/bootstrapAutorizacaoRepositorioPrisma.js";
+import { createAutorizacaoHttpRuntime } from "../infra/prisma/autorizacao/autorizacaoHttpRuntime.js";
+import { authorizationCatalogStore, AuthorizationCatalogStore } from "./authorizationCatalogStore.js";
 
 export type AuthorizationBootstrap = {
   runtime: ReturnType<typeof createAutorizacaoHttpRuntime>;
