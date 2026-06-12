@@ -39,6 +39,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@core-kit/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@fastify/cors':
         specifier: ^11.0.0
         version: 11.2.0
