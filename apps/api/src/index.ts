@@ -1,17 +1,28 @@
-import { buildServer } from "./server";
+// apps/api/src/index.ts
 
-async function main(): Promise<void> {
-  const app = await buildServer();
+import type { FastifyPluginAsync } from "fastify";
+import { healthRoutes } from "./routes/health.routes";
+import { authRoutes } from "./routes/auth.routes";
+import { locatariosRoutes } from "./routes/locatarios.routes";
+import { usuariosRoutes } from "./routes/usuarios.routes";
+import { assinaturaModulosRoutes } from "./routes/assinaturaModulos.routes";
+import { clientesRoutes } from "./routes/clientes.routes";
+import { fornecedoresRoutes } from "./routes/fornecedores.routes";
+import { produtosRoutes } from "./routes/produtos.routes";
+import { vendasRoutes } from "./routes/vendas.routes";
+import { auditoriaRoutes } from "./routes/auditoria.routes";
+import { plataformaRoutes } from "./routes/plataforma/plataforma.routes";
 
-  const port: number = Number(process.env.PORT ?? 3000);
-  const host: string = String(process.env.HOST ?? "0.0.0.0");
-
-  await app.listen({ port, host });
-}
-
-main().catch((e: unknown) => {
-  // fallback simples para garantir saída clara em erro de boot
-  // (mais tarde a gente padroniza com logger)
-  console.error(e);
-  process.exit(1);
-});
+export const routes: FastifyPluginAsync = async (app) => {
+  await app.register(healthRoutes, { prefix: "/api" });
+  await app.register(authRoutes, { prefix: "/api" });
+  await app.register(locatariosRoutes, { prefix: "/api" });
+  await app.register(usuariosRoutes, { prefix: "/api" });
+  await app.register(assinaturaModulosRoutes, { prefix: "/api" } );
+  await app.register(clientesRoutes, { prefix: "/api" });
+  await app.register(fornecedoresRoutes, { prefix: "/api" });
+  await app.register(produtosRoutes, { prefix: "/api" });
+  await app.register(vendasRoutes, { prefix: "/api" });
+  await app.register(auditoriaRoutes, { prefix: "/api" });
+  await app.register(plataformaRoutes, { prefix: "/api/plataforma" });
+};

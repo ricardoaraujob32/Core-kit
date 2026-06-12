@@ -1,0 +1,282 @@
+flowchart TB
+  %% ======================
+  %% LOCATARIOS
+  %% ======================
+  subgraph LOC["locatarios/"]
+    LOC_tipos["tipos.ts"]
+    LOC_valid["validadores.ts"]
+    LOC_portas["portasRepositorio.ts"]
+
+    LOC_criar["usecases/criarLocatario.ts"]
+    LOC_atualizarPlano["usecases/atualizarPlanoLocatario.ts"]
+    LOC_excluir["usecases/excluirLogicamenteLocatario.ts"]
+    LOC_obter["usecases/obterLocatario.ts"]
+
+    %% base
+    LOC_valid --> LOC_tipos
+    LOC_portas --> LOC_tipos
+
+    %% usecases -> base
+    LOC_criar --> LOC_tipos
+    LOC_criar --> LOC_valid
+    LOC_criar --> LOC_portas
+
+    LOC_atualizarPlano --> LOC_tipos
+    LOC_atualizarPlano --> LOC_valid
+    LOC_atualizarPlano --> LOC_portas
+
+    LOC_excluir --> LOC_tipos
+    LOC_excluir --> LOC_portas
+
+    LOC_obter --> LOC_tipos
+    LOC_obter --> LOC_portas
+  end
+
+  %% ======================
+  %% USUARIOS
+  %% ======================
+  subgraph USR["usuarios/"]
+    USR_tipos["tipos.ts"]
+    USR_valid["validadores.ts"]
+    USR_portas["portasRepositorio.ts"]
+
+    USR_criar["usecases/criarUsuario.ts"]
+    USR_listar["usecases/listarUsuarios.ts"]
+    USR_excluir["usecases/excluirLogicamenteUsuario.ts"]
+    USR_reativar["usecases/reativarUsuario.ts"]
+
+    %% base
+    USR_valid --> USR_tipos
+    USR_portas --> USR_tipos
+
+    %% usecases -> base
+    USR_criar --> USR_tipos
+    USR_criar --> USR_valid
+    USR_criar --> USR_portas
+
+    USR_listar --> USR_tipos
+    USR_listar --> USR_portas
+
+    USR_excluir --> USR_tipos
+    USR_excluir --> USR_portas
+
+    USR_reativar --> USR_tipos
+    USR_reativar --> USR_portas
+  end
+
+  %% ======================
+  %% PLANOS
+  %% ======================
+  subgraph PLN["planos/"]
+    PLN_tipos["tipos.ts"]
+    PLN_portas["portasRepositorio.ts"]
+
+    PLN_criar["usecases/criarPlano.ts"]
+    PLN_limites["usecases/definirLimitesPlano.ts"]
+
+    PLN_portas --> PLN_tipos
+
+    PLN_criar --> PLN_tipos
+    PLN_criar --> PLN_portas
+
+    PLN_limites --> PLN_tipos
+    PLN_limites --> PLN_portas
+  end
+
+  %% ======================
+  %% MODULOS
+  %% ======================
+  subgraph MOD["modulos/"]
+    MOD_tipos["tipos.ts"]
+    MOD_portas["portasRepositorio.ts"]
+
+    MOD_habilitar["usecases/habilitarModuloParaPlano.ts"]
+    MOD_listar["usecases/listarModulosPorPlano.ts"]
+
+    MOD_portas --> MOD_tipos
+
+    MOD_habilitar --> MOD_tipos
+    MOD_habilitar --> MOD_portas
+
+    MOD_listar --> MOD_tipos
+    MOD_listar --> MOD_portas
+  end
+
+  %% ======================
+  %% ASSINATURAS
+  %% ======================
+  subgraph ASN["assinaturas/"]
+    ASN_tipos["tipos.ts"]
+    ASN_portas["portasRepositorio.ts"]
+
+    ASN_aplicar["usecases/aplicarPlanoAoLocatario.ts"]
+    ASN_valModulo["usecases/validarAcessoModulo.ts"]
+    ASN_limUsuarios["usecases/validarLimiteUsuarios.ts"]
+    ASN_limIdentidade["usecases/validarLimiteIdentidadeVisual.ts"]
+
+    ASN_portas --> ASN_tipos
+
+    ASN_aplicar --> ASN_tipos
+    ASN_aplicar --> ASN_portas
+
+    ASN_valModulo --> ASN_tipos
+    ASN_valModulo --> ASN_portas
+
+    ASN_limUsuarios --> ASN_tipos
+    ASN_limUsuarios --> ASN_portas
+
+    ASN_limIdentidade --> ASN_tipos
+    ASN_limIdentidade --> ASN_portas
+  end
+
+  %% ======================
+  %% AUDITORIA
+  %% ======================
+  subgraph AUD["auditoria/"]
+    AUD_tipos["tipos.ts"]
+    AUD_porta["portaAuditoria.ts"]
+    AUD_registrar["usecases/registrarEvento.ts"]
+
+    AUD_porta --> AUD_tipos
+    AUD_registrar --> AUD_tipos
+    AUD_registrar --> AUD_porta
+  end
+
+  %% ======================
+  %% IMPORTACOES
+  %% ======================
+  subgraph IMP["importacoes/"]
+    IMP_tipos["tipos.ts"]
+    IMP_portas["portasRepositorio.ts"]
+
+    IMP_criar["usecases/criarImportacao.ts"]
+    IMP_item["usecases/registrarItemImportacao.ts"]
+    IMP_iniciar["usecases/iniciarImportacao.ts"]
+    IMP_concluir["usecases/concluirImportacao.ts"]
+    IMP_falhar["usecases/falharImportacao.ts"]
+
+    IMP_portas --> IMP_tipos
+
+    IMP_criar --> IMP_tipos
+    IMP_criar --> IMP_portas
+
+    IMP_item --> IMP_tipos
+    IMP_item --> IMP_portas
+
+    IMP_iniciar --> IMP_tipos
+    IMP_iniciar --> IMP_portas
+
+    IMP_concluir --> IMP_tipos
+    IMP_concluir --> IMP_portas
+
+    IMP_falhar --> IMP_tipos
+    IMP_falhar --> IMP_portas
+  end
+
+  %% ======================
+  %% EXPORTACOES
+  %% ======================
+  subgraph EXP["exportacoes/"]
+    EXP_tipos["tipos.ts"]
+    EXP_portas["portasRepositorio.ts"]
+
+    EXP_criar["usecases/criarExportacao.ts"]
+    EXP_iniciar["usecases/iniciarExportacao.ts"]
+    EXP_concluir["usecases/concluirExportacao.ts"]
+    EXP_falhar["usecases/falharExportacao.ts"]
+
+    EXP_portas --> EXP_tipos
+
+    EXP_criar --> EXP_tipos
+    EXP_criar --> EXP_portas
+
+    EXP_iniciar --> EXP_tipos
+    EXP_iniciar --> EXP_portas
+
+    EXP_concluir --> EXP_tipos
+    EXP_concluir --> EXP_portas
+
+    EXP_falhar --> EXP_tipos
+    EXP_falhar --> EXP_portas
+  end
+
+  %% ======================
+  %% AUTENTICACAO
+  %% ======================
+  subgraph ATH["autenticacao/"]
+    ATH_tipos["tipos.ts"]
+    ATH_portas["portasRepositorio.ts"]
+
+    ATH_emitir["usecases/emitirTokens.ts"]
+    ATH_rotacionar["usecases/rotacionarTokenAtualizacao.ts"]
+    ATH_revogar["usecases/revogarTokenAtualizacao.ts"]
+
+    ATH_portas --> ATH_tipos
+
+    ATH_emitir --> ATH_tipos
+    ATH_emitir --> ATH_portas
+
+    ATH_rotacionar --> ATH_tipos
+    ATH_rotacionar --> ATH_portas
+
+    ATH_revogar --> ATH_tipos
+    ATH_revogar --> ATH_portas
+  end
+
+  %% ======================
+  %% BACKUPS
+  %% ======================
+  subgraph BCK["backups/"]
+    BCK_tipos["tipos.ts"]
+    BCK_portasRepo["portasRepositorio.ts"]
+    BCK_portasExec["portasExecutores.ts"]
+
+    BCK_politica["usecases/configurarPoliticaBackup.ts"]
+    BCK_executar["usecases/executarBackup.ts"]
+    BCK_evidencia["usecases/registrarEvidenciaBackup.ts"]
+
+    BCK_portasRepo --> BCK_tipos
+    BCK_portasExec --> BCK_tipos
+
+    BCK_politica --> BCK_tipos
+    BCK_politica --> BCK_portasRepo
+
+    BCK_executar --> BCK_tipos
+    BCK_executar --> BCK_portasRepo
+    BCK_executar --> BCK_portasExec
+
+    BCK_evidencia --> BCK_tipos
+    BCK_evidencia --> BCK_portasRepo
+  end
+
+
+
+
+
+  flowchart TD
+
+    result[result.ts]
+    errors[errors.ts]
+
+    rop[ROPHelpers.ts]
+    ctx[contextoExecucao.ts]
+
+    auth[autorizacao.ts]
+    rbac[rbac.ts]
+
+    rop --> result
+    rop --> errors
+
+    ctx --> result
+    ctx --> errors
+    ctx --> rop
+
+    auth --> ctx
+    auth --> result
+    auth --> errors
+    auth --> rop
+
+    rbac --> ctx
+    rbac --> result
+    rbac --> errors
+    rbac --> rop

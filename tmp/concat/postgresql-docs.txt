@@ -1,0 +1,5209 @@
+
+
+===== docs/banco-de-dados/postgresql/backup/exportacao_backup.sql =====
+
+\copy (
+  SELECT *
+  FROM tabela
+  WHERE locatario_id = '...'
+) TO '/caminho/saida.csv'
+CSV HEADER
+ENCODING 'UTF8';
+
+
+===== docs/banco-de-dados/postgresql/backup/importacao_backup.sql =====
+
+\copy tabela_destino(coluna1, coluna2, coluna3)
+FROM '/caminho/arquivo.csv'
+DELIMITER ';'
+CSV HEADER
+ENCODING 'UTF8';
+
+
+===== docs/banco-de-dados/postgresql/dados_iniciais/papeis.sql =====
+
+INSERT INTO papeis (codigo, nome) VALUES
+  ('SUPERADMIN','Super Administrador'),
+  ('ADMIN_LOCATARIO','Administrador do Locatário'),
+  ('OPERADOR','Operador')
+ON CONFLICT (codigo) DO NOTHING;
+
+
+===== docs/banco-de-dados/postgresql/dados_iniciais/permissoes.sql =====
+
+INSERT INTO permissoes (codigo, nome) VALUES
+  ('LOCATARIO_LER','Ler locatários'),
+  ('LOCATARIO_GERIR','Gerir locatários'),
+  ('USUARIO_GERIR','Gerir usuários'),
+  ('AUDITORIA_LER','Visualizar auditoria'),
+  ('IMPORTACAO_EXECUTAR','Executar importações'),
+  ('EXPORTACAO_EXECUTAR','Executar exportações')
+ON CONFLICT (codigo) DO NOTHING;
+
+
+===== docs/banco-de-dados/postgresql/ddl/create_roles_login.sql =====
+
+-- ============================================================
+-- Padrao multilocatario: Roles-modelo (NOLOGIN) reutilizáveis
+-- Execute como: postgres (superuser) ou role com CREATEROLE
+-- ============================================================
+
+DO $$
+BEGIN
+  -- 1) administrador (owner lógico): ideal para ser OWNER de schemas/objetos
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_administrador') THEN
+    CREATE ROLE multilocatario_administrador LOGIN PASSWORD '1234';
+  END IF;
+
+  -- 2) Migrador: usado por migrations (DDL controlado)
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_migrador') THEN
+    CREATE ROLE multilocatario_migrador LOGIN PASSWORD '1234';
+  END IF;
+
+  -- 3) leitor: SELECT
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_leitor') THEN
+    CREATE ROLE multilocatario_leitor LOGIN PASSWORD '1234';
+  END IF;
+
+  -- 4) aplicacao: INSERT/UPDATE/DELETE (geralmente inclui leitura também)
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_aplicacao') THEN
+    CREATE ROLE multilocatario_aplicacao LOGIN PASSWORD '1234';
+  END IF;
+
+  -- 5) Auditor: leitura de trilhas, visões de auditoria, etc
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_auditor') THEN
+    CREATE ROLE multilocatario_auditor LOGIN PASSWORD '1234';
+  END IF;
+
+  -- 6) Joperador_job: rotinas agendadas/background (ETL, import/export, etc)
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_operador_job') THEN
+    CREATE ROLE multilocatario_operador_job LOGIN PASSWORD '1234';
+  END IF;
+END $$;
+
+
+===== docs/banco-de-dados/postgresql/ddl/create_roles_nologin.sql =====
+
+-- ============================================================
+-- Padrao CoreKit: Roles-modelo (NOLOGIN) reutilizáveis
+-- Execute como: postgres (superuser) ou role com CREATEROLE
+-- ============================================================
+
+DO $$
+BEGIN
+  -- 1) posse (owner lógico): ideal para ser OWNER de schemas/objetos
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'posse') THEN
+    CREATE ROLE posse NOLOGIN;
+  END IF;
+
+  -- 2) migração: usado por migrations (DDL controlado)
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'migracao') THEN
+    CREATE ROLE migracao NOLOGIN;
+  END IF;
+
+  -- 3) Leitura: SELECT
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'leitura') THEN
+    CREATE ROLE leitura NOLOGIN;
+  END IF;
+
+  -- 4) Escrita: INSERT/UPDATE/DELETE (geralmente inclui leitura também)
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'escrita') THEN
+    CREATE ROLE escrita NOLOGIN;
+  END IF;
+
+  -- 5) auditoria: leitura de trilhas, visões de auditoria, etc
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'auditoria') THEN
+    CREATE ROLE auditoria NOLOGIN;
+  END IF;
+
+  -- 6) automacao: rotinas agendadas/background (ETL, import/export, etc)
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'automacao') THEN
+    CREATE ROLE automacao NOLOGIN;
+  END IF;
+END $$;
+
+
+===== docs/banco-de-dados/postgresql/ddl/create_schema.sql =====
+
+-- db/bootstrap/01_schemas.sql
+-- Finalidade: criar schemas do projeto e aplicar bloqueios básicos em public.
+
+-- 1) Travar schema public (boa prática de hardening)
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+
+-- 2) Criar schemas do Core Kit
+CREATE SCHEMA IF NOT EXISTS main AUTHORIZATION posse;
+CREATE SCHEMA IF NOT EXISTS audit AUTHORIZATION posse;
+CREATE SCHEMA IF NOT EXISTS jobs AUTHORIZATION posse;
+CREATE SCHEMA IF NOT EXISTS api AUTHORIZATION posse;
+
+REVOKE ALL ON SCHEMA public FROM migracao;
+GRANT ALL ON SCHEMA main TO migracao;
+GRANT ALL ON SCHEMA api TO migracao;
+GRANT ALL ON SCHEMA audit TO migracao;
+GRANT ALL ON SCHEMA jobs TO migracao;
+
+-- 3) Acesso mínimo para roles (USAGE permite "enxergar" objetos no schema)
+GRANT USAGE ON SCHEMA api TO leitura;
+ALTER DEFAULT PRIVILEGES IN SCHEMA api GRANT SELECT ON TABLES TO leitura;
+ALTER DEFAULT PRIVILEGES IN SCHEMA api GRANT ALL ON FUNCTIONS TO leitura;
+ALTER DEFAULT PRIVILEGES IN SCHEMA api GRANT SELECT ON SEQUENCES TO leitura;
+
+GRANT USAGE ON SCHEMA main TO escrita;
+ALTER DEFAULT PRIVILEGES IN SCHEMA main GRANT UPDATE, DELETE, SELECT, INSERT ON TABLES TO escrita;
+ALTER DEFAULT PRIVILEGES IN SCHEMA main GRANT ALL ON FUNCTIONS TO escrita;
+ALTER DEFAULT PRIVILEGES IN SCHEMA main GRANT SELECT ON SEQUENCES TO escrita;
+
+GRANT USAGE ON SCHEMA jobs TO automacao;
+ALTER DEFAULT PRIVILEGES IN SCHEMA jobs GRANT INSERT, UPDATE, DELETE, SELECT ON TABLES TO automacao;
+ALTER DEFAULT PRIVILEGES IN SCHEMA jobs GRANT ALL ON FUNCTIONS TO automacao;
+ALTER DEFAULT PRIVILEGES IN SCHEMA jobs GRANT SELECT ON SEQUENCES TO automacao;
+
+
+
+
+
+
+
+
+-- Opcional: permitir que o runtime consulte sch_corekit_audit (muitos sistemas mostram trilha no painel admin)
+-- GRANT USAGE ON SCHEMA sch_corekit_audit TO corekit_app;
+
+
+===== docs/banco-de-dados/postgresql/ddl/grant_revoke.sql =====
+
+-- db/bootstrap/02_privileges.sql
+-- Finalidade: definir privilégios mínimos e default privileges (essencial para robustez).
+
+
+
+-- Exemplo: criar logins e associar às roles-modelo
+CREATE ROLE ck_app LOGIN PASSWORD '...';
+GRANT corekit_escrita TO ck_app;
+
+CREATE ROLE ck_migrate LOGIN PASSWORD '...';
+GRANT corekit_migrador TO ck_migrate;
+
+CREATE ROLE ck_ro LOGIN PASSWORD '...';
+GRANT corekit_leitura TO ck_ro;
+
+CREATE ROLE ck_job LOGIN PASSWORD '...';
+GRANT corekit_job TO ck_job;
+
+
+-- 1) Banco: remover privilégios amplos do PUBLIC (no banco atual)
+-- (Rodar conectado no banco do projeto)
+REVOKE ALL ON DATABASE current_database() FROM PUBLIC;
+
+-- 2) Permitir que roles conectem no banco (ajuste se quiser bloquear leitura/auditor por ambiente)
+GRANT CONNECT ON DATABASE current_database() TO corekit_migrador, corekit_app, corekit_leitura, corekit_auditor;
+
+-- 3) Permissões em tabelas existentes (caso já existam objetos)
+-- APP schema: runtime pode DML, leitura só SELECT
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA sch_corekit_app TO corekit_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA sch_corekit_app TO corekit_leitura;
+
+-- JOBS schema: runtime pode DML (sch_corekit_jobs de import/export), leitura só SELECT
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA sch_corekit_jobs TO corekit_app;
+GRANT SELECT ON ALL TABLES IN SCHEMA sch_corekit_jobs TO corekit_leitura;
+
+-- AUDIT schema: auditor pode SELECT (e opcional INSERT se auditar pelo BD)
+GRANT SELECT ON ALL TABLES IN SCHEMA sch_corekit_audit TO corekit_auditor;
+GRANT SELECT ON ALL TABLES IN SCHEMA sch_corekit_audit TO corekit_leitura;
+
+-- Opcional: permitir a aplicação ler auditoria
+-- GRANT SELECT ON ALL TABLES IN SCHEMA sch_corekit_audit TO corekit_app;
+
+-- 4) Sequences (se usar SERIAL/IDENTITY/sequence)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA sch_corekit_app TO corekit_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA sch_corekit_jobs TO corekit_app;
+
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA sch_corekit_app TO corekit_leitura;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA sch_corekit_jobs TO corekit_leitura;
+
+-- 5) DEFAULT PRIVILEGES — para objetos futuros criados pelo migrador
+-- Importante: DEFAULT PRIVILEGES são POR "criador" + schema.
+-- Aqui assumimos que migrations rodam como corekit_migrador_dev/hom/prod,
+-- e os objetos ficam "criadas por" corekit_migrador (via IN ROLE).
+--
+-- Dica: rode migrations sempre usando a credencial migradora.
+
+-- Para tabelas novas no schema sch_corekit_app
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_app
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO corekit_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_app
+  GRANT SELECT ON TABLES TO corekit_leitura;
+
+-- Para sequences novas no schema sch_corekit_app
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_app
+  GRANT USAGE, SELECT ON SEQUENCES TO corekit_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_app
+  GRANT SELECT ON SEQUENCES TO corekit_leitura;
+
+-- Para tabelas novas no schema sch_corekit_jobs
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_jobs
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO corekit_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_jobs
+  GRANT SELECT ON TABLES TO corekit_leitura;
+
+-- Para sequences novas no schema sch_corekit_jobs
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_jobs
+  GRANT USAGE, SELECT ON SEQUENCES TO corekit_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_jobs
+  GRANT SELECT ON SEQUENCES TO corekit_leitura;
+
+-- Para tabelas novas no schema sch_corekit_audit
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_audit
+  GRANT SELECT ON TABLES TO corekit_auditor;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_audit
+  GRANT SELECT ON TABLES TO corekit_leitura;
+
+-- Opcional: permitir INSERT em sch_corekit_audit se você decidir auditar via triggers no BD
+-- ALTER DEFAULT PRIVILEGES FOR ROLE corekit_migrador IN SCHEMA sch_corekit_audit
+--   GRANT INSERT ON TABLES TO corekit_auditor;
+
+-- 6) Hardening opcional: impedir CREATE no schema (somente migrador deve criar)
+REVOKE CREATE ON SCHEMA sch_corekit_app FROM PUBLIC;
+REVOKE CREATE ON SCHEMA sch_corekit_jobs FROM PUBLIC;
+REVOKE CREATE ON SCHEMA sch_corekit_audit FROM PUBLIC;
+
+-- Como o schema é owned pelo corekit_migrador, ele mantém CREATE por ownership.
+
+
+===== docs/banco-de-dados/postgresql/ddl/grant_roles.sql =====
+
+-- Escrita herda Leitura (para não ter que repetir grants de SELECT no usuário)
+GRANT leitura TO posse, escrita, auditoria, automacao;
+
+-- admin (humano)
+GRANT posse, migracao, escrita, leitura TO multilocatario_administrador;
+
+-- migrador (CI/CD)
+GRANT migracao TO multilocatario_migrador;
+
+-- app (principal)
+GRANT escrita TO multilocatario_aplicacao;
+
+-- api (secundárias)
+GRANT leitura TO multilocatario_leitor;
+
+-- auditor
+GRANT auditoria TO multilocatario_auditor;
+
+-- job
+GRANT automacao TO multilocatario_operador_job;
+
+-- leitura enxerga schemas
+GRANT USAGE ON SCHEMA core TO corekit_leitura;
+GRANT USAGE ON SCHEMA jobs TO corekit_leitura;
+
+-- escrita enxerga schemas (via herança) e faz DML (não precisa CREATE)
+GRANT USAGE ON SCHEMA core TO corekit_escrita;
+GRANT USAGE ON SCHEMA jobs TO corekit_escrita;
+
+-- auditor enxerga auditoria
+GRANT USAGE ON SCHEMA auditoria TO corekit_auditor;
+
+-- job enxerga jobs (e opcionalmente core)
+GRANT USAGE ON SCHEMA jobs TO corekit_job;
+GRANT USAGE ON SCHEMA core TO corekit_job; -- opcional, se job precisar ler core
+
+-- migrador pode criar objetos
+GRANT USAGE, CREATE ON SCHEMA core TO corekit_migrador;
+GRANT USAGE, CREATE ON SCHEMA jobs TO corekit_migrador;
+GRANT USAGE, CREATE ON SCHEMA auditoria TO corekit_migrador;
+
+-- hardening: bloquear CREATE do PUBLIC
+REVOKE CREATE ON SCHEMA core FROM PUBLIC;
+REVOKE CREATE ON SCHEMA jobs FROM PUBLIC;
+REVOKE CREATE ON SCHEMA auditoria FROM PUBLIC;
+
+
+
+===== docs/banco-de-dados/postgresql/exemplos.sql =====
+
+-- criar índices
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = '') THEN
+    
+  END IF;
+END;
+$$;
+
+
+-- criar triggers
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = '') THEN
+  
+  END IF;
+END $$;
+
+-- criar índices parciais
+CREATE INDEX 
+ON    ( DESC)
+WHERE     IS NULL;
+
+===== docs/banco-de-dados/postgresql/extensoes/create_extensions.sql =====
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Alternativa moderna: pgcrypto (gen_random_uuid)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+
+
+===== docs/banco-de-dados/postgresql/funcoes/auditar_evento.sql =====
+
+-- =========================================================
+-- util: auditoria (genérica)
+-- =========================================================
+CREATE OR REPLACE FUNCTION fn_auditar_evento(
+  p_tipo_evento text,
+  p_acao text,
+  p_recurso text,
+  p_recurso_id text,
+  p_resultado text,
+  p_detalhes jsonb
+)
+RETURNS void AS $$
+DECLARE
+  v_usuario_id uuid;
+  v_locatario_id uuid;
+  v_ip text;
+  v_user_agent text;
+  v_corr text;
+BEGIN
+  v_usuario_id := NULLIF(fn_configuracoes_app('app.usuario_id'), '')::uuid;
+  v_locatario_id := NULLIF(fn_configuracoes_app('app.locatario_id'), '')::uuid;
+  v_ip := fn_configuracoes_app('app.ip');
+  v_user_agent := fn_configuracoes_app('app.user_agent');
+  v_corr := fn_configuracoes_app('app.correlation_id');
+
+  INSERT INTO auditoria (
+    id,
+    locatario_id,
+    usuario_id,
+    tipo_evento,
+    acao,
+    recurso,
+    recurso_id,
+    resultado,
+    detalhes,
+    ip,
+    user_agent,
+    correlation_id,
+    criado_em
+  ) VALUES (
+    gen_random_uuid(),
+    v_locatario_id,
+    v_usuario_id,
+    p_tipo_evento,
+    p_acao,
+    p_recurso,
+    p_recurso_id,
+    p_resultado,
+    COALESCE(p_detalhes, '{}'::jsonb),
+    v_ip,
+    v_user_agent,
+    v_corr,
+    now()
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+===== docs/banco-de-dados/postgresql/funcoes/auxiliares.sql =====
+
+CREATE OR REPLACE FUNCTION app_usuario_id()
+RETURNS uuid
+LANGUAGE sql STABLE
+AS $$
+  SELECT NULLIF(current_setting('app.usuario_id', true), '')::uuid
+$$;
+
+CREATE OR REPLACE FUNCTION app_locatario_id()
+RETURNS uuid
+LANGUAGE sql STABLE
+AS $$
+  SELECT NULLIF(current_setting('app.locatario_id', true), '')::uuid
+$$;
+
+CREATE OR REPLACE FUNCTION app_is_plataforma()
+RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT COALESCE(NULLIF(current_setting('app.is_plataforma', true), ''), 'false')::boolean
+$$;
+
+
+
+
+
+ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY rls_clientes_tenant
+ON clientes
+USING (locatario_id = app_locatario_id())
+WITH CHECK (locatario_id = app_locatario_id());
+
+
+
+
+ALTER TABLE auditoria_plataforma ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY rls_auditoria_plataforma_somente_plataforma
+ON auditoria_plataforma
+USING (app_is_plataforma() = true)
+WITH CHECK (app_is_plataforma() = true);
+
+
+
+CREATE OR REPLACE FUNCTION app_definir_contexto(p_usuario_id uuid, p_locatario_id uuid, p_is_plataforma boolean)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  user_locatario uuid;
+BEGIN
+  SELECT u.locatario_id INTO user_locatario
+  FROM usuarios u
+  WHERE u.usuario_id = p_usuario_id
+    AND u.excluido_em IS NULL;
+
+  IF user_locatario IS NULL THEN
+    -- Usuário de plataforma
+    IF NOT p_is_plataforma THEN
+      RAISE EXCEPTION 'usuário plataforma deve usar p_is_plataforma=true';
+    END IF;
+
+    -- Pode setar qualquer locatário alvo (inclusive NULL para modo plataforma puro)
+    PERFORM set_config('app.usuario_id', p_usuario_id::text, true);
+    PERFORM set_config('app.is_plataforma', 'true', true);
+
+    IF p_locatario_id IS NULL THEN
+      PERFORM set_config('app.locatario_id', '', true);
+    ELSE
+      PERFORM set_config('app.locatario_id', p_locatario_id::text, true);
+    END IF;
+
+  ELSE
+    -- Usuário comum: só pode atuar no próprio locatário
+    IF p_locatario_id IS DISTINCT FROM user_locatario THEN
+      RAISE EXCEPTION 'usuário comum só pode atuar no próprio locatário';
+    END IF;
+
+    PERFORM set_config('app.usuario_id', p_usuario_id::text, true);
+    PERFORM set_config('app.is_plataforma', 'false', true);
+    PERFORM set_config('app.locatario_id', user_locatario::text, true);
+  END IF;
+END;
+$$;
+
+
+
+-- Usuário comum:
+SELECT app_definir_contexto(:usuario_id, :locatario_id_do_usuario, false);
+
+-- Superadmin, modo plataforma:
+SELECT app_definir_contexto(:usuario_id, NULL, true);
+
+-- Superadmin, atuando num locatário:
+SELECT app_definir_contexto(:usuario_id, :locatario_alvo_id, true);
+
+
+-- ============================================================
+-- RLS + CONTEXTO (v3)
+-- - SUPERADMIN pode "selecionar locatário" via contexto
+-- - Usuário comum só atua no locatário em que foi criado
+-- - Policies por tabela (onde faz sentido)
+-- ============================================================
+
+-- ============================================================
+-- 1) Funções auxiliares para ler contexto (app.*)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION app_usuario_id()
+RETURNS uuid
+LANGUAGE sql STABLE
+AS $$
+  SELECT NULLIF(current_setting('app.usuario_id', true), '')::uuid
+$$;
+
+CREATE OR REPLACE FUNCTION app_locatario_id()
+RETURNS uuid
+LANGUAGE sql STABLE
+AS $$
+  SELECT NULLIF(current_setting('app.locatario_id', true), '')::uuid
+$$;
+
+CREATE OR REPLACE FUNCTION app_is_plataforma()
+RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT COALESCE(NULLIF(current_setting('app.is_plataforma', true), ''), 'false')::boolean
+$$;
+
+-- ============================================================
+-- 2) Definir contexto com regra:
+--    - usuário comum: só pode usar o próprio locatário
+--    - plataforma: pode usar locatário alvo (ou NULL para modo plataforma)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION app_definir_contexto(
+  p_usuario_id uuid,
+  p_locatario_id uuid,
+  p_is_plataforma boolean
+)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  user_locatario uuid;
+BEGIN
+  SELECT u.locatario_id INTO user_locatario
+  FROM usuarios u
+  WHERE u.usuario_id = p_usuario_id
+    AND u.excluido_em IS NULL;
+
+  IF p_usuario_id IS NULL THEN
+    RAISE EXCEPTION 'p_usuario_id é obrigatório';
+  END IF;
+
+  IF user_locatario IS NULL THEN
+    -- Usuário de plataforma
+    IF NOT p_is_plataforma THEN
+      RAISE EXCEPTION 'usuário plataforma deve usar p_is_plataforma=true';
+    END IF;
+
+    PERFORM set_config('app.usuario_id', p_usuario_id::text, true);
+    PERFORM set_config('app.is_plataforma', 'true', true);
+
+    IF p_locatario_id IS NULL THEN
+      PERFORM set_config('app.locatario_id', '', true);
+    ELSE
+      PERFORM set_config('app.locatario_id', p_locatario_id::text, true);
+    END IF;
+
+  ELSE
+    -- Usuário comum: só pode atuar no próprio locatário
+    IF p_locatario_id IS DISTINCT FROM user_locatario THEN
+      RAISE EXCEPTION 'usuário comum só pode atuar no próprio locatário';
+    END IF;
+
+    IF p_is_plataforma THEN
+      RAISE EXCEPTION 'usuário comum não pode definir is_plataforma=true';
+    END IF;
+
+    PERFORM set_config('app.usuario_id', p_usuario_id::text, true);
+    PERFORM set_config('app.is_plataforma', 'false', true);
+    PERFORM set_config('app.locatario_id', user_locatario::text, true);
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 3) Helper predicates (para não repetir lógica em policies)
+-- ============================================================
+
+-- Em modo "tenant" (contexto setado), isola por locatario_id.
+-- Em modo "plataforma" (sem locatario), permite tudo se is_plataforma=true.
+CREATE OR REPLACE FUNCTION rls_permite_tabela_tenant(p_row_locatario_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    CASE
+      WHEN app_locatario_id() IS NOT NULL THEN (p_row_locatario_id = app_locatario_id())
+      ELSE app_is_plataforma() = true
+    END
+$$;
+
+-- Para CHECK (INSERT/UPDATE) em tabelas tenant, exige que:
+-- - Se contexto tenant: row.locatario_id = app_locatario_id()
+-- - Se modo plataforma: exige que app_is_plataforma=true E app_locatario_id() NÃO seja NULL
+--   (ou seja: plataforma só escreve "dentro de um tenant" quando escolheu locatário)
+CREATE OR REPLACE FUNCTION rls_check_tabela_tenant(p_row_locatario_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    CASE
+      WHEN app_locatario_id() IS NOT NULL THEN (p_row_locatario_id = app_locatario_id())
+      ELSE false
+    END
+$$;
+
+-- ============================================================
+-- 4) RLS por tabela (onde faz sentido)
+-- ============================================================
+
+-- ---------- LOCATARIOS (plataforma: tudo; tenant: só o próprio) ----------
+ALTER TABLE locatarios ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'locatarios' AND policyname = 'p_locatarios_plataforma_all'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_locatarios_plataforma_all
+      ON locatarios
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+      WITH CHECK (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+    $sql$;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'locatarios' AND policyname = 'p_locatarios_tenant_own'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_locatarios_tenant_own
+      ON locatarios
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (locatario_id = app_locatario_id())
+      WITH CHECK (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- CONFIGURACOES_LOCATARIO (tenant-scoped) ----------
+ALTER TABLE configuracoes_locatario ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'configuracoes_locatario' AND policyname = 'p_config_locatario_tenant'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_config_locatario_tenant
+      ON configuracoes_locatario
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- USUARIOS ----------
+-- Regras:
+-- - Em tenant-context (app_locatario_id != NULL): só usuários daquele locatário
+-- - Em modo plataforma (is_plataforma=true e app_locatario_id NULL): pode ver/gerir todos (suporte)
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'usuarios' AND policyname = 'p_usuarios_tenant_context'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_usuarios_tenant_context
+      ON usuarios
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (
+        app_locatario_id() IS NOT NULL
+        AND locatario_id = app_locatario_id()
+      )
+      WITH CHECK (
+        app_locatario_id() IS NOT NULL
+        AND locatario_id = app_locatario_id()
+      )
+    $sql$;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'usuarios' AND policyname = 'p_usuarios_plataforma_all'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_usuarios_plataforma_all
+      ON usuarios
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+      WITH CHECK (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- USUARIOS_PLATAFORMA (somente modo plataforma) ----------
+ALTER TABLE usuarios_plataforma ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'usuarios_plataforma' AND policyname = 'p_usuarios_plataforma_only'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_usuarios_plataforma_only
+      ON usuarios_plataforma
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+      WITH CHECK (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- USUARIOS_PAPEIS (tenant-scoped) ----------
+ALTER TABLE usuarios_papeis ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'usuarios_papeis' AND policyname = 'p_usuarios_papeis_tenant'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_usuarios_papeis_tenant
+      ON usuarios_papeis
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- PAPEIS / PERMISSOES / PAPEL_PERMISSOES (globais) ----------
+-- Normalmente: leitura para todos; escrita só via migrador/migrations.
+ALTER TABLE papeis ENABLE ROW LEVEL SECURITY;
+ALTER TABLE permissoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE papel_permissoes ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='papeis' AND policyname='p_papeis_read'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_papeis_read
+      ON papeis
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (true)
+      WITH CHECK (false)
+    $sql$;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='permissoes' AND policyname='p_permissoes_read'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_permissoes_read
+      ON permissoes
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (true)
+      WITH CHECK (false)
+    $sql$;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='papel_permissoes' AND policyname='p_papel_permissoes_read'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_papel_permissoes_read
+      ON papel_permissoes
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (true)
+      WITH CHECK (false)
+    $sql$;
+  END IF;
+
+  -- Escrita para migrador (migrations controladas)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='papeis' AND policyname='p_papeis_migrador_write'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_papeis_migrador_write
+      ON papeis
+      TO multilocatario_migrador
+      USING (true)
+      WITH CHECK (true)
+    $sql$;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='permissoes' AND policyname='p_permissoes_migrador_write'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_permissoes_migrador_write
+      ON permissoes
+      TO multilocatario_migrador
+      USING (true)
+      WITH CHECK (true)
+    $sql$;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='papel_permissoes' AND policyname='p_papel_permissoes_migrador_write'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_papel_permissoes_migrador_write
+      ON papel_permissoes
+      TO multilocatario_migrador
+      USING (true)
+      WITH CHECK (true)
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- TOKENS (tenant-scoped, e opcionalmente plataforma em modo plataforma) ----------
+ALTER TABLE tokens ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='tokens' AND policyname='p_tokens_tenant'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_tokens_tenant
+      ON tokens
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- AUDITORIA_LOCATARIO (tenant-scoped) ----------
+ALTER TABLE auditoria_locatario ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='auditoria_locatario' AND policyname='p_auditoria_locatario_tenant'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_locatario_tenant
+      ON auditoria_locatario
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ---------- AUDITORIA_PLATAFORMA (somente plataforma) ----------
+ALTER TABLE auditoria_plataforma ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='auditoria_plataforma' AND policyname='p_auditoria_plataforma_only'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_plataforma_only
+      ON auditoria_plataforma
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+      WITH CHECK (app_is_plataforma() = true AND app_locatario_id() IS NULL)
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 5) Tabelas operacionais (todas tenant-scoped)
+-- ============================================================
+
+-- CLIENTES
+ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='clientes' AND policyname='p_clientes_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_clientes_tenant
+      ON clientes
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- FORNECEDORES
+ALTER TABLE fornecedores ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='fornecedores' AND policyname='p_fornecedores_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_fornecedores_tenant
+      ON fornecedores
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ESTOQUES
+ALTER TABLE estoques ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='estoques' AND policyname='p_estoques_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_estoques_tenant
+      ON estoques
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- PRODUTOS
+ALTER TABLE produtos ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='produtos' AND policyname='p_produtos_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_produtos_tenant
+      ON produtos
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- PRODUTOS_ESTOQUE
+ALTER TABLE produtos_estoque ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='produtos_estoque' AND policyname='p_produtos_estoque_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_produtos_estoque_tenant
+      ON produtos_estoque
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ORDENS_SERVICO
+ALTER TABLE ordens_servico ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='ordens_servico' AND policyname='p_ordens_servico_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_ordens_servico_tenant
+      ON ordens_servico
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- TRANSACOES
+ALTER TABLE transacoes ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='transacoes' AND policyname='p_transacoes_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_transacoes_tenant
+      ON transacoes
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ITENS_TRANSACAO
+ALTER TABLE itens_transacao ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='itens_transacao' AND policyname='p_itens_transacao_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_itens_transacao_tenant
+      ON itens_transacao
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- MOVIMENTACOES_ESTOQUE
+ALTER TABLE movimentacoes_estoque ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='movimentacoes_estoque' AND policyname='p_movimentacoes_estoque_tenant') THEN
+    EXECUTE $sql$
+      CREATE POLICY p_movimentacoes_estoque_tenant
+      ON movimentacoes_estoque
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (rls_permite_tabela_tenant(locatario_id))
+      WITH CHECK (rls_check_tabela_tenant(locatario_id))
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 6) Sugestões opcionais (comentadas)
+-- ============================================================
+
+-- (Opcional) Forçar RLS inclusive para o OWNER da tabela (não afeta superuser):
+-- ALTER TABLE <tabela> FORCE ROW LEVEL SECURITY;
+
+-- (Opcional) exigir que app_locatario_id esteja setado para qualquer DML em tabelas tenant
+-- (já está garantido pelo rls_check_tabela_tenant -> false quando app_locatario_id é NULL)
+
+-- (Opcional) Se quiser que "modo plataforma (sem locatario)" nunca enxergue tabelas tenant:
+-- troque rls_permite_tabela_tenant() para retornar false quando app_locatario_id IS NULL.
+
+
+
+
+
+
+
+===== docs/banco-de-dados/postgresql/funcoes/configuracoes_app.sql =====
+
+-- =========================================================
+-- util: pegar variáveis de sessão definidas pelo backend
+-- =========================================================
+CREATE OR REPLACE FUNCTION fn_configuracoes_app(chave text)
+RETURNS text AS $$
+BEGIN
+  RETURN current_setting(chave, true);
+END;
+$$ LANGUAGE plpgsql;
+
+===== docs/banco-de-dados/postgresql/funcoes/definir_atualizado_em.sql =====
+
+CREATE OR REPLACE FUNCTION fn_definir_atualizado_em()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.atualizado_em = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+===== docs/banco-de-dados/postgresql/funcoes/definir_criado_e_atualizado_em.sql =====
+
+-- =========================================================
+-- util: timestamps
+-- =========================================================
+CREATE OR REPLACE FUNCTION fn_definir_criado_e_atualizado_em()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.criado_em IS NULL THEN NEW.criado_em := now(); END IF;
+    NEW.atualizado_em := now();
+  ELSIF TG_OP = 'UPDATE' THEN
+    NEW.atualizado_em := now();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+===== docs/banco-de-dados/postgresql/funcoes/impedir_exclusao_locatario_com_usuarios.sql =====
+
+CREATE OR REPLACE FUNCTION fn_impedir_exclusao_locatario_com_usuarios()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM usuarios
+    WHERE locatario_id = OLD.id
+      AND excluido_em IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Não é permitido excluir locatário com usuários ativos';
+  END IF;
+
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+===== docs/banco-de-dados/postgresql/funcoes/locatarios_before_delete_for_each_row.sql =====
+
+CREATE OR REPLACE FUNCTION fn_locatarios_before_delete_for_each_row()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.atualizado_em = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+===== docs/banco-de-dados/postgresql/funcoes/normalizar_email_usuario.sql =====
+
+-- =========================================================
+-- util: normalizar email (usuarios)
+-- =========================================================
+CREATE OR REPLACE FUNCTION fn_normalizar_email_usuario()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.email IS NOT NULL THEN
+    NEW.email := lower(btrim(NEW.email));
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+===== docs/banco-de-dados/postgresql/funcoes/normalizar_nome.sql =====
+
+CREATE OR REPLACE FUNCTION fn_normalizar_nome()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- timestamps
+  PERFORM 1;
+  -- normalizações simples
+  IF NEW.nome IS NOT NULL THEN
+    NEW.nome := btrim(NEW.nome);
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+===== docs/banco-de-dados/postgresql/funcoes/temp.sql =====
+
+-- Como setar no início de cada request (backend)
+-- Request de locatário (admin do locatário e usuários do locatário)
+-- app.scope = 'TENANT'
+-- app.tenant_id = <locatario_id>
+-- app.user_id = <usuario_id>
+-- opcionais: request_id, ip, user_agent
+-- Request de plataforma (superadmin)
+-- app.scope = 'PLATAFORMA'
+-- app.user_id = <usuario_id_superadmin>
+-- não setar app.tenant_id
+-- opcionais: request_id, ip, user_agent
+-- se a ação afetar um tenant, você passa isso como dado: locatario_alvo_id (coluna do audit)
+-- Importante: use SET LOCAL (ou set_config(..., true)) dentro da transação do request, para não “vazar” contexto entre requisições em pool de conexões.
+
+CREATE SCHEMA IF NOT EXISTS app;
+
+CREATE OR REPLACE FUNCTION app.ctx_user_id()
+RETURNS uuid
+LANGUAGE sql
+AS $$
+  SELECT nullif(current_setting('app.user_id', true), '')::uuid;
+$$;
+
+CREATE OR REPLACE FUNCTION app.ctx_scope()
+RETURNS text
+LANGUAGE sql
+AS $$
+  SELECT nullif(current_setting('app.scope', true), '');
+$$;
+
+CREATE OR REPLACE FUNCTION app.ctx_tenant_id()
+RETURNS uuid
+LANGUAGE sql
+AS $$
+  SELECT nullif(current_setting('app.tenant_id', true), '')::uuid;
+$$;
+
+CREATE OR REPLACE FUNCTION app.ctx_request_id()
+RETURNS text
+LANGUAGE sql
+AS $$
+  SELECT nullif(current_setting('app.request_id', true), '');
+$$;
+
+CREATE OR REPLACE FUNCTION app.ctx_ip()
+RETURNS text
+LANGUAGE sql
+AS $$
+  SELECT nullif(current_setting('app.ip', true), '');
+$$;
+
+CREATE OR REPLACE FUNCTION app.ctx_user_agent()
+RETURNS text
+LANGUAGE sql
+AS $$
+  SELECT nullif(current_setting('app.user_agent', true), '');
+$$;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION app.assert_scope(expected text)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF app.ctx_scope() IS DISTINCT FROM expected THEN
+    RAISE EXCEPTION 'Contexto inválido: esperado scope %, atual %', expected, app.ctx_scope();
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION app.assert_user()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF app.ctx_user_id() IS NULL THEN
+    RAISE EXCEPTION 'Contexto inválido: app.user_id não configurado';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION app.assert_tenant()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM app.assert_scope('TENANT');
+  IF app.ctx_tenant_id() IS NULL THEN
+    RAISE EXCEPTION 'Contexto inválido: app.tenant_id não configurado';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION app.assert_platform()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM app.assert_scope('PLATAFORMA');
+  -- por segurança, garanta que tenant_id não esteja setado no modo plataforma
+  IF app.ctx_tenant_id() IS NOT NULL THEN
+    RAISE EXCEPTION 'Contexto inválido: app.tenant_id não deve estar setado em PLATAFORMA';
+  END IF;
+END;
+$$;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Padrão:
+-- USING (locatario_id = app.ctx_tenant_id())
+-- WITH CHECK (locatario_id = app.ctx_tenant_id())
+-- e exigir TENANT + user_id
+-- Exemplo (aplique em todas as tabelas tenant-scoped; mostro com auditoria_locatario):
+
+ALTER TABLE auditoria_locatario ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auditoria_locatario FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY auditoria_locatario_rls
+ON auditoria_locatario
+USING (
+  app.ctx_scope() = 'TENANT'
+  AND app.ctx_tenant_id() IS NOT NULL
+  AND locatario_id = app.ctx_tenant_id()
+)
+WITH CHECK (
+  app.ctx_scope() = 'TENANT'
+  AND app.ctx_tenant_id() IS NOT NULL
+  AND locatario_id = app.ctx_tenant_id()
+);
+
+
+ALTER TABLE auditoria_plataforma ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auditoria_plataforma FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY auditoria_plataforma_rls
+ON auditoria_plataforma
+USING (
+  app.ctx_scope() = 'PLATAFORMA'
+  AND app.ctx_user_id() IS NOT NULL
+)
+WITH CHECK (
+  app.ctx_scope() = 'PLATAFORMA'
+  AND app.ctx_user_id() IS NOT NULL
+);
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION app.log_auditoria_locatario(
+  p_acao text,
+  p_tipo_entidade text,
+  p_entidade_id uuid,
+  p_metadados jsonb DEFAULT '{}'::jsonb
+) RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM app.assert_user();
+  PERFORM app.assert_tenant();
+
+  INSERT INTO auditoria_locatario (
+    auditoria_id,
+    locatario_id,
+    acao,
+    tipo_entidade,
+    entidade_id,
+    usuario_executor_id,
+    requisicao_id,
+    endereco_ip,
+    agente_usuario,
+    metadados,
+    criado_em
+  )
+  VALUES (
+    gen_random_uuid(),
+    app.ctx_tenant_id(),
+    p_acao,
+    p_tipo_entidade,
+    p_entidade_id,
+    app.ctx_user_id(),
+    app.ctx_request_id(),
+    app.ctx_ip(),
+    app.ctx_user_agent(),
+    COALESCE(p_metadados, '{}'::jsonb),
+    now()
+  );
+END;
+$$;
+
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION app.log_auditoria_plataforma(
+  p_acao text,
+  p_tipo_entidade text,
+  p_entidade_id uuid,
+  p_locatario_alvo_id uuid DEFAULT NULL,
+  p_metadados jsonb DEFAULT '{}'::jsonb
+) RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  PERFORM app.assert_user();
+  PERFORM app.assert_platform();
+
+  INSERT INTO auditoria_plataforma (
+    auditoria_id,
+    acao,
+    tipo_entidade,
+    entidade_id,
+    locatario_alvo_id,
+    usuario_executor_id,
+    requisicao_id,
+    endereco_ip,
+    agente_usuario,
+    metadados,
+    criado_em
+  )
+  VALUES (
+    gen_random_uuid(),
+    p_acao,
+    p_tipo_entidade,
+    p_entidade_id,
+    p_locatario_alvo_id,
+    app.ctx_user_id(),
+    app.ctx_request_id(),
+    app.ctx_ip(),
+    app.ctx_user_agent(),
+    COALESCE(p_metadados, '{}'::jsonb),
+    now()
+  );
+END;
+$$;
+
+
+
+
+
+
+
+-- Checklist de implementação no backend
+-- No começo da transação do request:
+-- SET LOCAL app.scope = ...
+-- SET LOCAL app.user_id = ...
+-- SET LOCAL app.tenant_id = ... (só tenant)
+-- SET LOCAL app.request_id = ... etc.
+-- Garantir que toda operação que grava dados tenant-scoped rode com TENANT configurado.
+-- Garantir que toda operação de plataforma (superadmin) rode com PLATAFORMA e nunca set tenant_id.
+
+
+===== docs/banco-de-dados/postgresql/funcoes/validar_locatario_usuario_papel.sql =====
+
+CREATE OR REPLACE FUNCTION fn_validar_locatario_usuario_papel()
+RETURNS TRIGGER AS $$
+DECLARE
+  locatario_usuario UUID;
+BEGIN
+  SELECT locatario_id INTO locatario_usuario
+  FROM usuarios
+  WHERE id = NEW.usuario_id;
+
+  IF NEW.locatario_id IS NOT NULL
+     AND locatario_usuario IS NOT NULL
+     AND NEW.locatario_id <> locatario_usuario THEN
+    RAISE EXCEPTION 'Usuário e papel pertencem a locatários diferentes';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_user_role_tenant
+BEFORE INSERT OR UPDATE ON user_roles
+FOR EACH ROW EXECUTE FUNCTION enforce_same_tenant_user_role();
+
+
+===== docs/banco-de-dados/postgresql/tabelas/assinaturas.sql =====
+
+-- ASSINATURA DE PLANO POR LOCATÁRIO
+-- Representa o contrato ativo entre locatário e plano.
+--
+-- REGRAS DE NEGÓCIO CRÍTICAS:
+-- - Um locatário pode ter várias assinaturas históricas
+-- - Apenas UMA assinatura pode estar ATIVA por locatário
+-- - Mudança de plano cria nova assinatura (não sobrescreve histórico)
+-- - Cancelamento/suspensão NÃO remove registros
+--
+-- STATUS:
+-- - ATIVA → plano vigente
+-- - SUSPENSA → acesso bloqueado temporariamente
+-- - CANCELADA → encerramento definitivo
+-- - EXPIRADA → fim automático
+--
+-- CONSISTÊNCIA:
+-- - Nunca apagar registros fisicamente
+-- - Datas determinam validade
+CREATE TABLE core.assinaturas (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  locatario_id        UUID NOT NULL REFERENCES locatarios(id) ON DELETE CASCADE,
+  plano_id            UUID NOT NULL REFERENCES planos(id),
+
+  status              TEXT NOT NULL DEFAULT 'ATIVA' CHECK (status IN ('ATIVA','SUSPENSA','CANCELADA','EXPIRADA')),
+
+  inicio_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  fim_em              TIMESTAMPTZ NULL,              -- se houver término programado
+  renovacao_em        TIMESTAMPTZ NULL,              -- se você quiser “ciclo”
+  motivo              TEXT NULL,                     -- por que mudou/cancelou
+
+ -- Cobrança (mínimo)
+  moeda                 TEXT NOT NULL DEFAULT 'BRL' CHECK (moeda IN ('BRL','USD','EUR')),
+  valor_centavos        INTEGER NOT NULL DEFAULT 0 CHECK (valor_centavos >= 0),
+  ciclo                 TEXT NOT NULL DEFAULT 'MENSAL' CHECK (ciclo IN ('MENSAL','ANUAL')),
+
+  proximo_vencimento_em TIMESTAMPTZ NULL,
+  ultimo_pagamento_em   TIMESTAMPTZ NULL,
+
+  falha_pagamento_em    TIMESTAMPTZ NULL,
+
+  criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  excluido_em         TIMESTAMPTZ NULL               -- exclusão lógica (se quiser)
+);
+
+CREATE UNIQUE INDEX ux_assinatura_ativa_por_locatario
+ON assinaturas(locatario_id)
+WHERE status = 'ATIVA' AND excluido_em IS NULL;
+
+
+
+===== docs/banco-de-dados/postgresql/tabelas/auditoria_locatario.sql =====
+
+CREATE TABLE IF NOT EXISTS audit.auditoria_locatario (
+  auditoria_id         UUID DEFAULT gen_random_uuid(),
+  locatario_id         UUID NOT NULL,
+  usuario_id           UUID NOT NULL,
+  evento               TEXT NOT NULL, -- evento gerado
+  sucesso              BOOLEAN NOT NULL,
+  erro_codigo          TEXT NULL,
+  erro_mensagem        TEXT NULL,
+  entidade_nome        TEXT NULL,
+  entidade_tipo        TEXT NULL, -- nome da entidade/DTO/tabela
+  entidade_id          TEXT NULL, -- id/chave primária da entidade. Se composta, usar padrão: {entidade:chave}{entidade:chave}
+  origem               TEXT NULL,
+  requisicao_id        TEXT NULL,
+  endereco_ip          INET NULL, 
+  agente_usuario       TEXT NULL,
+  agente_tipo          TEXT NULL,
+  metadados            JSONB NOT NULL DEFAULT '{}'::jsonb, -- informação adicional, tudo que não tiver campo próprio
+  criado_em            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- padronização para metadados
+-- {
+--   "antes": {...},
+--   "depois": {...},
+--   "contexto": {"rota": "...", "user_agent": "..."},
+--   "origem": "api|job|admin",
+--   "motivo": "..."
+-- }
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_auditoria') THEN
+    ALTER TABLE auditoria ADD CONSTRAINT pk_auditoria PRIMARY KEY (auditoria_id, locatario_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_locatarios') THEN
+    ALTER TABLE auditoria
+    ADD CONSTRAINT fk_auditoria_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_usuarios') THEN
+    ALTER TABLE auditoria
+    ADD CONSTRAINT fk_auditoria_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_criacao ON auditoria(locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_executor_criacao ON auditoria(usuario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_acao ON auditoria(acao);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_entidade ON auditoria(tipo_entidade, entidade_id);
+
+-- ============================================================
+-- AUDITORIA (v7) - SQL CORRIGIDO + P1/P2/P3
+-- P1) Imutabilidade: bloquear UPDATE/DELETE
+-- P2) Índices essenciais
+-- P3) Coerência com contexto (app_*), incluindo separação:
+--     - auditoria_locatario: somente contexto tenant (app_is_plataforma=false, app_locatario_id definido)
+--     - auditoria_plataforma: somente plataforma (app_is_plataforma=true), podendo ter locatario_alvo_id = app_locatario_id()
+-- ============================================================
+
+
+
+
+
+-- ============================================================
+-- 2) CONSTRAINTS / FKs
+-- ============================================================
+
+DO $$
+BEGIN
+  -- auditoria_locatario PK
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_auditoria_locatario') THEN
+    ALTER TABLE auditoria_locatario
+    ADD CONSTRAINT pk_auditoria_locatario
+    PRIMARY KEY (auditoria_id, locatario_id);
+  END IF;
+
+  -- auditoria_plataforma PK
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_auditoria_plataforma') THEN
+    ALTER TABLE auditoria_plataforma
+    ADD CONSTRAINT pk_auditoria_plataforma
+    PRIMARY KEY (auditoria_id);
+  END IF;
+
+  -- FKs auditoria_locatario
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_locatario_locatarios') THEN
+    ALTER TABLE auditoria_locatario
+    ADD CONSTRAINT fk_auditoria_locatario_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_locatario_usuarios') THEN
+    ALTER TABLE auditoria_locatario
+    ADD CONSTRAINT fk_auditoria_locatario_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+  END IF;
+
+  -- FKs auditoria_plataforma
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_plataforma_usuarios') THEN
+    ALTER TABLE auditoria_plataforma
+    ADD CONSTRAINT fk_auditoria_plataforma_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_plataforma_locatario_alvo') THEN
+    ALTER TABLE auditoria_plataforma
+    ADD CONSTRAINT fk_auditoria_plataforma_locatario_alvo
+    FOREIGN KEY (locatario_alvo_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 3) P2 - ÍNDICES ESSENCIAIS
+-- ============================================================
+
+-- auditoria_locatario
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_locatario_criado_em
+ON auditoria_locatario (locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_entidade
+ON auditoria_locatario (locatario_id, entidade_tipo, entidade_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_usuario
+ON auditoria_locatario (locatario_id, usuario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_requisicao
+ON auditoria_locatario (locatario_id, requisicao_id);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_evento
+ON auditoria_locatario (locatario_id, evento, criado_em DESC);
+
+-- auditoria_plataforma
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_criado_em
+ON auditoria_plataforma (criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_locatario_alvo
+ON auditoria_plataforma (locatario_alvo_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_usuario
+ON auditoria_plataforma (usuario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_requisicao
+ON auditoria_plataforma (requisicao_id);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_evento
+ON auditoria_plataforma (evento, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_entidade
+ON auditoria_plataforma (entidade_tipo, entidade_id, criado_em DESC);
+
+-- ============================================================
+-- 4) P1 - IMUTABILIDADE (bloqueia UPDATE/DELETE)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION trg_auditoria_bloquear_update_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'auditoria é append-only: UPDATE/DELETE não permitido (%)', TG_TABLE_NAME;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_locatario_immut') THEN
+    CREATE TRIGGER tg_auditoria_locatario_immut
+    BEFORE UPDATE OR DELETE ON auditoria_locatario
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_plataforma_immut') THEN
+    CREATE TRIGGER tg_auditoria_plataforma_immut
+    BEFORE UPDATE OR DELETE ON auditoria_plataforma
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete();
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 5) P3 - COERÊNCIA COM CONTEXTO (app_*)
+-- ============================================================
+
+-- Auditoria do locatário só pode ser escrita em modo tenant (não-plataforma) e com locatário definido,
+-- e deve bater: locatario_id = app_locatario_id() e usuario_id = app_usuario_id().
+CREATE OR REPLACE FUNCTION trg_auditoria_locatario_validar_contexto()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  ctx_locatario uuid;
+  ctx_usuario uuid;
+BEGIN
+  ctx_locatario := app_locatario_id();
+  ctx_usuario := app_usuario_id();
+
+  IF app_is_plataforma() THEN
+    RAISE EXCEPTION 'auditoria_locatario não aceita modo plataforma; use auditoria_plataforma';
+  END IF;
+
+  IF ctx_locatario IS NULL THEN
+    RAISE EXCEPTION 'auditoria_locatario exige app_locatario_id() definido';
+  END IF;
+
+  IF NEW.locatario_id <> ctx_locatario THEN
+    RAISE EXCEPTION 'locatario_id da auditoria (%) difere do contexto (%)', NEW.locatario_id, ctx_locatario;
+  END IF;
+
+  IF ctx_usuario IS NOT NULL AND NEW.usuario_id <> ctx_usuario THEN
+    RAISE EXCEPTION 'usuario_id da auditoria (%) difere do contexto (%)', NEW.usuario_id, ctx_usuario;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_locatario_contexto') THEN
+    CREATE TRIGGER tg_auditoria_locatario_contexto
+    BEFORE INSERT ON auditoria_locatario
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_locatario_validar_contexto();
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 6) RLS / POLICIES
+-- ============================================================
+
+-- auditoria_locatario: tenant-scoped estrito
+ALTER TABLE auditoria_locatario ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='auditoria_locatario' AND policyname='p_auditoria_locatario_tenant_estrito'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_locatario_tenant_estrito
+      ON auditoria_locatario
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (locatario_id = app_locatario_id())
+      WITH CHECK (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+
+
+
+-- ============================================================
+-- AUDITORIA (v8) - EXPURGO CONTROLADO (Opção 1 aprovada)
+-- Objetivo: manter auditoria append-only para aplicação, mas permitir DELETE para job de expurgo
+-- Estratégia:
+-- - Criar role NOLOGIN: multilocatario_purgador
+-- - Trigger de imutabilidade permite DELETE apenas quando current_user = multilocatario_purgador
+-- - UPDATE continua proibido para todos
+-- Observação: o job deve executar `SET LOCAL ROLE multilocatario_purgador;` dentro da transação.
+-- ============================================================
+
+-- 1) Role de expurgo (NOLOGIN)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_purgador') THEN
+    CREATE ROLE multilocatario_purgador NOLOGIN;
+  END IF;
+END;
+$$;
+
+-- 2) Permissões mínimas (ajuste conforme sua estratégia de grants)
+-- A role purgadora precisa deletar e ler para filtrar por data.
+GRANT SELECT, DELETE ON auditoria_locatario TO multilocatario_purgador;
+GRANT SELECT, DELETE ON auditoria_plataforma TO multilocatario_purgador;
+
+-- 3) Trigger de imutabilidade com exceção controlada para DELETE
+CREATE OR REPLACE FUNCTION trg_auditoria_bloquear_update_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- UPDATE nunca é permitido
+  IF TG_OP = 'UPDATE' THEN
+    RAISE EXCEPTION 'auditoria é append-only: UPDATE não permitido (%)', TG_TABLE_NAME;
+  END IF;
+
+  -- DELETE permitido somente para o purgador
+  IF TG_OP = 'DELETE' THEN
+    IF current_user = 'multilocatario_purgador' THEN
+      RETURN OLD;
+    END IF;
+    RAISE EXCEPTION 'auditoria é append-only: DELETE permitido apenas para multilocatario_purgador (%)', TG_TABLE_NAME;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 4) Recriar triggers para garantir uso da nova função
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_plataforma_immut') THEN
+    EXECUTE 'DROP TRIGGER tg_auditoria_plataforma_immut ON auditoria_plataforma';
+  END IF;
+
+  EXECUTE '
+    CREATE TRIGGER tg_auditoria_plataforma_immut
+    BEFORE UPDATE OR DELETE ON auditoria_plataforma
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete()
+  ';
+END;
+$$;
+
+-- 5) RLS: permitir DELETE para o purgador
+-- auditoria_locatario: purgador só pode agir dentro do contexto de locatário (mantém isolamento)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='auditoria_locatario' AND policyname='p_auditoria_locatario_purgador'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_locatario_purgador
+      ON auditoria_locatario
+      FOR DELETE
+      TO multilocatario_purgador
+      USING (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 6) Exemplo de job (padrão)
+-- ============================================================
+-- BEGIN;
+--   -- Para expurgar tenant-scoped (exige contexto do locatário)
+--   SELECT app_definir_contexto('USUARIO_JOB', 'LOCATARIO_A', false);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_locatario
+--   WHERE criado_em < now() - interval '180 days';
+-- COMMIT;
+--
+-- BEGIN;
+--   -- Para expurgar plataforma (modo plataforma)
+--   SELECT app_definir_contexto('SUPERADMIN_ID', NULL, true);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_plataforma
+--   WHERE criado_em < now() - interval '365 days';
+-- COMMIT;
+
+
+
+-- ============================================================
+-- AUDITORIA (v8) - EXPURGO CONTROLADO (Opção 1 aprovada)
+-- Objetivo: manter auditoria append-only para aplicação, mas permitir DELETE para job de expurgo
+-- Estratégia:
+-- - Criar role NOLOGIN: multilocatario_purgador
+-- - Trigger de imutabilidade permite DELETE apenas quando current_user = multilocatario_purgador
+-- - UPDATE continua proibido para todos
+-- Observação: o job deve executar `SET LOCAL ROLE multilocatario_purgador;` dentro da transação.
+-- ============================================================
+
+-- 1) Role de expurgo (NOLOGIN)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_purgador') THEN
+    CREATE ROLE multilocatario_purgador NOLOGIN;
+  END IF;
+END;
+$$;
+
+-- 2) Permissões mínimas (ajuste conforme sua estratégia de grants)
+-- A role purgadora precisa deletar e ler para filtrar por data.
+GRANT SELECT, DELETE ON auditoria_locatario TO multilocatario_purgador;
+GRANT SELECT, DELETE ON auditoria_plataforma TO multilocatario_purgador;
+
+-- 3) Trigger de imutabilidade com exceção controlada para DELETE
+CREATE OR REPLACE FUNCTION trg_auditoria_bloquear_update_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- UPDATE nunca é permitido
+  IF TG_OP = 'UPDATE' THEN
+    RAISE EXCEPTION 'auditoria é append-only: UPDATE não permitido (%)', TG_TABLE_NAME;
+  END IF;
+
+  -- DELETE permitido somente para o purgador
+  IF TG_OP = 'DELETE' THEN
+    IF current_user = 'multilocatario_purgador' THEN
+      RETURN OLD;
+    END IF;
+    RAISE EXCEPTION 'auditoria é append-only: DELETE permitido apenas para multilocatario_purgador (%)', TG_TABLE_NAME;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 4) Recriar triggers para garantir uso da nova função
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_locatario_immut') THEN
+    EXECUTE 'DROP TRIGGER tg_auditoria_locatario_immut ON auditoria_locatario';
+  END IF;
+
+  EXECUTE '
+    CREATE TRIGGER tg_auditoria_locatario_immut
+    BEFORE UPDATE OR DELETE ON auditoria_locatario
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete()
+  ';
+END;
+$$;
+
+-- 5) RLS: permitir DELETE para o purgador
+-- auditoria_locatario: purgador só pode agir dentro do contexto de locatário (mantém isolamento)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='auditoria_locatario' AND policyname='p_auditoria_locatario_purgador'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_locatario_purgador
+      ON auditoria_locatario
+      FOR DELETE
+      TO multilocatario_purgador
+      USING (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 6) Exemplo de job (padrão)
+-- ============================================================
+-- BEGIN;
+--   -- Para expurgar tenant-scoped (exige contexto do locatário)
+--   SELECT app_definir_contexto('USUARIO_JOB', 'LOCATARIO_A', false);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_locatario
+--   WHERE criado_em < now() - interval '180 days';
+-- COMMIT;
+--
+-- BEGIN;
+--   -- Para expurgar plataforma (modo plataforma)
+--   SELECT app_definir_contexto('SUPERADMIN_ID', NULL, true);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_plataforma
+--   WHERE criado_em < now() - interval '365 days';
+-- COMMIT;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/auditoria_plataforma.sql =====
+
+CREATE TABLE IF NOT EXISTS audit.auditoria_plataforma (
+  auditoria_id         UUID DEFAULT gen_random_uuid(),
+  usuario_id           UUID NOT NULL,
+  locatario_alvo_id    UUID NULL,
+  evento               TEXT NOT NULL, -- evento gerado
+  sucesso              BOOLEAN NOT NULL,
+  erro_codigo          TEXT NULL,
+  erro_mensagem        TEXT NULL,     
+  entidade_nome        TEXT NULL,
+  entidade_tipo        TEXT NULL, -- nome da entidade/tabela
+  entidade_id          TEXT NULL, -- id/chave primária da entidade, possivelmente composta. Padrão: {entidade:chave}{entidade:chave}
+  origem               TEXT NULL,
+  requisicao_id        TEXT NULL,
+  endereco_ip          INET NULL, 
+  agente_usuario       TEXT NULL,
+  agente_tipo          TEXT NULL,
+  metadados            JSONB NOT NULL DEFAULT '{}'::jsonb, -- informação adicional, tudo que não tiver campo próprio
+  criado_em            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- padronização para metadados
+-- {
+--   "antes": {...},
+--   "depois": {...},
+--   "contexto": {"rota": "...", "user_agent": "..."},
+--   "origem": "api|job|admin",
+--   "motivo": "..."
+-- }
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_auditoria') THEN
+    ALTER TABLE auditoria ADD CONSTRAINT pk_auditoria PRIMARY KEY (auditoria_id, locatario_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_locatarios') THEN
+    ALTER TABLE auditoria
+    ADD CONSTRAINT fk_auditoria_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_usuarios') THEN
+    ALTER TABLE auditoria
+    ADD CONSTRAINT fk_auditoria_usuarios
+    FOREIGN KEY (usuario_executor_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_criacao ON auditoria(locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_executor_criacao ON auditoria(usuario_executor_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_acao ON auditoria(acao);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_entidade ON auditoria(tipo_entidade, entidade_id);
+
+
+-- ============================================================
+-- AUDITORIA (v7) - SQL CORRIGIDO + P1/P2/P3
+-- P1) Imutabilidade: bloquear UPDATE/DELETE
+-- P2) Índices essenciais
+-- P3) Coerência com contexto (app_*), incluindo separação:
+--     - auditoria_locatario: somente contexto tenant (app_is_plataforma=false, app_locatario_id definido)
+--     - auditoria_plataforma: somente plataforma (app_is_plataforma=true), podendo ter locatario_alvo_id = app_locatario_id()
+-- ============================================================
+
+
+
+
+
+-- ============================================================
+-- 2) CONSTRAINTS / FKs
+-- ============================================================
+
+DO $$
+BEGIN
+  -- auditoria_locatario PK
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_auditoria_locatario') THEN
+    ALTER TABLE auditoria_locatario
+    ADD CONSTRAINT pk_auditoria_locatario
+    PRIMARY KEY (auditoria_id, locatario_id);
+  END IF;
+
+  -- auditoria_plataforma PK
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_auditoria_plataforma') THEN
+    ALTER TABLE auditoria_plataforma
+    ADD CONSTRAINT pk_auditoria_plataforma
+    PRIMARY KEY (auditoria_id);
+  END IF;
+
+  -- FKs auditoria_locatario
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_locatario_locatarios') THEN
+    ALTER TABLE auditoria_locatario
+    ADD CONSTRAINT fk_auditoria_locatario_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_locatario_usuarios') THEN
+    ALTER TABLE auditoria_locatario
+    ADD CONSTRAINT fk_auditoria_locatario_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+  END IF;
+
+  -- FKs auditoria_plataforma
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_plataforma_usuarios') THEN
+    ALTER TABLE auditoria_plataforma
+    ADD CONSTRAINT fk_auditoria_plataforma_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_auditoria_plataforma_locatario_alvo') THEN
+    ALTER TABLE auditoria_plataforma
+    ADD CONSTRAINT fk_auditoria_plataforma_locatario_alvo
+    FOREIGN KEY (locatario_alvo_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 3) P2 - ÍNDICES ESSENCIAIS
+-- ============================================================
+
+-- auditoria_locatario
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_locatario_criado_em
+ON auditoria_locatario (locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_entidade
+ON auditoria_locatario (locatario_id, entidade_tipo, entidade_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_usuario
+ON auditoria_locatario (locatario_id, usuario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_requisicao
+ON auditoria_locatario (locatario_id, requisicao_id);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_locatario_evento
+ON auditoria_locatario (locatario_id, evento, criado_em DESC);
+
+-- auditoria_plataforma
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_criado_em
+ON auditoria_plataforma (criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_locatario_alvo
+ON auditoria_plataforma (locatario_alvo_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_usuario
+ON auditoria_plataforma (usuario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_requisicao
+ON auditoria_plataforma (requisicao_id);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_evento
+ON auditoria_plataforma (evento, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_plataforma_entidade
+ON auditoria_plataforma (entidade_tipo, entidade_id, criado_em DESC);
+
+-- ============================================================
+-- 4) P1 - IMUTABILIDADE (bloqueia UPDATE/DELETE)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION trg_auditoria_bloquear_update_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'auditoria é append-only: UPDATE/DELETE não permitido (%)', TG_TABLE_NAME;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_locatario_immut') THEN
+    CREATE TRIGGER tg_auditoria_locatario_immut
+    BEFORE UPDATE OR DELETE ON auditoria_locatario
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_plataforma_immut') THEN
+    CREATE TRIGGER tg_auditoria_plataforma_immut
+    BEFORE UPDATE OR DELETE ON auditoria_plataforma
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete();
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 5) P3 - COERÊNCIA COM CONTEXTO (app_*)
+-- ============================================================
+
+-- Auditoria de plataforma só pode ser escrita em modo plataforma.
+-- Se locatario_alvo_id vier NULL, preenche a partir do app_locatario_id() (pode continuar NULL).
+CREATE OR REPLACE FUNCTION trg_auditoria_plataforma_validar_contexto()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  ctx_locatario uuid;
+  ctx_usuario uuid;
+BEGIN
+  ctx_locatario := app_locatario_id();
+  ctx_usuario := app_usuario_id();
+
+  IF NOT app_is_plataforma() THEN
+    RAISE EXCEPTION 'auditoria_plataforma exige app_is_plataforma()=true';
+  END IF;
+
+  IF ctx_usuario IS NOT NULL AND NEW.usuario_id <> ctx_usuario THEN
+    RAISE EXCEPTION 'usuario_id da auditoria (%) difere do contexto (%)', NEW.usuario_id, ctx_usuario;
+  END IF;
+
+  IF NEW.locatario_alvo_id IS NULL THEN
+    NEW.locatario_alvo_id := ctx_locatario; -- pode permanecer NULL
+  ELSE
+    -- Se o contexto tiver locatário definido, ele deve coincidir com o alvo (evita inconsistência)
+    IF ctx_locatario IS NOT NULL AND NEW.locatario_alvo_id <> ctx_locatario THEN
+      RAISE EXCEPTION 'locatario_alvo_id (%) difere do contexto (%)', NEW.locatario_alvo_id, ctx_locatario;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_plataforma_contexto') THEN
+    CREATE TRIGGER tg_auditoria_plataforma_contexto
+    BEFORE INSERT ON auditoria_plataforma
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_plataforma_validar_contexto();
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 6) RLS / POLICIES
+-- ============================================================
+
+-- auditoria_plataforma: plataforma-only (permite contexto com ou sem locatário-alvo selecionado)
+ALTER TABLE auditoria_plataforma ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='auditoria_plataforma' AND policyname='p_auditoria_plataforma_plataforma_only'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_plataforma_plataforma_only
+      ON auditoria_plataforma
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (app_is_plataforma() = true)
+      WITH CHECK (app_is_plataforma() = true)
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 7) FUNÇÃO REGISTRAR AUDITORIA (plataforma) - CORRIGIDA
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION registrar_auditoria_plataforma(
+  p_evento text,
+  p_sucesso boolean,
+  p_erro_codigo text DEFAULT NULL,
+  p_erro_mensagem text DEFAULT NULL,
+  p_entidade_nome text DEFAULT NULL,
+  p_entidade_tipo text DEFAULT NULL,
+  p_entidade_id text DEFAULT NULL,
+  p_origem text DEFAULT NULL,
+  p_requisicao_id text DEFAULT NULL,
+  p_endereco_ip inet DEFAULT NULL,
+  p_agente_usuario text DEFAULT NULL,
+  p_agente_tipo text DEFAULT NULL,
+  p_metadados jsonb DEFAULT '{}'::jsonb
+)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO auditoria_plataforma (
+    auditoria_id,
+    usuario_id,
+    locatario_alvo_id,
+    evento,
+    sucesso,
+    erro_codigo,
+    erro_mensagem,
+    entidade_nome,
+    entidade_tipo,
+    entidade_id,
+    origem,
+    requisicao_id,
+    endereco_ip,
+    agente_usuario,
+    agente_tipo,
+    metadados,
+    criado_em
+  )
+  VALUES (
+    gen_random_uuid(),
+    app_usuario_id(),
+    app_locatario_id(),
+    p_evento,
+    p_sucesso,
+    p_erro_codigo,
+    p_erro_mensagem,
+    p_entidade_nome,
+    p_entidade_tipo,
+    p_entidade_id,
+    COALESCE(p_origem, NULLIF(current_setting('app.origem', true), '')),
+    COALESCE(p_requisicao_id, NULLIF(current_setting('app.requisicao_id', true), '')),
+    COALESCE(p_endereco_ip, NULLIF(current_setting('app.endereco_ip', true), '')::inet),
+    COALESCE(p_agente_usuario, NULLIF(current_setting('app.agente_usuario', true), '')),
+    COALESCE(p_agente_tipo, NULLIF(current_setting('app.agente_tipo', true), '')),
+    p_metadados,
+    now()
+  );
+END;
+$$;
+
+
+
+
+-- ============================================================
+-- AUDITORIA (v8) - EXPURGO CONTROLADO (Opção 1 aprovada)
+-- Objetivo: manter auditoria append-only para aplicação, mas permitir DELETE para job de expurgo
+-- Estratégia:
+-- - Criar role NOLOGIN: multilocatario_purgador
+-- - Trigger de imutabilidade permite DELETE apenas quando current_user = multilocatario_purgador
+-- - UPDATE continua proibido para todos
+-- Observação: o job deve executar `SET LOCAL ROLE multilocatario_purgador;` dentro da transação.
+-- ============================================================
+
+-- 1) Role de expurgo (NOLOGIN)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_purgador') THEN
+    CREATE ROLE multilocatario_purgador NOLOGIN;
+  END IF;
+END;
+$$;
+
+-- 2) Permissões mínimas (ajuste conforme sua estratégia de grants)
+-- A role purgadora precisa deletar e ler para filtrar por data.
+GRANT SELECT, DELETE ON auditoria_locatario TO multilocatario_purgador;
+GRANT SELECT, DELETE ON auditoria_plataforma TO multilocatario_purgador;
+
+-- 3) Trigger de imutabilidade com exceção controlada para DELETE
+CREATE OR REPLACE FUNCTION trg_auditoria_bloquear_update_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- UPDATE nunca é permitido
+  IF TG_OP = 'UPDATE' THEN
+    RAISE EXCEPTION 'auditoria é append-only: UPDATE não permitido (%)', TG_TABLE_NAME;
+  END IF;
+
+  -- DELETE permitido somente para o purgador
+  IF TG_OP = 'DELETE' THEN
+    IF current_user = 'multilocatario_purgador' THEN
+      RETURN OLD;
+    END IF;
+    RAISE EXCEPTION 'auditoria é append-only: DELETE permitido apenas para multilocatario_purgador (%)', TG_TABLE_NAME;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 4) Recriar triggers para garantir uso da nova função
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_plataforma_immut') THEN
+    EXECUTE 'DROP TRIGGER tg_auditoria_plataforma_immut ON auditoria_plataforma';
+  END IF;
+
+  EXECUTE '
+    CREATE TRIGGER tg_auditoria_plataforma_immut
+    BEFORE UPDATE OR DELETE ON auditoria_plataforma
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete()
+  ';
+END;
+$$;
+
+-- 5) RLS: permitir DELETE para o purgador
+-- auditoria_plataforma: purgador só atua em modo plataforma
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='auditoria_plataforma' AND policyname='p_auditoria_plataforma_purgador'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_plataforma_purgador
+      ON auditoria_plataforma
+      FOR DELETE
+      TO multilocatario_purgador
+      USING (app_is_plataforma() = true)
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 6) Exemplo de job (padrão)
+-- ============================================================
+-- BEGIN;
+--   -- Para expurgar tenant-scoped (exige contexto do locatário)
+--   SELECT app_definir_contexto('USUARIO_JOB', 'LOCATARIO_A', false);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_locatario
+--   WHERE criado_em < now() - interval '180 days';
+-- COMMIT;
+--
+-- BEGIN;
+--   -- Para expurgar plataforma (modo plataforma)
+--   SELECT app_definir_contexto('SUPERADMIN_ID', NULL, true);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_plataforma
+--   WHERE criado_em < now() - interval '365 days';
+-- COMMIT;
+
+
+
+-- ============================================================
+-- AUDITORIA (v8) - EXPURGO CONTROLADO (Opção 1 aprovada)
+-- Objetivo: manter auditoria append-only para aplicação, mas permitir DELETE para job de expurgo
+-- Estratégia:
+-- - Criar role NOLOGIN: multilocatario_purgador
+-- - Trigger de imutabilidade permite DELETE apenas quando current_user = multilocatario_purgador
+-- - UPDATE continua proibido para todos
+-- Observação: o job deve executar `SET LOCAL ROLE multilocatario_purgador;` dentro da transação.
+-- ============================================================
+
+-- 1) Role de expurgo (NOLOGIN)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'multilocatario_purgador') THEN
+    CREATE ROLE multilocatario_purgador NOLOGIN;
+  END IF;
+END;
+$$;
+
+-- 2) Permissões mínimas (ajuste conforme sua estratégia de grants)
+-- A role purgadora precisa deletar e ler para filtrar por data.
+GRANT SELECT, DELETE ON auditoria_locatario TO multilocatario_purgador;
+GRANT SELECT, DELETE ON auditoria_plataforma TO multilocatario_purgador;
+
+-- 3) Trigger de imutabilidade com exceção controlada para DELETE
+CREATE OR REPLACE FUNCTION trg_auditoria_bloquear_update_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- UPDATE nunca é permitido
+  IF TG_OP = 'UPDATE' THEN
+    RAISE EXCEPTION 'auditoria é append-only: UPDATE não permitido (%)', TG_TABLE_NAME;
+  END IF;
+
+  -- DELETE permitido somente para o purgador
+  IF TG_OP = 'DELETE' THEN
+    IF current_user = 'multilocatario_purgador' THEN
+      RETURN OLD;
+    END IF;
+    RAISE EXCEPTION 'auditoria é append-only: DELETE permitido apenas para multilocatario_purgador (%)', TG_TABLE_NAME;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 4) Recriar triggers para garantir uso da nova função
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_auditoria_plataforma_immut') THEN
+    EXECUTE 'DROP TRIGGER tg_auditoria_plataforma_immut ON auditoria_plataforma';
+  END IF;
+
+  EXECUTE '
+    CREATE TRIGGER tg_auditoria_plataforma_immut
+    BEFORE UPDATE OR DELETE ON auditoria_plataforma
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_auditoria_bloquear_update_delete()
+  ';
+END;
+$$;
+
+-- 5) RLS: permitir DELETE para o purgador
+-- auditoria_plataforma: purgador só atua em modo plataforma
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='auditoria_plataforma' AND policyname='p_auditoria_plataforma_purgador'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_auditoria_plataforma_purgador
+      ON auditoria_plataforma
+      FOR DELETE
+      TO multilocatario_purgador
+      USING (app_is_plataforma() = true)
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- 6) Exemplo de job (padrão)
+-- ============================================================
+-- BEGIN;
+--   -- Para expurgar tenant-scoped (exige contexto do locatário)
+--   SELECT app_definir_contexto('USUARIO_JOB', 'LOCATARIO_A', false);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_locatario
+--   WHERE criado_em < now() - interval '180 days';
+-- COMMIT;
+--
+-- BEGIN;
+--   -- Para expurgar plataforma (modo plataforma)
+--   SELECT app_definir_contexto('SUPERADMIN_ID', NULL, true);
+--   SET LOCAL ROLE multilocatario_purgador;
+--
+--   DELETE FROM auditoria_plataforma
+--   WHERE criado_em < now() - interval '365 days';
+-- COMMIT;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/clientes.sql =====
+
+CREATE TABLE IF NOT EXISTS core.clientes (
+  cliente_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  locatario_id UUID NOT NULL,
+
+  nome TEXT NOT NULL CHECK (length(trim(nome)) > 0),
+  documento TEXT NULL,
+  email TEXT NULL CHECK (email IS NULL OR email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$'),
+  telefone TEXT NULL,
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  excluido_em TIMESTAMPTZ NULL,
+  excluido_por UUID NULL,
+  excluido_motivo TEXT NULL
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_clientes') THEN
+    ALTER TABLE clientes
+    ADD CONSTRAINT pk_clientes
+    PRIMARY KEY (locatario_id, cliente_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_clientes_locatarios') THEN
+    ALTER TABLE clientes
+    ADD CONSTRAINT fk_clientes_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_clientes_nome_ci
+ON clientes (locatario_id, lower(nome))
+WHERE excluido_em IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_clientes_locatario_criado_em
+ON clientes (locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_clientes_documento
+ON clientes (locatario_id, documento)
+WHERE documento IS NOT NULL AND excluido_em IS NULL;
+
+ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='clientes' AND policyname='p_clientes_tenant_estrito'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_clientes_tenant_estrito
+      ON clientes
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (locatario_id = app_locatario_id())
+      WITH CHECK (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/configuracoes_locatario.sql =====
+
+-- CONFIGURAÇÕES DO LOCATÁRIO (ENTIDADE FRACA)
+-- Representa preferências e identidade visual do locatário.
+--
+-- REGRAS:
+-- - NÃO existe sem locatário
+-- - Pode haver múltiplas configurações (histórico / perfis)
+-- - Apenas uma pode estar ativa (regra de negócio, não estrutural)
+-- - Alterações NÃO impactam plano ou assinatura
+--
+-- EXEMPLOS:
+-- - identidade visual
+-- - emails
+-- - tema
+CREATE TABLE IF NOT EXISTS core.configuracoes_locatario (
+  locatario_id       UUID NOT NULL,
+  configuracao_id    UUID NOT NULL,
+  modo_tema          TEXT NOT NULL DEFAULT 'SISTEMA' CHECK (modo_tema IN ('CLARO','ESCURO','SISTEMA')),
+  identidade_visual  TEXT UNIQUE NOT NULL CHECK(length(trim(identidade_visual))>0), -- nome da identidade (padrão, natal, ano novo, etc)
+  cor_primaria       TEXT NULL, -- ex: "#3B82F6"
+  cor_secundaria     TEXT NULL, -- ex: "#3B82F6"
+  cor_terciaria      TEXT NULL, -- ex: "#3B82F6"
+  url_logo           TEXT NULL, -- logomarca da empresa
+  ativa              BOOLEAN NOT NULL DEFAULT FALSE, -- somente 1 configuração ativa por locatário;
+  criado_em          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em      TIMESTAMPTZ NOT NULL DEFAULT now()  -- atualizado por trigger
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_configuracoes_locatario') THEN
+    ALTER TABLE configuracoes_locatario
+    ADD CONSTRAINT pk_configuracoes_locatario
+    PRIMARY KEY (locatario_id, configuracao_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_configuracoes_locatario_locatarios') THEN
+    ALTER TABLE configuracoes_locatario
+    ADD CONSTRAINT fk_configuracoes_locatario_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios (locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_configuracoes_locatario_ativa
+ON configuracoes_locatario(locatario_id)
+WHERE ativa = TRUE;
+
+
+
+-- ============================================================
+-- P3: Sempre 1 configuração ativa por locatário
+-- - Inseriu a primeira config do locatário => força ativa=true
+-- - Ao ativar uma config => desativa as demais do mesmo locatário
+-- - Não permite ficar com 0 ativas (bloqueia desativação da última ativa)
+-- ============================================================
+CREATE OR REPLACE FUNCTION trg_configuracoes_locatario_p3_ativa_unica()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  has_any boolean;
+  has_other_active boolean;
+BEGIN
+  -- primeira configuração do locatário deve ser ativa
+  IF TG_OP = 'INSERT' THEN
+    SELECT EXISTS (
+      SELECT 1 FROM configuracoes_locatario
+      WHERE locatario_id = NEW.locatario_id
+    ) INTO has_any;
+
+    IF NOT has_any THEN
+      NEW.ativa := TRUE;
+    END IF;
+
+    IF NEW.ativa THEN
+      UPDATE configuracoes_locatario
+      SET ativa = FALSE
+      WHERE locatario_id = NEW.locatario_id
+        AND configuracao_id IS DISTINCT FROM NEW.configuracao_id;
+    END IF;
+
+    RETURN NEW;
+  END IF;
+
+  -- update: ativar => desativar as demais; desativar última ativa => bloquear
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.ativa AND NOT OLD.ativa THEN
+      UPDATE configuracoes_locatario
+      SET ativa = FALSE
+      WHERE locatario_id = NEW.locatario_id
+        AND configuracao_id <> NEW.configuracao_id;
+      RETURN NEW;
+    END IF;
+
+    IF (NOT NEW.ativa) AND OLD.ativa THEN
+      SELECT EXISTS (
+        SELECT 1
+        FROM configuracoes_locatario
+        WHERE locatario_id = NEW.locatario_id
+          AND ativa = TRUE
+          AND configuracao_id <> NEW.configuracao_id
+      ) INTO has_other_active;
+
+      IF NOT has_other_active THEN
+        RAISE EXCEPTION 'não é permitido deixar o locatário sem configuração ativa';
+      END IF;
+
+      RETURN NEW;
+    END IF;
+
+    RETURN NEW;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_configuracoes_locatario_p3') THEN
+    CREATE TRIGGER tg_configuracoes_locatario_p3
+    BEFORE INSERT OR UPDATE ON configuracoes_locatario
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_configuracoes_locatario_p3_ativa_unica();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_configuracoes_locatario_set_atualizado_em') THEN
+    CREATE TRIGGER tg_configuracoes_locatario_set_atualizado_em
+    BEFORE INSERT OR UPDATE ON configuracoes_locatario
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_set_atualizado_em();
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/diagrama.mermaid =====
+
+flowchart LR
+  %% =========================================================
+  %% CoreKit – Modelo físico + operações recomendadas (consolidado)
+  %% Escopo: multi-tenant (locatários), RBAC, auth/tokens, auditoria,
+  %% catálogo (planos/módulos/limites), assinaturas com módulos efetivos,
+  %% catálogo monetário global (superadmin) com BRL-only para locatários.
+  %%
+  %% Convenções:
+  %% - Cada subgraph = uma tabela
+  %% - Nó [TAB] = tabela
+  %% - Nós (UC: ...) = operações recomendadas (usecases)
+  %% - Relações entre tabelas aparecem como setas entre [TAB]s
+  %% =========================================================
+
+  classDef tab fill:#0f172a,stroke:#38bdf8,color:#e5e7eb;
+  classDef uc fill:#111827,stroke:#94a3b8,color:#e5e7eb;
+  classDef note fill:#0b1220,stroke:#f59e0b,color:#e5e7eb;
+  classDef risk fill:#0b1220,stroke:#fb7185,color:#e5e7eb;
+
+  %% =======================
+  %% Cross-cutting: Auth/Security/Audit policies
+  %% =======================
+  subgraph POL["Políticas (Auth/Security/Auditoria)"]
+    P1["Token types:\n- Access (curto)\n- Refresh (persistido/hash)\n- (futuro) reset/verificação/convite"]:::note
+    P2["TTL típico:\n- Access: 5–15 min (ex.: 10)\n- Refresh: 7–14 dias\n- Superadmin: refresh menor (ex.: 3–7 dias)"]:::note
+    P3["Validar emissor (JWT):\n- assinatura + algoritmo permitido\n- iss + aud obrigatórios\n- exp/iat/sub\n- (recomendado) jti + checagem de revogação/rotação"]:::note
+    P4["Rotas e escopo:\n- /superadmin: identidade global (sem locatário)\n- /admin: exige locatário no contexto\n- NUNCA confiar em locatario_id vindo do body/query como fonte de verdade"]:::risk
+    P5["Auditoria superadmin:\n- permitir auditoria com locatario_id NULL (escopo global)\n- registrar target_locatario_id em metadados quando afetar um locatário"]:::note
+    P6["BRL-only para locatários:\n- regras de app + CHECK no BD onde fizer sentido\n- catálogo multi-moeda é exclusivo superadmin"]:::note
+  end
+
+  %% =======================
+  %% Locatários
+  %% =======================
+  subgraph L1["locatarios"]
+    LT["[locatarios]"]:::tab
+    LT1["UC: criarLocatario"]:::uc
+    LT2["UC: atualizarDadosLocatario"]:::uc
+    LT3["UC: suspenderLocatario (superadmin)"]:::uc
+    LT4["UC: reativarLocatario (superadmin)"]:::uc
+    LT5["UC: excluirLogicamenteLocatario (superadmin)"]:::uc
+    LT6["UC: obterLocatario / listarLocatarios"]:::uc
+    LT --> LT1
+    LT --> LT2
+    LT --> LT3
+    LT --> LT4
+    LT --> LT5
+    LT --> LT6
+  end
+
+  subgraph L2["configuracoes_locatario"]
+    CL["[configuracoes_locatario]"]:::tab
+    CL1["UC: criarConfiguracao"]:::uc
+    CL2["UC: ativarConfiguracao (1 ativa/locatário)"]:::uc
+    CL3["UC: atualizarConfiguracaoAtiva (ou versionar)"]:::uc
+    CL4["UC: listarHistoricoConfiguracoes"]:::uc
+    CL --> CL1
+    CL --> CL2
+    CL --> CL3
+    CL --> CL4
+  end
+
+  LT -->|1:N| CL
+
+  %% =======================
+  %% Usuários / Auth
+  %% =======================
+  subgraph U1["usuarios"]
+    US["[usuarios]"]:::tab
+    US1["UC: criarUsuario (tenant)"]:::uc
+    US2["UC: listarUsuarios (tenant)"]:::uc
+    US3["UC: excluirLogicamenteUsuario"]:::uc
+    US4["UC: reativarUsuario / desbloquear"]:::uc
+    US5["UC: autenticar (login)"]:::uc
+    US --> US1
+    US --> US2
+    US --> US3
+    US --> US4
+    US --> US5
+  end
+
+  subgraph T1["tokens (refresh/sessões)"]
+    TK["[tokens]"]:::tab
+    TK1["UC: emitirTokens (access+refresh)"]:::uc
+    TK2["UC: rotacionarRefreshToken"]:::uc
+    TK3["UC: revogarRefreshToken"]:::uc
+    TK4["UC: revogarTodasSessoesDoUsuario (opcional)"]:::uc
+    TK --> TK1
+    TK --> TK2
+    TK --> TK3
+    TK --> TK4
+  end
+
+  LT -->|1:N (tenant users)| US
+  US -->|1:N| TK
+  POL --> TK
+
+  %% =======================
+  %% Auditoria
+  %% =======================
+  subgraph A1["auditoria"]
+    AU["[auditoria]"]:::tab
+    AU1["UC: registrarEvento (tenant)"]:::uc
+    AU2["UC: registrarEventoGlobal (superadmin, locatario_id NULL)"]:::uc
+    AU3["UC: consultarAuditoria (por tenant / por alvo)"]:::uc
+    AU --> AU1
+    AU --> AU2
+    AU --> AU3
+  end
+
+  US -->|executor_id| AU
+  LT -->|tenant_id (quando aplicável)| AU
+  POL --> AU
+
+  %% =======================
+  %% RBAC
+  %% =======================
+  subgraph R1["papeis"]
+    PR["[papeis]"]:::tab
+    PR1["UC: criarPapel (seed/superadmin)"]:::uc
+    PR2["UC: listarPapeis"]:::uc
+    PR3["UC: editarPapel (nome/descricao)"]:::uc
+    PR --> PR1
+    PR --> PR2
+    PR --> PR3
+  end
+
+  subgraph R2["permissoes"]
+    PE["[permissoes]"]:::tab
+    PE1["UC: criarPermissao (seed)"]:::uc
+    PE2["UC: listarPermissoes"]:::uc
+    PE --> PE1
+    PE --> PE2
+  end
+
+  subgraph R3["papel_permissoes"]
+    PP["[papel_permissoes]"]:::tab
+    PP1["UC: vincularPermissaoAoPapel (grant)"]:::uc
+    PP2["UC: removerPermissaoDoPapel (revoke)"]:::uc
+    PP3["UC: listarPermissoesDoPapel"]:::uc
+    PP --> PP1
+    PP --> PP2
+    PP --> PP3
+  end
+
+  subgraph R4["usuarios_papeis"]
+    UP["[usuarios_papeis]"]:::tab
+    UP1["UC: atribuirPapelGlobal (SUPERADMIN)"]:::uc
+    UP2["UC: removerPapelGlobal"]:::uc
+    UP3["UC: atribuirPapelPorLocatario"]:::uc
+    UP4["UC: removerPapelPorLocatario"]:::uc
+    UP5["UC: listarPapeisDoUsuario (global+tenant)"]:::uc
+    UP --> UP1
+    UP --> UP2
+    UP --> UP3
+    UP --> UP4
+    UP --> UP5
+  end
+
+  PR --> PP
+  PE --> PP
+  US --> UP
+  PR --> UP
+  LT -->|escopo tenant (quando aplicável)| UP
+
+  %% =======================
+  %% Catálogo: Planos/Módulos/Limites
+  %% =======================
+  subgraph C1["planos (catálogo)"]
+    PL["[planos]"]:::tab
+    PL1["UC: criarPlano (catálogo)"]:::uc
+    PL2["UC: editarPlano / desativarPlano"]:::uc
+    PL3["UC: listarPlanosAtivos (catálogo)"]:::uc
+    PL --> PL1
+    PL --> PL2
+    PL --> PL3
+  end
+
+  subgraph C2["modulos (catálogo)"]
+    MO["[modulos]"]:::tab
+    MO1["UC: criarModulo (seed/catálogo)"]:::uc
+    MO2["UC: editarModulo / desativarModulo"]:::uc
+    MO3["UC: listarModulos (por categoria)"]:::uc
+    MO --> MO1
+    MO --> MO2
+    MO --> MO3
+  end
+
+  subgraph C3["modulos_sugeridos_plano (bundle sugerido)"]
+    MSP["[modulos_sugeridos_plano]"]:::tab
+    MSP1["UC: sugerirModuloNoPlano"]:::uc
+    MSP2["UC: removerSugestaoModuloDoPlano"]:::uc
+    MSP3["UC: listarSugestoesDoPlano"]:::uc
+    MSP --> MSP1
+    MSP --> MSP2
+    MSP --> MSP3
+  end
+
+  subgraph C4["limites_plano (base)"]
+    LP["[limites_plano]"]:::tab
+    LP1["UC: definirLimiteBaseDoPlano (upsert)"]:::uc
+    LP2["UC: removerLimiteBaseDoPlano"]:::uc
+    LP3["UC: listarLimitesDoPlano"]:::uc
+    LP --> LP1
+    LP --> LP2
+    LP --> LP3
+  end
+
+  PL --> MSP
+  MO --> MSP
+  PL --> LP
+
+  %% =======================
+  %% Assinaturas: contrato + módulos efetivos
+  %% =======================
+  subgraph S1["assinaturas (contrato)"]
+    AS["[assinaturas]"]:::tab
+    AS1["UC: criarAssinatura (aplicar plano ao locatário)"]:::uc
+    AS2["UC: trocarPlano (criar nova assinatura)"]:::uc
+    AS3["UC: suspenderAssinatura / reativar"]:::uc
+    AS4["UC: cancelarAssinatura / expirar"]:::uc
+    AS5["UC: obterAssinaturaAtiva / historico"]:::uc
+    AS --> AS1
+    AS --> AS2
+    AS --> AS3
+    AS --> AS4
+    AS --> AS5
+  end
+
+  subgraph S2["assinatura_modulos (fonte de verdade do acesso)"]
+    AM["[assinatura_modulos]"]:::tab
+    AM1["UC: popularModulosDoPlanoNaAssinatura (origem=PLANO_SUGERIDO)"]:::uc
+    AM2["UC: habilitarModuloAddon (origem=ADDON)"]:::uc
+    AM3["UC: concederCortesia (origem=CORTESIA, vigência)"]:::uc
+    AM4["UC: suspenderModuloEspecifico / reativar"]:::uc
+    AM5["UC: removerModuloDaAssinatura"]:::uc
+    AM6["UC: validarAcessoModulo (tenant)"]:::uc
+    AM --> AM1
+    AM --> AM2
+    AM --> AM3
+    AM --> AM4
+    AM --> AM5
+    AM --> AM6
+  end
+
+  subgraph S3["limites_assinatura (override)"]
+    LA["[limites_assinatura]"]:::tab
+    LA1["UC: definirOverrideLimite (ex.: +usuarios)"]:::uc
+    LA2["UC: removerOverrideLimite"]:::uc
+    LA3["UC: resolverLimitesEfetivos (override > base do plano)"]:::uc
+    LA --> LA1
+    LA --> LA2
+    LA --> LA3
+  end
+
+  LT --> AS
+  PL --> AS
+  AS --> AM
+  MO --> AM
+  AS --> LA
+  POL --> AS
+  POL --> AM
+
+  %% =======================
+  %% Catálogo monetário (superadmin) – opção 1: locatários BRL-only
+  %% =======================
+  subgraph M0["Catálogo monetário (global / superadmin)"]
+    CU["[moedas]"]:::tab
+    PM["[formas_pagamento]"]:::tab
+    RN["[redes_cripto]"]:::tab
+    AC["[ativos_cripto]"]:::tab
+    WA["[carteiras_cripto]"]:::tab
+    PRP["[precos_plano]"]:::tab
+    PRM["[precos_modulo] (opcional)"]:::tab
+
+    CU1["UC: cadastrarMoeda (FIAT/CRIPTO)"]:::uc
+    PM1["UC: cadastrarFormaPagamento (PIX/BOLETO/CRIPTO...)"]:::uc
+    RN1["UC: cadastrarRedeCripto"]:::uc
+    AC1["UC: cadastrarAtivoCripto (moeda+rede+contrato)"]:::uc
+    WA1["UC: cadastrarCarteiraRecebimento (endereco/memo)"]:::uc
+    PRP1["UC: definirPrecoPlanoPorMoedaECiclo (catálogo)"]:::uc
+    PRM1["UC: definirPrecoModuloPorMoedaECiclo (catálogo opcional)"]:::uc
+
+    CU --> CU1
+    PM --> PM1
+    RN --> RN1
+    AC --> AC1
+    WA --> WA1
+    PRP --> PRP1
+    PRM --> PRM1
+
+    CU --> AC
+    RN --> AC
+    AC --> WA
+    PL --> PRP
+    CU --> PRP
+    MO --> PRM
+    CU --> PRM
+  end
+
+  POL --> M0
+
+===== docs/banco-de-dados/postgresql/tabelas/estoques.sql =====
+
+-- ESTOQUES (depósitos) 
+CREATE TABLE IF NOT EXISTS core.estoques (
+  locatario_id UUID NOT NULL,
+  estoque_id UUID NOT NULL DEFAULT gen_random_uuid(),
+
+  nome TEXT NOT NULL,
+  padrao BOOLEAN NOT NULL DEFAULT true, -- apenas 1 estoque por locatário, ativado automaticamente
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(), -- atualizado por trigger
+  excluido_em TIMESTAMPTZ NULL,
+  excluido_por UUID NULL,
+  excluido_motivo TEXT NULL
+);
+
+ALTER TABLE estoques ADD CONSTRAINT pk_estoques PRIMARY KEY (locatario_id, estoque_id);
+
+ALTER TABLE estoques ADD CONSTRAINT fk_estoques_locatarios
+FOREIGN KEY (locatario_id) REFERENCES locatarios(locatario_id)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
+
+ALTER TABLE ADD CONSTRAINT uq_estoques_nome UNIQUE (locatario_id, nome);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_estoques_nome
+ON estoques(locatario_id, nome) WHERE excluido_em IS NULL;
+
+-- Regra importante (sem trigger): garantir no máximo 1 estoque padrão por locatário
+CREATE UNIQUE INDEX IF NOT EXISTS uq_estoques_padrao_por_locatario
+ON estoques(locatario_id) WHERE padrao = true AND excluido_em IS NULL;
+
+
+
+===== docs/banco-de-dados/postgresql/tabelas/exportacoes.sql =====
+
+CREATE TABLE IF NOT EXISTS core.exportacoes (
+  exportacao_id         UUID DEFAULT gen_random_uuid(),
+  locatario_id          UUID NOT NULL,
+  criado_por_usuario_id UUID NULL,
+  formato               formato_exportacao NOT NULL,
+  status                status_job NOT NULL DEFAULT 'PENDENTE',
+  parametros            JSONB NOT NULL DEFAULT '{}'::jsonb, -- filtros, colunas, período etc.
+  referencia_resultado  TEXT NULL, -- link/caminho do arquivo gerado
+  mensagem_erro         TEXT NULL,
+  criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_exportacoes') THEN
+    ALTER TABLE exportacoes ADD CONSTRAINT pk_exportacoes PRIMARY KEY (id, locatario_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_exportacoes_locatarios') THEN
+    ALTER TABLE exportacoes
+    ADD CONSTRAINT fk_exportacoes_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_exportacoes_usuarios') THEN
+    ALTER TABLE exportacoes
+    ADD CONSTRAINT fk_exportacoes_usuarios
+    FOREIGN KEY (criado_por_usuario_id)
+    REFERENCES usuarios(id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_exportacoes_locatario_criado_em
+  ON exportacoes (locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_exportacoes_status
+  ON exportacoes (status);
+  
+
+
+===== docs/banco-de-dados/postgresql/tabelas/fornecedores.sql =====
+
+CREATE TABLE IF NOT EXISTS core.fornecedores (
+  fornecedor_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  locatario_id UUID NOT NULL,
+
+  nome TEXT NOT NULL CHECK (length(trim(nome)) > 0),
+  documento TEXT NULL,
+  email TEXT NULL CHECK (email IS NULL OR email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$'),
+  telefone TEXT NULL,
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  excluido_em TIMESTAMPTZ NULL,
+  excluido_por UUID NULL,
+  excluido_motivo TEXT NULL
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_fornecedores') THEN
+    ALTER TABLE fornecedores
+    ADD CONSTRAINT pk_fornecedores
+    PRIMARY KEY (locatario_id, fornecedor_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_fornecedores_locatarios') THEN
+    ALTER TABLE fornecedores
+    ADD CONSTRAINT fk_fornecedores_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_fornecedores_nome_ci
+ON fornecedores (locatario_id, lower(nome))
+WHERE excluido_em IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_fornecedores_locatario_criado_em
+ON fornecedores (locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_fornecedores_documento
+ON fornecedores (locatario_id, documento)
+WHERE documento IS NOT NULL AND excluido_em IS NULL;
+
+ALTER TABLE fornecedores ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='fornecedores' AND policyname='p_fornecedores_tenant_estrito'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_fornecedores_tenant_estrito
+      ON fornecedores
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (locatario_id = app_locatario_id())
+      WITH CHECK (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/importacoes.sql =====
+
+CREATE TABLE IF NOT EXISTS core.importacoes (
+  importacao_id         UUID DEFAULT gen_random_uuid(),
+  locatario_id          UUID NOT NULL,
+  criado_por_usuario_id UUID NULL,
+  tipo_origem           tipo_origem_importacao NOT NULL,
+  referencia_origem     TEXT NULL, -- caminho/URL/id do arquivo/planilha
+  status                status_job NOT NULL DEFAULT 'PENDENTE',
+  mapeamento_colunas    JSONB NOT NULL DEFAULT '{}'::jsonb, -- mapeamento do arquivo -> campos do sistema
+  estatisticas          JSONB NOT NULL DEFAULT '{}'::jsonb, -- contagens, erros, métricas etc.
+  mensagem_erro         TEXT NULL,
+  iniciado_em           TIMESTAMPTZ NULL,
+  finalizado_em         TIMESTAMPTZ NULL,
+  criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_importacoes') THEN
+    ALTER TABLE importacoes
+    ADD CONSTRAINT pk_importacoes
+    PRIMARY KEY (id, locatario_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_importacoes_locatarios') THEN
+    ALTER TABLE importacoes
+    ADD CONSTRAINT fk_importacoes_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_importacoes_usuarios') THEN
+    ALTER TABLE importacoes
+    ADD CONSTRAINT fk_importacoes_usuarios
+    FOREIGN KEY (criado_por_usuario_id)
+    REFERENCES usuarios(id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_importacao_locatario_criado_em
+  ON importacoes(locatario_id, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_importacao_status
+  ON importacoes(status);
+
+
+===== docs/banco-de-dados/postgresql/tabelas/itens_importacao.sql =====
+
+CREATE TABLE IF NOT EXISTS core.itens_importacao (
+  item_id          UUID DEFAULT gen_random_uuid(),
+  importacao_id    UUID NOT NULL,
+  locatario_id     UUID NOT NULL,
+  numero_linha     INTEGER NOT NULL,
+  dados_brutos     JSONB NOT NULL, -- conteúdo original da linha (colunas/valores)
+  status           status_job NOT NULL DEFAULT 'PENDENTE',
+  detalhe_erro     TEXT NULL,
+  criado_em        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_itens_importacao') THEN
+    ALTER TABLE itens_importacao
+    ADD CONSTRAINT pk_itens_importacao
+    PRIMARY KEY (id, locatario_id, job_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_itens_importacao_importacoes') THEN
+    ALTER TABLE itens_importacao
+    ADD CONSTRAINT fk_itens_importacao_importacoes
+    FOREIGN KEY (importacao_id, locatario_id)
+    REFERENCES importacoes(id, locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_itens_importacao_job
+  ON itens_importacao (importacao_id);
+
+CREATE INDEX IF NOT EXISTS idx_itens_importacao_locatario
+  ON itens_importacao (locatario_id);
+
+CREATE INDEX IF NOT EXISTS idx_itens_importacao_status
+  ON itens_importacao (status);
+  
+
+
+===== docs/banco-de-dados/postgresql/tabelas/itens_transacao.sql =====
+
+-- ITENS (produto/serviço)
+CREATE TABLE IF NOT EXISTS core.itens_transacao (
+  locatario_id UUID NOT NULL,
+  item_transacao_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  transacao_id UUID NOT NULL,
+  produto_id UUID NOT NULL,
+  estoque_id UUID NOT NULL,
+
+  valor NUMERIC(18,3) NOT NULL, 
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  excluido_em TIMESTAMPTZ NULL,
+  excluido_por UUID NULL,
+  excluido_motivo TEXT NULL
+);
+
+ALTER TABLE ADD CONSTRAINT pk_itens_transacao 
+PRIMARY KEY (locatario_id, item_transacao_id, transacao_id, produto_id, estoque_id);
+
+
+
+===== docs/banco-de-dados/postgresql/tabelas/limites_plano.sql =====
+
+-- docs/banco-de-dados/postgresql/tabelas/limites_plano.sql
+
+-- LIMITES OPERACIONAIS POR PLANO
+-- Controla restrições comerciais/técnicas.
+--
+-- REGRAS:
+-- - Limites pertencem ao plano (não ao locatário)
+-- - Valores NULL indicam ausência de limite
+-- - Não aplicar cálculos financeiros aqui
+--
+-- EXEMPLOS:
+-- - max_usuarios
+-- - max_clientes
+CREATE TABLE IF NOT EXISTS core.limites_plano (
+  plano_id       UUID NOT NULL,
+  limite_plano_id TEXT NOT NULL CHECK (limite_id ~ '^[A-Z0-9_]+$'),
+  valor_inteiro  INTEGER NULL CHECK (valor_inteiro IS NULL OR valor_inteiro >= 0),
+  valor_texto    TEXT NULL,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT now(),
+);
+
+ALTER TABLE ADD CONSTRAINT pk_plano_limites PRIMARY KEY (plano_id, limite_plano_id);
+
+ALTER TABLE ADD CONSTRAINT fk_plano_limites_plano FOREIGN KEY (plano_id)
+    REFERENCES planos(plano_id) ON DELETE CASCADE;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/locatarios.sql =====
+
+-- docs/banco-de-dados/postgresql/tabelas/locatarios.sql
+
+-- ENTIDADE CENTRAL DO SISTEMA MULTI-TENANT
+-- Representa uma empresa/cliente isolado logicamente na plataforma.
+--
+-- REGRAS DE NEGÓCIO IMPORTANTES:
+-- - Um locatário é uma entidade forte (vida própria)
+-- - NÃO depende de usuários ou sessões
+-- - Pode existir mesmo sem assinatura ativa
+-- - Suspensão altera apenas o status, nunca remove dados
+-- - Exclusão é sempre lógica (soft delete)
+--
+-- IDENTIDADE:
+-- - slug é único globalmente
+-- - slug é usado em URLs/subdomínios
+-- - slug NÃO deve ser alterado após criação
+--
+-- CONSISTÊNCIA:
+-- - Se excluido_em estiver preenchido, o locatário é considerado inativo
+-- - status controla acesso ao sistema (ATIVO/SUSPENSO/etc)
+--
+-- NÃO CONFUNDIR COM:
+-- - Usuários
+-- - Assinaturas
+-- - Planos
+
+CREATE TABLE IF NOT EXISTS core.locatarios (
+  locatario_id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome                       TEXT NOT NULL, -- Nome comercial exibido no sistema
+  slug                       TEXT NOT NULL, -- Identidade externa estável (subdomínio / URL pública)
+  documento                  TEXT NULL,  -- CNPJ, CPF, etc
+  email                      TEXT NOT NULL CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$'),
+  fuso_horario               TEXT NOT NULL DEFAULT 'America/Sao_Paulo',
+  status                     core.status_locatario NOT NULL DEFAULT 'ATIVO', -- Controla acesso do tenant, NÃO é soft delete
+  excluido_em                TIMESTAMPTZ NULL, -- Exclusão lógica; registros nunca são removidos fisicamente
+  motivo_exclusao            TEXT NULL, -- Motivo administrativo para exclusão, se aplicável
+  suspenso_em                TIMESTAMPTZ NULL, -- Suspensão; bloqueia autenticação/uso, mas preserva tudo
+  motivo_suspensao           TEXT NULL, -- Motivo administrativo para suspensão, se aplicável
+  reativado_em               TIMESTAMPTZ NULL, -- Reativação; muda o status para ATIVO
+  motivo_reativacao          TEXT NULL, -- Motivo administrativo para reativação, se aplicável
+  criado_em                  TIMESTAMPTZ NOT NULL DEFAULT now(), -- para auditoria
+  atualizado_em              TIMESTAMPTZ NOT NULL DEFAULT now() -- atualizado por trigger
+);
+
+-- FK opcional (recomendado) para quem excluiu
+-- (se seu usuário também é multi-locatário, a FK simples é suficiente)
+-- DO $$
+-- BEGIN
+  
+-- END;
+-- $$;
+
+CREATE INDEX IF NOT EXISTS idx_locatarios_status
+ON locatarios(status);
+
+CREATE INDEX IF NOT EXISTS idx_locatarios_excluido_em
+ON locatarios (excluido_em);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_locatarios_slug
+ON locatarios (lower(slug));
+
+
+
+
+
+-- Máscara/validação do slug (regex) + tamanho
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_locatarios_slug_mascara') THEN
+    ALTER TABLE core.locatarios
+      ADD CONSTRAINT ck_locatarios_slug_mascara
+      CHECK (
+        length(slug) BETWEEN 3 AND 63
+        AND slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+      );
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- P2: Consistência de ciclo de vida + bloqueio de alteração do slug
+-- - slug sempre normalizado (lower + trim)
+-- - slug não pode ser alterado após criação
+-- - Se suspenso_em estiver preenchido, status deve ser "SUSPENSO" (se existir no enum),
+--   senão pelo menos não pode ser "ATIVO"
+-- - Se excluido_em estiver preenchido, status deve ser "EXCLUIDO" (se existir no enum),
+--   senão pelo menos não pode ser "ATIVO"
+-- - Reativação não pode ocorrer se excluído (excluido_em não pode estar preenchido)
+-- - Se status=ATIVO, suspenso_em deve ser NULL
+-- ============================================================
+CREATE OR REPLACE FUNCTION trg_locatarios_p2_consistencia()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  has_suspenso boolean;
+  has_excluido boolean;
+BEGIN
+  -- normalização de slug
+  NEW.slug := lower(trim(NEW.slug));
+
+  -- máscara (defensiva; o CHECK também cobre)
+  IF NEW.slug IS NULL OR NEW.slug = '' THEN
+    RAISE EXCEPTION 'slug é obrigatório';
+  END IF;
+
+  IF length(NEW.slug) < 3 OR length(NEW.slug) > 63 OR NEW.slug !~ '^[a-z0-9]+(?:-[a-z0-9]+)*$' THEN
+    RAISE EXCEPTION 'slug inválido: use 3..63 chars, [a-z0-9] e hífen, sem espaços (ex: minha-loja-01)';
+  END IF;
+
+  -- slug imutável após criação
+  IF TG_OP = 'UPDATE' AND NEW.slug IS DISTINCT FROM OLD.slug THEN
+    RAISE EXCEPTION 'slug não pode ser alterado após criação';
+  END IF;
+
+  -- enum labels opcionais (evita quebrar caso o enum não tenha as labels)
+  SELECT EXISTS (
+    SELECT 1
+    FROM pg_enum e
+    JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'status_locatario' AND e.enumlabel = 'SUSPENSO'
+  ) INTO has_suspenso;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM pg_enum e
+    JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'status_locatario' AND e.enumlabel = 'EXCLUIDO'
+  ) INTO has_excluido;
+
+  -- reativação: não pode se estiver excluído
+  IF NEW.reativado_em IS NOT NULL AND NEW.excluido_em IS NOT NULL THEN
+    RAISE EXCEPTION 'não é permitido reativar um locatário excluído (excluido_em preenchido)';
+  END IF;
+
+  -- se reativado_em foi preenchido: força ATIVO e limpa suspensão
+  IF NEW.reativado_em IS NOT NULL THEN
+    NEW.status := 'ATIVO';
+    NEW.suspenso_em := NULL;
+    NEW.motivo_suspensao := NULL;
+  END IF;
+
+  -- exclusão lógica implica "não ativo"
+  IF NEW.excluido_em IS NOT NULL THEN
+    IF has_excluido THEN
+      NEW.status := 'EXCLUIDO';
+    ELSE
+      IF NEW.status = 'ATIVO' THEN
+        RAISE EXCEPTION 'locatário excluído não pode permanecer com status ATIVO';
+      END IF;
+    END IF;
+  END IF;
+
+  -- suspensão implica "não ativo"
+  IF NEW.suspenso_em IS NOT NULL AND NEW.excluido_em IS NULL THEN
+    IF has_suspenso THEN
+      NEW.status := 'SUSPENSO';
+    ELSE
+      IF NEW.status = 'ATIVO' THEN
+        RAISE EXCEPTION 'locatário suspenso não pode permanecer com status ATIVO';
+      END IF;
+    END IF;
+  END IF;
+
+  -- status ATIVO implica não suspenso
+  IF NEW.status = 'ATIVO' THEN
+    NEW.suspenso_em := NULL;
+    NEW.motivo_suspensao := NULL;
+  END IF;
+
+  -- se status SUSPENSO e suspenso_em não veio preenchido, preenche automaticamente (se label existir)
+  IF has_suspenso AND NEW.status = 'SUSPENSO' AND NEW.suspenso_em IS NULL THEN
+    NEW.suspenso_em := now();
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_locatarios_p2') THEN
+    CREATE TRIGGER tg_locatarios_p2
+    BEFORE INSERT OR UPDATE ON locatarios
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_locatarios_p2_consistencia();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_locatarios_set_atualizado_em') THEN
+    CREATE TRIGGER tg_locatarios_set_atualizado_em
+    BEFORE INSERT OR UPDATE ON locatarios
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_set_atualizado_em();
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/modulos_locatario.sql =====
+
+CREATE TABLE IF NOT EXISTS core.modulos_locatario (
+  locatario_id UUID NOT NULL,
+  modulo_id UUID NOT NULL,
+
+  habilitado BOOLEAN NOT NULL DEFAULT TRUE,
+
+  origem TEXT NOT NULL DEFAULT 'PLANO'
+    CHECK (origem IN ('PLANO','MANUAL','SISTEMA')),
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  CONSTRAINT pk_modulos_locatario
+    PRIMARY KEY (locatario_id, modulo_id),
+
+  CONSTRAINT fk_modulos_locatario_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_modulos_locatario_modulos
+    FOREIGN KEY (modulo_id)
+    REFERENCES modulos(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_modulos_locatario_locatario
+ON modulos_locatario (locatario_id);
+
+CREATE INDEX IF NOT EXISTS idx_modulos_locatario_modulo
+ON modulos_locatario (modulo_id);
+
+CREATE INDEX IF NOT EXISTS idx_modulos_locatario_habilitado
+ON modulos_locatario (locatario_id, habilitado);
+
+ALTER TABLE modulos_locatario ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY rls_modulos_locatario
+ON modulos_locatario
+USING (locatario_id = app_locatario_id())
+WITH CHECK (locatario_id = app_locatario_id());
+
+
+===== docs/banco-de-dados/postgresql/tabelas/modulos_plano.sql =====
+
+-- docs/banco-de-dados/postgresql/tabelas/modulos_plano.sql
+
+-- RELAÇÃO PLANO → MÓDULOS
+-- Define quais módulos pertencem a cada plano.
+--
+-- INVARIANTES:
+-- - Não deve haver duplicidade (PK composta)
+-- - Remove vínculo NÃO remove módulo nem plano
+-- - Define capacidades padrão de um plano
+CREATE TABLE IF NOT EXISTS core.modulos_plano (
+  plano_id   UUID NOT NULL,
+  modulo_id  UUID NOT NULL,
+  habilitado BOOLEAN NOT NULL DEFAULT TRUE,
+  criado_em  TIMESTAMPTZ NOT NULL DEFAULT now(),
+);
+
+ALTER TABLE ADD CONSTRAINT pk_plano_modulos PRIMARY KEY (plano_id, modulo_id);
+
+ALTER TABLE ADD CONSTRAINT fk_plano_modulos_plano FOREIGN KEY (plano_id)
+    REFERENCES app.planos(id) ON DELETE CASCADE;
+
+ALTER TABLE ADD CONSTRAINT fk_plano_modulos_modulo FOREIGN KEY (modulo_id)
+    REFERENCES app.modulos(id) ON DELETE CASCADE;
+
+CREATE INDEX IF NOT EXISTS idx_plano_modulos_modulo
+  ON app.plano_modulos (modulo_id);
+
+
+===== docs/banco-de-dados/postgresql/tabelas/modulos.sql =====
+
+-- docs/banco-de-dados/postgresql/tabelas/modulos.sql
+
+-- CATÁLOGO GLOBAL DE FUNCIONALIDADES
+-- Cada registro representa um módulo funcional do sistema.
+--
+-- REGRAS:
+-- - Módulos são globais (nível plataforma)
+-- - NÃO dependem de plano ou locatário
+-- - Habilitação ocorre por plano
+--
+-- EXEMPLOS:
+-- - estoque
+-- - financeiro
+-- - relatorios
+CREATE TABLE IF NOT EXISTS core.modulos (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo      TEXT NOT NULL UNIQUE CHECK (codigo ~ '^[A-Z0-9_]+$'), -- Identificador técnico estável (usado em regras)
+  nome        TEXT NOT NULL, -- Nome amigável
+  categoria   TEXT NOT NULL CHECK (categoria IN ('NUCLEO', 'OPERACIONAL', 'DADOS', 'IA', 'INTEGRACAO', 'RELATORIO')), 
+  ativo       BOOLEAN NOT NULL DEFAULT TRUE,
+  gratuito    BOOLEAN NOT NULL DEFAULT FALSE,
+  ordem_exibicao INTEGER NOT NULL DEFAULT 0,
+  criado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),  
+);
+
+
+===== docs/banco-de-dados/postgresql/tabelas/movimentacoes_estoque.sql =====
+
+-- MOVIMENTOS (delta pode ser negativo no AJUSTE)
+CREATE TABLE IF NOT EXISTS core.movimentos_estoque (
+  movimentacao_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  locatario_id UUID NOT NULL,  
+  estoque_id UUID NOT NULL,
+  produto_id UUID NOT NULL,
+  transacao_id UUID NOT NULL,
+  item_transacao_id UUID NOT NULL,
+  
+  tipo TEXT NOT NULL CHECK (tipo IN ('ENTRADA','SAIDA','AJUSTE')),
+  delta NUMERIC(18,3) NOT NULL CHECK (delta <> 0), -- +quantidade para ENTRADA, -quantidade para SAIDA, e livre (mas consistente) para AJUSTE
+  quantidade NUMERIC(18,3) NOT NULL CHECK (quantidade > 0), -- sempre positiva
+  ocorrencia_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  detalhes JSONB NOT NULL DEFAULT '{}'::jsonb, -- informação adicional
+
+  referencia TEXT NULL, -- nro doc, pedido, observação
+  observacao TEXT NULL,
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  criado_por UUID NULL
+);
+
+ALTER TABLE movimentos_estoque ADD CONSTRAINT pk_movimentos_estoque PRIMARY KEY (locatario_id, movimentacao_id);
+
+ALTER TABLE movimentos_estoque ADD CONSTRAINT fk_movimentos_estoque_itens_transacao
+FOREIGN KEY (locatario_id, estoque_id, produto_id, transacao_id, item_transacao_id)
+REFERENCES itens_transacao(locatario_id, estoque_id, produto_id, transacao_id, item_transacao_id)
+ON DELETE SET NULL;
+ 
+-- CREATE INDEX IF NOT EXISTS idx_mov_estoque_tempo
+-- ON movimentos_estoque(locatario_id, estoque_id, ocorrencia_em DESC);
+
+-- CREATE INDEX IF NOT EXISTS idx_mov_item_tempo
+-- ON movimentos_estoque(locatario_id, item_id, ocorrencia_em DESC);
+
+
+===== docs/banco-de-dados/postgresql/tabelas/ordens_servico.sql =====
+
+CREATE TABLE IF NOT EXISTS core.ordens_servico (
+  ordem_servico_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  locatario_id UUID NOT NULL,
+
+  cliente_id UUID NULL,
+
+  status TEXT NOT NULL DEFAULT 'ABERTA'
+    CHECK (status IN ('ABERTA','EM_ANDAMENTO','AGUARDANDO','CONCLUIDA','CANCELADA')),
+
+  titulo TEXT NOT NULL CHECK (length(trim(titulo)) > 0),
+  descricao TEXT NULL,
+
+  aberta_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  fechada_em TIMESTAMPTZ NULL,
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  excluido_em TIMESTAMPTZ NULL,
+  excluido_por UUID NULL,
+  excluido_motivo TEXT NULL
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_ordens_servico') THEN
+    ALTER TABLE ordens_servico
+    ADD CONSTRAINT pk_ordens_servico
+    PRIMARY KEY (locatario_id, ordem_servico_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_os_locatarios') THEN
+    ALTER TABLE ordens_servico
+    ADD CONSTRAINT fk_os_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_os_clientes') THEN
+    ALTER TABLE ordens_servico
+    ADD CONSTRAINT fk_os_clientes
+    FOREIGN KEY (locatario_id, cliente_id)
+    REFERENCES clientes(locatario_id, cliente_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_os_locatario_status_criado
+ON ordens_servico (locatario_id, status, criado_em DESC)
+WHERE excluido_em IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_os_locatario_cliente_criado
+ON ordens_servico (locatario_id, cliente_id, criado_em DESC)
+WHERE excluido_em IS NULL;
+
+ALTER TABLE ordens_servico ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='ordens_servico' AND policyname='p_ordens_servico_tenant_estrito'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_ordens_servico_tenant_estrito
+      ON ordens_servico
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (locatario_id = app_locatario_id())
+      WITH CHECK (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/papeis.sql =====
+
+-- =========================================================
+-- PAPÉIS (ROLES) DO SISTEMA RBAC
+--
+-- Representa agrupamentos de permissões.
+-- NÃO contém regras de negócio diretamente.
+--
+-- REGRAS:
+-- - Papéis são globais (não pertencem a locatários)
+-- - Papéis NÃO devem ser removidos fisicamente se já atribuídos
+-- - Alterações impactam múltiplos usuários
+--
+-- EXEMPLOS:
+-- - ADMIN
+-- - OPERADOR
+-- - SUPERADMIN
+-- =========================================================
+CREATE TABLE IF NOT EXISTS core.papeis (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo        TEXT NOT NULL UNIQUE, -- Identificador técnico estável
+  nome          TEXT NOT NULL,  -- Nome amigável exibido em UI
+  descricao     TEXT NULL, -- Documentação humana / UI / auditoria
+  criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================
+-- 0) Seed de papéis mínimos (se ainda não existirem)
+-- ============================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'SUPERADMIN') THEN
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'SUPERADMIN', 'Administrador do complexo', 'Acesso total à plataforma (singleton).', now(), now());
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'ADMIN') THEN
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'ADMIN', 'Administrador do locatário', 'Administrador do locatário (no máximo 1 por locatário).', now(), now());
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'GERENTE') THEN
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'GERENTE', 'Gerente', 'Gerente do locatário.', now(), now());
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM papeis WHERE nome = 'OPERADOR') THEN
+    INSERT INTO papeis (id, codigo, nome, descricao, criado_em, atualizado_em)
+    VALUES (gen_random_uuid(), 'OPERADOR', 'Operador', 'Operador do locatário.', now(), now());
+  END IF;
+END;
+$$;
+
+
+
+
+
+-- ============================================================
+-- Proteção de papéis canônicos (não renomear / não deletar)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION trg_papeis_proteger_canonicos()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Bloqueia DELETE
+  IF TG_OP = 'DELETE' THEN
+    IF OLD.nome IN ('SUPERADMIN','ADMIN','GERENTE','OPERADOR') THEN
+      RAISE EXCEPTION 'papel canônico não pode ser removido: %', OLD.nome;
+    END IF;
+    RETURN OLD;
+  END IF;
+
+  -- Bloqueia renomear (UPDATE nome)
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.nome IN ('SUPERADMIN','ADMIN','GERENTE','OPERADOR')
+       AND NEW.nome IS DISTINCT FROM OLD.nome THEN
+      RAISE EXCEPTION 'papel canônico não pode ser renomeado: %', OLD.nome;
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_papeis_proteger_canonicos') THEN
+    CREATE TRIGGER tg_papeis_proteger_canonicos
+    BEFORE UPDATE OR DELETE ON papeis
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_papeis_proteger_canonicos();
+  END IF;
+END;
+$$;
+
+-- (Opcional) Se você quiser impedir duplicatas por casing: "Admin" vs "ADMIN"
+-- Requer que a coluna nome seja tratada case-insensitive:
+-- CREATE UNIQUE INDEX IF NOT EXISTS uq_papeis_nome_lower ON papeis (lower(nome));
+
+
+
+===== docs/banco-de-dados/postgresql/tabelas/papel_permissoes.sql =====
+
+-- =========================================================
+-- RELAÇÃO PAPEL → PERMISSÕES (RBAC)
+--
+-- Define quais permissões pertencem a cada papel.
+--
+-- INVARIANTES:
+-- - PK composta impede duplicidade
+-- - Remover vínculo NÃO remove papel nem permissão
+-- - Papéis herdam permissões exclusivamente daqui
+-- =========================================================
+CREATE TABLE IF NOT EXISTS core.papel_permissoes (
+  papel_id      UUID NOT NULL,
+  permissao_id  UUID NOT NULL,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_papel_permissoes') THEN
+    ALTER TABLE papel_permissoes ADD CONSTRAINT pk_papel_permissoes PRIMARY KEY (papel_id, permissao_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_papel_permissoes_papeis') THEN
+    ALTER TABLE papel_permissoes
+    ADD CONSTRAINT fk_papel_permissoes_papeis
+    FOREIGN KEY (papel_id)
+    REFERENCES papeis(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_papel_permissoes_permissoes') THEN
+    ALTER TABLE papel_permissoes
+    ADD CONSTRAINT fk_papel_permissoes_permissoes
+    FOREIGN KEY (permissao_id)
+    REFERENCES permissoes(id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+
+
+===== docs/banco-de-dados/postgresql/tabelas/permissoes.sql =====
+
+-- =========================================================
+-- CATÁLOGO GLOBAL DE PERMISSÕES (RBAC)
+--
+-- Representa capacidades atômicas do sistema.
+-- NÃO representa papéis, usuários ou grupos.
+--
+-- REGRAS IMPORTANTES:
+-- - Permissões são globais (nível plataforma)
+-- - NÃO dependem de locatário
+-- - NÃO devem ser removidas fisicamente após uso
+-- - Devem ser estáveis ao longo do tempo
+--
+-- EXEMPLOS:
+-- - usuarios:criar
+-- - locatarios:suspender
+-- - financeiro:visualizar
+-- =========================================================
+CREATE TABLE IF NOT EXISTS core.permissoes (
+  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo    TEXT NOT NULL UNIQUE, -- Identificador técnico estável usado em regras. (modulo:acao)
+  nome      TEXT NOT NULL, -- Nome amigável exibido em UI
+  descricao TEXT NULL, -- Documentação humana / UI / auditoria
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+
+===== docs/banco-de-dados/postgresql/tabelas/planos.sql =====
+
+-- docs/banco-de-dados/postgresql/tabelas/planos.sql
+
+-- CATÁLOGO DE PLANOS DA PLATAFORMA
+-- Define agrupamentos de funcionalidades e limites comerciais.
+--
+-- REGRAS:
+-- - Planos são entidades globais (não pertencem a locatários)
+-- - Planos NÃO devem ser removidos fisicamente se já utilizados
+-- - Alterações impactam múltiplos locatários
+--
+-- USO:
+-- - Associado a locatários via assinaturas
+-- - Controla módulos e limites
+
+CREATE TABLE IF NOT EXISTS core.planos (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo        TEXT NOT NULL UNIQUE CHECK (codigo ~ '^[A-Z0-9_]+$'),
+  nome          TEXT NOT NULL, -- Nome comercial do plano
+  -- ciclo
+  -- descricao_marketing
+  ativo         BOOLEAN NOT NULL DEFAULT TRUE, -- Controle administrativo
+  criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+===== docs/banco-de-dados/postgresql/tabelas/produtos.sql =====
+
+-- PRODUTOS
+CREATE TABLE IF NOT EXISTS core.produtos (
+  produto_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  locatario_id UUID NOT NULL,
+  sku TEXT NULL,
+  nome TEXT NOT NULL,
+  unidade TEXT NULL DEFAULT 'UN', -- UN, KG, etc
+  tipo TEXT NOT NULL CHECK (tipo IN ('PRODUTO','SERVICO')),
+  ativo BOOLEAN NOT NULL DEFAULT true,
+
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  excluido_em TIMESTAMPTZ NULL,
+  excluido_por UUID NULL,
+  excluido_motivo TEXT NULL
+);
+
+ALTER TABLE produtos ADD CONSTRAINT pk_produtos PRIMARY KEY (locatario_id, produto_id);
+
+ALTER TABLE produtos ADD CONSTRAINT uq_produtos_nome UNIQUE (locatario_id, nome);
+
+CREATE UNIQUE INDEX uq_produtos_sku ON produtos(locatario_id, sku) WHERE sku IS NOT NULL;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/tokens_locatario.sql =====
+
+-- =========================================================
+-- TOKENS DE AUTENTICAÇÃO / SESSÃO
+--
+-- Representa tokens emitidos pelo sistema de autenticação.
+--
+-- REGRAS CRÍTICAS DE SEGURANÇA:
+-- - Tokens podem ser revogados
+-- - Tokens possuem validade temporal
+-- - NÃO confiar apenas em expiração do JWT
+-- - Nunca armazenar tokens sensíveis em texto puro
+-- - NÃO Armazenar JWT puro
+-- - NÃO Confiar apenas em expiração
+-- - NÃO Permitir múltiplos refresh tokens ativos sem controle
+--
+-- USO:
+-- - Controle de sessão
+-- - Rotação / revogação
+-- =========================================================
+CREATE TABLE IF NOT EXISTS core.tokens_locatario (
+  token_id           UUID NOT NULL DEFAULT gen_random_uuid(),
+  usuario_id         UUID NOT NULL,
+  locatario_id       UUID NOT NULL, -- NULL indica usuário de nível plataforma (ex.: superadmin)
+  hash_token         TEXT UNIQUE NOT NULL, -- nunca guarde o token em claro
+  tipo               tipo_token NOT NULL, -- access / refresh / etc.
+  emitido_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expira_em          TIMESTAMPTZ NOT NULL,
+  revogado_em        TIMESTAMPTZ NULL,
+  proximo_token_id   UUID NULL, -- id do novo token (rotação)
+  proximo_usuario_id UUID NULL,
+  proximo_locatario_id UUID NULL,
+  agente_usuario     TEXT NULL,
+  endereco_ip        INET NULL
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pk_token') THEN
+    ALTER TABLE tokens ADD CONSTRAINT pk_token PRIMARY KEY (token_id, usuario_id, locatario_id);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_proximo_token_id') THEN
+    ALTER TABLE tokens
+    ADD CONSTRAINT fk_proximo_token_id
+    FOREIGN KEY (proximo_token_id, proximo_usuario_id, proximo_locatario_id)
+    REFERENCES tokens(token_id, usuario_id, locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_tokens_usuarios') THEN
+    ALTER TABLE tokens
+    ADD CONSTRAINT fk_tokens_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_tokens_atualizacao_locatarios') THEN
+    ALTER TABLE tokens
+    ADD CONSTRAINT fk_tokens_atualizacao_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_tokens_usuario
+  ON tokens(usuario_id);
+
+CREATE INDEX IF NOT EXISTS idx_tokens_expira_em
+  ON tokens(expira_em);
+
+CREATE INDEX IF NOT EXISTS idx_tokens_locatario
+  ON tokens(locatario_id);
+
+-- 2) Constraints de consistência temporal
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_tokens_expira_maior_emitido') THEN
+    ALTER TABLE tokens
+    ADD CONSTRAINT ck_tokens_expira_maior_emitido
+    CHECK (expira_em > emitido_em);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_tokens_revogado_coerente') THEN
+    ALTER TABLE tokens
+    ADD CONSTRAINT ck_tokens_revogado_coerente
+    CHECK (revogado_em IS NULL OR revogado_em >= emitido_em);
+  END IF;
+END;
+$$;
+
+-- 4) Índices auxiliares recomendados (performance)
+CREATE INDEX IF NOT EXISTS idx_tokens_usuario_locatario_status
+ON tokens (usuario_id, locatario_id, revogado_em, expira_em);
+
+CREATE INDEX IF NOT EXISTS idx_tokens_expira_em
+ON tokens (expira_em);
+
+CREATE INDEX IF NOT EXISTS idx_tokens_proximo
+ON tokens (proximo_token_id, proximo_usuario_id);
+
+-- 5) RLS estrita (tenant-scoped): requer contexto app_locatario_id definido
+ALTER TABLE tokens ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='tokens' AND policyname='p_tokens_tenant_estrito'
+  ) THEN
+    EXECUTE $sql$
+      CREATE POLICY p_tokens_tenant_estrito
+      ON tokens
+      TO multilocatario_aplicacao, multilocatario_leitor, multilocatario_auditor, multilocatario_operador_job
+      USING (locatario_id = app_locatario_id())
+      WITH CHECK (locatario_id = app_locatario_id())
+    $sql$;
+  END IF;
+END;
+$$;
+
+-- ============================================================
+-- DELTA TOKENS COERÊNCIA USUÁRIO x LOCATÁRIO (v6)
+-- Objetivo: impedir tokens com locatario_id diferente do locatario_id do usuário
+-- Regra:
+-- - Usuário comum (usuarios.locatario_id IS NOT NULL): tokens.locatario_id deve ser igual
+-- - Usuário de plataforma (usuarios.locatario_id IS NULL): permitido tokens com locatario_id (quando atuando em tenant)
+--   e também permitido NULL (se você emitir token puramente de plataforma; opcional)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION trg_tokens_validar_locatario_do_usuario()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  user_locatario uuid;
+BEGIN
+  SELECT u.locatario_id INTO user_locatario
+  FROM usuarios u
+  WHERE u.usuario_id = NEW.usuario_id
+    AND u.excluido_em IS NULL;
+
+  IF user_locatario IS NULL THEN
+    -- Usuário de plataforma (SUPERADMIN): pode emitir token para um tenant (locatario_id preenchido),
+    -- ou eventualmente um token de plataforma (locatario_id NULL), se você permitir.
+    RETURN NEW;
+  END IF;
+
+  -- Usuário comum: token deve ser do mesmo locatário do usuário
+  IF NEW.locatario_id IS NULL THEN
+    RAISE EXCEPTION 'token inválido: usuário comum exige locatario_id (tenant)';
+  END IF;
+
+  IF NEW.locatario_id <> user_locatario THEN
+    RAISE EXCEPTION 'token inválido: locatario_id do token (%) difere do locatario_id do usuário (%)',
+      NEW.locatario_id, user_locatario;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_tokens_validar_locatario_do_usuario') THEN
+    CREATE TRIGGER tg_tokens_validar_locatario_do_usuario
+    BEFORE INSERT OR UPDATE ON tokens
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_tokens_validar_locatario_do_usuario();
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/transacoes.sql =====
+
+CREATE TABLE IF NOT EXISTS core.transacoes (
+  transacao_id UUID DEFAULT gen_random_uuid(),
+  locatario_id UUID NOT NULL,
+  cliente_id UUID NULL,
+  fornecedor_id UUID NULL,
+  ordem_servico_id UUID NULL,
+
+  tipo TEXT NOT NULL CHECK (tipo IN ('VENDA','COMPRA')),
+  origem TEXT NOT NULL CHECK (origem IN ('AVULSA','ORDEM_SERVICO')),
+  valor NUMERIC(18,3) NOT NULL,
+  vencimento_em TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ABERTA', 'EM_PROCESSAMENTO', 'AGUARDANDO_PAGAMENTO', 'ENVIADA', 'CONCLUIDA')),
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  excluido_em TIMESTAMPTZ NULL,
+  excluido_por UUID NULL,
+  excluido_motivo TEXT NULL
+);
+
+ALTER TABLE transacoes ADD CONSTRAINT pk_transacao PRIMARY KEY (locatario_id, transacao_id);
+
+
+===== docs/banco-de-dados/postgresql/tabelas/usuarios_papeis.sql =====
+
+-- =========================================================
+-- RELAÇÃO USUÁRIO → PAPÉIS
+--
+-- Define quais papéis um usuário possui.
+--
+-- REGRAS:
+-- - Papéis determinam permissões efetivas
+-- - Não deve haver duplicidade
+-- - Remover vínculo NÃO remove usuário nem papel
+--
+-- MULTI-TENANT:
+-- - Regras de acesso devem considerar locatario_id
+-- =========================================================
+CREATE TABLE IF NOT EXISTS core.usuarios_papeis (
+  usuario_id          UUID NOT NULL,
+  locatario_id        UUID NOT NULL,
+  papel_id            UUID NOT NULL,
+  criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE usuarios_papeis ADD CONSTRAINT pk_usuarios_papeis PRIMARY KEY (locatario_id, usuario_id, papel_id); 
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_papeis_locatarios') THEN
+    ALTER TABLE usuarios_papeis
+    ADD CONSTRAINT fk_usuarios_papeis_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_papeis_usuarios') THEN
+    ALTER TABLE usuarios_papeis
+    ADD CONSTRAINT fk_usuarios_papeis_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_papeis_papeis') THEN
+    ALTER TABLE usuarios_papeis
+    ADD CONSTRAINT fk_usuarios_papeis_papeis
+    FOREIGN KEY (papel_id)
+    REFERENCES papeis(papel_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+
+
+
+
+-- ============================================================
+-- 3.1) no máximo 1 ADMIN por locatário (trigger em usuarios_papeis)
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION trg_usuarios_papeis_max_um_admin_por_locatario()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  admin_papel_id uuid;
+  admin_conflict boolean;
+BEGIN
+  -- Descobre o ID do papel ADMIN (canônico por nome)
+  SELECT id INTO admin_papel_id
+  FROM papeis
+  WHERE nome = 'ADMIN'
+  LIMIT 1;
+
+  IF admin_papel_id IS NULL THEN
+    RAISE EXCEPTION 'papel canônico ADMIN não existe em papeis; crie-o antes de aplicar a regra';
+  END IF;
+
+  -- Só valida se a operação envolve ADMIN
+  IF NEW.papel_id <> admin_papel_id THEN
+    RETURN NEW;
+  END IF;
+
+  -- Regra: no máximo 1 usuário diferente com ADMIN no mesmo locatário
+  SELECT EXISTS (
+    SELECT 1
+    FROM usuarios_papeis up
+    WHERE up.locatario_id = NEW.locatario_id
+      AND up.papel_id = admin_papel_id
+      AND up.usuario_id <> NEW.usuario_id
+  ) INTO admin_conflict;
+
+  IF admin_conflict THEN
+    RAISE EXCEPTION 'regra violada: já existe um ADMIN para este locatário (no máximo 1)';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_usuarios_papeis_max_um_admin') THEN
+    CREATE TRIGGER tg_usuarios_papeis_max_um_admin
+    BEFORE INSERT OR UPDATE ON usuarios_papeis
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_usuarios_papeis_max_um_admin_por_locatario();
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/usuarios_plataforma.sql =====
+
+-- =========================================================
+-- RELAÇÃO USUÁRIO → PAPÉIS
+--
+-- Define quais papéis um usuário possui.
+--
+-- REGRAS:
+-- - Papéis determinam permissões efetivas
+-- - Não deve haver duplicidade
+-- - Remover vínculo NÃO remove usuário nem papel
+--
+-- MULTI-TENANT:
+-- - Regras de acesso devem considerar locatario_id
+-- =========================================================
+CREATE TABLE IF NOT EXISTS core.usuarios_plataforma (
+  usuario_id          UUID NOT NULL,
+  papel_id            UUID NOT NULL,
+  criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE usuarios_plataforma ADD CONSTRAINT pk_usuarios_plataforma PRIMARY KEY (usuario_id, papel_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_papeis_usuarios') THEN
+    ALTER TABLE usuarios_papeis
+    ADD CONSTRAINT fk_usuarios_papeis_usuarios
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_papeis_papeis') THEN
+    ALTER TABLE usuarios_papeis
+    ADD CONSTRAINT fk_usuarios_papeis_papeis
+    FOREIGN KEY (papel_id)
+    REFERENCES papeis(papel_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+  END IF;
+END;
+$$;
+
+
+
+
+
+-- ============================================================
+-- 2) usuarios_plataforma singleton + consistência com usuarios.locatario_id IS NULL
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION trg_usuarios_plataforma_singleton_consistencia()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  already_exists boolean;
+  is_platform_user_ok boolean;
+BEGIN
+  -- Singleton: no máximo 1 linha
+  SELECT EXISTS (
+    SELECT 1 FROM usuarios_plataforma
+    WHERE usuario_id <> NEW.usuario_id
+  ) INTO already_exists;
+
+  IF already_exists THEN
+    RAISE EXCEPTION 'usuarios_plataforma é singleton: já existe um SUPERADMIN cadastrado';
+  END IF;
+
+  -- Consistência: usuário deve ter locatario_id IS NULL
+  SELECT EXISTS (
+    SELECT 1
+    FROM usuarios u
+    WHERE u.usuario_id = NEW.usuario_id
+      AND u.locatario_id IS NULL
+      AND u.excluido_em IS NULL
+  ) INTO is_platform_user_ok;
+
+  IF NOT is_platform_user_ok THEN
+    RAISE EXCEPTION 'usuário de plataforma inválido: o registro em usuarios deve existir, não estar excluído e locatario_id deve ser NULL';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_usuarios_plataforma_singleton') THEN
+    CREATE TRIGGER tg_usuarios_plataforma_singleton
+    BEFORE INSERT OR UPDATE ON usuarios_plataforma
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_usuarios_plataforma_singleton_consistencia();
+  END IF;
+END;
+$$;
+
+
+===== docs/banco-de-dados/postgresql/tabelas/usuarios.sql =====
+
+-- =========================================================
+-- USUÁRIOS DO SISTEMA
+--
+-- Representa identidades autenticáveis.
+--
+-- REGRAS IMPORTANTES:
+-- - Usuário pode pertencer a um locatário
+-- - Superadmin pode NÃO ter locatario_id (nível plataforma)
+-- - Exclusão deve ser lógica se houver vínculos
+--
+-- SEGURANÇA:
+-- - NÃO armazenar senhas em texto puro
+-- - Hash/salt devem ser aplicados na camada de aplicação
+-- =========================================================
+CREATE TABLE IF NOT EXISTS core.usuarios (
+  usuario_id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  locatario_id               UUID NULL, -- NULL indica usuário de nível plataforma (ex.: superadmin)
+  email                      TEXT NOT NULL,
+  nome                       TEXT NOT NULL,
+  senha_hash                 TEXT NOT NULL,
+  status                     status_usuario NOT NULL DEFAULT 'ATIVO',
+  ultimo_login_em            TIMESTAMPTZ NULL, -- atualizado por trigger
+  criado_em                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  criado_por_usuario_id      UUID NULL,
+  atualizado_em              TIMESTAMPTZ NOT NULL DEFAULT now(), -- atualizado por trigger
+  atualizado_por_usuario_id  UUID NULL,
+  excluido_em                TIMESTAMPTZ NULL,
+  excluido_por_usuario_id    UUID NULL,
+  motivo_exclusao            TEXT NULL
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_locatarios') THEN
+    ALTER TABLE usuarios
+    ADD CONSTRAINT fk_usuarios_locatarios
+    FOREIGN KEY (locatario_id)
+    REFERENCES locatarios(locatario_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_criado_por_usuario') THEN
+    ALTER TABLE usuarios
+    ADD CONSTRAINT IF NOT EXISTS fk_usuarios_criado_por_usuario
+    FOREIGN KEY (criado_por_usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_atualizado_por_usuario') THEN
+    ALTER TABLE usuarios
+    ADD CONSTRAINT IF NOT EXISTS fk_usuarios_atualizado_por_usuario
+    FOREIGN KEY (atualizado_por_usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_usuarios_excluido_por_usuario') THEN
+    ALTER TABLE usuarios
+    ADD CONSTRAINT IF NOT EXISTS fk_usuarios_excluido_por_usuario
+    FOREIGN KEY (excluido_por_usuario_id)
+    REFERENCES usuarios(usuario_id)
+    ON DELETE SET NULL;
+  END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_locatario_excluido_em
+  ON usuarios(locatario_id, excluido_em);
+
+-- (recomendado) email único por locatário somente para usuários ATIVOS (soft delete friendly)
+-- Ajuste o nome da coluna email se for diferente.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_locatario_email_ativo
+ON usuarios(locatario_id, lower(email))
+WHERE excluido_em IS NULL AND locatario_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_plataforma_email_ativo
+ON usuarios(lower(email)) WHERE excluido_em IS NULL AND locatario_id IS NULL
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_locatario
+  ON usuarios(locatario_id);
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_status
+  ON usuarios(status);
+
+
+-- ============================================================
+-- 1) Unicidade de email (tenant vs plataforma)
+-- ============================================================
+
+-- (1a) Usuários de locatário: e-mail único por locatário (ativos)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_email_por_locatario_ativo
+ON usuarios (locatario_id, lower(email))
+WHERE excluido_em IS NULL AND locatario_id IS NOT NULL;
+
+-- (1b) Usuários de plataforma: e-mail único global (ativos) quando locatario_id IS NULL
+CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_email_plataforma_ativo
+ON usuarios (lower(email))
+WHERE excluido_em IS NULL AND locatario_id IS NULL;
+
+-- (opcional mas recomendado) índices de apoio
+CREATE INDEX IF NOT EXISTS idx_usuarios_locatario_excluido
+ON usuarios (locatario_id, excluido_em);
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_status
+ON usuarios (status);
+
+
+===== docs/banco-de-dados/postgresql/testes/auditoria.test.sql =====
+
+-- A) Usuário comum (tenant) consegue inserir em auditoria_locatario
+
+BEGIN;
+
+-- contexto de usuário comum (tenant)
+SELECT app_definir_contexto('USER_TENANT_A', 'LOCATARIO_A', false);
+
+INSERT INTO auditoria_locatario (
+  locatario_id, usuario_id, evento, sucesso, entidade_tipo, entidade_id, metadados
+)
+VALUES (
+  'LOCATARIO_A', 'USER_TENANT_A',
+  'cliente.criado', true,
+  'clientes', '{clientes:CLIENTE_1}',
+  '{"depois":{"cliente_id":"CLIENTE_1"}}'::jsonb
+);
+
+-- deve retornar 1 linha
+SELECT * FROM auditoria_locatario WHERE locatario_id = 'LOCATARIO_A' ORDER BY criado_em DESC LIMIT 1;
+
+ROLLBACK;
+
+-- B) Usuário comum não consegue inserir auditoria_locatario com locatário diferente (trigger P3)
+
+BEGIN;
+
+SELECT app_definir_contexto('USER_TENANT_A', 'LOCATARIO_A', false);
+
+-- deve falhar (locatario_id difere do contexto)
+INSERT INTO auditoria_locatario (locatario_id, usuario_id, evento, sucesso)
+VALUES ('LOCATARIO_B', 'USER_TENANT_A', 'teste', true);
+
+ROLLBACK;
+
+-- C) Usuário comum não consegue inserir em auditoria_plataforma (trigger P3)
+
+BEGIN;
+
+SELECT app_definir_contexto('USER_TENANT_A', 'LOCATARIO_A', false);
+
+-- deve falhar (exige app_is_plataforma=true)
+INSERT INTO auditoria_plataforma (usuario_id, evento, sucesso)
+VALUES ('USER_TENANT_A', 'tentativa.admin', false);
+
+ROLLBACK;
+
+-- D) SUPERADMIN em modo plataforma consegue inserir em auditoria_plataforma
+
+BEGIN;
+
+SELECT app_definir_contexto('SUPERADMIN_ID', NULL, true);
+
+INSERT INTO auditoria_plataforma (
+  usuario_id, locatario_alvo_id, evento, sucesso, metadados
+)
+VALUES (
+  'SUPERADMIN_ID', NULL,
+  'locatario.criado', true,
+  '{"motivo":"onboarding"}'::jsonb
+);
+
+SELECT * FROM auditoria_plataforma ORDER BY criado_em DESC LIMIT 1;
+
+ROLLBACK;
+
+-- E) SUPERADMIN com locatário selecionado grava em auditoria_plataforma com alvo preenchido
+
+BEGIN;
+
+SELECT app_definir_contexto('SUPERADMIN_ID', 'LOCATARIO_A', true);
+
+-- locatario_alvo_id pode ser omitido (trigger preenche pelo contexto)
+INSERT INTO auditoria_plataforma (
+  usuario_id, evento, sucesso, entidade_tipo, entidade_id
+)
+VALUES (
+  'SUPERADMIN_ID', 'usuario.reset_senha', true, 'usuarios', '{usuarios:USER_TENANT_A}'
+);
+
+SELECT * FROM auditoria_plataforma ORDER BY criado_em DESC LIMIT 1;
+
+ROLLBACK;
+
+-- F) Imutabilidade: UPDATE/DELETE devem falhar em ambas
+
+BEGIN;
+
+SELECT app_definir_contexto('USER_TENANT_A', 'LOCATARIO_A', false);
+
+-- faz um insert de teste
+INSERT INTO auditoria_locatario (locatario_id, usuario_id, evento, sucesso)
+VALUES ('LOCATARIO_A', 'USER_TENANT_A', 'teste.immut', true);
+
+-- deve falhar
+UPDATE auditoria_locatario SET evento = 'x'
+WHERE locatario_id='LOCATARIO_A' ORDER BY criado_em DESC LIMIT 1;
+
+-- deve falhar
+DELETE FROM auditoria_locatario
+WHERE locatario_id='LOCATARIO_A' ORDER BY criado_em DESC LIMIT 1;
+
+ROLLBACK;
+
+===== docs/banco-de-dados/postgresql/tipos/enums.sql =====
+
+-- Tipos (ENUM) - opcional/recomendado
+DO $$
+BEGIN
+-- =========================================================
+-- ENUM: status_locatario
+-- Representa o estado operacional do locatário (tenant).
+--
+-- REGRAS DE NEGÓCIO:
+-- - Controla acesso do locatário ao sistema
+-- - NÃO indica remoção física de dados
+-- - Exclusão é sempre lógica
+--
+-- ESTADOS:
+-- - ATIVO     → locatário operacional e com acesso permitido
+-- - SUSPENSO  → acesso temporariamente bloqueado (inadimplência, suporte, etc)
+-- - EXCLUIDO  → exclusão lógica / desativação definitiva
+--
+-- CONSISTÊNCIA:
+-- - EXCLUIDO normalmente implica excluido_em preenchido
+-- - Registros nunca devem ser removidos fisicamente
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_locatario') THEN
+    CREATE TYPE status_locatario AS ENUM ('ATIVO','SUSPENSO','EXCLUIDO');
+  END IF;
+
+-- =========================================================
+-- ENUM: planos_locatario
+-- Classificação comercial de planos disponíveis.
+--
+-- REGRAS:
+-- - Valores representam categorias de produto, não regras técnicas
+-- - Mudanças de plano NÃO alteram histórico
+--
+-- EXEMPLOS:
+-- - GRATUITO    → acesso básico / onboarding
+-- - BASICO      → plano de entrada
+-- - PRO         → funcionalidades avançadas
+-- - EMPRESARIAL → uso intensivo / limites maiores
+--
+-- IMPORTANTE:
+-- - Limites reais devem ser controlados por tabela de limites
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'planos_locatario') THEN
+    CREATE TYPE planos_locatario AS ENUM ('GRATUITO','BASICO','PRO','EMPRESARIAL');
+  END IF; 
+
+-- =========================================================
+-- ENUM: status_usuario
+-- Estado operacional da conta do usuário.
+--
+-- REGRAS:
+-- - NÃO é exclusão lógica
+-- - Controla autenticação/autorização
+--
+-- ESTADOS:
+-- - ATIVO      → usuário autenticável
+-- - BLOQUEADO  → acesso negado sem remover vínculos
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_usuario') THEN
+    CREATE TYPE status_usuario AS ENUM ('ATIVO','BLOQUEADO');
+  END IF;
+
+-- =========================================================
+-- ENUM: tipo_origem_importacao
+-- Origem dos dados em rotinas de importação.
+--
+-- USO:
+-- - Controla pipeline de parsing/validação
+-- - NÃO representa formato de armazenamento interno
+--
+-- VALORES:
+-- - CSV
+-- - XLSX
+-- - GOOGLE_SHEETS
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tipo_origem_importacao') THEN
+    CREATE TYPE tipo_origem_importacao AS ENUM ('CSV', 'XLSX', 'GOOGLE_SHEETS');
+  END IF;
+
+-- =========================================================
+-- ENUM: status_job
+-- Máquina de estados de jobs assíncronos.
+--
+-- REGRAS IMPORTANTES:
+-- - Jobs NÃO devem pular estados arbitrariamente
+-- - SUCESSO e ERRO são estados terminais
+--
+-- TRANSIÇÕES ESPERADAS:
+-- PENDENTE → EXECUTANDO
+-- EXECUTANDO → SUCESSO | ERRO | CANCELADO
+--
+-- ESTADOS:
+-- - PENDENTE     → aguardando execução
+-- - EXECUTANDO   → em processamento
+-- - SUCESSO      → concluído com êxito (terminal)
+-- - ERRO         → falha definitiva (terminal)
+-- - CANCELADO    → encerrado manualmente
+-- =========================================================
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_job') THEN
+    CREATE TYPE status_job AS ENUM ('PENDENTE', 'EXECUTANDO', 'SUCESSO', 'ERRO', 'CANCELADO');
+  END IF;
+
+-- =========================================================
+-- ENUM: formato_exportacao
+-- Formato de saída em rotinas de exportação.
+--
+-- REGRAS:
+-- - Controla serialização/renderização
+-- - NÃO define tipo MIME automaticamente
+--
+-- VALORES:
+-- - CSV
+-- - XLSX
+-- - PDF
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'formato_exportacao') THEN
+    CREATE TYPE formato_exportacao AS ENUM ('CSV', 'XLSX', 'PDF');
+  END IF;
+
+-- =========================================================
+-- ENUM: status_assinatura
+-- Estados da assinatura de um locatário
+--
+-- REGRAS IMPORTANTES:
+-- - Reativação de locatário geralmente é possível
+--
+-- TRANSIÇÕES ESPERADAS:
+-- ATIVA → SUSPENSA | CANCELADA | EXPIRADA
+-- SUSPENSA → ATIVA
+-- CANCELADA → ATIVA
+-- EXPIRADA → ATIVA
+--
+-- ESTADOS:
+-- - ATIVA     → em uso
+-- - SUSPENSA  → por decisão do administrador do sistema
+-- - CANCELADA → cancelada pelo locatário
+-- - EXPIRADA  → chegou ao fim do contrato
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_assinatura') THEN
+    CREATE TYPE status_assinatura AS ENUM ('ATIVA','SUSPENSA','CANCELADA','EXPIRADA');
+  END IF;
+
+-- =========================================================
+-- ENUMs recomendados (mínimos para o pacote)
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ciclo_cobranca') THEN
+    CREATE TYPE ciclo_cobranca AS ENUM ('MENSAL','ANUAL');
+  END IF;
+
+-- =========================================================
+-- ENUMs recomendados (mínimos para o pacote)
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_modulo_assinatura') THEN
+    CREATE TYPE status_modulo_assinatura AS ENUM ('ATIVO','SUSPENSO','REMOVIDO');
+  END IF;
+
+-- =========================================================
+-- ENUMs recomendados (mínimos para o pacote)
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'origem_modulo_assinatura') THEN
+    CREATE TYPE origem_modulo_assinatura AS ENUM ('PLANO_SUGERIDO','ADDON','CORTESIA','MANUAL_SUPERADMIN');
+  END IF;
+
+-- =========================================================
+-- ENUMs recomendados (mínimos para o pacote)
+-- =========================================================
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tipo_token') THEN
+    CREATE TYPE tipo_token AS ENUM ('ACESSO','REFRESH','RECUPERACAO_SENHA','CONFIRMACAO_EMAIL');
+  END IF;
+END $$;
+
+
+
+
+
+
+
+
+===== docs/banco-de-dados/postgresql/triggers/before_update_for_each_row_configuracoes_locatario.sql =====
+
+CREATE TRIGGER tg_before_update_configuracoes_locatario
+BEFORE UPDATE ON configuracoes_locatario
+FOR EACH ROW EXECUTE FUNCTION fn_definir_atualizado_em();
+
+
+===== docs/banco-de-dados/postgresql/triggers/before_update_for_each_row_locatarios.sql =====
+
+CREATE TRIGGER tg_before_update_locatarios
+BEFORE UPDATE ON locatarios
+FOR EACH ROW EXECUTE FUNCTION fn_definir_atualizado_em();
+
+
+===== docs/banco-de-dados/postgresql/triggers/before_update_for_each_row_papeis.sql =====
+
+CREATE TRIGGER tg_before_update_papeis
+BEFORE UPDATE ON papeis
+FOR EACH ROW EXECUTE FUNCTION fn_definir_atualizado_em();
+
+
+===== docs/banco-de-dados/postgresql/triggers/before_update_for_each_row_usuarios.sql =====
+
+CREATE TRIGGER tg_before_update_usuarios
+BEFORE UPDATE ON usuarios
+FOR EACH ROW EXECUTE FUNCTION fn_definir_atualizado_em();
+
+
+===== docs/banco-de-dados/postgresql/triggers/gfgfg.sql =====
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_locatarios_timestamps') THEN
+    CREATE TRIGGER trg_locatarios_timestamps
+    BEFORE INSERT OR UPDATE ON locatarios
+    FOR EACH ROW EXECUTE FUNCTION fn_set_criado_e_atualizado_em();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_locatarios_before_ins_upd') THEN
+    CREATE TRIGGER trg_locatarios_before_ins_upd
+    BEFORE INSERT OR UPDATE ON locatarios
+    FOR EACH ROW EXECUTE FUNCTION fn_locatarios_before_ins_upd();
+  END IF;
+END $$;
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION fn_locatarios_after_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM fn_auditar_evento(
+    'LOCATARIO_CRIADO',
+    'CRIAR',
+    'locatarios',
+    NEW.id::text,
+    'SUCESSO',
+    jsonb_build_object('nome', NEW.nome)
+  );
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION fn_locatarios_after_update()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_alterados jsonb := '{}'::jsonb;
+BEGIN
+  -- registra apenas “quais campos mudaram” (seguro e útil)
+  IF NEW.nome IS DISTINCT FROM OLD.nome THEN
+    v_alterados := v_alterados || jsonb_build_object('nome', jsonb_build_object('de', OLD.nome, 'para', NEW.nome));
+  END IF;
+
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    v_alterados := v_alterados || jsonb_build_object('status', jsonb_build_object('de', OLD.status, 'para', NEW.status));
+  END IF;
+
+  PERFORM fn_auditar_evento(
+    'LOCATARIO_ATUALIZADO',
+    'ATUALIZAR',
+    'locatarios',
+    NEW.id::text,
+    'SUCESSO',
+    jsonb_build_object('alteracoes', v_alterados)
+  );
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_locatarios_after_insert') THEN
+    CREATE TRIGGER trg_locatarios_after_insert
+    AFTER INSERT ON locatarios
+    FOR EACH ROW EXECUTE FUNCTION fn_locatarios_after_insert();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_locatarios_after_update') THEN
+    CREATE TRIGGER trg_locatarios_after_update
+    AFTER UPDATE ON locatarios
+    FOR EACH ROW EXECUTE FUNCTION fn_locatarios_after_update();
+  END IF;
+END $$;
+
+
+
+
+
+
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_usuarios_timestamps') THEN
+    CREATE TRIGGER trg_usuarios_timestamps
+    BEFORE INSERT OR UPDATE ON usuarios
+    FOR EACH ROW EXECUTE FUNCTION fn_set_criado_e_atualizado_em();
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_usuarios_normalizar_email') THEN
+    CREATE TRIGGER trg_usuarios_normalizar_email
+    BEFORE INSERT OR UPDATE ON usuarios
+    FOR EACH ROW EXECUTE FUNCTION fn_normalizar_email_usuario();
+  END IF;
+END $$;
+
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION fn_usuarios_after_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM fn_auditar_evento(
+    'USUARIO_CRIADO',
+    'CRIAR',
+    'usuarios',
+    NEW.id::text,
+    'SUCESSO',
+    jsonb_build_object('email', NEW.email, 'locatario_id', NEW.locatario_id)
+  );
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_usuarios_after_insert') THEN
+    CREATE TRIGGER trg_usuarios_after_insert
+    AFTER INSERT ON usuarios
+    FOR EACH ROW EXECUTE FUNCTION fn_usuarios_after_insert();
+  END IF;
+END $$;
+
+
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE FUNCTION fn_revogar_tokens_usuario(p_usuario_id uuid, p_locatario_id uuid, p_motivo text)
+RETURNS void AS $$
+BEGIN
+  UPDATE tokens_atualizacao
+     SET revogado_em = now()
+   WHERE usuario_id = p_usuario_id
+     AND (locatario_id IS NOT DISTINCT FROM p_locatario_id)
+     AND revogado_em IS NULL;
+
+  PERFORM fn_auditar_evento(
+    'TOKENS_REVOGADOS',
+    'ATUALIZAR',
+    'tokens_atualizacao',
+    NULL,
+    'SUCESSO',
+    jsonb_build_object('usuario_id', p_usuario_id, 'locatario_id', p_locatario_id, 'motivo', p_motivo)
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION fn_usuarios_after_update()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_alterados jsonb := '{}'::jsonb;
+  v_revogar boolean := false;
+  v_motivo text := NULL;
+BEGIN
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    v_alterados := v_alterados || jsonb_build_object('email', jsonb_build_object('de', OLD.email, 'para', NEW.email));
+  END IF;
+
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    v_alterados := v_alterados || jsonb_build_object('status', jsonb_build_object('de', OLD.status, 'para', NEW.status));
+    v_revogar := true;
+    v_motivo := 'mudanca_status';
+  END IF;
+
+  -- se seu schema tiver senha_hash (ou campo equivalente)
+  IF (NEW.senha_hash IS DISTINCT FROM OLD.senha_hash) THEN
+    v_alterados := v_alterados || jsonb_build_object('senha', 'alterada');
+    v_revogar := true;
+    v_motivo := COALESCE(v_motivo, 'mudanca_senha');
+  END IF;
+
+  PERFORM fn_auditar_evento(
+    'USUARIO_ATUALIZADO',
+    'ATUALIZAR',
+    'usuarios',
+    NEW.id::text,
+    'SUCESSO',
+    jsonb_build_object('alteracoes', v_alterados)
+  );
+
+  IF v_revogar THEN
+    PERFORM fn_revogar_tokens_usuario(NEW.id, NEW.locatario_id, v_motivo);
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_usuarios_after_update') THEN
+    CREATE TRIGGER trg_usuarios_after_update
+    AFTER UPDATE ON usuarios
+    FOR EACH ROW EXECUTE FUNCTION fn_usuarios_after_update();
+  END IF;
+END $$;
+
+
+
+CREATE ROLE db_owner LOGIN PASSWORD '...';
+GRANT ALL PRIVILEGES ON SCHEMA main TO db_owner;
+
+CREATE ROLE app_user LOGIN PASSWORD '...';
+
+GRANT USAGE ON SCHEMA main TO app_user;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON ALL TABLES IN SCHEMA main
+TO app_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA main
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+
+
+ALTER TABLE main.usuarios ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY usuarios_isolamento_locatario
+ON main.usuarios
+USING (locatario_id = current_setting('app.locatario_id')::uuid);
+
+
+SET LOCAL app.locatario_id = 'UUID_DO_LOCATARIO';
+
+await prisma.$executeRaw`
+  select set_config('app.locatario_id', ${locatarioId}, true)
+`;
+
+
+===== docs/banco-de-dados/postgresql/triggers/locatarios_before_delete_for_each_row.sql =====
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'tg_locatarios_before_delete_for_each_row') THEN
+    CREATE TRIGGER tg_locatarios_before_delete_for_each_row
+    BEFORE DELETE ON locatarios
+    FOR EACH ROW EXECUTE FUNCTION fn_locatarios_before_delete_for_each_row();
+  END IF;
+END $$;
+
+===== docs/banco-de-dados/postgresql/views/modulos_habilitados.sql =====
+
+CREATE OR REPLACE VIEW vw_modulos_habilitados_locatario AS
+SELECT
+  l.locatario_id,
+  m.codigo,
+  'SISTEMA'::TEXT AS origem
+FROM locatarios l
+JOIN modulos m
+  ON m.gratuito = TRUE
+ AND m.ativo = TRUE
+
+UNION
+
+SELECT
+  ml.locatario_id,
+  m.codigo,
+  ml.origem
+FROM modulos_locatario ml
+JOIN modulos m
+  ON m.id = ml.modulo_id
+WHERE ml.habilitado = TRUE
+  AND m.ativo = TRUE;

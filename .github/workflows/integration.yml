@@ -1,0 +1,57 @@
+name: Integration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: teste
+          POSTGRES_PASSWORD: teste
+          POSTGRES_DB: teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U corekit -d corekit_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://teste:teste@localhost:5432/teste
+      JWT_SECRET: test-secret-123456789
+      JWT_ISSUER: core-kit-integration
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: pnpm exec prisma generate --schema apps/api/prisma/schema.prisma
+
+      - name: Prisma migrate
+        run: pnpm exec prisma migrate deploy --schema apps/api/prisma/schema.prisma
+
+      - name: Core integration tests
+        run: pnpm -C packages/core exec vitest run "__tests__/**/*.integration.test.ts" "__tests__/**/infra/**/*.test.ts"
+
+      - name: API integration tests
+        run: pnpm -C apps/api exec vitest run "__tests__/**/*.integration.test.ts" "__tests__/**/infra/**/*.test.ts"

@@ -1,0 +1,1135 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "tsProject",
+      "type": "pickString",
+      "description": "Projeto ou pacote TypeScript",
+      "options": [
+        "packages/core/tsconfig.json",
+        "apps/api/tsconfig.json",
+        "apps/web/tsconfig.json"
+      ],
+      "default": "apps/api/tsconfig.json"
+    },
+    {
+      "id": "tsDebugFile",
+      "type": "promptString",
+      "description": "Arquivo TypeScript para validar rapidamente",
+      "default": "apps/api/src/server.ts"
+    },
+    {
+      "id": "backupFile",
+      "type": "promptString",
+      "description": "Caminho do arquivo de backup (.dump)",
+      "default": "backups/mini-saas_2026-05-02_20-53-27.dump"
+    },
+    {
+      "id": "coreTestPackage",
+      "type": "pickString",
+      "description": "Pacote do Core para rodar testes unitários isolados",
+      "options": [
+        "locatarios",
+        "usuarios",
+        "auth",
+        "rbac",
+        "tokens",
+        "assinaturas",
+        "clientes",
+        "fornecedores",
+        "produtos",
+        "vendas",
+        "exportacoes",
+        "importacoes",
+        "modulos",
+        "auditoria",
+        "backups"
+      ],
+      "default": "locatarios"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "TS: Compilar tudo",
+      "type": "shell",
+      "command": "pnpm -C packages/core build && pnpm -C apps/api build && pnpm -C apps/web build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TS: So validar tipos",
+      "type": "shell",
+      "command": "pnpm -C packages/core typecheck && pnpm -C apps/api typecheck && pnpm -C apps/web typecheck",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "TS: Compilar projeto individual",
+      "type": "shell",
+      "command": "npx tsc -p ${input:tsProject}",
+      "group": "build",
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "TS: Revisar projeto individual",
+      "type": "shell",
+      "command": "npx tsc --noEmit -p ${input:tsProject}",
+      "group": "test",
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "TS: Debug rapido",
+      "type": "shell",
+      "command": "npx tsc --noEmit ${input:tsDebugFile}",
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "TS: Auto recompilar",
+      "type": "shell",
+      "command": "npx tsc -w -p ${input:tsProject}",
+      "isBackground": true,
+      "problemMatcher": [
+        "$tsc-watch"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "TS: Limpar build",
+      "type": "shell",
+      "command": "npx tsc -b packages/core/tsconfig.json apps/api/tsconfig.json apps/web/tsconfig.json --clean",
+      "problemMatcher": []
+    },
+    {
+      "label": "TS: Limpar projeto individual",
+      "type": "shell",
+      "command": "npx tsc -b ${input:tsProject} --clean",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Iniciar",
+      "type": "shell",
+      "command": "bash -lc \"cd apps/api && node --env-file=.env --import tsx src/server.ts\"",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "DOTENV_CONFIG_PATH": "apps/api/.env"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Server listening at http://"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Backend: Desligar",
+      "type": "shell",
+      "command": "bash -lc 'set +e; pids=\"$(lsof -tiTCP:3333 -sTCP:LISTEN 2>/dev/null)\"; if [ -n \"$pids\" ]; then kill -TERM $pids 2>/dev/null; sleep 1; kill -KILL $pids 2>/dev/null; fi; pkill -TERM -f \"apps/api/src/server.ts|pnpm -C apps/api exec|node --env-file=.env --import tsx|tsx src/server.ts|apps/api/dist/.+server\" 2>/dev/null; sleep 1; pkill -KILL -f \"apps/api/src/server.ts|pnpm -C apps/api exec|node --env-file=.env --import tsx|tsx src/server.ts|apps/api/dist/.+server\" 2>/dev/null; true'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Backend: Reiniciar",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Backend: Desligar",
+        "Backend: Iniciar"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: Iniciar",
+      "type": "shell",
+      "command": "pnpm -C apps/web dev -- --host 0.0.0.0",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Local:"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Frontend: Desligar",
+      "type": "shell",
+      "command": "bash -lc \"pids=$(lsof -tiTCP:5173 -sTCP:LISTEN 2>/dev/null); if [ -n \\\"$pids\\\" ]; then kill $pids; else pkill -f 'vite.*--host 0.0.0.0|pnpm -C apps/web dev' || true; fi\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: Reiniciar",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Frontend: Desligar",
+        "Frontend: Iniciar"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Core: Build",
+      "type": "shell",
+      "command": "pnpm -C packages/core build",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "API: Build",
+      "type": "shell",
+      "command": "pnpm -C apps/api build",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: Build",
+      "type": "shell",
+      "command": "pnpm -C apps/web build",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Root: Testes Unitarios",
+      "type": "shell",
+      "command": "pnpm test:unit",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Core: Testes",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "API: Testes",
+      "type": "shell",
+      "command": "pnpm -C apps/api exec vitest run",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Prisma: Gerar schema e client API",
+      "type": "shell",
+      "command": "npx prisma db pull --schema=apps/api/prisma/schema.prisma && npx prisma generate --schema=apps/api/prisma/schema.prisma",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Web: Testes Unitarios",
+      "type": "shell",
+      "command": "pnpm -C apps/web exec vitest run",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "API: Reset runtime local",
+      "type": "shell",
+      "command": "bash -lc \"set -euo pipefail; cd '${workspaceFolder}'; echo '==> Encerrando processos locais da API'; pkill -f 'apps/api/src/server.ts' 2>/dev/null || true; pkill -f 'tsx src/index.ts' 2>/dev/null || true; pkill -f 'node --env-file=.env --import tsx src/server.ts' 2>/dev/null || true; echo '==> Limpando dist locais'; rm -rf apps/api/dist packages/core/dist apps/web/dist; echo '==> Removendo cópias empacotadas de @core-kit/api'; rm -rf node_modules/@core-kit/api 2>/dev/null || true; rm -rf node_modules/.pnpm/node_modules/@core-kit/api 2>/dev/null || true; echo '==> Instalando dependências'; pnpm install; echo '==> Gerando Prisma Client'; pnpm -C apps/api exec prisma generate --schema=prisma/schema.prisma; echo '==> Buildando core'; pnpm -C packages/core build; echo '==> Buildando api'; pnpm -C apps/api build; echo '==> Subindo API via source'; cd apps/api && node --env-file=.env --import tsx src/server.ts\"",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": ".",
+          "file": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Server listening at http://"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Database: Backup",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/backup-db.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Listar Backups",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/listar-backups.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Limpar Backups Antigos",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/limpar-backups-antigos.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Validar Backup",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/validar-backup.sh ${input:backupFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Restaurar Backup",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/restore-db.sh ${input:backupFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Database: Testar Restore",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/testar-restore.sh ${input:backupFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Database: Comparar Restore",
+      "type": "shell",
+      "command": "ENV_FILE=./.env.backup bash scripts-backup/scripts/backup/comparar-restore.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Staging: Backup Completo",
+      "type": "shell",
+      "command": "bash scripts-backup/scripts/staging/backup-completo.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "typecheck:core",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec tsc --noEmit",
+      "group": "build"
+    },
+    {
+      "label": "typecheck:api",
+      "type": "shell",
+      "command": "pnpm -C apps/api exec tsc --noEmit",
+      "group": "build"
+    },
+    {
+      "label": "typecheck:web",
+      "type": "shell",
+      "command": "pnpm -C apps/web exec tsc --noEmit",
+      "group": "build"
+    },
+    {
+      "label": "typecheck:all",
+      "dependsOn": [
+        "typecheck:core",
+        "typecheck:api",
+        "typecheck:web"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "Core: Testes por pacote",
+      "type": "shell",
+      "command": "pnpm -C packages/core vitest run __tests__/${input:coreTestPackage}",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Core: Testes locatarios",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/locatarios",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes usuarios",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/usuarios",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes auth",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/auth",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes rbac",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/rbac",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes tokens",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/tokens",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes assinaturas",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/assinaturas",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes clientes",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/clientes",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes fornecedores",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/fornecedores",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes produtos",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/produtos",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes vendas",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/vendas",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes exportacoes",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/exportacoes",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes importacoes",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/importacoes",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes modulos",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/modulos",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes auditoria",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/auditoria",
+      "group": "test"
+    },
+    {
+      "label": "Core: Testes backups",
+      "type": "shell",
+      "command": "pnpm -C packages/core exec vitest run __tests__/backups",
+      "group": "test"
+    },
+    {
+      "label": "concat:core:src",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/core-src.txt && find packages/core/src -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/core-src.txt; cat \"$file\" >> tmp/concat/core-src.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:core:tests",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/core-tests.txt && if [ -d packages/core/__tests__ ]; then find packages/core/__tests__ -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/core-tests.txt; cat \"$file\" >> tmp/concat/core-tests.txt; done; fi",
+      "group": "build"
+    },
+    {
+      "label": "concat:api:src",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/api-src.txt && find apps/api/src -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/api-src.txt; cat \"$file\" >> tmp/concat/api-src.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:api:tests",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/api-tests.txt && if [ -d apps/api/__tests__ ]; then find apps/api/__tests__ -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/api-tests.txt; cat \"$file\" >> tmp/concat/api-tests.txt; done; fi",
+      "group": "build"
+    },
+    {
+      "label": "concat:web:src",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/web-src.txt && find apps/web/src -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/web-src.txt; cat \"$file\" >> tmp/concat/web-src.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:web:tests",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/web-tests.txt && if [ -d apps/web/__tests__ ]; then find apps/web/__tests__ -type f \\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/web-tests.txt; cat \"$file\" >> tmp/concat/web-tests.txt; done; fi",
+      "group": "build"
+    },
+    {
+      "label": "analise:preparar-pasta",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise",
+      "group": "build"
+    },
+    {
+      "label": "analise:mapa-arquitetural",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Mapa Arquitetural Automático'; echo; echo '## packages/core/src'; find packages/core/src -type d | sort; echo; echo '## apps/api/src'; find apps/api/src -type d | sort; echo; echo '## apps/web'; find apps/web -type d | sort; } > tmp/analise/mapa-arquitetural.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:imports-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && grep -RInE \"^import .* from ['\\\"]|^export .* from ['\\\"]\" packages/core/src --include='*.ts' --include='*.tsx' > tmp/analise/imports-core.txt || true",
+      "group": "build"
+    },
+    {
+      "label": "analise:violacoes-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Possíveis violações arquiteturais no Core'; echo; echo '## Imports proibidos no Core'; grep -RInE \"from ['\\\"].*(prisma|fastify|express|http|axios|react|@prisma|node:fs|fs|node:path|path)['\\\"]\" packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## usuarios importando tokens/rbac/auth'; grep -RInE \"from ['\\\"].*(tokens|rbac|auth)\" packages/core/src/usuarios --include='*.ts' --include='*.tsx' || true; echo; echo '## tokens importando rbac/auth'; grep -RInE \"from ['\\\"].*(rbac|auth)\" packages/core/src/tokens --include='*.ts' --include='*.tsx' || true; echo; echo '## rbac importando tokens/auth'; grep -RInE \"from ['\\\"].*(tokens|auth)\" packages/core/src/rbac --include='*.ts' --include='*.tsx' || true; echo; echo '## pacotes base importando auth'; grep -RInE \"from ['\\\"].*auth\" packages/core/src/locatarios packages/core/src/usuarios packages/core/src/tokens packages/core/src/rbac --include='*.ts' --include='*.tsx' || true; } > tmp/analise/violacoes-core.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:result-vs-throw",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Análise Result vs Throw'; echo; echo '## Ocorrências de throw no Core'; grep -RIn \"throw \" packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Uso de Result / Ok / Err'; grep -RInE \"Result<|wrapOk|wrapErr|ok\\(|err\\(|createErroApp|ErroApp\" packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Possíveis try/catch no Core'; grep -RInE \"try \\{|catch \\(\" packages/core/src --include='*.ts' --include='*.tsx' || true; } > tmp/analise/result-vs-throw.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:api-auth-contexto",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Análise API Auth / Contexto'; echo; echo '## Possíveis pontos de composição de auth'; grep -RInE \"runtime|authRuntime|criar.*Auth|emitirSessao|validarSessao|rotacionarRefresh|resolverContexto\" apps/api/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Possíveis aberturas de contexto SQL/RLS'; grep -RInE \"executarComContexto|executarAuthComContexto|set_config|locatario_id|RLS|contexto SQL\" apps/api/src packages/core/src --include='*.ts' --include='*.tsx' || true; echo; echo '## Possíveis usos de as any'; grep -RIn \"as any\" apps/api/src packages/core/src --include='*.ts' --include='*.tsx' || true; } > tmp/analise/api-auth-contexto.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:composicao-proibida",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Composição proibida'; echo; grep -RInE 'createAuthHttpRuntime\\(|createAutorizacaoHttpRuntime\\(' apps/api/src --include='*.ts' --include='*.tsx' | grep -v 'bootstrap/' | grep -v 'infra/prisma/auth/' | grep -v 'infra/prisma/autorizacao/' || true; } > tmp/analise/composicao-proibida.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:throw-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Throws proibidos no Core'; echo; grep -RIn 'throw new Error' packages/core/src --include='*.ts' --include='*.tsx' || true; } > tmp/analise/throw-core.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:imports-cruzados",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Imports cruzados'; echo; grep -RInE 'from .*modules/' apps/api/src/modules --include='*.ts' --include='*.tsx' || true; } > tmp/analise/imports-cruzados.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:dependencias-modulos",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && for dir in apps/api/src/modules/*; do module=$(basename \"$dir\"); echo \"## $module\" >> tmp/analise/dependencias-modulos.md; grep -RhoE \"from ['\\\"][^'\\\"]+\" \"$dir\" --include='*.ts' | sort | uniq >> tmp/analise/dependencias-modulos.md || true; echo >> tmp/analise/dependencias-modulos.md; done",
+      "group": "build"
+    },
+    {
+      "label": "analise:rls-ilegal",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Possíveis aberturas ilegais de contexto'; echo; grep -RIn 'executarComContexto' apps/api/src --include='*.ts' | grep -v 'authPrismaContexto' | grep -v 'execucaoComContexto' || true; } > tmp/analise/rls-ilegal.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:metricas",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Métricas'; echo; echo '## Controllers'; find apps/api/src -iname '*controller.ts' | wc -l; echo; echo '## Repositórios'; find apps/api/src -iname '*Repositorio*.ts' | wc -l; echo; echo '## Throws'; grep -RIn 'throw ' packages/core/src apps/api/src --include='*.ts' | wc -l; echo; echo '## TODO/FIXME'; grep -RInE 'TODO|FIXME' apps/api/src packages/core/src --include='*.ts' || true; echo; echo '## as any'; grep -RIn 'as any' apps/api/src packages/core/src --include='*.ts' || true; } > tmp/analise/metricas.md",
+      "group": "build"
+    },
+    {
+      "label": "arquitetura:smoke-test",
+      "dependsOn": [
+        "analise:composicao-proibida",
+        "analise:throw-core",
+        "analise:imports-cruzados",
+        "analise:rls-ilegal",
+        "analise:metricas"
+      ],
+      "group": "build"
+    },
+    {
+      "label": "analise:all",
+      "dependsOn": [
+        "analise:mapa-arquitetural",
+        "analise:imports-core",
+        "analise:violacoes-core",
+        "analise:result-vs-throw",
+        "analise:api-auth-contexto",
+        "analise:composicao-proibida",
+        "analise:throw-core",
+        "analise:imports-cruzados",
+        "analise:dependencias-modulos",
+        "analise:rls-ilegal",
+        "analise:metricas",
+      ],
+      "group": "build"
+    },
+    {
+      "label": "seguranca:auth-sem-vazamento",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Vazamento de permissões/módulos em Auth'; echo; grep -RInE 'permissoes|modulosHabilitados|modulos|papeis' apps/api/src/modules/auth apps/api/src/middlewares/authGuard.ts apps/api/src/infra/prisma/auth/jwtPorta.ts --include='*.ts' || true; } > tmp/analise/auth-sem-vazamento.md",
+      "group": "build"
+    },
+    {
+      "label": "analise:contratos-auth-core",
+      "type": "shell",
+      "command": "mkdir -p tmp/analise && { echo '# Contratos Auth Core'; echo; grep -RInE 'export interface .*Auth|export type .*Auth|emitirAccessToken|gerarHash|comparar|criarRefresh|validarRefresh' packages/core/src/auth packages/core/src/kernel --include='*.ts' || true; } > tmp/analise/contratos-auth-core.md",
+      "group": "build"
+    },
+    {
+      "label": "concat:core:config",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/core-config.txt && find packages/core -maxdepth 2 -type f \\( -name \"package.json\" -o -name \"tsconfig*.json\" -o -name \"vitest.config.*\" -o -name \"vite.config.*\" -o -name \"eslint.config.*\" -o -name \".eslintrc*\" -o -name \".prettierrc*\" -o -name \"*.config.ts\" -o -name \"*.config.js\" -o -name \"*.config.mjs\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/core-config.txt; cat \"$file\" >> tmp/concat/core-config.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:api:config",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/api-config.txt && find apps/api -maxdepth 2 -type f \\( -name \"package.json\" -o -name \"tsconfig*.json\" -o -name \"vitest.config.*\" -o -name \"vite.config.*\" -o -name \"eslint.config.*\" -o -name \".eslintrc*\" -o -name \".prettierrc*\" -o -name \"*.config.ts\" -o -name \"*.config.js\" -o -name \"*.config.mjs\" -o -name \"schema.prisma\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/api-config.txt; cat \"$file\" >> tmp/concat/api-config.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "concat:web:config",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/web-config.txt && find apps/web -maxdepth 2 -type f \\( -name \"package.json\" -o -name \"tsconfig*.json\" -o -name \"vitest.config.*\" -o -name \"vite.config.*\" -o -name \"eslint.config.*\" -o -name \".eslintrc*\" -o -name \".prettierrc*\" -o -name \"*.config.ts\" -o -name \"*.config.js\" -o -name \"*.config.mjs\" -o -name \"index.html\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/web-config.txt; cat \"$file\" >> tmp/concat/web-config.txt; done",
+      "group": "build"
+    },
+    {
+      "label": "analise:web-imports-proibidos",
+      "type": "shell",
+      "command": "if grep -R \"apps/web/src\" -n apps/web/src; then echo '\nERRO: imports absolutos apps/web/src detectados'; exit 1; else echo 'OK: imports web válidos'; fi",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:up",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml up -d",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:down",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml down",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:restart",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up -d",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:logs",
+      "type": "shell",
+      "command": "docker logs -f corekit-postgres",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:status",
+      "type": "shell",
+      "command": "docker ps",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "docker:postgres:psql",
+      "type": "shell",
+      "command": "docker exec -it corekit-postgres psql -U teste -d teste",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "concat:postgresql:docs",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && : > tmp/concat/postgresql-docs.txt && find docs/banco-de-dados/postgresql -type f \\( -name \"*.sql\" -o -name \"*.md\" -o -name \"*.txt\" -o -name \"*.json\" -o -name \"*.yaml\" -o -name \"*.yml\" -o -name \"*.mermaid\" -o -name \"*.mmd\" \\) -print0 | sort -z | while IFS= read -r -d '' file; do printf '\\n\\n===== %s =====\\n\\n' \"$file\" >> tmp/concat/postgresql-docs.txt; cat \"$file\" >> tmp/concat/postgresql-docs.txt; done",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Prisma · Inspecionar Modelo",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "echo '=== MODELS ===' && grep '^model ' apps/api/prisma/schema.prisma && echo '' && echo '=== ENUMS ===' && grep '^enum ' apps/api/prisma/schema.prisma && echo '' && echo '=== PKS COMPOSTAS ===' && grep -n '@@id' apps/api/prisma/schema.prisma && echo '' && echo '=== UNIQUES ===' && grep -n '@@unique' apps/api/prisma/schema.prisma && echo '' && echo '=== REFERÊNCIAS ANTIGAS ===' && grep -RInE 'db\\.(tokens|modulos_assinatura|movimentos_estoque)|cliente_id_locatario_id|fornecedor_id_locatario_id|produto_id_locatario_id|transacao_id_locatario_id|locatario_id_item_transacao_id_transacao_id|locatario_id: null' apps/api/src || true && echo '' && echo '=== TYPESCRIPT ===' && pnpm -C apps/api exec tsc --noEmit"
+      ],
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma · Pull + Generate + Check",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "npx prisma db pull --schema apps/api/prisma/schema.prisma && npx prisma generate --schema apps/api/prisma/schema.prisma && pnpm -C apps/api exec tsc --noEmit"
+      ],
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma · PKs Compostas",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "grep -RInE 'cliente_id_locatario_id|fornecedor_id_locatario_id|produto_id_locatario_id|transacao_id_locatario_id|locatario_id_item_transacao_id_transacao_id' apps/api/src || true"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma · Diagnóstico",
+      "type": "shell",
+      "command": "echo '=== MODELS ==='; grep '^model ' apps/api/prisma/schema.prisma; echo ''; echo '=== PKS ==='; grep '@@id' apps/api/prisma/schema.prisma; echo ''; echo '=== REFERÊNCIAS ANTIGAS ==='; grep -RInE 'modulos_assinatura|movimentos_estoque|cliente_id_locatario_id|fornecedor_id_locatario_id|produto_id_locatario_id|transacao_id_locatario_id|locatario_id_item_transacao_id_transacao_id|locatario_id: null' apps/api/src || true; echo ''; echo '=== TYPESCRIPT ==='; pnpm -C apps/api exec tsc --noEmit",
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma · Erros de Migração",
+      "type": "shell",
+      "command": "pnpm -C apps/api exec tsc --noEmit | grep -E 'modulos_assinatura|tokens|movimentos_estoque|locatario_id: null|WhereUniqueInput|CompoundUniqueInput|status_usuario' || true",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Prisma · PKs Compostas",
+      "type": "shell",
+      "command": "grep -n '@@id' apps/api/prisma/schema.prisma",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Health",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "http://localhost:3333/api/health"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Login Plataforma",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-X", "POST",
+        "http://localhost:3333/api/auth/plataforma/login",
+        "-H", "Content-Type: application/json",
+        "-d",
+        "{\"email\":\"superadmin@email.com.br\",\"senha\":\"123456\"}"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Login Locatário",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-X", "POST",
+        "http://localhost:3333/api/auth/login",
+        "-H", "Content-Type: application/json",
+        "-d",
+        "{\"email\":\"adminloja@email.com.br\",\"senha\":\"123456\"}"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Clientes",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-H",
+        "Authorization: Bearer $TOKEN",
+        "http://localhost:3333/api/clientes"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Produtos",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-H",
+        "Authorization: Bearer $TOKEN",
+        "http://localhost:3333/api/produtos"
+      ]
+    },
+    {
+      "label": "API · Transações",
+      "type": "shell",
+      "command": "curl",
+      "args": [
+        "-s",
+        "-H",
+        "Authorization: Bearer $TOKEN",
+        "http://localhost:3333/api/transacoes"
+      ]
+    },
+    {
+      "label": "API · Smoke Test",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "API · Health",
+        "API · Login Plataforma",
+        "API · Login Locatário"
+      ]
+    },
+    {
+      "label": "API · Smoke Test Completo",
+      "type": "shell",
+      "command": "TOKEN=$(curl -s -X POST http://localhost:3333/api/auth/login -H \"Content-Type: application/json\" -d '{\"slug\":\"loja\",\"email\":\"adminloja@email.com.br\",\"senha\":\"123456\"}' | jq -r '.accessToken'); echo; echo \"=== TOKEN ===\"; echo \"${TOKEN:0:50}...\"; echo; echo \"=== HEALTH ===\"; curl -s http://localhost:3333/api/health | jq .; echo; echo \"=== CLIENTES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/clientes | jq .; echo; echo \"=== PRODUTOS ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/produtos | jq .; echo; echo \"=== TRANSACOES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/transacoes | jq .",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Smoke Test Plataforma",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "TOKEN=$(curl -s -X POST http://localhost:3333/api/auth/plataforma/login -H 'Content-Type: application/json' -d '{\"email\":\"superadmin@email.com.br\",\"senha\":\"123456\"}' | jq -r '.accessToken'); echo ''; echo '=== TOKEN PLATAFORMA ==='; echo ${TOKEN:0:50}...; echo ''; echo '=== LOCATARIOS ==='; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/plataforma/locatarios | jq ."
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Smoke Test Assistência",
+      "type": "shell",
+      "command": "TOKEN=$(curl -s -X POST http://localhost:3333/api/auth/login -H \"Content-Type: application/json\" -d '{\"slug\":\"assistencia\",\"email\":\"adminassistencia@email.com.br\",\"senha\":\"123456\"}' | jq -r '.accessToken'); echo; echo \"=== TOKEN ===\"; echo \"${TOKEN:0:50}...\"; echo; echo \"=== CLIENTES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/clientes | jq .; echo; echo \"=== PRODUTOS ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/produtos | jq .; echo; echo \"=== TRANSACOES ===\"; curl -s -H \"Authorization: Bearer $TOKEN\" http://localhost:3333/api/transacoes | jq .",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "API · Diagnóstico Login",
+      "type": "shell",
+      "command": "echo '=== HEALTH RAW ==='; curl -i http://localhost:3333/api/health; echo; echo; echo '=== LOGIN RAW ==='; curl -i -X POST http://localhost:3333/api/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"adminloja@email.com.br\",\"senha\":\"123456\"}'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "Docker: Build API Staging",
+      "type": "shell",
+      "command": "docker build -f apps/api/Dockerfile -t corekit-api:staging .",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build Web Staging",
+      "type": "shell",
+      "command": "docker build -f apps/web/Dockerfile -t corekit-web:staging .",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build All Staging",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Docker: Build API Staging",
+        "Docker: Build Web Staging"
+      ]
+    },
+    {
+      "label": "Docker: Up Staging",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.staging.yml up -d",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Recreate Staging",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.staging.yml up -d --force-recreate",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Deploy Staging Local",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Docker: Build API Staging",
+        "Docker: Build Web Staging",
+        "Docker: Recreate Staging"
+      ]
+    },
+    {
+      "label": "Docker: Down Staging",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.staging.yml down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: PS",
+      "type": "shell",
+      "command": "docker ps",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Logs API",
+      "type": "shell",
+      "command": "docker logs -f corekit-api-staging",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Logs Web",
+      "type": "shell",
+      "command": "docker logs -f corekit-web-staging",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Health API",
+      "type": "shell",
+      "command": "curl -i http://localhost:3334/api/auth/me",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "API: Concat HTTP Layer",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src \\( -name '*.dto.ts' -o -name '*.controller.ts' -o -name '*.routes.ts' -o -name '*.presenter.ts' \\) -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-http.txt && echo 'Gerado: tmp/concat/api-http.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat DTOs",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.dto.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-dtos.txt && echo 'Gerado: tmp/concat/api-dtos.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat Controllers",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.controller.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-controllers.txt && echo 'Gerado: tmp/concat/api-controllers.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat Routes",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.routes.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-routes.txt && echo 'Gerado: tmp/concat/api-routes.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat Presenters",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.presenter.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-presenters.txt && echo 'Gerado: tmp/concat/api-presenters.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}

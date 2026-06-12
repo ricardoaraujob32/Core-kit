@@ -1,23 +1,44 @@
 #!/usr/bin/env bash
-set -euo pipefail
-source "$(dirname "$0")/00-common.sh"
+set -Eeuo pipefail
 
-msg "Preparando Python (venv + pip atualizado)..."
-sudo apt-get update -y
-sudo apt-get install -y python3 python3-venv python3-pip
+###############################################################################
+# 03-python-venv.sh — Python + venv local (.venv) para o monorepo
+#
+# Finalidade:
+# - Instalar Python3 + venv + pip (APT)
+# - Criar um ambiente virtual local em .venv na raiz do repositório
+# - Atualizar pip dentro do venv
+#
+# Variáveis (opcionais):
+#   VENV_DIR=".venv"
+###############################################################################
 
-msg "Criando venv local em .venv (raiz do repo), se não existir..."
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1090
+source "$SCRIPT_DIR/00-lib.sh"
+
+VENV_DIR="${VENV_DIR:-.venv}"
+
+need_cmd git
+
+log "Preparando Python (venv + pip atualizado)..."
+as_root apt-get update -y
+as_root apt-get install -y python3 python3-venv python3-pip
+
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
-if [ ! -d ".venv" ]; then
-  python3 -m venv .venv
+if [[ ! -d "$VENV_DIR" ]]; then
+  log "Criando venv local em $VENV_DIR..."
+  python3 -m venv "$VENV_DIR"
+else
+  log "venv já existe: $VENV_DIR"
 fi
 
 # shellcheck disable=SC1091
-source .venv/bin/activate
+source "$VENV_DIR/bin/activate"
 python -m pip install --upgrade pip
 
-msg "Python: $(python --version)"
-msg "pip:    $(pip --version)"
-msg "OK."
+log "Python: $(python --version)"
+log "pip:    $(pip --version)"
+log "OK."

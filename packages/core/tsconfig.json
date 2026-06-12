@@ -1,10 +1,15 @@
+//packages/core/tsconfig.json
+
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": ".",
     "outDir": "dist",
     "composite": true,
     "declaration": true,
-    "types": ["node"]
+    "types": ["node"],
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"]
   },
-  "include": ["src"]
+  "include": ["src", "__tests__"]
 }

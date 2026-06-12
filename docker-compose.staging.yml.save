@@ -1,0 +1,20 @@
+services:
+  api:
+    image: corekit-api:staging
+    container_name: corekit-api-staging
+    restart: unless-stopped
+    networks:
+      - core-kit_default
+    ports:
+      - "3334:3333"
+    environment:
+      NODE_ENV: development
+      PORT: 3333
+      HOST: 0.0.0.0
+      JWT_SECRET: core-kit-staging-secret-local-123456
+      JWT_ISSUER: core-kit-staging
+      DATABASE_URL: postgresql://corekit_dev:corekit_dev@postgres:5432/corekit_dev
+
+networks:
+  core-kit_default:
+    external: true

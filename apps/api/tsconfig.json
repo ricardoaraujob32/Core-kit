@@ -2,10 +2,20 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "moduleResolution": "node",
+    "baseUrl": "../../",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "types": ["node"]
+    "paths": {
+      "@core-kit/core": ["packages/core/src"],
+      "@core-kit/api": ["apps/api/src"],
+      "@core-kit/api/*": ["apps/api/src/*"],
+      "@env": ["apps/api/src/env.ts"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "__tests__"]
 }

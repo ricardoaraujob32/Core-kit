@@ -6,13 +6,32 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "node --watch dist/index.js",
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/index.js"
+    "dev": "tsx src/server.ts",
+    "build": "pnpm exec prisma generate --schema=prisma/schema.prisma && pnpm -C ../../packages/core build && tsc -p tsconfig.json",
+    "postinstall": "prisma generate --schema=prisma/schema.prisma",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm exec prisma generate --schema=prisma/schema.prisma && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@core-kit/core": "0.1.0",
-    "fastify": "^4.0.0"
+    "@prisma/client": "^6.19.2",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/jwt": "^9.0.0",
+    "bcryptjs": "^3.0.3",
+    "fastify": "^5.0.0",
+    "fastify-plugin": "^5.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.0.10",
+    "dotenv": "^17.3.1",
+    "prisma": "^6.19.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.0",
+    "vitest": "^1.6.1"
   }
 }

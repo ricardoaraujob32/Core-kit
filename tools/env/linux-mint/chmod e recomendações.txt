@@ -1,0 +1,35 @@
+# chmod
+
+# supondo que a pasta e os scripts estão aqui:
+# /home/dev/Scripts/setup-linux/
+
+sudo chown -R dev:dev /home/dev/scripts
+
+# pasta privada do dev
+chmod 700 /home/dev/scripts
+chmod 700 /home/dev/scripts/setup-linux
+chmod 700 /home/dev/scripts/setup-linux/*.sh
+
+# (opcional) se quiser permitir leitura pra outros (sem executar), use 744 nos scripts:
+# chmod 744 /home/dev/Scripts/setup-linux/*.sh
+
+
+# Rodar tudo (recomendado)
+
+cd ~/scripts/setup-linux
+export DB_PASS='SUA_SENHA_FORTE'
+./setup_all.sh --all
+
+
+# só VSCode + extensões
+
+cd ~/scripts/setup-linux
+./setup_all.sh --vscode --vscode-ext
+
+
+
+# Rodar sem executar (auditoria)
+
+cd ~/scripts/setup-linux
+DRY_RUN=1 ./setup_all.sh --all
+
