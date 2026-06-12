@@ -2,7 +2,7 @@
 
 import type { FastifyPluginAsync } from "fastify";
 import { authGuard } from "../middlewares/authGuard";
-import { adicionarItemTransacaoController, atualizarItemTransacaoController, cancelarTransacaoController, confirmarTransacaoController, criarCompraController, criarVendaController, listarTransacoesController, obterTransacaoController, removerItemTransacaoController } from "../modules/vendas/vendas.controller";
+import { adicionarItemTransacaoController, atualizarItemTransacaoController, cancelarTransacaoController, concluirTransacaoController, confirmarTransacaoController, criarCompraController, criarVendaController, listarTransacoesController, obterTransacaoController, removerItemTransacaoController } from "../modules/vendas/vendas.controller";
 import { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto, 
   TransacaoIdParamsDto } from "../modules/vendas/vendas.dto";
 
@@ -59,5 +59,11 @@ export const vendasRoutes: FastifyPluginAsync = async (app) => {
     "/transacoes/:id/cancelar",
     { preHandler: [authGuard] },
     cancelarTransacaoController,
+  );
+
+  app.post<{ Params: TransacaoIdParamsDto }>(
+    "/transacoes/:id/concluir",
+    { preHandler: [authGuard] },
+    concluirTransacaoController,
   );
 };

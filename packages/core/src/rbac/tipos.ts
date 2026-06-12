@@ -70,6 +70,8 @@ export const Permissoes = {
   TENANT_ASSINATURA_LER: "tenant.assinatura.ler",
   TENANT_ASSINATURA_ATUALIZAR: "tenant.assinatura.atualizar",
 
+  TENANT_TRANSACAO_ATUALIZAR: "tenant.transacao.atualizar",
+
   AUTH_SESSAO_VALIDAR: "auth.sessao.validar",
   AUTH_SESSAO_REVOGAR: "auth.sessao.revogar",
 } as const;

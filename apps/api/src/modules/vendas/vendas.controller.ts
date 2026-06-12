@@ -1,9 +1,8 @@
 // apps/api/src/modules/vendas/vendas.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConfirmarTransacao, createFnCriarCompra,
-  createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, 
-  metaAcao} from "@core-kit/core";
+import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConcluirTransacao, createFnConfirmarTransacao, createFnCriarCompra,
+  createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, metaAcao, Permissao } from "@core-kit/core";
 import { clientePrisma } from "../../infra/prisma/client";
 import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
 import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
@@ -18,6 +17,7 @@ import type { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, Canc
 import { toListarTransacoesResponseDto, toTransacaoDetalhadaResponseDto, toTransacaoResponseDto } from "./vendas.presenter";
 import { auditarController } from "../auditoria/auditarController";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { responderErroValidacaoZod } from "../helpersValidacao";
 
 function criarDepsVendasBase() {
   return {
@@ -455,6 +455,37 @@ export async function cancelarTransacaoController(request: FastifyRequest<{ Para
       transacaoId: paramsParse.data.id,
       motivo: bodyParse.data.motivo ?? null,
     }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toTransacaoResponseDto(resultado.value.transacao),
+  });
+}
+
+export async function concluirTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const paramsParse = parseTransacaoIdParams(request.params);
+
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(
+      reply,
+      paramsParse,
+      "http.vendas.params",
+    );
+  }
+
+  const concluirTransacao = createFnConcluirTransacao(criarDepsVendasBase());
+
+  const resultado = await concluirTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    usuarioId: ctx.usuarioId ?? null,
   });
 
   if (!resultado.ok) {

@@ -398,14 +398,22 @@ model itens_transacao {
   item_transacao_id     String                  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   transacao_id          String                  @db.Uuid
   produto_id            String                  @db.Uuid
-  estoque_id            String                  @db.Uuid
-  valor                 Decimal                 @db.Decimal(18, 3)
+  estoque_id            String?                 @db.Uuid
+  valor_total           Decimal                 @db.Decimal(18, 3)
   criado_em             DateTime                @default(now()) @db.Timestamptz(6)
   atualizado_em         DateTime                @default(now()) @db.Timestamptz(6)
   excluido_em           DateTime?               @db.Timestamptz(6)
   excluido_por          String?                 @db.Uuid
   excluido_motivo       String?
-  estoques              estoques                @relation(fields: [locatario_id, estoque_id], references: [locatario_id, estoque_id], map: "itens_transacao_estoques_fk")
+  descricao             String?                 @db.VarChar
+  tipo_produto          String?                 @db.VarChar
+  quantidade            Decimal?                @default(1) @db.Decimal(18, 3)
+  valor_unitario        Decimal?                @db.Decimal(18, 3)
+  valor_subtotal        Decimal?                @db.Decimal(18, 3)
+  valor_desconto        Decimal?                @db.Decimal(18, 3)
+  valor_acrescimo       Decimal?                @db.Decimal(18, 3)
+  movimenta_estoque     Boolean?                @default(false)
+  estoques              estoques?               @relation(fields: [locatario_id, estoque_id], references: [locatario_id, estoque_id], map: "itens_transacao_estoques_fk")
   produtos              produtos                @relation(fields: [locatario_id, produto_id], references: [locatario_id, produto_id], map: "itens_transacao_produtos_fk")
   transacoes            transacoes              @relation(fields: [locatario_id, transacao_id], references: [locatario_id, transacao_id], onDelete: Cascade, map: "itens_transacao_transacoes_fk")
   movimentacoes_estoque movimentacoes_estoque[]
@@ -441,22 +449,24 @@ model ordens_servico {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model produtos {
-  produto_id            String                  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  locatario_id          String                  @db.Uuid
-  sku                   String?
-  nome                  String
-  unidade               String?                 @default("UN")
-  tipo                  String
-  ativo                 Boolean                 @default(true)
-  criado_em             DateTime                @default(now()) @db.Timestamptz(6)
-  atualizado_em         DateTime                @default(now()) @db.Timestamptz(6)
-  excluido_em           DateTime?               @db.Timestamptz(6)
-  excluido_por          String?                 @db.Uuid
-  excluido_motivo       String?
-  preco                 Decimal                 @default(0) @db.Decimal(18, 3)
-  itens_transacao       itens_transacao[]
-  movimentacoes_estoque movimentacoes_estoque[]
-  locatarios            locatarios              @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "produtos_locatarios_fk")
+  produto_id                String                  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  locatario_id              String                  @db.Uuid
+  sku                       String?
+  nome                      String
+  unidade                   String?                 @default("UN")
+  tipo                      String
+  ativo                     Boolean                 @default(true)
+  criado_em                 DateTime                @default(now()) @db.Timestamptz(6)
+  atualizado_em             DateTime                @default(now()) @db.Timestamptz(6)
+  excluido_em               DateTime?               @db.Timestamptz(6)
+  excluido_por              String?                 @db.Uuid
+  excluido_motivo           String?
+  preco_varejo              Decimal                 @default(0) @db.Decimal(18, 3)
+  preco_atacado             Decimal?                @default(0) @db.Decimal(18, 3)
+  quantidade_minima_atacado Decimal?                @db.Decimal(18, 3)
+  itens_transacao           itens_transacao[]
+  movimentacoes_estoque     movimentacoes_estoque[]
+  locatarios                locatarios              @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "produtos_locatarios_fk")
 
   @@id([locatario_id, produto_id], map: "produtos_pk")
   @@schema("core")
@@ -472,7 +482,7 @@ model transacoes {
   ordem_servico_id String?           @db.Uuid
   tipo             String
   origem           String
-  valor            Decimal           @db.Decimal(18, 3)
+  valor_total      Decimal           @db.Decimal(18, 3)
   vencimento_em    DateTime          @db.Timestamptz(6)
   status           String
   criado_em        DateTime          @default(now()) @db.Timestamptz(6)
@@ -480,6 +490,13 @@ model transacoes {
   excluido_em      DateTime?         @db.Timestamptz(6)
   excluido_por     String?           @db.Uuid
   excluido_motivo  String?
+  valor_subtotal   Decimal?          @db.Decimal(18, 3)
+  valor_desconto   Decimal?          @db.Decimal(18, 3)
+  valor_acrescimo  Decimal?          @db.Decimal(18, 3)
+  observacao       String?           @db.VarChar
+  cancelado_em     DateTime?         @db.Timestamptz(6)
+  cancelado_por    String?           @db.Uuid
+  cancelado_motivo String?           @db.VarChar
   itens_transacao  itens_transacao[]
   clientes         clientes?         @relation(fields: [locatario_id, cliente_id], references: [locatario_id, cliente_id], map: "transacoes_clientes_fk")
   fornecedores     fornecedores?     @relation(fields: [locatario_id, fornecedor_id], references: [locatario_id, fornecedor_id], map: "transacoes_fornecedores_fk")

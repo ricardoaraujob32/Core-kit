@@ -4,10 +4,16 @@ CREATE TABLE IF NOT EXISTS core.itens_transacao (
   item_transacao_id UUID NOT NULL DEFAULT gen_random_uuid(),
   transacao_id UUID NOT NULL,
   produto_id UUID NOT NULL,
-  estoque_id UUID NOT NULL,
-
-  valor NUMERIC(18,3) NOT NULL, 
-
+  estoque_id UUID NULL,
+  valor_unitario numeric(18, 3) NULL,
+  valor_subtotal numeric(18, 3) NULL,
+  valor_desconto numeric(18, 3) NULL,
+  valor_acrescimo numeric(18, 3) NULL,
+  valor_total NUMERIC(18,3) NOT NULL, 
+  descricao varchar NULL,
+  tipo_produto varchar NULL,
+  quantidade numeric(18, 3) DEFAULT 1 NULL,
+  movimenta_estoque boolean DEFAULT false NULL;
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
   excluido_em TIMESTAMPTZ NULL,

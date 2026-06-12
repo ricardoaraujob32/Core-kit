@@ -49,6 +49,8 @@ export type ItemTransacaoComercial = {
   tipoProduto: TipoProduto;
   quantidade: number;
   valorUnitario: number;
+  valorSubtotal: number;
+  valorAcrescimo: number;
   valorDesconto: number;
   valorTotal: number;
   movimentaEstoque: boolean;
@@ -123,6 +125,7 @@ export type AtualizarItemTransacaoInput = {
   quantidade?: number;
   valorUnitario?: number;
   valorDesconto?: number;
+  valorAcrescimo?: number;
 };
 
 export type AtualizarItemTransacaoOutput = {

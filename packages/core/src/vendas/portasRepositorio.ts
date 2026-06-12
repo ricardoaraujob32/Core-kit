@@ -3,7 +3,8 @@
 import type { ErroApp, Result } from "../kernel";
 import { LocatarioId } from "../locatarios";
 import type { ProdutoId } from "../produtos";
-import type { EstoqueId, HistoricoTransacaoComercial, ItemTransacaoComercial, MovimentoEstoqueComercial, StatusTransacaoComercial, TipoTransacaoComercial, TransacaoComercial, TransacaoId, ItemTransacaoId } from "./tipos";
+import type { EstoqueId, HistoricoTransacaoComercial, ItemTransacaoComercial, MovimentoEstoqueComercial, StatusTransacaoComercial, TipoTransacaoComercial, 
+  TransacaoComercial, TransacaoId, ItemTransacaoId } from "./tipos";
 
 /**
  * 
@@ -81,16 +82,7 @@ export interface VendasRepositorio {
     itemTransacaoId: ItemTransacaoId;
   }): Promise<Result<void, ErroApp>>;
 
-  registrarMovimentoEstoque(movimento: {
-    locatarioId: LocatarioId;
-    estoqueId: EstoqueId | null;
-    produtoId: ProdutoId;
-    transacaoId: TransacaoId;
-    itemTransacaoId: ItemTransacaoId;
-    tipo: "ENTRADA" | "SAIDA";
-    quantidade: number;
-    ocorridoEm: Date;
-  }): Promise<Result<void, ErroApp>>;
+  registrarMovimentoEstoque(movimento: MovimentoEstoqueComercial): Promise<Result<void, ErroApp>>;
 }
 
 /**
@@ -123,5 +115,7 @@ export interface ProdutoComercialConsultaPorta {
    * 
    * @param params 
    */
-  buscarProdutoParaTransacao(params: { locatarioId: LocatarioId; produtoId: ProdutoId }): Promise<Result<{ produtoId: ProdutoId; nome: string; tipo: "PRODUTO" | "SERVICO"; status: "ATIVO" | "INATIVO" | "EXCLUIDO"; precoVenda: number; custoReferencia: number | null }, ErroApp>>;
+  buscarProdutoParaTransacao(params: { locatarioId: LocatarioId; produtoId: ProdutoId }): 
+  Promise<Result<{ produtoId: ProdutoId; nome: string; tipo: "PRODUTO" | "SERVICO"; status: "ATIVO" | "INATIVO" | "EXCLUIDO"; precoVenda: number; precoVarejo: number;
+  precoAtacado: number | null; quantidadeMinimaAtacado: number | null; custoReferencia: number | null }, ErroApp>>;
 }

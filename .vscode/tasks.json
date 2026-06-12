@@ -1061,5 +1061,75 @@
       "group": "test",
       "problemMatcher": []
     },
+    {
+      "label": "API: Concat HTTP Layer",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src \\( -name '*.dto.ts' -o -name '*.controller.ts' -o -name '*.routes.ts' -o -name '*.presenter.ts' \\) -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-http.txt && echo 'Gerado: tmp/concat/api-http.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat DTOs",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.dto.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-dtos.txt && echo 'Gerado: tmp/concat/api-dtos.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat Controllers",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.controller.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-controllers.txt && echo 'Gerado: tmp/concat/api-controllers.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat Routes",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.routes.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-routes.txt && echo 'Gerado: tmp/concat/api-routes.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "API: Concat Presenters",
+      "type": "shell",
+      "command": "mkdir -p tmp/concat && find apps/api/src -name '*.presenter.ts' -type f | sort | while read f; do echo '=================================================='; echo \"FILE: $f\"; echo '=================================================='; cat \"$f\"; echo; echo; done > tmp/concat/api-presenters.txt && echo 'Gerado: tmp/concat/api-presenters.txt'",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
   ]
 }

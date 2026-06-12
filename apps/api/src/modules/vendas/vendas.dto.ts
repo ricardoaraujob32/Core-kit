@@ -36,19 +36,23 @@ export const atualizarItemTransacaoBodySchema = z
     quantidade: z.coerce.number().positive().optional(),
     valorUnitario: z.coerce.number().nonnegative().optional(),
     valorDesconto: z.coerce.number().nonnegative().optional(),
+    valorAcrescimo: z.coerce.number().nonnegative().optional(),
   })
   .refine(
     (data) =>
       data.descricao !== undefined ||
       data.quantidade !== undefined ||
       data.valorUnitario !== undefined ||
-      data.valorDesconto !== undefined,
+      data.valorDesconto !== undefined ||
+      data.valorAcrescimo !== undefined,
     { message: "Informe ao menos um campo para atualização do item." },
   );
 
 export const cancelarTransacaoBodySchema = z.object({
   motivo: z.string().trim().optional().nullable(),
 });
+
+
 
 export type TransacaoIdParamsDto = z.infer<typeof transacaoIdParamsSchema>;
 export type ItemTransacaoIdParamsDto = z.infer<typeof itemTransacaoIdParamsSchema>;

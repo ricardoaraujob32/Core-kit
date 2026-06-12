@@ -2,7 +2,7 @@
 
 import { wrapErr, wrapOk } from "../../../src/kernel";
 import type { VendasRepositorio } from "../../../src/vendas/portasRepositorio";
-import type { HistoricoTransacaoComercial, ItemTransacaoComercial, TransacaoComercial } from "../../../src/vendas/tipos";
+import type { HistoricoTransacaoComercial, ItemTransacaoComercial, MovimentoEstoqueComercial, TransacaoComercial } from "../../../src/vendas/tipos";
 import { criarControleFalhasRepositorio, type FalhaSimuladaRepositorio } from "../../simulacroRepositorioFactory";
 
 type OperacaoVendas =
@@ -17,7 +17,8 @@ type OperacaoVendas =
   | "atualizarItem"
   | "removerItem"
   | "criarHistorico"
-  | "listarHistorico";
+  | "listarHistorico"
+  | "registrarMovimentoEstoque";
 
 export type VendasSimulacroRepositorio = VendasRepositorio & {
   carregarTransacao(transacao: TransacaoComercial): void;
@@ -27,6 +28,7 @@ export type VendasSimulacroRepositorio = VendasRepositorio & {
     transacoes: TransacaoComercial[];
     itens: ItemTransacaoComercial[];
     historico: HistoricoTransacaoComercial[];
+    movimentosEstoque: MovimentoEstoqueComercial[];
   };
   simularFalha(operacao: OperacaoVendas, falha?: FalhaSimuladaRepositorio): void;
   limparFalhas(): void;
@@ -46,6 +48,7 @@ export function criarVendasSimulacroRepositorio(params: {
   const transacoes = new Map<string, TransacaoComercial>();
   const itens = new Map<string, ItemTransacaoComercial>();
   const historicos = new Map<string, HistoricoTransacaoComercial>();
+  const movimentosEstoque: MovimentoEstoqueComercial[] = [];
 
   const falhas = criarControleFalhasRepositorio<OperacaoVendas>({
     namespace: "teste.vendas",
@@ -70,6 +73,7 @@ export function criarVendasSimulacroRepositorio(params: {
         transacoes: [...transacoes.values()].map(cloneDate),
         itens: [...itens.values()].map(cloneDate),
         historico: [...historicos.values()].map(cloneDate),
+        movimentosEstoque: movimentosEstoque.map(cloneDate),
       };
     },
 
@@ -166,6 +170,16 @@ export function criarVendasSimulacroRepositorio(params: {
       if (falhas.possuiFalha("criarHistorico")) return wrapErr(falhas.erroFalha("criarHistorico"));
       api.carregarHistorico(h as HistoricoTransacaoComercial);
       return wrapOk({ historicoId: h.historicoId });
+    },
+
+    async registrarMovimentoEstoque(movimento) {
+      if (falhas.possuiFalha("registrarMovimentoEstoque")) {
+        return falhas.erroFalha("registrarMovimentoEstoque");
+      }
+
+      movimentosEstoque.push(cloneDate(movimento as MovimentoEstoqueComercial));
+
+      return wrapOk(undefined);
     },
 
     async listarHistorico(p) {

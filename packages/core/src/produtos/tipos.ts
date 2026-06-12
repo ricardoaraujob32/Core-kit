@@ -18,6 +18,9 @@ export type Produto = {
   tipo: TipoProduto;
   status: ProdutoStatus;
   precoVenda: number;
+  precoVarejo: number;
+  precoAtacado: number | null;
+  quantidadeMinimaAtacado: number | null;
   custoReferencia: number | null;
   criadoEm: Date;
   atualizadoEm: Date;
@@ -26,20 +29,70 @@ export type Produto = {
   excluidoMotivo: string | null;
 };
 
-export type CriarProdutoInput = { locatarioId: LocatarioId; sku?: string | null; nome: string; descricao?: string | null; unidade?: string; tipo: TipoProduto; precoVenda?: number; custoReferencia?: number | null };
-export type CriarProdutoOutput = { produtoId: ProdutoId };
+export type CriarProdutoInput = { 
+  locatarioId: LocatarioId; 
+  sku?: string | null; 
+  nome: string; 
+  descricao?: string | null; 
+  unidade?: string; 
+  tipo: TipoProduto; 
+  precoVenda?: number;
+  precoVarejo?: number;
+  precoAtacado?: number | null;
+  quantidadeMinimaAtacado?: number | null; 
+  custoReferencia?: number | null 
+};
+
+export type CriarProdutoOutput = { 
+  produtoId: ProdutoId
+};
+
 export type CriarProdutoResult = Promise<Result<CriarProdutoOutput, ErroApp>>;
-export type ObterProdutoInput = { locatarioId: LocatarioId; produtoId: ProdutoId };
-export type ObterProdutoOutput = { produto: Produto };
+
+export type ObterProdutoInput = { 
+  locatarioId: LocatarioId; 
+  produtoId: ProdutoId 
+};
+
+export type ObterProdutoOutput = {
+  produto: Produto 
+};
+
 export type ObterProdutoResult = Promise<Result<ObterProdutoOutput, ErroApp>>;
-export type ListarProdutosInput = { locatarioId: LocatarioId; tipo?: TipoProduto; cursor?: ProdutoId; limite?: number };
-export type ListarProdutosOutput = { itens: Produto[] };
+
+export type ListarProdutosInput = { 
+  locatarioId: LocatarioId; 
+  tipo?: TipoProduto; 
+  cursor?: ProdutoId; 
+  limite?: number 
+};
+
+export type ListarProdutosOutput = { 
+  itens: Produto[] 
+};
+
 export type ListarProdutosResult = Promise<Result<ListarProdutosOutput, ErroApp>>;
-export type InativarProdutoInput = { locatarioId: LocatarioId; produtoId: ProdutoId };
-export type InativarProdutoOutput = { produto: Produto };
+
+export type InativarProdutoInput = { 
+  locatarioId: LocatarioId; 
+  produtoId: ProdutoId 
+};
+
+export type InativarProdutoOutput = { 
+  produto: Produto 
+};
+
 export type InativarProdutoResult = Promise<Result<InativarProdutoOutput, ErroApp>>;
-export type ReativarProdutoInput = { locatarioId: LocatarioId; produtoId: ProdutoId };
-export type ReativarProdutoOutput = { produto: Produto };
+
+export type ReativarProdutoInput = { 
+  locatarioId: LocatarioId; 
+  produtoId: ProdutoId 
+};
+
+export type ReativarProdutoOutput = { 
+  produto: Produto 
+};
+
 export type ReativarProdutoResult = Promise<Result<ReativarProdutoOutput, ErroApp>>;
 
 export type AtualizarProdutoInput = {
@@ -51,6 +104,9 @@ export type AtualizarProdutoInput = {
   unidade?: string;
   tipo?: TipoProduto;
   precoVenda?: number;
+  precoVarejo?: number;
+  precoAtacado?: number | null;
+  quantidadeMinimaAtacado?: number | null;
   custoReferencia?: number | null;
 };
 

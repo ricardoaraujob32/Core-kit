@@ -73,11 +73,10 @@ ON CONFLICT DO NOTHING;
 -- =========================================================
 
 INSERT INTO core.usuarios_plataforma (
-  usuario_plataforma_id,
+  usuario_id,
   email,
   senha_hash,
   nome,
-  ativo,
   criado_em
 )
 VALUES (
@@ -85,7 +84,6 @@ VALUES (
   'admin@corekit.dev',
   '$2b$10$wH7mPj5x0x5x5x5x5x5x5eB0nLQ9K4wXn4N6X0r8z0YxW1V1Qf8kS',
   'Administrador Plataforma',
-  true,
   NOW()
 )
 ON CONFLICT DO NOTHING;

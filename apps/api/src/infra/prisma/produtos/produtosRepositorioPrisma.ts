@@ -1,6 +1,17 @@
 // apps/api/src/infra/prisma/produtos/produtosRepositorioPrisma.ts
 
-import type { ErroApp, LocatarioId, Produto, ProdutoId, ProdutosRepositorio, Result, TipoProduto, UsuarioId } from "@core-kit/core";
+// apps/api/src/infra/prisma/produtos/produtosRepositorioPrisma.ts
+
+import type {
+  ErroApp,
+  LocatarioId,
+  Produto,
+  ProdutoId,
+  ProdutosRepositorio,
+  Result,
+  TipoProduto,
+  UsuarioId,
+} from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos";
 import { mapearErroInfra } from "../erros";
@@ -14,8 +25,10 @@ type ProdutoRow = {
   nome: string;
   unidade: string | null;
   tipo: string;
-  preco: DecimalLike;
   ativo: boolean;
+  preco_varejo: DecimalLike;
+  preco_atacado: DecimalLike | null;
+  quantidade_minima_atacado: DecimalLike | null;
   criado_em: Date;
   atualizado_em: Date;
   excluido_em: Date | null;
@@ -30,14 +43,24 @@ const produtoSelect = {
   nome: true,
   unidade: true,
   tipo: true,
-  preco: true,
   ativo: true,
+  preco_varejo: true,
+  preco_atacado: true,
+  quantidade_minima_atacado: true,
   criado_em: true,
   atualizado_em: true,
   excluido_em: true,
   excluido_por: true,
   excluido_motivo: true,
 } as const;
+
+function numberFromDecimal(value: DecimalLike): number {
+  return typeof value === "number" ? value : Number(value.toString());
+}
+
+function numberFromDecimalNullable(value: DecimalLike | null): number | null {
+  return value === null ? null : numberFromDecimal(value);
+}
 
 function normalizarTextoOpcional(value: string | null): string | null {
   const normalizado = value?.trim();
@@ -49,18 +72,25 @@ function mapTipoProduto(tipo: string): TipoProduto {
 }
 
 function mapProduto(row: ProdutoRow): Produto {
+  const precoVarejo = numberFromDecimal(row.preco_varejo);
+
   return {
     produtoId: row.produto_id as ProdutoId,
     locatarioId: row.locatario_id as LocatarioId,
     sku: row.sku,
     nome: row.nome,
-    // O schema atual não possui `descricao`; mantemos `null` até evoluir o banco.
     descricao: null,
     unidade: row.unidade ?? "UN",
     tipo: mapTipoProduto(row.tipo),
     status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
-    // O schema atual não possui preço/custo; valores neutros até evoluir o banco.
-    precoVenda: Number(row.preco.toString()),
+
+    precoVenda: precoVarejo,
+    precoVarejo,
+    precoAtacado: numberFromDecimalNullable(row.preco_atacado),
+    quantidadeMinimaAtacado: numberFromDecimalNullable(
+      row.quantidade_minima_atacado,
+    ),
+
     custoReferencia: null,
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
@@ -74,8 +104,9 @@ function mapProduto(row: ProdutoRow): Produto {
  * Repositório Prisma do módulo de produtos/serviços.
  *
  * Observação:
- * - o schema atual ainda não possui `descricao`, `preco_venda` e `custo_referencia`;
- * - o adapter retorna valores neutros para esses campos até a evolução do banco.
+ * - `precoVenda` é mantido como alias de compatibilidade para `precoVarejo`;
+ * - o schema atual usa `preco_varejo`, `preco_atacado`
+ *   e `quantidade_minima_atacado`.
  */
 export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
   return {
@@ -89,7 +120,11 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
-            preco: produto.precoVenda,
+
+            preco_varejo: produto.precoVarejo,
+            preco_atacado: produto.precoAtacado,
+            quantidade_minima_atacado: produto.quantidadeMinimaAtacado,
+
             ativo: produto.status === "ATIVO",
             criado_em: produto.criadoEm,
             atualizado_em: produto.atualizadoEm,
@@ -182,7 +217,11 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
-            preco: produto.precoVenda,
+
+            preco_varejo: produto.precoVarejo,
+            preco_atacado: produto.precoAtacado,
+            quantidade_minima_atacado: produto.quantidadeMinimaAtacado,
+
             ativo: produto.status === "ATIVO",
             atualizado_em: produto.atualizadoEm,
             excluido_em: produto.excluidoEm,
@@ -194,6 +233,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
         return wrapOk({
           ...produto,
           sku: normalizarTextoOpcional(produto.sku),
+          precoVenda: produto.precoVarejo,
           excluidoMotivo: normalizarTextoOpcional(produto.excluidoMotivo),
         });
       } catch (causa) {

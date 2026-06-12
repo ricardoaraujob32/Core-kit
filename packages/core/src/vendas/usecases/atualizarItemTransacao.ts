@@ -14,13 +14,13 @@ function calcularValorTotalItem(params: {
   quantidade: number;
   valorUnitario: number;
   valorDesconto: number;
+  valorAcrescimo: number;
 }) {
-  return params.quantidade * params.valorUnitario - params.valorDesconto;
+  return (params.quantidade * params.valorUnitario - params.valorDesconto + params.valorAcrescimo);
 }
 
 function calcularTotaisTransacao(params: { itens: ItemTransacaoComercial[]; valorAcrescimo: number; }) {
   const valorSubtotal = params.itens.reduce( (total, item) => total + item.quantidade * item.valorUnitario, 0);
-
   const valorDesconto = params.itens.reduce( (total, item) => total + item.valorDesconto, 0);
 
   return {
@@ -30,11 +30,19 @@ function calcularTotaisTransacao(params: { itens: ItemTransacaoComercial[]; valo
   };
 }
 
+/**
+ * 
+ * @param deps 
+ * @returns 
+ */
 export function createFnAtualizarItemTransacao(deps: {
   vendasRepositorio: VendasRepositorio;
   relogio: RelogioPorta;
   transacao?: TransacaoPorta;
 }) {
+  /**
+   * 
+   */  
   return async function atualizarItemTransacao(input: AtualizarItemTransacaoInput): AtualizarItemTransacaoResult {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
@@ -79,10 +87,9 @@ export function createFnAtualizarItemTransacao(deps: {
       }
 
       const quantidadeFinal = quantidade?.value ?? itemAtual.value.quantidade;
-
       const valorUnitarioFinal = valorUnitario?.value ?? itemAtual.value.valorUnitario;
-
       const valorDescontoFinal = valorDesconto?.value ?? itemAtual.value.valorDesconto;
+      const valorAcrescimoFinal = input.valorAcrescimo ?? itemAtual.value.valorAcrescimo ?? 0;
 
       const itemAtualizado = await deps.vendasRepositorio.atualizarItem({
         ...itemAtual.value,
@@ -90,10 +97,13 @@ export function createFnAtualizarItemTransacao(deps: {
         quantidade: quantidadeFinal,
         valorUnitario: valorUnitarioFinal,
         valorDesconto: valorDescontoFinal,
+        valorAcrescimo: valorAcrescimoFinal,
+        valorSubtotal: quantidadeFinal * valorUnitarioFinal,
         valorTotal: calcularValorTotalItem({
           quantidade: quantidadeFinal,
           valorUnitario: valorUnitarioFinal,
           valorDesconto: valorDescontoFinal,
+          valorAcrescimo: valorAcrescimoFinal,
         }),
         atualizadoEm: deps.relogio.agora(),
       });

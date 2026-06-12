@@ -16,11 +16,18 @@ type TransacaoRow = {
   fornecedor_id: string | null;
   tipo: string;
   origem: string;
-  valor: DecimalLike;
+  valor_subtotal: DecimalLike | null;
+  valor_desconto: DecimalLike | null;
+  valor_acrescimo: DecimalLike | null;
+  valor_total: DecimalLike | null;
+  observacao: string | null;
   vencimento_em: Date;
   status: string;
   criado_em: Date;
   atualizado_em: Date;
+  cancelado_em: Date | null;
+  cancelado_por: string | null;
+  cancelado_motivo: string | null;
   excluido_em: Date | null;
   excluido_por: string | null;
   excluido_motivo: string | null;
@@ -31,8 +38,16 @@ type ItemTransacaoRow = {
   item_transacao_id: string;
   transacao_id: string;
   produto_id: string;
-  estoque_id: string;
-  valor: DecimalLike;
+  estoque_id: string | null;
+  descricao: string | null;
+  tipo_produto: string | null;
+  quantidade: DecimalLike | null;
+  valor_unitario: DecimalLike | null;
+  valor_subtotal: DecimalLike | null;
+  valor_desconto: DecimalLike | null;
+  valor_acrescimo: DecimalLike | null;
+  valor_total: DecimalLike | null;
+  movimenta_estoque: boolean | null;
   criado_em: Date;
   atualizado_em: Date;
   excluido_em: Date | null;
@@ -50,7 +65,14 @@ type ProdutoConsultaRow = {
   tipo: string;
   ativo: boolean;
   excluido_em: Date | null;
-  preco: DecimalLike,
+  preco_varejo: DecimalLike;
+  preco_atacado: DecimalLike | null;
+  quantidade_minima_atacado: DecimalLike | null;
+};
+
+type ItemTransacaoComValoresParciais = ItemTransacaoComercial & {
+  valorSubtotal?: number;
+  valorAcrescimo?: number;
 };
 
 const transacaoSelect = {
@@ -60,11 +82,18 @@ const transacaoSelect = {
   fornecedor_id: true,
   tipo: true,
   origem: true,
-  valor: true,
+  valor_subtotal: true,
+  valor_desconto: true,
+  valor_acrescimo: true,
+  valor_total: true,
+  observacao: true,
   vencimento_em: true,
   status: true,
   criado_em: true,
   atualizado_em: true,
+  cancelado_em: true,
+  cancelado_por: true,
+  cancelado_motivo: true,
   excluido_em: true,
   excluido_por: true,
   excluido_motivo: true,
@@ -76,7 +105,15 @@ const itemTransacaoSelect = {
   transacao_id: true,
   produto_id: true,
   estoque_id: true,
-  valor: true,
+  descricao: true,
+  tipo_produto: true,
+  quantidade: true,
+  valor_unitario: true,
+  valor_subtotal: true,
+  valor_desconto: true,
+  valor_acrescimo: true,
+  valor_total: true,
+  movimenta_estoque: true,
   criado_em: true,
   atualizado_em: true,
   excluido_em: true,
@@ -96,7 +133,9 @@ const produtoConsultaSelect = {
   tipo: true,
   ativo: true,
   excluido_em: true,
-  preco: true,
+  preco_varejo: true,
+  preco_atacado: true,
+  quantidade_minima_atacado: true,
 } as const;
 
 /**
@@ -108,11 +147,15 @@ const produtoConsultaSelect = {
  */
 const historicoTransacoesEmMemoria = new Map<string, HistoricoTransacaoComercial[]>();
 
-function numberFromDecimal(value: DecimalLike): number {
-  return typeof value === "number" ? value : Number(value.toString());
+function numberFromDecimal(value: DecimalLike | null | undefined, fallback = 0): number {
+  if (value === null || value === undefined) return fallback;
+
+  const numero = typeof value === "number" ? value : Number(value.toString());
+
+  return Number.isFinite(numero) ? numero : fallback;
 }
 
-function normalizarTextoOpcional(value: string | null): string | null {
+function normalizarTextoOpcional(value?: string | null): string | null {
   const normalizado = value?.trim();
   return normalizado ? normalizado : null;
 }
@@ -125,14 +168,19 @@ function mapStatusTransacaoParaDb(status: string) {
   switch (status) {
     case "RASCUNHO":
       return "ABERTA";
+
     case "ABERTA":
       return "ABERTA";
+
     case "CONFIRMADA":
       return "EM_PROCESSAMENTO";
+
     case "CONCLUIDA":
       return "CONCLUIDA";
+
     case "CANCELADA":
       return "CANCELADA";
+
     default:
       return status;
   }
@@ -165,8 +213,30 @@ function historicoKey(locatarioId: LocatarioId, transacaoId: TransacaoId): strin
   return `${locatarioId}:${transacaoId}`;
 }
 
+function getValorSubtotalItem(item: ItemTransacaoComercial): number {
+  const itemComParciais = item as ItemTransacaoComValoresParciais;
+
+  return itemComParciais.valorSubtotal ?? item.quantidade * item.valorUnitario;
+}
+
+function getValorAcrescimoItem(item: ItemTransacaoComercial): number {
+  const itemComParciais = item as ItemTransacaoComValoresParciais;
+
+  return itemComParciais.valorAcrescimo ?? 0;
+}
+
+function getValorTotalItem(item: ItemTransacaoComercial): number {
+  return getValorSubtotalItem(item) - item.valorDesconto + getValorAcrescimoItem(item);
+}
+
 function mapTransacao(row: TransacaoRow): TransacaoComercial {
-  const valorTotal = numberFromDecimal(row.valor);
+  const valorSubtotal = numberFromDecimal(row.valor_subtotal, 0);
+  const valorDesconto = numberFromDecimal(row.valor_desconto, 0);
+  const valorAcrescimo = numberFromDecimal(row.valor_acrescimo, 0);
+  const valorTotal = numberFromDecimal(
+    row.valor_total,
+    valorSubtotal - valorDesconto + valorAcrescimo,
+  );
 
   return {
     transacaoId: row.transacao_id as TransacaoId,
@@ -175,17 +245,21 @@ function mapTransacao(row: TransacaoRow): TransacaoComercial {
     clienteId: row.cliente_id,
     fornecedorId: row.fornecedor_id,
     status: mapStatusTransacaoParaDominio(row.status),
-    // O schema atual possui apenas `valor`; subtotal/ajustes são derivados.
-    valorSubtotal: valorTotal,
-    valorDesconto: 0,
-    valorAcrescimo: 0,
+
+    valorSubtotal,
+    valorDesconto,
+    valorAcrescimo,
     valorTotal,
-    observacao: null,
+
+    observacao: row.observacao ?? null,
+
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
-    canceladoEm: row.status.toUpperCase() === "CANCELADA" ? row.atualizado_em : null,
-    canceladoPor: row.status.toUpperCase() === "CANCELADA" ? (row.excluido_por as UsuarioId | null) : null,
-    canceladoMotivo: row.status.toUpperCase() === "CANCELADA" ? row.excluido_motivo : null,
+
+    canceladoEm: row.cancelado_em ?? null,
+    canceladoPor: row.cancelado_por as UsuarioId | null,
+    canceladoMotivo: row.cancelado_motivo ?? null,
+
     excluidoEm: row.excluido_em,
     excluidoPor: row.excluido_por as UsuarioId | null,
     excluidoMotivo: row.excluido_motivo,
@@ -193,39 +267,54 @@ function mapTransacao(row: TransacaoRow): TransacaoComercial {
 }
 
 function mapItem(row: ItemTransacaoRow): ItemTransacaoComercial {
-  const valorTotal = numberFromDecimal(row.valor);
-  const tipoProduto = mapTipoProduto(row.produtos?.tipo ?? "PRODUTO");
+  const tipoProduto = mapTipoProduto(row.tipo_produto ?? row.produtos?.tipo ?? "PRODUTO");
+
+  const quantidade = numberFromDecimal(row.quantidade, 1);
+  const valorUnitario = numberFromDecimal(row.valor_unitario, 0);
+  const valorSubtotal = numberFromDecimal(row.valor_subtotal, quantidade * valorUnitario);
+  const valorDesconto = numberFromDecimal(row.valor_desconto, 0);
+  const valorAcrescimo = numberFromDecimal(row.valor_acrescimo, 0);
+  const valorTotal = numberFromDecimal(
+    row.valor_total,
+    valorSubtotal - valorDesconto + valorAcrescimo,
+  );
 
   return {
     itemTransacaoId: row.item_transacao_id as ItemTransacaoId,
     transacaoId: row.transacao_id as TransacaoId,
     locatarioId: row.locatario_id as LocatarioId,
+
     produtoId: row.produto_id as ProdutoId,
-    estoqueId: row.estoque_id as EstoqueId,
-    descricao: row.produtos?.nome ?? "Item",
+    estoqueId: row.estoque_id as EstoqueId | null,
+
+    descricao: row.descricao ?? row.produtos?.nome ?? "Item",
     tipoProduto,
-    // O schema atual não possui quantidade/unitário/desconto; mantém equivalente simples.
-    quantidade: 1,
-    valorUnitario: valorTotal,
-    valorDesconto: 0,
+
+    quantidade,
+    valorUnitario,
+    valorSubtotal,
+    valorDesconto,
+    valorAcrescimo,
     valorTotal,
-    movimentaEstoque: tipoProduto === "PRODUTO",
+
+    movimentaEstoque: row.movimenta_estoque ?? tipoProduto === "PRODUTO",
+
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
+
     excluidoEm: row.excluido_em,
     excluidoPor: row.excluido_por as UsuarioId | null,
     excluidoMotivo: row.excluido_motivo,
-  };
+  } as ItemTransacaoComercial;
 }
 
 /**
  * Repositório Prisma de transações comerciais.
  *
- * Observações de compatibilidade com o schema atual:
- * - `transacoes.valor` representa `valorTotal`;
- * - `itens_transacao.valor` representa `valorTotal` do item;
- * - quantidade, desconto e preço unitário ainda não são persistidos;
- * - histórico comercial ainda não possui tabela e está temporariamente em memória.
+ * Observações:
+ * - os campos parciais novos são a fonte principal de leitura e escrita;
+ * - histórico comercial ainda permanece em memória enquanto a tabela
+ *   definitiva não for criada.
  */
 export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
   return {
@@ -240,11 +329,23 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             ordem_servico_id: null,
             tipo: transacao.tipo,
             origem: "AVULSA",
-            valor: transacao.valorTotal,
+
+            valor_subtotal: transacao.valorSubtotal,
+            valor_desconto: transacao.valorDesconto,
+            valor_acrescimo: transacao.valorAcrescimo,
+            valor_total: transacao.valorTotal,
+
+            observacao: normalizarTextoOpcional(transacao.observacao),
             vencimento_em: transacao.criadoEm,
             status: mapStatusTransacaoParaDb(transacao.status),
+
             criado_em: transacao.criadoEm,
             atualizado_em: transacao.atualizadoEm,
+
+            cancelado_em: transacao.canceladoEm,
+            cancelado_por: transacao.canceladoPor,
+            cancelado_motivo: normalizarTextoOpcional(transacao.canceladoMotivo),
+
             excluido_em: transacao.excluidoEm,
             excluido_por: transacao.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(transacao.excluidoMotivo),
@@ -292,7 +393,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             locatario_id: params.locatarioId,
             excluido_em: null,
             ...(params.tipo ? { tipo: params.tipo } : {}),
-            ...(params.status ? { status: params.status } : {}),
+            ...(params.status ? { status: mapStatusTransacaoParaDb(params.status) } : {}),
           },
           orderBy: { transacao_id: "asc" },
           ...(params.cursor
@@ -333,9 +434,21 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             cliente_id: transacao.clienteId,
             fornecedor_id: transacao.fornecedorId,
             tipo: transacao.tipo,
-            valor: transacao.valorTotal,
+
+            valor_subtotal: transacao.valorSubtotal,
+            valor_desconto: transacao.valorDesconto,
+            valor_acrescimo: transacao.valorAcrescimo,
+            valor_total: transacao.valorTotal,
+
+            observacao: normalizarTextoOpcional(transacao.observacao),
             status: mapStatusTransacaoParaDb(transacao.status),
+
             atualizado_em: transacao.atualizadoEm,
+
+            cancelado_em: transacao.canceladoEm,
+            cancelado_por: transacao.canceladoPor,
+            cancelado_motivo: normalizarTextoOpcional(transacao.canceladoMotivo),
+
             excluido_em: transacao.excluidoEm,
             excluido_por: transacao.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(transacao.excluidoMotivo),
@@ -344,6 +457,8 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
         return wrapOk({
           ...transacao,
+          observacao: normalizarTextoOpcional(transacao.observacao),
+          canceladoMotivo: normalizarTextoOpcional(transacao.canceladoMotivo),
           excluidoMotivo: normalizarTextoOpcional(transacao.excluidoMotivo),
         });
       } catch (causa) {
@@ -361,9 +476,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
     async criarItem(item): Promise<Result<{ itemTransacaoId: ItemTransacaoId }, ErroApp>> {
       try {
-        if (!item.estoqueId) {
+        if (item.movimentaEstoque && !item.estoqueId) {
           return mapearErroInfra(
-            new Error("estoqueId é obrigatório para item de transação no schema atual."),
+            new Error("estoqueId é obrigatório para item que movimenta estoque."),
             {
               entidade: "itens_transacao",
               operacao: "vendas.adicionarItem",
@@ -372,7 +487,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
                 transacaoId: item.transacaoId,
                 itemTransacaoId: item.itemTransacaoId,
                 produtoId: item.produtoId,
-                motivo: "estoque_id_obrigatorio_no_schema_atual",
+                motivo: "estoque_id_obrigatorio_para_item_que_movimenta_estoque",
               },
             },
           );
@@ -385,9 +500,20 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             transacao_id: item.transacaoId,
             produto_id: item.produtoId,
             estoque_id: item.estoqueId,
-            valor: item.valorTotal,
+
+            descricao: normalizarTextoOpcional(item.descricao),
+            tipo_produto: item.tipoProduto,
+            quantidade: item.quantidade,
+            valor_unitario: item.valorUnitario,
+            valor_subtotal: getValorSubtotalItem(item),
+            valor_desconto: item.valorDesconto,
+            valor_acrescimo: getValorAcrescimoItem(item),
+            valor_total: item.valorTotal,
+            movimenta_estoque: item.movimentaEstoque,
+
             criado_em: item.criadoEm,
             atualizado_em: item.atualizadoEm,
+
             excluido_em: item.excluidoEm,
             excluido_por: item.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(item.excluidoMotivo),
@@ -454,9 +580,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
     async atualizarItem(item): Promise<Result<ItemTransacaoComercial, ErroApp>> {
       try {
-        if (!item.estoqueId) {
+        if (item.movimentaEstoque && !item.estoqueId) {
           return mapearErroInfra(
-            new Error("estoqueId é obrigatório para atualizar item de transação no schema atual."),
+            new Error("estoqueId é obrigatório para atualizar item que movimenta estoque."),
             {
               entidade: "itens_transacao",
               operacao: "vendas.atualizarItem",
@@ -465,7 +591,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
                 transacaoId: item.transacaoId,
                 itemTransacaoId: item.itemTransacaoId,
                 produtoId: item.produtoId,
-                motivo: "estoque_id_obrigatorio_no_schema_atual",
+                motivo: "estoque_id_obrigatorio_para_item_que_movimenta_estoque",
               },
             },
           );
@@ -482,8 +608,19 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           data: {
             produto_id: item.produtoId,
             estoque_id: item.estoqueId,
-            valor: item.valorTotal,
+
+            descricao: normalizarTextoOpcional(item.descricao),
+            tipo_produto: item.tipoProduto,
+            quantidade: item.quantidade,
+            valor_unitario: item.valorUnitario,
+            valor_subtotal: getValorSubtotalItem(item),
+            valor_desconto: item.valorDesconto,
+            valor_acrescimo: getValorAcrescimoItem(item),
+            valor_total: item.valorTotal,
+            movimenta_estoque: item.movimentaEstoque,
+
             atualizado_em: item.atualizadoEm,
+
             excluido_em: item.excluidoEm,
             excluido_por: item.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(item.excluidoMotivo),
@@ -492,8 +629,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
         return wrapOk({
           ...item,
+          descricao: normalizarTextoOpcional(item.descricao) ?? item.descricao,
           excluidoMotivo: normalizarTextoOpcional(item.excluidoMotivo),
-        });
+        } as ItemTransacaoComercial);
       } catch (causa) {
         return mapearErroInfra(causa, {
           entidade: "itens_transacao",
@@ -510,12 +648,15 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
     async criarHistorico(historico): Promise<Result<{ historicoId: string }, ErroApp>> {
       const key = historicoKey(historico.locatarioId, historico.transacaoId);
       const atual = historicoTransacoesEmMemoria.get(key) ?? [];
+
       historicoTransacoesEmMemoria.set(key, [...atual, historico]);
+
       return wrapOk({ historicoId: historico.historicoId });
     },
 
     async listarHistorico(params): Promise<Result<HistoricoTransacaoComercial[], ErroApp>> {
       const key = historicoKey(params.locatarioId, params.transacaoId);
+
       return wrapOk([...(historicoTransacoesEmMemoria.get(key) ?? [])]);
     },
 
@@ -571,7 +712,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
     async registrarMovimentoEstoque(movimento: MovimentoEstoqueComercial) {
       return createMovimentacaoEstoquePortaPrisma(db).registrarMovimento(movimento);
-    }
+    },
   };
 }
 
@@ -613,14 +754,22 @@ export function createEstoquePadraoConsultaPortaPrisma(db: PrismaDb): EstoquePad
  */
 export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): ProdutoComercialConsultaPorta {
   return {
-    async buscarProdutoParaTransacao(params): Promise<Result<{
-      produtoId: ProdutoId;
-      nome: string;
-      tipo: "PRODUTO" | "SERVICO";
-      status: "ATIVO" | "INATIVO" | "EXCLUIDO";
-      precoVenda: number;
-      custoReferencia: number | null;
-    }, ErroApp>> {
+    async buscarProdutoParaTransacao(params): Promise<
+      Result<
+        {
+          produtoId: ProdutoId;
+          nome: string;
+          tipo: "PRODUTO" | "SERVICO";
+          status: "ATIVO" | "INATIVO" | "EXCLUIDO";
+          precoVenda: number;
+          precoVarejo: number;
+          precoAtacado: number | null;
+          quantidadeMinimaAtacado: number | null;
+          custoReferencia: number | null;
+        },
+        ErroApp
+      >
+    > {
       try {
         const row: ProdutoConsultaRow | null = await db.produtos.findFirst({
           where: {
@@ -637,22 +786,24 @@ export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): Produto
             tipo: "PRODUTO",
             status: "EXCLUIDO",
             precoVenda: 0,
+            precoVarejo: 0,
+            precoAtacado: null,
+            quantidadeMinimaAtacado: null,
             custoReferencia: null,
           });
         }
 
-        const produto = row;
+        const precoVarejo = numberFromDecimal(row.preco_varejo);
 
         return wrapOk({
-          produtoId: produto.produto_id as ProdutoId,
-          nome: produto.nome,
-          tipo: mapTipoProduto(produto.tipo),
-          status: produto.excluido_em
-            ? "EXCLUIDO"
-            : produto.ativo
-              ? "ATIVO"
-              : "INATIVO",
-          precoVenda: numberFromDecimal(produto.preco),
+          produtoId: row.produto_id as ProdutoId,
+          nome: row.nome,
+          tipo: mapTipoProduto(row.tipo),
+          status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
+          precoVenda: precoVarejo,
+          precoVarejo,
+          precoAtacado: row.preco_atacado === null ? null : numberFromDecimal(row.preco_atacado),
+          quantidadeMinimaAtacado: row.quantidade_minima_atacado === null ? null : numberFromDecimal(row.quantidade_minima_atacado),
           custoReferencia: null,
         });
       } catch (causa) {
@@ -673,7 +824,10 @@ export function createMovimentacaoEstoquePortaPrisma(db: PrismaDb): Movimentacao
   return {
     async registrarMovimento(movimento): Promise<Result<void, ErroApp>> {
       try {
-        const delta = movimento.tipo === "SAIDA" ? -Math.abs(movimento.quantidade) : Math.abs(movimento.quantidade);
+        const delta =
+          movimento.tipo === "SAIDA"
+            ? -Math.abs(movimento.quantidade)
+            : Math.abs(movimento.quantidade);
 
         await db.movimentacoes_estoque.create({
           data: {
@@ -686,9 +840,21 @@ export function createMovimentacaoEstoquePortaPrisma(db: PrismaDb): Movimentacao
             delta,
             quantidade: Math.abs(movimento.quantidade),
             ocorrencia_em: movimento.ocorridoEm,
-            detalhes: {},
-            referencia: movimento.transacaoId,
-            observacao: null,
+            detalhes: {
+              origem: "TRANSACAO_COMERCIAL",
+              transacaoId: movimento.transacaoId,
+              itemTransacaoId: movimento.itemTransacaoId,
+              produtoId: movimento.produtoId,
+              estoqueId: movimento.estoqueId,
+              tipoMovimento: movimento.tipo,
+              quantidade: Math.abs(movimento.quantidade),
+              delta,
+            },
+            referencia: `${movimento.transacaoId}:${movimento.itemTransacaoId}`,
+            observacao:
+              movimento.tipo === "ENTRADA"
+                ? "Entrada gerada por confirmação de compra."
+                : "Saída gerada por confirmação de venda.",
             criado_em: movimento.ocorridoEm,
             criado_por: null,
           },
