@@ -15,9 +15,10 @@
     "typecheck": "pnpm exec prisma generate --schema=prisma/schema.prisma && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2",
+    "@core-kit/core": "workspace:*",
     "@fastify/cors": "^11.0.0",
     "@fastify/jwt": "^9.0.0",
+    "@prisma/client": "^6.19.2",
     "bcryptjs": "^3.0.3",
     "fastify": "^5.0.0",
     "fastify-plugin": "^5.0.0",
