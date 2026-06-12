@@ -1,16 +1,16 @@
 // apps/api/src/modules/fornecedores/fornecedores.controller.ts
 
 import { createFnAtualizarFornecedor, createFnCriarFornecedor, createFnExcluirFornecedor, createFnListarFornecedores, createFnObterFornecedor, metaAcao } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto, parseAtualizarFornecedorBody, parseCriarFornecedorBody, parseFornecedorIdParams } from "./fornecedores.dto";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto, parseAtualizarFornecedorBody, parseCriarFornecedorBody, parseFornecedorIdParams } from "./fornecedores.dto.js";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { toFornecedorResponseDto, toListarFornecedoresResponseDto } from "./fornecedores.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { toFornecedorResponseDto, toListarFornecedoresResponseDto } from "./fornecedores.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsFornecedores() {
   return {

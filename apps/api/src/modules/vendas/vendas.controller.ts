@@ -3,21 +3,21 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConcluirTransacao, createFnConfirmarTransacao, createFnCriarCompra,
   createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, metaAcao, Permissao } from "@core-kit/core";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
-import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
-import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma";
-import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { autorizarHttp } from "../../http/autorizarHttp";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma.js";
+import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma.js";
+import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma.js";
+import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
 import { parseAdicionarItemTransacaoBody, parseAtualizarItemTransacaoBody, parseCancelarTransacaoBody, parseCriarCompraBody, parseCriarVendaBody, 
-  parseItemTransacaoIdParams, parseTransacaoIdParams } from "./vendas.dto";
+  parseItemTransacaoIdParams, parseTransacaoIdParams } from "./vendas.dto.js";
 import type { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto,
-  TransacaoIdParamsDto } from "./vendas.dto";
-import { toListarTransacoesResponseDto, toTransacaoDetalhadaResponseDto, toTransacaoResponseDto } from "./vendas.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
-import { responderErroValidacaoZod } from "../helpersValidacao";
+  TransacaoIdParamsDto } from "./vendas.dto.js";
+import { toListarTransacoesResponseDto, toTransacaoDetalhadaResponseDto, toTransacaoResponseDto } from "./vendas.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { responderErroValidacaoZod } from "../helpersValidacao.js";
 
 function criarDepsVendasBase() {
   return {

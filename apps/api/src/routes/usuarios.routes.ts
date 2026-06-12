@@ -1,7 +1,7 @@
 // apps/api/src/routes/usuarios.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
+import { authGuard } from "../middlewares/authGuard.js";
 import {
   atualizarUsuarioController,
   criarUsuarioController,
@@ -9,9 +9,9 @@ import {
   listarUsuariosController,
   obterUsuarioController,
   reativarUsuarioController,
-} from "../modules/usuarios/usuarios.controller";
-import { alterarMinhaSenhaUsuarioController, redefinirSenhaUsuarioController } from "../modules/usuarios/usuarios.senha.controller";
-import { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "../modules/usuarios/usuarios.dto";
+} from "../modules/usuarios/usuarios.controller.js";
+import { alterarMinhaSenhaUsuarioController, redefinirSenhaUsuarioController } from "../modules/usuarios/usuarios.senha.controller.js";
+import { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "../modules/usuarios/usuarios.dto.js";
 
 /**
  * Registra as rotas HTTP do módulo operacional de usuários.

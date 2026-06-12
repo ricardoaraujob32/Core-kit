@@ -1,3 +1,3 @@
 // apps/api/src/infra/prisma/assinaturas/index.ts
 
-// export { AssinaturasRepositorioPrisma } from "./assinaturasRepositorioPrisma";
+// export { AssinaturasRepositorioPrisma } from "./assinaturasRepositorioPrisma.js";

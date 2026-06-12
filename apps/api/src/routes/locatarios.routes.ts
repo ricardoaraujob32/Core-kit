@@ -1,10 +1,10 @@
 // apps/api/src/routes/locatarios.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
+import { authGuard } from "../middlewares/authGuard.js";
 import { ativarConfiguracaoLocatarioController, atualizarConfiguracaoLocatarioController, criarConfiguracaoLocatarioController, listarConfiguracoesLocatarioController, obterConfiguracaoAtivaLocatarioController, 
-  obterMeuLocatarioController } from "../modules/locatarios/locatarios.controller";
-import { AtualizarConfiguracaoBodyDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, LocatarioIdParamsDto } from "../modules/locatarios/locatarios.dto";
+  obterMeuLocatarioController } from "../modules/locatarios/locatarios.controller.js";
+import { AtualizarConfiguracaoBodyDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, LocatarioIdParamsDto } from "../modules/locatarios/locatarios.dto.js";
 
 /**
  * 

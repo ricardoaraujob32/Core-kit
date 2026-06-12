@@ -2,8 +2,8 @@
 
 import type { FastifyRequest } from "fastify";
 import type { ContextoExecucao, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
-import { auditar } from "./auditoria.dispatcher";
-import { criarContextoAuditoria } from "./auditoria.helpers";
+import { auditar } from "./auditoria.dispatcher.js";
+import { criarContextoAuditoria } from "./auditoria.helpers.js";
 
 type EventoControllerInput = Omit<
   RegistrarEventoAuditoriaPlataformaInput,

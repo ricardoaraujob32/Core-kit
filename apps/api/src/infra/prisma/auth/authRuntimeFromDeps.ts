@@ -2,8 +2,8 @@
 
 import { createContextoExecucao, createFnEmitirSessao, createFnListarModulosHabilitados, createFnLogout, createFnRotacionarRefresh, createFnValidarSessao, 
   createFnEmitirSessaoPlataforma, wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import type { AuthUseCaseDeps } from "./authUseCaseDeps";
+import type { PrismaDb } from "../tipos.js";
+import type { AuthUseCaseDeps } from "./authUseCaseDeps.js";
 import type { IdPorta, LocatarioId, RelogioPorta, UsuarioId } from "@core-kit/core";
 
 /**

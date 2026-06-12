@@ -1,15 +1,15 @@
 // apps/api/src/modules/auth/auth.controller.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshResponse, SessionUserDto } from "./auth.dto";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshResponse, SessionUserDto } from "./auth.dto.js";
 import { ContextoExecucao, LocatarioId, metaAcao, UsuarioId } from "@core-kit/core";
-import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { auditar } from "../auditoria/auditoria.dispatcher";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditar } from "../auditoria/auditoria.dispatcher.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 /**
  * Serializa o contexto autorizado para o shape de usuário esperado pelo frontend.

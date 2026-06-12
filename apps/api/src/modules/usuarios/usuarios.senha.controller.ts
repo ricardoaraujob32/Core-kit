@@ -2,13 +2,13 @@
 
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createFnAlterarSenhaUsuario, createFnRedefinirSenhaUsuario, Permissoes } from "@core-kit/core";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
-import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
-import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
-import { autorizarHttp } from "../../http/autorizarHttp";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto.js";
+import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
 import { createHashPortaAdapter } from "@core-kit/api/infra/hash/hashPortaAdapter";
 
 function criarDepsUsuariosSenha() {

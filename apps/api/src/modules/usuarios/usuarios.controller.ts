@@ -1,17 +1,17 @@
 // apps/api/src/modules/usuarios/usuarios.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma.js";
 import { createFnAtualizarUsuario, createFnCriarUsuario, createFnDesativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
   createFnReativarUsuario, metaAcao, metaAtualizacao, metaCriacao, Permissoes } from "@core-kit/core";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
-import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
-import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto.js";
+import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto.js";
+import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 import { autorizarPlataformaHttp } from "@core-kit/api/http/autorizarPlataformaHttp";
 
 /**

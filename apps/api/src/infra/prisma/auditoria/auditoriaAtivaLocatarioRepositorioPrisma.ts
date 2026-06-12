@@ -2,8 +2,8 @@
 
 import type { AuditoriaLocatarioRepositorio, AuditoriaId, ErroApp, EventoAuditoriaLocatario, ListarAuditoriaLocatarioInput, Result } from "@core-kit/core";
 import { resolverEventoAuditoria, wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 import { Prisma } from "@prisma/client";
 
 type AuditoriaLocatarioRow = {

@@ -1,9 +1,9 @@
 // apps/api/src/routes/auditoria.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { listarAuditoriaPlataformaController, listarMinhaAuditoriaController } from "../modules/auditoria/auditoria.controller";
-import type { ListarAuditoriaQueryDto } from "../modules/auditoria/auditoria.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { listarAuditoriaPlataformaController, listarMinhaAuditoriaController } from "../modules/auditoria/auditoria.controller.js";
+import type { ListarAuditoriaQueryDto } from "../modules/auditoria/auditoria.dto.js";
 
 export const auditoriaRoutes: FastifyPluginAsync = async (app) => {
   app.get<{ Querystring: ListarAuditoriaQueryDto }>(

@@ -1,7 +1,7 @@
 // apps/api/src/modules/auth/auth.plataforma.presenter.ts
 
 import { UsuarioId } from "@core-kit/core";
-import type { LoginPlataformaResponseDto, UsuarioSessaoPlataformaDto } from "./auth.plataforma.dto";
+import type { LoginPlataformaResponseDto, UsuarioSessaoPlataformaDto } from "./auth.plataforma.dto.js";
 
 export type SessaoPlataformaPresenterInput = {
   accessToken: string;

@@ -2,11 +2,11 @@
 
 // import type { FastifyReply, FastifyRequest } from "fastify";
 
-// import { sendHttpError } from "../../http/serializarErroApp";
-// import { clientePrisma } from "../../infra/prisma/client";
-// import { auditar } from "./auditoria.dispatcher.instance";
-// import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto";
-// import { criarContextoAuditoria } from "./auditoria.helpers";
+// import { sendHttpError } from "../../http/serializarErroApp.js";
+// import { clientePrisma } from "../../infra/prisma/client.js";
+// import { auditar } from "./auditoria.dispatcher.instance.js";
+// import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto.js";
+// import { criarContextoAuditoria } from "./auditoria.helpers.js";
 
 /**
  * Controller HTTP para listagem da auditoria da plataforma.

@@ -2,8 +2,8 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { IdPorta, LocatarioId, UsuarioId } from "@core-kit/core";
-import { executarComContexto } from "../execucaoComContexto";
-import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters";
+import { executarComContexto } from "../execucaoComContexto.js";
+import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters.js";
 
 /**
  * Contexto lógico mínimo necessário para abrir uma execução de auth

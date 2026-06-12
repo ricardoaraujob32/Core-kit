@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
-import { type LoginPlataformaBodyDto, parseLoginPlataformaBody } from "./auth.plataforma.dto";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { type LoginPlataformaBodyDto, parseLoginPlataformaBody } from "./auth.plataforma.dto.js";
 
 function responderErroValidacao(reply: FastifyReply) {
   return sendHttpError(reply, {

@@ -1,7 +1,7 @@
 // apps/api/src/modules/helpersValidacao.ts
 
 import type { FastifyReply } from "fastify";
-import { sendHttpError } from "../http/serializarErroApp";
+import { sendHttpError } from "../http/serializarErroApp.js";
 
 export function responderErroValidacaoZod(
   reply: FastifyReply,

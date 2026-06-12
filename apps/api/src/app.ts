@@ -2,11 +2,11 @@
 
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { authPlugin } from "./plugins/auth";
-import { requestIdPlugin } from "./middlewares/requestId";
+import { authPlugin } from "./plugins/auth.js";
+import { requestIdPlugin } from "./middlewares/requestId.js";
 import { routes } from ".";
-import { runApplicationBootstrap } from "./bootstrap/applicationBootstrap";
-import { initDb } from "./infra/prisma/initDb";
+import { runApplicationBootstrap } from "./bootstrap/applicationBootstrap.js";
+import { initDb } from "./infra/prisma/initDb.js";
 
 /**
  * Cria e prepara a aplicação Fastify.

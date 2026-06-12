@@ -2,9 +2,9 @@
 
 import type { EventosSegurancaPorta } from "@core-kit/core";
 import { createFnRegistrarEventoAuditoriaLocatario, createFnRegistrarEventoAuditoriaPlataforma } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { createAuditoriaLocatarioRepositorio } from "../auditoria/auditoriaAtivaLocatarioRepositorioPrisma";
-import { createAuditoriaPlataformaRepositorio } from "../auditoria/auditoriaInternaRepositorioPrisma";
+import type { PrismaDb } from "../tipos.js";
+import { createAuditoriaLocatarioRepositorio } from "../auditoria/auditoriaAtivaLocatarioRepositorioPrisma.js";
+import { createAuditoriaPlataformaRepositorio } from "../auditoria/auditoriaInternaRepositorioPrisma.js";
 
 type RegistrarEventoSegurancaFn = NonNullable<EventosSegurancaPorta["registrarEvento"]>;
 

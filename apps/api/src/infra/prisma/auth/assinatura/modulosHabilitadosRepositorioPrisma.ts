@@ -2,8 +2,8 @@
 
 import type { LocatarioId, ModulosHabilitadosRepositorio, ModuloHabilitado, OrigemModuloHabilitado } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../../tipos";
-import { mapearErroInfra } from "../../erros"; 
+import type { PrismaDb } from "../../tipos.js";
+import { mapearErroInfra } from "../../erros.js"; 
 
 /**
  * Normaliza a origem persistida no banco para o contrato canônico do Core.

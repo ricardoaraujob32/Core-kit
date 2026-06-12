@@ -1,7 +1,7 @@
 // apps/api/src/middlewares/superAdminGuard.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { autorizarHttp } from "../http/autorizarHttp";
+import { autorizarHttp } from "../http/autorizarHttp.js";
 
 /**
  * Middleware HTTP de autorização para operações de superadmin.

@@ -1,7 +1,7 @@
 // apps/api/src/modules/usuarios/usuarios.presenter.ts
 
 import type { Usuario } from "@core-kit/core";
-import type { ListarUsuariosResponseDto, UsuarioResponseDto } from "./usuarios.dto";
+import type { ListarUsuariosResponseDto, UsuarioResponseDto } from "./usuarios.dto.js";
 
 /**
  * 

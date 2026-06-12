@@ -2,9 +2,9 @@
 
 import type { AutorizacaoRepositorio, AutorizacaoSnapshot, LocatarioId, ModuloHabilitado, OrigemModuloHabilitado, Papel, Permissao, UsuarioId } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../../tipos";
-import { mapearErroInfra } from "../../erros";
-import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./autorizacaoSnapshotCache";
+import type { PrismaDb } from "../../tipos.js";
+import { mapearErroInfra } from "../../erros.js";
+import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./autorizacaoSnapshotCache.js";
 
 function normalizarOrigemModulo(origem: string | null | undefined): OrigemModuloHabilitado {
   switch ((origem ?? "").trim().toUpperCase()) {

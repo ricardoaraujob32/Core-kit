@@ -1,9 +1,9 @@
 // apps/api/src/routes/produtos.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { atualizarProdutoController, criarProdutoController, excluirProdutoController, listarProdutosController, obterProdutoController } from "../modules/produtos/produtos.controller";
-import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, ProdutoIdParamsDto } from "../modules/produtos/produtos.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarProdutoController, criarProdutoController, excluirProdutoController, listarProdutosController, obterProdutoController } from "../modules/produtos/produtos.controller.js";
+import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, ProdutoIdParamsDto } from "../modules/produtos/produtos.dto.js";
 
 export const produtosRoutes: FastifyPluginAsync = async (app) => {
   app.get(

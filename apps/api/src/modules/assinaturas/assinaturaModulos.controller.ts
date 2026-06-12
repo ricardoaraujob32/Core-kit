@@ -2,19 +2,19 @@
 
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createErroApp, createFnDesvincularModuloDaAssinatura, createFnListarModulosHabilitados, createFnVincularModuloNaAssinatura, metaAcao, Permissoes } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { createModulosHabilitadosRepositorio } from "../../infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma";
-import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma";
-import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma";
-import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma";
-import { parseModuloIdParams, parseVincularModuloAssinaturaBody } from "./assinaturaModulos.dto";
-import type { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "./assinaturaModulos.dto";
-import { toModuloHabilitadoDto, toVinculoModuloDto } from "./assinaturaModulos.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { createModulosHabilitadosRepositorio } from "../../infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma.js";
+import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma.js";
+import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.js";
+import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma.js";
+import { parseModuloIdParams, parseVincularModuloAssinaturaBody } from "./assinaturaModulos.dto.js";
+import type { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "./assinaturaModulos.dto.js";
+import { toModuloHabilitadoDto, toVinculoModuloDto } from "./assinaturaModulos.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsAssinaturaModulos() {
   return {

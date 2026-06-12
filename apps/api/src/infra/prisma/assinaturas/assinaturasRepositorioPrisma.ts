@@ -2,9 +2,9 @@
 
 import type { Assinatura, AssinaturaId, AssinaturasRepositorio, LocatarioId, RegistrarAssinaturaParams } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
+import type { PrismaDb } from "../tipos.js";
 import type { status_assinatura } from "@prisma/client";
-import { mapearErroInfra } from "../erros";
+import { mapearErroInfra } from "../erros.js";
 
 type AssinaturaRow = {
   assinatura_id: string;

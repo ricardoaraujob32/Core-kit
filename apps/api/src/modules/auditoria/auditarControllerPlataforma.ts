@@ -1,9 +1,9 @@
 // apps/api/src/modules/auditoria/auditarControllerPlataforma.ts
 
 import type { FastifyRequest } from "fastify";
-import { auditar } from "./auditoria.dispatcher";
-import { criarContextoAuditoriaPlataforma } from "./auditoria.helpers";
-import type { ContextoPlataformaAutorizado } from "../../http/autorizarPlataformaHttp";
+import { auditar } from "./auditoria.dispatcher.js";
+import { criarContextoAuditoriaPlataforma } from "./auditoria.helpers.js";
+import type { ContextoPlataformaAutorizado } from "../../http/autorizarPlataformaHttp.js";
 import { createFnRegistrarEventoAuditoriaPlataforma, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
 import { clientePrisma } from "@core-kit/api/infra/prisma/client";
 import { createAuditoriaPlataformaRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaInternaRepositorioPrisma";

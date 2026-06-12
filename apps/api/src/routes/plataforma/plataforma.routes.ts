@@ -1,7 +1,7 @@
 // apps/api/src/routes/plataforma/plataforma.routes.ts
 
 import type { FastifyInstance } from "fastify";
-import { authGuard } from "../../middlewares/authGuard";
+import { authGuard } from "../../middlewares/authGuard.js";
 import { listarLocatariosPlataformaController, obterLocatarioPlataformaController, criarLocatarioPlataformaController, atualizarLocatarioPlataformaController,
   suspenderLocatarioPlataformaController, reativarLocatarioPlataformaController, encerrarLocatarioPlataformaController,
   ativarConfiguracaoLocatarioController, atualizarConfiguracaoLocatarioController, criarConfiguracaoLocatarioController, obterConfiguracaoAtivaLocatarioController,
@@ -9,10 +9,10 @@ import { listarLocatariosPlataformaController, obterLocatarioPlataformaControlle
   listarModulosLocatarioPlataformaController,
   vincularModuloLocatarioPlataformaController,
   desvincularModuloLocatarioPlataformaController
-} from "../../modules/locatarios/locatarios.controller";
+} from "../../modules/locatarios/locatarios.controller.js";
 import type { LocatarioIdParamsDto, CriarLocatarioBodyDto, AtualizarLocatarioBodyDto, SuspenderLocatarioBodyDto, ReativarLocatarioBodyDto, EncerrarLocatarioBodyDto, AtualizarConfiguracaoBodyDto, ConfiguracaoIdOnlyParamsDto, CriarConfiguracaoBodyDto, ConfiguracaoIdParamsDto,
-} from "../../modules/locatarios/locatarios.dto";
-import { listarUsuariosLocatarioPlataformaController } from "../../modules/usuarios/usuarios.controller";
+} from "../../modules/locatarios/locatarios.dto.js";
+import { listarUsuariosLocatarioPlataformaController } from "../../modules/usuarios/usuarios.controller.js";
 import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "@core-kit/api/modules/assinaturas/assinaturaModulos.dto";
 
 export async function plataformaRoutes(app: FastifyInstance) {

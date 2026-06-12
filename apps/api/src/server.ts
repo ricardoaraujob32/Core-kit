@@ -1,8 +1,8 @@
 // apps/api/src/server.ts
 
 import "dotenv/config";
-import { env } from "./env";
-import { criarApp } from "./app";
+import { env } from "./env.js";
+import { criarApp } from "./app.js";
 
 async function main(): Promise<void>{
   const app = await criarApp();

@@ -1,10 +1,10 @@
 // apps/api/src/routes/vendas.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { adicionarItemTransacaoController, atualizarItemTransacaoController, cancelarTransacaoController, concluirTransacaoController, confirmarTransacaoController, criarCompraController, criarVendaController, listarTransacoesController, obterTransacaoController, removerItemTransacaoController } from "../modules/vendas/vendas.controller";
+import { authGuard } from "../middlewares/authGuard.js";
+import { adicionarItemTransacaoController, atualizarItemTransacaoController, cancelarTransacaoController, concluirTransacaoController, confirmarTransacaoController, criarCompraController, criarVendaController, listarTransacoesController, obterTransacaoController, removerItemTransacaoController } from "../modules/vendas/vendas.controller.js";
 import { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto, 
-  TransacaoIdParamsDto } from "../modules/vendas/vendas.dto";
+  TransacaoIdParamsDto } from "../modules/vendas/vendas.dto.js";
 
 export const vendasRoutes: FastifyPluginAsync = async (app) => {
   app.get(

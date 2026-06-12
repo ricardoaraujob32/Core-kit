@@ -3,9 +3,9 @@
 import { wrapOk } from "@core-kit/core";
 import type { LocatarioId, Result, ErroApp, UsuarioId, UsuarioAuth, UsuariosRepositorioAuth } from "@core-kit/core";
 import type { status_usuario } from "@prisma/client";
-import { erroInfraAuth } from "../errosInfraAuth";
-import { PrismaDb } from "../../tipos";
-import { mapearErroInfra } from "../../erros";
+import { erroInfraAuth } from "../errosInfraAuth.js";
+import { PrismaDb } from "../../tipos.js";
+import { mapearErroInfra } from "../../erros.js";
 
 /**
  * Mapeia o status persistido no banco para o contrato de auth.

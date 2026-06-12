@@ -1,30 +1,30 @@
 // apps/api/src/modules/locatarios/locatarios.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { clientePrisma } from "../../infra/prisma/client";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
 import { createFnAtivarConfiguracaoLocatario, createFnAtualizarConfiguracaoLocatario, createFnAtualizarLocatario, createFnCriarConfiguracaoLocatario, 
   createFnCriarLocatario, createFnDesvincularModuloDaAssinatura, createFnEncerrarLocatario, createFnListarLocatarios, createFnListarModulosHabilitadosLocatario, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, 
   createFnVincularModuloNaAssinatura, 
   metaAcao } from "@core-kit/core";
-import { exigirMesmoLocatarioHttp } from "../../http/routeGuards";
-//import { auditar } from "../auditoria/auditoria.dispatcher.instance";
-import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
-import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma";
+import { exigirMesmoLocatarioHttp } from "../../http/routeGuards.js";
+//import { auditar } from "../auditoria/auditoria.dispatcher.instance.js";
+import { criarContextoAuditoria } from "../auditoria/auditoria.helpers.js";
+import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma.js";
 import { AtualizarConfiguracaoBodyDto, AtualizarLocatarioBodyDto, ConfiguracaoIdOnlyParamsDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, CriarLocatarioBodyDto, EncerrarLocatarioBodyDto, 
   LocatarioIdParamsDto, ModuloIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
   parseEncerrarLocatarioBody, parseLocatarioIdParams, parseModuloIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, parseVincularModuloAssinaturaBody, ReativarLocatarioBodyDto, 
   SuspenderLocatarioBodyDto, 
-  VincularModuloAssinaturaBodyDto} from "./locatarios.dto";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
-import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp";
-import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma";
+  VincularModuloAssinaturaBodyDto} from "./locatarios.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp.js";
+import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma.js";
 import { createAssinaturasRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/assinaturasRepositorioPrisma";
 import { createAssinaturasModulosRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma";
 import { createModulosConsultaRepositorioPrisma } from "@core-kit/api/infra/prisma/assinaturas/modulosConsultaRepositorioPrisma";
-import { responderErroValidacaoZod } from "../helpersValidacao";
+import { responderErroValidacaoZod } from "../helpersValidacao.js";
 
 function criarDepsLocatarios() {
   const locatariosRepositorio = createLocatariosRepositorio(clientePrisma);

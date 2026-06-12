@@ -1,7 +1,7 @@
 // apps/api/src/modules/locatarios/locatarios.presenter.ts
 
 import type { ConfiguracaoLocatario, Locatario } from "@core-kit/core";
-import type { ConfiguracaoLocatarioResponseDto, LocatarioResponseDto } from "./locatarios.dto";
+import type { ConfiguracaoLocatarioResponseDto, LocatarioResponseDto } from "./locatarios.dto.js";
 
 function serializarData(valor: Date | null): string | null {
   return valor ? valor.toISOString() : null;

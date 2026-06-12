@@ -1,7 +1,7 @@
 // apps/api/src/infra/prisma/autorizacao/autorizacaoUseCaseDeps.ts
 
 import { createFnListarModulosHabilitados } from "@core-kit/core";
-import type { AutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters";
+import type { AutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters.js";
 
 /**
  * 
