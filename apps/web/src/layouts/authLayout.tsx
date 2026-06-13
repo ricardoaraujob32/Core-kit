@@ -10,7 +10,7 @@ export default function AuthLayout(): JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 text-slate-700">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-700">
         Carregando...
       </div>
     );
@@ -26,7 +26,7 @@ export default function AuthLayout(): JSX.Element {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm">
         <Outlet />
       </div>
