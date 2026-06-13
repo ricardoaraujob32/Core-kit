@@ -11,30 +11,28 @@ const APP_ENV = import.meta.env.VITE_APP_ENV ?? "Beta";
 
 export function AppFooter({ variant }: AppFooterProps): JSX.Element {
   return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto grid max-w-screen-2xl gap-4 px-4 py-6 text-sm text-slate-500 md:grid-cols-[1fr_auto] md:items-center">
+    <footer className="ck-footer">
+      <div className="ck-footer-inner">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <strong className="text-slate-900">Core-kit</strong>
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-              {APP_ENV}
-            </span>
-            <span className="text-slate-300">•</span>
+          <div className="ck-footer-brand">
+            <strong>Core-kit</strong>
+            <span className="ck-beta-badge">{APP_ENV}</span>
+            <span className="ck-dot">•</span>
             <span>v{APP_VERSION}</span>
           </div>
 
-          <p className="mt-1">
+          <p className="ck-footer-desc">
             {variant === "plataforma"
               ? "Administração da plataforma multi-locatário."
               : "Sistema de gestão para vendas, compras, produtos e clientes."}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3 md:justify-end">
+        <div className="ck-footer-links">
           <span>Suporte em preparação</span>
-          <span className="text-slate-300">•</span>
+          <span className="ck-dot">•</span>
           <span>Documentação em preparação</span>
-          <span className="text-slate-300">•</span>
+          <span className="ck-dot">•</span>
           <span>Publicado na Vercel</span>
         </div>
       </div>

@@ -1,0 +1,417 @@
+/* apps/web/src/shared/layout/appShell.css */
+
+.ck-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: #0f172a;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.10), transparent 32rem),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 45%, #ffffff 100%);
+}
+
+.ck-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+}
+
+.ck-header-inner {
+  max-width: 100rem;
+  margin: 0 auto;
+  min-height: 4.75rem;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.ck-brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.ck-brand-mark {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1.15rem;
+  color: white;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background:
+    linear-gradient(135deg, #020617 0%, #1e293b 45%, #2563eb 100%);
+  box-shadow:
+    0 16px 32px rgba(15, 23, 42, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.ck-brand-logo {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1.15rem;
+  object-fit: cover;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+}
+
+.ck-brand-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ck-brand-title {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #020617;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.ck-brand-subtitle {
+  margin-top: 0.08rem;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.ck-beta-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.20);
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.16rem 0.52rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ck-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ck-search-pill {
+  display: none;
+  min-width: 14rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.92);
+  color: #94a3b8;
+  padding: 0.62rem 0.9rem;
+  font-size: 0.86rem;
+}
+
+.ck-user-card {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: white;
+  padding: 0.45rem 0.55rem;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+}
+
+.ck-user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(135deg, #0f172a, #2563eb);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.ck-user-meta {
+  display: none;
+  min-width: 0;
+}
+
+.ck-user-name {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.ck-user-role {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.ck-logout-button {
+  border: 0;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0.5rem 0.72rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.ck-logout-button:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.ck-mobile-nav {
+  max-width: 100rem;
+  margin: 0 auto;
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding: 0 1.25rem 0.85rem;
+}
+
+.ck-mobile-nav-link {
+  display: inline-flex;
+  min-width: max-content;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  background: white;
+  color: #475569;
+  padding: 0.58rem 0.85rem;
+  font-size: 0.84rem;
+  font-weight: 750;
+  text-decoration: none;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.ck-mobile-nav-link.active {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: white;
+}
+
+.ck-body {
+  width: 100%;
+  max-width: 100rem;
+  margin: 0 auto;
+  display: flex;
+  flex: 1;
+}
+
+.ck-sidebar {
+  display: none;
+  width: 18.5rem;
+  flex: 0 0 18.5rem;
+  padding: 1rem 0 1rem 1rem;
+}
+
+.ck-sidebar-panel {
+  position: sticky;
+  top: 6rem;
+  min-height: calc(100vh - 8rem);
+  overflow: hidden;
+  border-radius: 1.75rem;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(59, 130, 246, 0.35), transparent 18rem),
+    linear-gradient(180deg, #020617 0%, #0f172a 52%, #111827 100%);
+  color: white;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.ck-sidebar-top {
+  padding: 1.15rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.ck-sidebar-kicker {
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ck-sidebar-title {
+  margin-top: 0.25rem;
+  color: white;
+  font-size: 1.04rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.ck-sidebar-desc {
+  margin-top: 0.35rem;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.ck-sidebar-nav {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+}
+
+.ck-sidebar-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  border-radius: 1rem;
+  color: #cbd5e1;
+  padding: 0.68rem 0.78rem;
+  font-size: 0.91rem;
+  font-weight: 750;
+  text-decoration: none;
+  transition: 160ms ease;
+}
+
+.ck-sidebar-link:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ck-sidebar-link.active {
+  color: #0f172a;
+  background: white;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.22);
+}
+
+.ck-sidebar-icon {
+  width: 2.15rem;
+  height: 2.15rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.10);
+  color: white;
+  font-size: 1rem;
+  transition: 160ms ease;
+}
+
+.ck-sidebar-link.active .ck-sidebar-icon {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.ck-sidebar-footer {
+  margin: 0.85rem;
+  margin-top: 1.25rem;
+  border-radius: 1.2rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.9rem;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.ck-main {
+  min-width: 0;
+  flex: 1;
+  padding: 1.25rem;
+}
+
+.ck-breadcrumb-wrap {
+  margin-bottom: 1rem;
+}
+
+.ck-footer {
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.ck-footer-inner {
+  max-width: 100rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem 1.25rem;
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.ck-footer-brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ck-footer-brand strong {
+  color: #0f172a;
+}
+
+.ck-footer-desc {
+  margin-top: 0.25rem;
+}
+
+.ck-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.ck-dot {
+  color: #cbd5e1;
+}
+
+@media (min-width: 640px) {
+  .ck-user-meta {
+    display: block;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ck-mobile-nav {
+    display: none;
+  }
+
+  .ck-sidebar {
+    display: block;
+  }
+
+  .ck-main {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ck-search-pill {
+    display: flex;
+  }
+
+  .ck-main {
+    padding: 2rem;
+  }
+
+  .ck-footer-inner {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .ck-footer-links {
+    justify-content: flex-end;
+  }
+}

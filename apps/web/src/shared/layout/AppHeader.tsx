@@ -19,15 +19,6 @@ type AppHeaderProps = {
 
 const APP_ENV = import.meta.env.VITE_APP_ENV ?? "Beta";
 
-function mobileNavLinkClass({ isActive }: { isActive: boolean }): string {
-  return [
-    "flex min-w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition",
-    isActive
-      ? "bg-slate-950 text-white shadow-sm"
-      : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-  ].join(" ");
-}
-
 function userLabel(user: ReturnType<typeof useAuth>["user"]): string {
   return (
     user?.nome?.trim() ||
@@ -61,81 +52,62 @@ export function AppHeader({ variant, navItems }: AppHeaderProps): JSX.Element {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
-      <div className="mx-auto max-w-screen-2xl px-4">
-        <div className="flex min-h-20 flex-wrap items-center justify-between gap-4 py-3">
-          <div className="flex min-w-0 items-center gap-3">
-            {variant === "tenant" && branding?.logoUrl ? (
-              <img
-                alt={title}
-                className="h-12 w-12 rounded-2xl border border-slate-200 object-cover shadow-sm"
-                src={branding.logoUrl}
-              />
-            ) : (
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 text-sm font-bold text-white shadow-sm">
-                CK
-              </div>
-            )}
+    <header className="ck-header">
+      <div className="ck-header-inner">
+        <div className="ck-brand">
+          {variant === "tenant" && branding?.logoUrl ? (
+            <img alt={title} className="ck-brand-logo" src={branding.logoUrl} />
+          ) : (
+            <div className="ck-brand-mark">CK</div>
+          )}
 
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <strong className="truncate text-lg font-semibold text-slate-950">
-                  {title}
-                </strong>
-
-                <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                  {APP_ENV}
-                </span>
-              </div>
-
-              <p className="text-sm text-slate-500">{subtitle}</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="hidden items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 xl:flex">
-              Busca global em breve
+          <div>
+            <div className="ck-brand-title-row">
+              <strong className="ck-brand-title">{title}</strong>
+              <span className="ck-beta-badge">{APP_ENV}</span>
             </div>
 
-            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-sm font-semibold text-white">
-                {userInitial(user)}
-              </div>
-
-              <div className="hidden text-sm sm:block">
-                <div className="max-w-40 truncate font-medium text-slate-800">
-                  {userLabel(user)}
-                </div>
-                <div className="text-xs text-slate-500">
-                  {isPlataforma ? "Plataforma" : "Locatário"}
-                </div>
-              </div>
-
-              <button
-                className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                type="button"
-                onClick={() => void handleLogout()}
-              >
-                Sair
-              </button>
-            </div>
+            <p className="ck-brand-subtitle">{subtitle}</p>
           </div>
         </div>
 
-        <nav className="flex gap-2 overflow-x-auto border-t border-slate-100 py-3 lg:hidden">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              className={mobileNavLinkClass}
-              end={item.end}
-              to={item.to}
+        <div className="ck-header-actions">
+          <div className="ck-search-pill">⌕ Busca global em breve</div>
+
+          <div className="ck-user-card">
+            <div className="ck-user-avatar">{userInitial(user)}</div>
+
+            <div className="ck-user-meta">
+              <div className="ck-user-name">{userLabel(user)}</div>
+              <div className="ck-user-role">
+                {isPlataforma ? "Plataforma" : "Locatário"}
+              </div>
+            </div>
+
+            <button
+              className="ck-logout-button"
+              type="button"
+              onClick={() => void handleLogout()}
             >
-              <span>{item.icon ?? "•"}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+              Sair
+            </button>
+          </div>
+        </div>
       </div>
+
+      <nav className="ck-mobile-nav">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            className="ck-mobile-nav-link"
+            end={item.end}
+            to={item.to}
+          >
+            <span>{item.icon ?? "•"}</span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </header>
   );
 }
