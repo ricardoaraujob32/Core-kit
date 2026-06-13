@@ -26,8 +26,8 @@ export default function AuthLayout(): JSX.Element {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="grid min-h-screen place-items-center bg-slate-50 px-4">
+      <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm">
         <Outlet />
       </div>
     </div>
