@@ -16,7 +16,7 @@ export function AppShell({
   navItems,
 }: AppShellProps): JSX.Element {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-white text-slate-900">
       <AppHeader navItems={navItems} variant={variant} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
