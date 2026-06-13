@@ -1,7 +1,7 @@
 // apps/web/src/features/tenant-admin/vendas/pages/NovaVendaPage.tsx
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
@@ -40,17 +40,11 @@ export default function NovaVendaPage() {
       try {
         const response = await clientesApi.listar();
 
-        if (ativo) {
-          setClientes(response.itens);
-        }
+        if (ativo) setClientes(response.itens);
       } catch (error) {
-        if (ativo) {
-          setErroClientes(mapError(error).message);
-        }
+        if (ativo) setErroClientes(mapError(error).message);
       } finally {
-        if (ativo) {
-          setIsLoadingClientes(false);
-        }
+        if (ativo) setIsLoadingClientes(false);
       }
     }
 
@@ -94,16 +88,19 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <form
-      className="grid gap-6 rounded-2xl border bg-white p-6"
-      onSubmit={handleSubmit}
-    >
-      <div>
-        <h1 className="text-2xl font-semibold">Nova venda</h1>
-        <p className="text-sm text-slate-600">
-          Selecione o cliente usando nome, documento, e-mail ou telefone. Os
-          itens serão adicionados na próxima etapa.
-        </p>
+    <form className="grid gap-6" onSubmit={handleSubmit}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Nova venda</h1>
+          <p className="text-sm text-slate-600">
+            Primeiro crie a venda. Os produtos serão adicionados na tela de
+            detalhes.
+          </p>
+        </div>
+
+        <Link className="rounded-xl border px-4 py-2" to="/app/transacoes">
+          Voltar
+        </Link>
       </div>
 
       {erro ? (
@@ -114,18 +111,23 @@ export default function NovaVendaPage() {
 
       {erroClientes ? (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-          Não foi possível carregar a lista de clientes: {erroClientes}
+          Não foi possível carregar clientes: {erroClientes}
         </div>
       ) : null}
 
-      <section className="grid gap-4 rounded-2xl border p-4">
-        <h2 className="text-lg font-semibold">Cliente</h2>
+      <section className="grid gap-4 rounded-2xl border bg-white p-6">
+        <div>
+          <h2 className="text-lg font-semibold">Cliente</h2>
+          <p className="text-sm text-slate-600">
+            Busque por nome, documento, e-mail ou telefone.
+          </p>
+        </div>
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Buscar cliente</span>
           <input
             className="rounded-xl border px-3 py-2"
-            placeholder="Nome, documento, e-mail ou telefone"
+            placeholder="Ex.: Maria, CPF/CNPJ, e-mail..."
             value={buscaCliente}
             onChange={(event) => setBuscaCliente(event.target.value)}
           />
@@ -152,25 +154,42 @@ export default function NovaVendaPage() {
         </label>
 
         {clienteSelecionado ? (
-          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm">
-            <div><strong>Nome:</strong> {clienteSelecionado.nome}</div>
-            <div><strong>Documento:</strong> {clienteSelecionado.documento ?? "—"}</div>
-            <div><strong>E-mail:</strong> {clienteSelecionado.email ?? "—"}</div>
-            <div><strong>Telefone:</strong> {clienteSelecionado.telefone ?? "—"}</div>
+          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm md:grid-cols-2">
+            <div>
+              <div className="text-xs text-slate-500">Nome</div>
+              <div>{clienteSelecionado.nome}</div>
+            </div>
+
+            <div>
+              <div className="text-xs text-slate-500">Documento</div>
+              <div>{clienteSelecionado.documento ?? "—"}</div>
+            </div>
+
+            <div>
+              <div className="text-xs text-slate-500">E-mail</div>
+              <div>{clienteSelecionado.email ?? "—"}</div>
+            </div>
+
+            <div>
+              <div className="text-xs text-slate-500">Telefone</div>
+              <div>{clienteSelecionado.telefone ?? "—"}</div>
+            </div>
           </div>
         ) : null}
       </section>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Observação</span>
-        <textarea
-          className="rounded-xl border px-3 py-2"
-          value={observacao}
-          onChange={(event) => setObservacao(event.target.value)}
-          placeholder="Observação da venda"
-          rows={3}
-        />
-      </label>
+      <section className="grid gap-4 rounded-2xl border bg-white p-6">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Observação</span>
+          <textarea
+            className="rounded-xl border px-3 py-2"
+            value={observacao}
+            onChange={(event) => setObservacao(event.target.value)}
+            placeholder="Observação da venda"
+            rows={3}
+          />
+        </label>
+      </section>
 
       <div className="flex justify-end">
         <button
@@ -178,7 +197,7 @@ export default function NovaVendaPage() {
           type="submit"
           disabled={isSaving}
         >
-          {isSaving ? "Criando..." : "Criar venda"}
+          {isSaving ? "Criando..." : "Criar venda e adicionar itens"}
         </button>
       </div>
     </form>

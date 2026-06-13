@@ -56,6 +56,9 @@ import { EditarProdutoPage, NovoProdutoPage, ProdutoDetailsPage, ProdutosListPag
 import { NovaVendaPage } from "../features/tenant-admin/vendas";
 import { TransacaoDetailsPage, TransacoesListPage } from "../features/tenant-admin/transacoes";
 import { NovaCompraPage } from "../features/tenant-admin/compras";
+import { EditarLocatarioPage, LocatarioDetailsPage, LocatariosListPage, NovoLocatarioPage, NovoUsuarioLocatarioPage } from "../features/superadmin/locatarios";
+import PlataformaLoginPage from "../features/auth/pages/PlataformaLoginPage";
+import UsuariosLocatarioListPage from "../features/superadmin/locatarios/pages/UsuariosLocatarioListPage";
 
 /**
  * 
@@ -72,6 +75,10 @@ export const router = createBrowserRouter([
         path: "/login",
         element: <LoginPage />,
       },
+      {
+        path: "/plataforma/login",
+        element: <PlataformaLoginPage />,
+      },
     ],
   },
   {
@@ -84,15 +91,39 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <SuperAdminRoute />,
+    element: <SuperAdminRoute loginPath="/plataforma/login" />,
     children: [
       {
-        path: "/superadmin",
+        path: "/plataforma",
         element: <SuperAdminLayout />,
         children: [
-          {
-            index: true,
-            element: <SuperAdminDashboard />,
+          { 
+            index: true, 
+            element: <SuperAdminDashboard /> 
+          },
+          { 
+            path: "locatarios", 
+            element: <LocatariosListPage /> 
+          },
+          { 
+            path: "locatarios/novo", 
+            element: <NovoLocatarioPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId", 
+            element: <LocatarioDetailsPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId/editar", 
+            element: <EditarLocatarioPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId/usuarios", 
+            element: <UsuariosLocatarioListPage /> 
+          },
+          { 
+            path: "locatarios/:locatarioId/usuarios/novo", 
+            element: <NovoUsuarioLocatarioPage /> 
           },
         ],
       },
@@ -269,7 +300,7 @@ export class HttpError extends Error {
   }
 }
 
-const API_BASE_URL = "http://localhost:3333/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "https://corekit-api-homolog.onrender.com/api";;
 
 let accessTokenGetter: (() => string | null) | null = null;
 let refreshSessionHandler: (() => Promise<boolean>) | null = null;
@@ -1956,16 +1987,12 @@ import type { JSX, FormEvent } from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
-import { isPlataforma } from "../../../core/auth/tipos";
 import { mapError } from "../../../core/errors/mapError";
-
-type LoginMode = "TENANT" | "PLATAFORMA";
 
 export default function LoginPage(): JSX.Element {
   const navigate = useNavigate();
-  const { login, loginPlataforma, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
 
-  const [mode, setMode] = useState<LoginMode>("TENANT");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [locatarioSlug, setLocatarioSlug] = useState("");
@@ -1976,23 +2003,13 @@ export default function LoginPage(): JSX.Element {
     setErro(null);
 
     try {
-      const authenticatedUser =
-        mode === "PLATAFORMA"
-          ? await loginPlataforma({ email, senha })
-          : await login({
-              email,
-              senha,
-              locatarioSlug: locatarioSlug.trim(),
-            });
+      await login({
+        email: email.trim(),
+        senha,
+        locatarioSlug: locatarioSlug.trim(),
+      });
 
-      const targetPath = isPlataforma(authenticatedUser)
-        ? "/superadmin"
-        : "/app";
-
-      console.log("LOGIN USER", authenticatedUser);
-      console.log("REDIRECT", targetPath);
-
-      navigate(targetPath, { replace: true });
+      navigate("/app", { replace: true });
     } catch (error) {
       setErro(mapError(error).message);
     }
@@ -2002,44 +2019,20 @@ export default function LoginPage(): JSX.Element {
     <main>
       <h1>Entrar</h1>
 
+      <p>Área administrativa do locatário.</p>
+
       <form onSubmit={handleSubmit}>
         <div>
-          <label>
-            <input
-              type="radio"
-              name="loginMode"
-              value="TENANT"
-              checked={mode === "TENANT"}
-              onChange={() => setMode("TENANT")}
-            />
-            Locatário
-          </label>
-
-          <label style={{ marginLeft: 12 }}>
-            <input
-              type="radio"
-              name="loginMode"
-              value="PLATAFORMA"
-              checked={mode === "PLATAFORMA"}
-              onChange={() => setMode("PLATAFORMA")}
-            />
-            Plataforma
-          </label>
+          <label htmlFor="locatarioSlug">Locatário</label>
+          <input
+            id="locatarioSlug"
+            type="text"
+            value={locatarioSlug}
+            onChange={(event) => setLocatarioSlug(event.target.value)}
+            autoComplete="organization"
+            required
+          />
         </div>
-
-        {mode === "TENANT" ? (
-          <div>
-            <label htmlFor="locatarioSlug">Locatário</label>
-            <input
-              id="locatarioSlug"
-              type="text"
-              value={locatarioSlug}
-              onChange={(event) => setLocatarioSlug(event.target.value)}
-              autoComplete="organization"
-              required
-            />
-          </div>
-        ) : null}
 
         <div>
           <label htmlFor="email">E-mail</label>
@@ -2075,8 +2068,170 @@ export default function LoginPage(): JSX.Element {
   );
 }
 
+===== apps/web/src/features/auth/pages/PlataformaLoginPage.tsx =====
+
+// apps/web/src/features/auth/pages/PlataformaLoginPage.tsx
+
+import type { FormEvent, JSX } from "react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../core/auth/useAuth";
+import { mapError } from "../../../core/errors/mapError";
+
+export default function PlataformaLoginPage(): JSX.Element {
+  const navigate = useNavigate();
+  const { loginPlataforma, isLoading } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErro(null);
+
+    try {
+      await loginPlataforma({
+        email: email.trim(),
+        senha,
+      });
+
+      navigate("/plataforma", { replace: true });
+    } catch (error) {
+      setErro(mapError(error).message);
+    }
+  }
+
+  return (
+    <main>
+      <h1>Entrar na plataforma</h1>
+
+      <p>Área administrativa da plataforma.</p>
+
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label htmlFor="email">E-mail</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="senha">Senha</label>
+          <input
+            id="senha"
+            type="password"
+            value={senha}
+            onChange={(event) => setSenha(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </div>
+
+        {erro ? <p role="alert">{erro}</p> : null}
+
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? "Entrando..." : "Entrar"}
+        </button>
+      </form>
+
+      <p>
+        <Link to="/login">Ir para login do locatário</Link>
+      </p>
+    </main>
+  );
+}
+
+
 ===== apps/web/src/features/auth/tipos.ts =====
 
+
+
+===== apps/web/src/features/superadmin/locatarios/api/locatarioConfiguracoesApi.ts =====
+
+// apps/web/src/features/superadmin/locatarios/api/locatarioConfiguracoesApi.ts
+
+import { httpClient } from "../../../../core/api/httpClient";
+
+export type BrandingLocatario = {
+  locatarioId: string;
+  configuracaoId: string;
+  modoTema?: string | null;
+  identidadeVisual?: string | null;
+  corPrimaria?: string | null;
+  corSecundaria?: string | null;
+  corTerciaria?: string | null;
+  urlLogo?: string | null;
+  ativa?: boolean;
+  atualizadoEm?: string | null;
+};
+
+export type AtualizarBrandingLocatarioInput = {
+  nomeFantasia?: string | null;
+  corPrimaria?: string | null;
+  corSecundaria?: string | null;
+  corFundo?: string | null;
+  corTexto?: string | null;
+  logoUrl?: string | null;
+};
+
+export type ModuloAssinaturaLocatario = {
+  codigo: string;
+  origem?: string | null;
+};
+
+export type ObterBrandingLocatarioResponse = { item: BrandingLocatario };
+export type AtualizarBrandingLocatarioResponse = { item: BrandingLocatario };
+export type ListarModulosAssinaturaLocatarioResponse = {
+  locatarioId: string;
+  modulos: ModuloAssinaturaLocatario[];
+};
+export type VincularModuloAssinaturaLocatarioInput = { codigo: string };
+export type VincularModuloAssinaturaLocatarioResponse = {
+  item: ModuloAssinaturaLocatario;
+};
+export type DesvincularModuloAssinaturaLocatarioResponse = {
+  item: { codigo: string };
+};
+
+export const locatarioConfiguracoesApi = {
+  obterBranding(locatarioId: string): Promise<ObterBrandingLocatarioResponse> {
+    return httpClient.get<ObterBrandingLocatarioResponse>(
+      `/plataforma/locatarios/${locatarioId}/configuracoes/ativa`,
+    );
+  },
+
+  atualizarBranding(locatarioId: string, input: AtualizarBrandingLocatarioInput): Promise<AtualizarBrandingLocatarioResponse> {
+    return httpClient.patch<
+      AtualizarBrandingLocatarioResponse,
+      AtualizarBrandingLocatarioInput
+    >(`/plataforma/locatarios/${locatarioId}/branding`, input);
+  },
+
+  listarModulos(locatarioId: string): Promise<ListarModulosAssinaturaLocatarioResponse> {
+    return httpClient.get<ListarModulosAssinaturaLocatarioResponse>(
+      `/plataforma/locatarios/${locatarioId}/modulos`,
+    );
+  },
+
+  vincularModulo(locatarioId: string, input: VincularModuloAssinaturaLocatarioInput): Promise<VincularModuloAssinaturaLocatarioResponse> {
+    return httpClient.post<
+      VincularModuloAssinaturaLocatarioResponse,
+      VincularModuloAssinaturaLocatarioInput
+    >(`/plataforma/locatarios/${locatarioId}/modulos`, input);
+  },
+
+  desvincularModulo(locatarioId: string, codigo: string): Promise<DesvincularModuloAssinaturaLocatarioResponse> {
+    return httpClient.delete<DesvincularModuloAssinaturaLocatarioResponse>(
+      `/plataforma/locatarios/${locatarioId}/modulos/${encodeURIComponent(codigo)}`,
+    );
+  },
+};
 
 
 ===== apps/web/src/features/superadmin/locatarios/api/locatariosApi.ts =====
@@ -2168,6 +2323,144 @@ export const locatariosApi = {
     );
   },
 };
+
+
+===== apps/web/src/features/superadmin/locatarios/api/usuariosLocatarioApi.ts =====
+
+// apps/web/src/features/superadmin/locatarios/api/usuariosLocatarioApi.ts
+
+import { httpClient } from "../../../../core/api/httpClient";
+import type {
+  CriarUsuarioInput,
+  CriarUsuarioResponse,
+} from "../../../tenant-admin/usuarios";
+
+export type UsuarioLocatario = {
+  usuarioId: string;
+  locatarioId: string;
+  nome: string;
+  email: string;
+  perfil?: string | null;
+  status?: string | null;
+  criadoEm?: string | null;
+  atualizadoEm?: string | null;
+  excluidoEm?: string | null;
+};
+
+export type ListarUsuariosLocatarioResponse = {
+  itens: UsuarioLocatario[];
+};
+
+export const usuariosLocatarioApi = {
+  listar(locatarioId: string): Promise<ListarUsuariosLocatarioResponse> {
+    return httpClient.get<ListarUsuariosLocatarioResponse>(
+      `/plataforma/locatarios/${locatarioId}/usuarios`,
+    );
+  },
+
+  criar(
+    locatarioId: string,
+    input: CriarUsuarioInput,
+  ): Promise<CriarUsuarioResponse> {
+    return httpClient.post<CriarUsuarioResponse, CriarUsuarioInput>(
+      `/plataforma/locatarios/${locatarioId}/usuarios`,
+      input,
+    );
+  },
+};
+
+
+===== apps/web/src/features/superadmin/locatarios/components/LocatarioBrandingForm.tsx =====
+
+// apps/web/src/features/superadmin/locatarios/components/LocatarioBrandingForm.tsx
+
+import { useEffect, useState } from "react";
+import type { AtualizarBrandingLocatarioInput, BrandingLocatario } from "../api/locatarioConfiguracoesApi";
+
+type Props = {
+  branding: BrandingLocatario | null;
+  isSaving: boolean;
+  onSubmit: (input: AtualizarBrandingLocatarioInput) => void | Promise<void>;
+};
+
+export function LocatarioBrandingForm({ branding, isSaving, onSubmit }: Props) {
+  const [nomeFantasia, setNomeFantasia] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [corPrimaria, setCorPrimaria] = useState("");
+  const [corSecundaria, setCorSecundaria] = useState("");
+  const [corFundo, setCorFundo] = useState("");
+  const [corTexto, setCorTexto] = useState("");
+
+  useEffect(() => {
+    setNomeFantasia(branding?.identidadeVisual ?? "");
+    setLogoUrl(branding?.urlLogo ?? "");
+    setCorPrimaria(branding?.corPrimaria ?? "");
+    setCorSecundaria(branding?.corSecundaria ?? "");
+    setCorFundo(branding?.corTerciaria ?? "");
+  }, [branding]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await onSubmit({
+      nomeFantasia: nomeFantasia.trim() || null,
+      logoUrl: logoUrl.trim() || null,
+      corPrimaria: corPrimaria.trim() || null,
+      corSecundaria: corSecundaria.trim() || null,
+      corFundo: corFundo.trim() || null,
+      corTexto: corTexto.trim() || null,
+    });
+  }
+
+  return (
+    <form className="grid gap-4 rounded-2xl border bg-white p-6" onSubmit={handleSubmit}>
+      <div>
+        <h2 className="text-lg font-semibold">Branding</h2>
+        <p className="text-sm text-slate-600">Atualize as informações visuais usadas pelo locatário.</p>
+      </div>
+      <input className="rounded-xl border px-3 py-2" placeholder="Nome fantasia" value={nomeFantasia} onChange={(event) => setNomeFantasia(event.target.value)} />
+      <input className="rounded-xl border px-3 py-2" placeholder="URL do logo" value={logoUrl} onChange={(event) => setLogoUrl(event.target.value)} />
+      <input className="rounded-xl border px-3 py-2" placeholder="Cor primária. Ex.: #2563eb" value={corPrimaria} onChange={(event) => setCorPrimaria(event.target.value)} />
+      <input className="rounded-xl border px-3 py-2" placeholder="Cor secundária. Ex.: #1d4ed8" value={corSecundaria} onChange={(event) => setCorSecundaria(event.target.value)} />
+      <input className="rounded-xl border px-3 py-2" placeholder="Cor de fundo. Ex.: #ffffff" value={corFundo} onChange={(event) => setCorFundo(event.target.value)} />
+      <input className="rounded-xl border px-3 py-2" placeholder="Cor do texto. Ex.: #111827" value={corTexto} onChange={(event) => setCorTexto(event.target.value)} />
+      <div className="flex justify-end">
+        <button className="rounded-xl border px-4 py-2" type="submit" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar branding"}</button>
+      </div>
+    </form>
+  );
+}
+
+
+===== apps/web/src/features/superadmin/locatarios/components/LocatarioBrandingResumo.tsx =====
+
+// apps/web/src/features/superadmin/locatarios/components/LocatarioBrandingResumo.tsx
+
+import type { BrandingLocatario } from "../api/locatarioConfiguracoesApi";
+
+type Props = { branding: BrandingLocatario | null };
+
+export function LocatarioBrandingResumo({ branding }: Props) {
+  if (!branding) {
+    return (
+      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+        Nenhuma configuração de branding encontrada.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-2 rounded-2xl border bg-white p-6 text-sm">
+      <h2 className="text-lg font-semibold">Branding</h2>
+      <div><strong>Nome fantasia:</strong> {branding.identidadeVisual ?? "—"}</div>
+      <div><strong>Logo:</strong> {branding.urlLogo ?? "—"}</div>
+      <div><strong>Cor primária:</strong> {branding.corPrimaria ?? "—"}</div>
+      <div><strong>Cor secundária:</strong> {branding.corSecundaria ?? "—"}</div>
+      <div><strong>Cor terciária:</strong> {branding.corTerciaria ?? "—"}</div>
+      <div><strong>Modo de tema:</strong> {branding.modoTema ?? "—"}</div>
+      <div><strong>Atualizado em:</strong> {branding.atualizadoEm ?? "—"}</div>
+    </div>
+  );
+}
 
 
 ===== apps/web/src/features/superadmin/locatarios/components/LocatarioForm.tsx =====
@@ -2403,6 +2696,115 @@ export function LocatarioForm({
   );
 }
 
+===== apps/web/src/features/superadmin/locatarios/components/LocatarioModulosForm.tsx =====
+
+// apps/web/src/features/superadmin/locatarios/components/LocatarioModulosForm.tsx
+
+import { useState } from "react";
+import type { ModuloAssinaturaLocatario } from "../api/locatarioConfiguracoesApi";
+
+type Props = {
+  modulos: ModuloAssinaturaLocatario[];
+  isRunning: boolean;
+  onVincular: (codigo: string) => void | Promise<void>;
+  onDesvincular: (codigo: string) => void | Promise<void>;
+};
+
+const MODULOS_SUGERIDOS = ["ASSINATURAS", "USUARIOS", "VENDAS", "COMPRAS", "ESTOQUE", "FINANCEIRO", "ORDENS_SERVICO"];
+
+export function LocatarioModulosForm({ modulos, isRunning, onVincular, onDesvincular }: Props) {
+  const [codigo, setCodigo] = useState("");
+  const modulosAtuais = new Set(modulos.map((modulo) => modulo.codigo));
+  const disponiveis = MODULOS_SUGERIDOS.filter((modulo) => !modulosAtuais.has(modulo));
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await onVincular(codigo);
+    setCodigo("");
+  }
+
+  return (
+    <div className="grid gap-4 rounded-2xl border bg-white p-6">
+      <div>
+        <h2 className="text-lg font-semibold">Módulos da assinatura</h2>
+        <p className="text-sm text-slate-600">Acrescente ou remova módulos disponíveis para o locatário.</p>
+      </div>
+
+      <form className="flex flex-wrap gap-3" onSubmit={handleSubmit}>
+        <input className="rounded-xl border px-3 py-2" placeholder="Código do módulo" value={codigo} onChange={(event) => setCodigo(event.target.value)} list="modulos-disponiveis" />
+        <datalist id="modulos-disponiveis">{disponiveis.map((modulo) => <option key={modulo} value={modulo} />)}</datalist>
+        <button className="rounded-xl border px-4 py-2" type="submit" disabled={isRunning}>Adicionar módulo</button>
+      </form>
+
+      {modulos.length === 0 ? (
+        <div className="rounded-xl border p-4 text-sm text-slate-600">Nenhum módulo vinculado.</div>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border">
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b bg-slate-50 text-left"><th className="px-4 py-3">Código</th><th className="px-4 py-3">Origem</th><th className="px-4 py-3">Ações</th></tr>
+            </thead>
+            <tbody>
+              {modulos.map((modulo) => (
+                <tr key={modulo.codigo} className="border-b last:border-b-0">
+                  <td className="px-4 py-3">{modulo.codigo}</td><td className="px-4 py-3">{modulo.origem ?? "—"}</td>
+                  <td className="px-4 py-3"><button className="text-red-600 underline disabled:opacity-50" type="button" disabled={isRunning} onClick={() => void onDesvincular(modulo.codigo)}>Remover</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {disponiveis.length > 0 ? <div className="text-sm text-slate-600"><strong>Sugestões disponíveis:</strong> {disponiveis.join(", ")}</div> : null}
+    </div>
+  );
+}
+
+
+===== apps/web/src/features/superadmin/locatarios/components/LocatarioModulosResumo.tsx =====
+
+// apps/web/src/features/superadmin/locatarios/components/LocatarioModulosResumo.tsx
+
+import type { ModuloAssinaturaLocatario } from "../api/locatarioConfiguracoesApi";
+
+type Props = { modulos: ModuloAssinaturaLocatario[] };
+
+export function LocatarioModulosResumo({ modulos }: Props) {
+  if (modulos.length === 0) {
+    return (
+      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+        Nenhum módulo de assinatura vinculado.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-2xl border bg-white">
+      <div className="border-b bg-slate-50 px-4 py-3">
+        <h2 className="text-lg font-semibold">Módulos da assinatura</h2>
+      </div>
+      <table className="min-w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b bg-slate-50 text-left">
+            <th className="px-4 py-3">Código</th>
+            <th className="px-4 py-3">Origem</th>
+          </tr>
+        </thead>
+        <tbody>
+          {modulos.map((modulo) => (
+            <tr key={modulo.codigo} className="border-b last:border-b-0">
+              <td className="px-4 py-3">{modulo.codigo}</td>
+              <td className="px-4 py-3">{modulo.origem ?? "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
 ===== apps/web/src/features/superadmin/locatarios/components/LocatariosTable.tsx =====
 
 // apps/web/src/features/superadmin/locatarios/components/LocatariosTable.tsx
@@ -2410,17 +2812,11 @@ export function LocatarioForm({
 import { Link } from "react-router-dom";
 import type { Locatario } from "../tipos";
 
-type Props = {
-  itens: Locatario[];
-};
+type Props = { itens: Locatario[] };
 
 export function LocatariosTable({ itens }: Props) {
   if (itens.length === 0) {
-    return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhum locatário encontrado.
-      </div>
-    );
+    return <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">Nenhum locatário encontrado.</div>;
   }
 
   return (
@@ -2443,23 +2839,124 @@ export function LocatariosTable({ itens }: Props) {
               <td className="px-4 py-3">{item.email}</td>
               <td className="px-4 py-3">{item.status}</td>
               <td className="px-4 py-3">
-                <div className="flex gap-3">
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/superadmin/locatarios/${item.locatarioId}`}
-                  >
-                    Detalhes
-                  </Link>
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/superadmin/locatarios/${item.locatarioId}/editar`}
-                  >
-                    Editar
-                  </Link>
+                <div className="flex flex-wrap gap-3">
+                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}`}>Detalhes</Link>
+                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}/editar`}>Editar</Link>
+                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}/usuarios/novo`}>Novo usuário</Link>
                 </div>
               </td>
             </tr>
           ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+===== apps/web/src/features/superadmin/locatarios/components/UsuariosLocatarioTable.tsx =====
+
+// apps/web/src/features/superadmin/locatarios/components/UsuariosLocatarioTable.tsx
+
+import type { UsuarioLocatario } from "../api/usuariosLocatarioApi";
+
+type Props = {
+  itens: UsuarioLocatario[];
+  onEditar?: (usuarioId: string) => void;
+  onBloquear?: (usuarioId: string) => void;
+  onReativar?: (usuarioId: string) => void;
+  onResetarSenha?: (usuarioId: string) => void;
+};
+
+export function UsuariosLocatarioTable({
+  itens,
+  onEditar,
+  onBloquear,
+  onReativar,
+  onResetarSenha,
+}: Props) {
+  if (itens.length === 0) {
+    return (
+      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
+        Nenhum usuário cadastrado para este locatário.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-2xl border bg-white">
+      <table className="min-w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b bg-slate-50 text-left">
+            <th className="px-4 py-3">Nome</th>
+            <th className="px-4 py-3">E-mail</th>
+            <th className="px-4 py-3">Perfil</th>
+            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">ID</th>
+            <th className="px-4 py-3">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {itens.map((usuario) => {
+            const status = usuario.status?.trim().toUpperCase();
+            const ativo = status === "ATIVO";
+            const bloqueado =
+              status === "BLOQUEADO" ||
+              status === "INATIVO" ||
+              status === "SUSPENSO";
+
+            return (
+              <tr
+                key={usuario.usuarioId}
+                className="border-b last:border-b-0"
+              >
+                <td className="px-4 py-3">{usuario.nome}</td>
+                <td className="px-4 py-3">{usuario.email}</td>
+                <td className="px-4 py-3">{usuario.perfil ?? "—"}</td>
+                <td className="px-4 py-3">{usuario.status ?? "—"}</td>
+                <td className="px-4 py-3">{usuario.usuarioId}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      className="text-blue-600 underline disabled:opacity-50"
+                      type="button"
+                      onClick={() => onEditar?.(usuario.usuarioId)}
+                    >
+                      Editar
+                    </button>
+
+                    {ativo ? (
+                      <button
+                        className="text-red-600 underline disabled:opacity-50"
+                        type="button"
+                        onClick={() => onBloquear?.(usuario.usuarioId)}
+                      >
+                        Bloquear
+                      </button>
+                    ) : null}
+
+                    {bloqueado ? (
+                      <button
+                        className="text-green-700 underline disabled:opacity-50"
+                        type="button"
+                        onClick={() => onReativar?.(usuario.usuarioId)}
+                      >
+                        Reativar
+                      </button>
+                    ) : null}
+
+                    <button
+                      className="text-blue-600 underline disabled:opacity-50"
+                      type="button"
+                      onClick={() => onResetarSenha?.(usuario.usuarioId)}
+                    >
+                      Resetar senha
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -2536,6 +3033,172 @@ export function useLocatarioActions(onSuccess?: () => void | Promise<void>) {
     encerrar,
   };
 }
+
+===== apps/web/src/features/superadmin/locatarios/hooks/useLocatarioConfiguracoesActions.ts =====
+
+// apps/web/src/features/superadmin/locatarios/hooks/useLocatarioConfiguracoesActions.ts
+
+import { useState } from "react";
+import { mapError } from "../../../../core/errors/mapError";
+import {
+  locatarioConfiguracoesApi,
+  type AtualizarBrandingLocatarioInput,
+} from "../api/locatarioConfiguracoesApi";
+
+type RunningAction = "branding" | "vincular-modulo" | "desvincular-modulo";
+
+type Params = {
+  locatarioId?: string;
+  onSuccess?: () => void | Promise<void>;
+};
+
+export function useLocatarioConfiguracoesActions({ locatarioId, onSuccess }: Params) {
+  const [isRunning, setIsRunning] = useState<RunningAction | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+
+  async function finalizar(mensagem: string) {
+    setSucesso(mensagem);
+    await onSuccess?.();
+  }
+
+  async function atualizarBranding(input: AtualizarBrandingLocatarioInput) {
+    if (!locatarioId?.trim()) {
+      setErro("ID do locatário inválido.");
+      return false;
+    }
+
+    setIsRunning("branding");
+    setErro(null);
+    setSucesso(null);
+
+    try {
+      await locatarioConfiguracoesApi.atualizarBranding(locatarioId, input);
+      await finalizar("Branding atualizado com sucesso.");
+      return true;
+    } catch (error) {
+      setErro(mapError(error).message);
+      return false;
+    } finally {
+      setIsRunning(null);
+    }
+  }
+
+  async function vincularModulo(codigo: string) {
+    if (!locatarioId?.trim()) {
+      setErro("ID do locatário inválido.");
+      return false;
+    }
+
+    const codigoNormalizado = codigo.trim().toUpperCase();
+    if (!codigoNormalizado) {
+      setErro("Informe o código do módulo.");
+      return false;
+    }
+
+    setIsRunning("vincular-modulo");
+    setErro(null);
+    setSucesso(null);
+
+    try {
+      await locatarioConfiguracoesApi.vincularModulo(locatarioId, {
+        codigo: codigoNormalizado,
+      });
+      await finalizar("Módulo vinculado com sucesso.");
+      return true;
+    } catch (error) {
+      setErro(mapError(error).message);
+      return false;
+    } finally {
+      setIsRunning(null);
+    }
+  }
+
+  async function desvincularModulo(codigo: string) {
+    if (!locatarioId?.trim()) {
+      setErro("ID do locatário inválido.");
+      return false;
+    }
+
+    const codigoNormalizado = codigo.trim().toUpperCase();
+    if (!codigoNormalizado) {
+      setErro("Informe o código do módulo.");
+      return false;
+    }
+
+    const confirmado = window.confirm(`Remover o módulo ${codigoNormalizado} deste locatário?`);
+    if (!confirmado) return false;
+
+    setIsRunning("desvincular-modulo");
+    setErro(null);
+    setSucesso(null);
+
+    try {
+      await locatarioConfiguracoesApi.desvincularModulo(locatarioId, codigoNormalizado);
+      await finalizar("Módulo removido com sucesso.");
+      return true;
+    } catch (error) {
+      setErro(mapError(error).message);
+      return false;
+    } finally {
+      setIsRunning(null);
+    }
+  }
+
+  return { atualizarBranding, vincularModulo, desvincularModulo, isRunning, erro, sucesso };
+}
+
+
+===== apps/web/src/features/superadmin/locatarios/hooks/useLocatarioConfiguracoes.ts =====
+
+// apps/web/src/features/superadmin/locatarios/hooks/useLocatarioConfiguracoes.ts
+
+import { useCallback, useEffect, useState } from "react";
+import { mapError } from "../../../../core/errors/mapError";
+import {
+  locatarioConfiguracoesApi,
+  type BrandingLocatario,
+  type ModuloAssinaturaLocatario,
+} from "../api/locatarioConfiguracoesApi";
+
+export function useLocatarioConfiguracoes(locatarioId?: string) {
+  const [branding, setBranding] = useState<BrandingLocatario | null>(null);
+  const [modulos, setModulos] = useState<ModuloAssinaturaLocatario[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const carregar = useCallback(async () => {
+    if (!locatarioId?.trim()) {
+      setErro("ID do locatário inválido.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErro(null);
+
+    try {
+      const [brandingResponse, modulosResponse] = await Promise.all([
+        locatarioConfiguracoesApi.obterBranding(locatarioId),
+        locatarioConfiguracoesApi.listarModulos(locatarioId),
+      ]);
+
+      setBranding(brandingResponse.item);
+      setModulos(modulosResponse.modulos);
+    } catch (error) {
+      setErro(mapError(error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [locatarioId]);
+
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
+  return { branding, modulos, isLoading, erro, recarregar: carregar };
+}
+
 
 ===== apps/web/src/features/superadmin/locatarios/hooks/useLocatarios.ts =====
 
@@ -2681,6 +3344,55 @@ export function useSalvarLocatario({ mode, locatarioId, onSuccess, }: Params) {
   };
 }
 
+===== apps/web/src/features/superadmin/locatarios/hooks/useUsuariosLocatario.ts =====
+
+// apps/web/src/features/superadmin/locatarios/hooks/useUsuariosLocatario.ts
+
+import { useCallback, useEffect, useState } from "react";
+import { mapError } from "../../../../core/errors/mapError";
+import {
+  usuariosLocatarioApi,
+  type UsuarioLocatario,
+} from "../api/usuariosLocatarioApi";
+
+export function useUsuariosLocatario(locatarioId?: string) {
+  const [itens, setItens] = useState<UsuarioLocatario[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const carregar = useCallback(async () => {
+    if (!locatarioId?.trim()) {
+      setErro("ID do locatário inválido.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErro(null);
+
+    try {
+      const response = await usuariosLocatarioApi.listar(locatarioId);
+      setItens(response.itens);
+    } catch (error) {
+      setErro(mapError(error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [locatarioId]);
+
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
+  return {
+    itens,
+    isLoading,
+    erro,
+    recarregar: carregar,
+  };
+}
+
+
 ===== apps/web/src/features/superadmin/locatarios/index.ts =====
 
 // apps/web/src/features/superadmin/locatarios/index.ts
@@ -2689,15 +3401,21 @@ export { default as LocatariosListPage } from "./pages/LocatariosListPage";
 export { default as NovoLocatarioPage } from "./pages/NovoLocatarioPage";
 export { default as EditarLocatarioPage } from "./pages/EditarLocatarioPage";
 export { default as LocatarioDetailsPage } from "./pages/LocatarioDetailsPage";
+export { default as NovoUsuarioLocatarioPage } from "./pages/NovoUsuarioLocatarioPage";
 export * from "./tipos";
+
 
 ===== apps/web/src/features/superadmin/locatarios/pages/EditarLocatarioPage.tsx =====
 
 // apps/web/src/features/superadmin/locatarios/pages/EditarLocatarioPage.tsx
 
 import { useNavigate, useParams } from "react-router-dom";
+import { LocatarioBrandingForm } from "../components/LocatarioBrandingForm";
 import { LocatarioForm } from "../components/LocatarioForm";
+import { LocatarioModulosForm } from "../components/LocatarioModulosForm";
 import { useLocatario } from "../hooks/useLocatario";
+import { useLocatarioConfiguracoes } from "../hooks/useLocatarioConfiguracoes";
+import { useLocatarioConfiguracoesActions } from "../hooks/useLocatarioConfiguracoesActions";
 import { useSalvarLocatario } from "../hooks/useSalvarLocatario";
 import type { AtualizarLocatarioInput } from "../tipos";
 
@@ -2707,66 +3425,65 @@ export default function EditarLocatarioPage() {
   const locatarioId = params.locatarioId?.trim();
 
   const { item, isLoading, erro: erroCarga } = useLocatario(locatarioId);
+  const { branding, modulos, isLoading: isLoadingConfiguracoes, erro: erroConfiguracoes, recarregar: recarregarConfiguracoes } = useLocatarioConfiguracoes(locatarioId);
+  const { atualizarBranding, vincularModulo, desvincularModulo, isRunning, erro: erroAcaoConfiguracao, sucesso } = useLocatarioConfiguracoesActions({ locatarioId, onSuccess: recarregarConfiguracoes });
 
   const { salvar, isSaving, erro } = useSalvarLocatario({
     mode: "edit",
     locatarioId,
-    onSuccess: (id) => {
-      navigate(id ? `/superadmin/locatarios/${id}` : "/superadmin/locatarios");
-    },
+    onSuccess: (id) => navigate(id ? `/plataforma/locatarios/${id}` : "/plataforma/locatarios"),
   });
 
   async function handleSubmit(input: AtualizarLocatarioInput) {
     await salvar(input);
   }
 
-  if (isLoading) {
-    return <div className="rounded-2xl border bg-white p-6">Carregando locatário...</div>;
-  }
-
-  if (erroCarga) {
-    return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {erroCarga}
-      </div>
-    );
-  }
-
-  if (!item) {
-    return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        Locatário não encontrado.
-      </div>
-    );
-  }
+  if (isLoading) return <div className="rounded-2xl border bg-white p-6">Carregando locatário...</div>;
+  if (erroCarga) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroCarga}</div>;
+  if (!item) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Locatário não encontrado.</div>;
 
   return (
     <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Editar locatário</h1>
-        <p className="text-sm text-slate-600">
-          Atualize os dados cadastrais do locatário.
-        </p>
-      </div>
+      <div><h1 className="text-2xl font-semibold">Editar locatário</h1><p className="text-sm text-slate-600">Atualize cadastro, branding e módulos da assinatura.</p></div>
 
-      <LocatarioForm
-        mode="edit"
-        initialData={item}
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
+      <LocatarioForm mode="edit" initialData={item} isSaving={isSaving} erro={erro} onSubmit={handleSubmit} />
+
+      {erroConfiguracoes ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroConfiguracoes}</div> : null}
+      {erroAcaoConfiguracao ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroAcaoConfiguracao}</div> : null}
+      {sucesso ? <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{sucesso}</div> : null}
+
+      {isLoadingConfiguracoes ? (
+        <div className="rounded-2xl border bg-white p-6">Carregando configurações...</div>
+      ) : (
+        <>
+          <LocatarioBrandingForm branding={branding} isSaving={isRunning === "branding"} onSubmit={(input) => void atualizarBranding(input)} />
+          <LocatarioModulosForm modulos={modulos} isRunning={isRunning !== null} onVincular={(codigo) => void vincularModulo(codigo)} onDesvincular={(codigo) => void desvincularModulo(codigo)} />
+        </>
+      )}
     </div>
   );
 }
+
 
 ===== apps/web/src/features/superadmin/locatarios/pages/LocatarioDetailsPage.tsx =====
 
 // apps/web/src/features/superadmin/locatarios/pages/LocatarioDetailsPage.tsx
 
 import { Link, useParams } from "react-router-dom";
+import { LocatarioBrandingResumo } from "../components/LocatarioBrandingResumo";
+import { LocatarioModulosResumo } from "../components/LocatarioModulosResumo";
 import { useLocatario } from "../hooks/useLocatario";
 import { useLocatarioActions } from "../hooks/useLocatarioActions";
+import { useLocatarioConfiguracoes } from "../hooks/useLocatarioConfiguracoes";
+
+function formatarData(value?: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("pt-BR");
+}
+
+function normalizarStatus(status?: string | null): string {
+  return status?.trim().toUpperCase() ?? "";
+}
 
 export default function LocatarioDetailsPage() {
   const params = useParams<{ locatarioId: string }>();
@@ -2774,100 +3491,87 @@ export default function LocatarioDetailsPage() {
 
   const { item, isLoading, erro, recarregar } = useLocatario(locatarioId);
   const {
-    erro: erroAcao,
-    isRunning,
-    suspender,
-    reativar,
-    encerrar,
-  } = useLocatarioActions(async () => {
-    await recarregar();
-  });
+    branding,
+    modulos,
+    isLoading: isLoadingConfiguracoes,
+    erro: erroConfiguracoes,
+    recarregar: recarregarConfiguracoes,
+  } = useLocatarioConfiguracoes(locatarioId);
+
+  const { erro: erroAcao, isRunning, suspender, reativar, encerrar } =
+    useLocatarioActions(async () => {
+      await recarregar();
+      await recarregarConfiguracoes();
+    });
 
   if (isLoading) {
     return <div className="rounded-2xl border bg-white p-6">Carregando locatário...</div>;
   }
 
   if (erro) {
-    return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {erro}
-      </div>
-    );
+    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div>;
   }
 
   if (!item || !locatarioId) {
-    return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        Locatário não encontrado.
-      </div>
-    );
+    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Locatário não encontrado.</div>;
+  }
+
+  const id = locatarioId;
+  const status = normalizarStatus(item.status);
+  const estaEncerrado = status === "ENCERRADO" || Boolean(item.excluidoEm);
+  const estaSuspenso = !estaEncerrado && status.includes("SUSPENS");
+  const estaAtivo = !estaEncerrado && status === "ATIVO";
+
+  async function handleSuspender() {
+    const motivoSuspensao = window.prompt("Motivo da suspensão do locatário:")?.trim() || undefined;
+    await suspender(id, motivoSuspensao);
+  }
+
+  async function handleReativar() {
+    const motivoReativacao = window.prompt("Motivo da reativação do locatário:")?.trim() || undefined;
+    await reativar(id, motivoReativacao);
+  }
+
+  async function handleEncerrar() {
+    const confirmado = window.confirm("Encerrar este locatário? Esta operação deve ser usada apenas quando o contrato/conta será finalizado.");
+    if (!confirmado) return;
+    const motivoExclusao = window.prompt("Motivo do encerramento do locatário:")?.trim() || undefined;
+    await encerrar(id, motivoExclusao);
   }
 
   return (
     <div className="grid gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">{item.nome}</h1>
-          <p className="text-sm text-slate-600">{item.email}</p>
-        </div>
-
-        <div className="flex gap-3">
-          <Link
-            className="rounded-xl border px-4 py-2"
-            to={`/superadmin/locatarios/${locatarioId}/editar`}
-          >
-            Editar
-          </Link>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div><h1 className="text-2xl font-semibold">{item.nome}</h1><p className="text-sm text-slate-600">{item.email}</p></div>
+        <div className="flex flex-wrap gap-3">
+          <Link className="rounded-xl border px-4 py-2" to={`/plataforma/locatarios/${id}/editar`}>Editar</Link>
+          <Link className="rounded-xl border px-4 py-2" to={`/plataforma/locatarios/${id}/usuarios`}>Usuários</Link>
+          {!estaEncerrado ? <Link className="rounded-xl border px-4 py-2" to={`/plataforma/locatarios/${id}/usuarios/novo`}>Novo usuário</Link> : null}
         </div>
       </div>
 
-      {erroAcao ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erroAcao}
-        </div>
-      ) : null}
+      {erroAcao ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroAcao}</div> : null}
 
-      <div className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>ID:</strong> {item.locatarioId}</div>
-        <div><strong>Slug:</strong> {item.slug}</div>
-        <div><strong>Status:</strong> {item.status}</div>
-        <div><strong>Documento:</strong> {item.documento ?? "-"}</div>
-        <div><strong>Fuso horário:</strong> {item.fusoHorario ?? "-"}</div>
-        <div><strong>Criado em:</strong> {item.criadoEm ?? "-"}</div>
-        <div><strong>Atualizado em:</strong> {item.atualizadoEm ?? "-"}</div>
+      <div className="grid gap-2 rounded-2xl border bg-white p-6 text-sm">
+        <div><strong>ID:</strong> {item.locatarioId}</div><div><strong>Slug:</strong> {item.slug}</div><div><strong>Status:</strong> {item.status}</div>
+        <div><strong>Documento:</strong> {item.documento ?? "—"}</div><div><strong>Fuso horário:</strong> {item.fusoHorario ?? "—"}</div>
+        <div><strong>Criado em:</strong> {formatarData(item.criadoEm)}</div><div><strong>Atualizado em:</strong> {formatarData(item.atualizadoEm)}</div><div><strong>Excluído em:</strong> {formatarData(item.excluidoEm)}</div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="button"
-          onClick={() => void suspender(locatarioId)}
-          disabled={isRunning !== null}
-        >
-          {isRunning === "suspender" ? "Suspendendo..." : "Suspender"}
-        </button>
+      {erroConfiguracoes ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroConfiguracoes}</div> : null}
+      {isLoadingConfiguracoes ? <div className="rounded-2xl border bg-white p-6">Carregando configurações...</div> : <><LocatarioBrandingResumo branding={branding} /><LocatarioModulosResumo modulos={modulos} /></>}
 
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="button"
-          onClick={() => void reativar(locatarioId)}
-          disabled={isRunning !== null}
-        >
-          {isRunning === "reativar" ? "Reativando..." : "Reativar"}
-        </button>
-
-        <button
-          className="rounded-xl border px-4 py-2 text-red-700"
-          type="button"
-          onClick={() => void encerrar(locatarioId)}
-          disabled={isRunning !== null}
-        >
-          {isRunning === "encerrar" ? "Encerrando..." : "Encerrar"}
-        </button>
+      <div className="rounded-2xl border bg-white p-6">
+        <h2 className="mb-3 text-lg font-semibold">Operações do locatário</h2>
+        {estaAtivo ? <div className="flex flex-wrap gap-3"><button className="rounded-xl border px-4 py-2" type="button" onClick={() => void handleSuspender()} disabled={isRunning !== null}>{isRunning === "suspender" ? "Suspendendo..." : "Suspender"}</button><button className="rounded-xl border px-4 py-2 text-red-700" type="button" onClick={() => void handleEncerrar()} disabled={isRunning !== null}>{isRunning === "encerrar" ? "Encerrando..." : "Encerrar"}</button></div> : null}
+        {estaSuspenso ? <div className="flex flex-wrap gap-3"><button className="rounded-xl border px-4 py-2" type="button" onClick={() => void handleReativar()} disabled={isRunning !== null}>{isRunning === "reativar" ? "Reativando..." : "Reativar"}</button><button className="rounded-xl border px-4 py-2 text-red-700" type="button" onClick={() => void handleEncerrar()} disabled={isRunning !== null}>{isRunning === "encerrar" ? "Encerrando..." : "Encerrar"}</button></div> : null}
+        {estaEncerrado ? <p className="text-sm text-slate-600">Locatário encerrado. Nenhuma operação operacional disponível.</p> : null}
+        {!estaAtivo && !estaSuspenso && !estaEncerrado ? <p className="text-sm text-slate-600">Nenhuma operação disponível para o status atual: {item.status}.</p> : null}
       </div>
     </div>
   );
 }
+
 
 ===== apps/web/src/features/superadmin/locatarios/pages/LocatariosListPage.tsx =====
 
@@ -2885,43 +3589,19 @@ export default function LocatariosListPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Locatários</h1>
-          <p className="text-sm text-slate-600">
-            Gerencie os locatários da plataforma.
-          </p>
+          <p className="text-sm text-slate-600">Gerencie os locatários da plataforma.</p>
         </div>
-
         <div className="flex gap-3">
-          <button
-            className="rounded-xl border px-4 py-2"
-            type="button"
-            onClick={() => void recarregar()}
-          >
-            Recarregar
-          </button>
-
-          <Link
-            className="rounded-xl border px-4 py-2"
-            to="/superadmin/locatarios/novo"
-          >
-            Novo locatário
-          </Link>
+          <button className="rounded-xl border px-4 py-2" type="button" onClick={() => void recarregar()}>Recarregar</button>
+          <Link className="rounded-xl border px-4 py-2" to="/plataforma/locatarios/novo">Novo locatário</Link>
         </div>
       </div>
-
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
-
-      {isLoading ? (
-        <div className="rounded-2xl border bg-white p-6">Carregando locatários...</div>
-      ) : (
-        <LocatariosTable itens={itens} />
-      )}
+      {erro ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div> : null}
+      {isLoading ? <div className="rounded-2xl border bg-white p-6">Carregando locatários...</div> : <LocatariosTable itens={itens} />}
     </div>
   );
 }
+
 
 ===== apps/web/src/features/superadmin/locatarios/pages/NovoLocatarioPage.tsx =====
 
@@ -2934,36 +3614,119 @@ import type { AtualizarLocatarioInput, CriarLocatarioInput } from "../tipos";
 
 export default function NovoLocatarioPage() {
   const navigate = useNavigate();
-
   const { salvar, isSaving, erro } = useSalvarLocatario({
     mode: "create",
-    onSuccess: (locatarioId) => {
-      navigate(locatarioId ? `/superadmin/locatarios/${locatarioId}` : "/superadmin/locatarios");
-    },
+    onSuccess: (locatarioId) => navigate(locatarioId ? `/plataforma/locatarios/${locatarioId}` : "/plataforma/locatarios"),
   });
+  async function handleSubmit(input: CriarLocatarioInput | AtualizarLocatarioInput) { await salvar(input as CriarLocatarioInput); }
+  return <div className="grid gap-6"><div><h1 className="text-2xl font-semibold">Novo locatário</h1><p className="text-sm text-slate-600">Cadastre um novo locatário da plataforma.</p></div><LocatarioForm mode="create" isSaving={isSaving} erro={erro} onSubmit={handleSubmit} /></div>;
+}
 
-  async function handleSubmit(input: CriarLocatarioInput | AtualizarLocatarioInput) {
-    await salvar(input);
+
+===== apps/web/src/features/superadmin/locatarios/pages/NovoUsuarioLocatarioPage.tsx =====
+
+// apps/web/src/features/superadmin/locatarios/pages/NovoUsuarioLocatarioPage.tsx
+
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { UsuarioForm } from "../../../tenant-admin/usuarios";
+import type { AtualizarUsuarioInput, CriarUsuarioInput } from "../../../tenant-admin/usuarios";
+import { usuariosLocatarioApi } from "../api/usuariosLocatarioApi";
+
+export default function NovoUsuarioLocatarioPage() {
+  const navigate = useNavigate();
+  const params = useParams<{ locatarioId: string }>();
+  const locatarioId = params.locatarioId?.trim();
+  const [isSaving, setIsSaving] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  async function handleSubmit(input: CriarUsuarioInput | AtualizarUsuarioInput) {
+    if (!locatarioId) { setErro("ID do locatário inválido."); return; }
+    setIsSaving(true); setErro(null);
+    try { await usuariosLocatarioApi.criar(locatarioId, input as CriarUsuarioInput); navigate(`/plataforma/locatarios/${locatarioId}`, { replace: true }); }
+    catch (error) { setErro(mapError(error).message); }
+    finally { setIsSaving(false); }
+  }
+  if (!locatarioId) return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">ID do locatário inválido.</div>;
+  return <div className="grid gap-6"><div><h1 className="text-2xl font-semibold">Novo usuário do locatário</h1><p className="text-sm text-slate-600">Cadastre um usuário diretamente pela área da plataforma.</p></div><div><Link className="text-blue-600 underline" to={`/plataforma/locatarios/${locatarioId}`}>Voltar ao locatário</Link></div><UsuarioForm mode="create" isSaving={isSaving} erro={erro} onSubmit={handleSubmit} /></div>;
+}
+
+
+===== apps/web/src/features/superadmin/locatarios/pages/UsuariosLocatarioListPage.tsx =====
+
+// apps/web/src/features/superadmin/locatarios/pages/UsuariosLocatarioListPage.tsx
+
+import { Link, useParams } from "react-router-dom";
+import { UsuariosLocatarioTable } from "../components/UsuariosLocatarioTable";
+import { useUsuariosLocatario } from "../hooks/useUsuariosLocatario";
+
+export default function UsuariosLocatarioListPage() {
+  const params = useParams<{ locatarioId: string }>();
+  const locatarioId = params.locatarioId?.trim();
+
+  const { itens, isLoading, erro, recarregar } =
+    useUsuariosLocatario(locatarioId);
+
+  if (!locatarioId) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        ID do locatário inválido.
+      </div>
+    );
   }
 
   return (
     <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Novo locatário</h1>
-        <p className="text-sm text-slate-600">
-          Cadastre um novo locatário da plataforma.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Usuários do locatário</h1>
+          <p className="text-sm text-slate-600">
+            Consulte os usuários cadastrados para este locatário.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="rounded-xl border px-4 py-2"
+            type="button"
+            onClick={() => void recarregar()}
+          >
+            Recarregar
+          </button>
+
+          <Link
+            className="rounded-xl border px-4 py-2"
+            to={`/plataforma/locatarios/${locatarioId}`}
+          >
+            Voltar ao locatário
+          </Link>
+
+          <Link
+            className="rounded-xl border px-4 py-2"
+            to={`/plataforma/locatarios/${locatarioId}/usuarios/novo`}
+          >
+            Novo usuário
+          </Link>
+        </div>
       </div>
 
-      <LocatarioForm
-        mode="create"
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
+      {erro ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {erro}
+        </div>
+      ) : null}
+
+      {isLoading ? (
+        <div className="rounded-2xl border bg-white p-6">
+          Carregando usuários...
+        </div>
+      ) : (
+        <UsuariosLocatarioTable itens={itens} />
+      )}
     </div>
   );
 }
+
 
 ===== apps/web/src/features/superadmin/locatarios/tipos.ts =====
 
@@ -4310,9 +5073,18 @@ export type ListarClientesResponse = {
   itens: Cliente[];
 };
 
-export type ObterClienteResponse = Cliente;
-export type CriarClienteResponse = Cliente;
-export type AtualizarClienteResponse = Cliente;
+export type ObterClienteResponse = {
+  item: Cliente;
+};
+
+export type CriarClienteResponse = {
+  item: Cliente;
+};
+
+export type AtualizarClienteResponse = {
+  item: Cliente;
+};
+
 export type ExcluirClienteResponse = void;
 
 export type CriarClienteInput = {
@@ -4349,18 +5121,87 @@ export { default as NovaCompraPage } from "./pages/NovaCompraPage";
 
 // apps/web/src/features/tenant-admin/compras/pages/NovaCompraPage.tsx
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
+import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
+import type { Fornecedor } from "../../fornecedores/tipos";
 import { comprasApi } from "../api/comprasApi";
+
+function labelFornecedor(fornecedor: Fornecedor): string {
+  return fornecedor.documento
+    ? `${fornecedor.nome} — ${fornecedor.documento}`
+    : fornecedor.nome;
+}
+
+function textoBuscaFornecedor(fornecedor: Fornecedor): string {
+  return [
+    fornecedor.nome,
+    fornecedor.documento,
+    fornecedor.email,
+    fornecedor.telefone,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
 
 export default function NovaCompraPage() {
   const navigate = useNavigate();
 
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [fornecedorId, setFornecedorId] = useState("");
+  const [buscaFornecedor, setBuscaFornecedor] = useState("");
   const [observacao, setObservacao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  const [erroFornecedores, setErroFornecedores] = useState<string | null>(null);
+  const [isLoadingFornecedores, setIsLoadingFornecedores] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarFornecedores() {
+      setIsLoadingFornecedores(true);
+      setErroFornecedores(null);
+
+      try {
+        const response = await fornecedoresApi.listar();
+
+        if (ativo) {
+          setFornecedores(response.itens);
+        }
+      } catch (error) {
+        if (ativo) {
+          setErroFornecedores(mapError(error).message);
+        }
+      } finally {
+        if (ativo) {
+          setIsLoadingFornecedores(false);
+        }
+      }
+    }
+
+    void carregarFornecedores();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const fornecedoresFiltrados = useMemo(() => {
+    const termo = buscaFornecedor.trim().toLowerCase();
+
+    if (!termo) return fornecedores;
+
+    return fornecedores.filter((fornecedor) =>
+      textoBuscaFornecedor(fornecedor).includes(termo),
+    );
+  }, [fornecedores, buscaFornecedor]);
+
+  const fornecedorSelecionado = fornecedores.find(
+    (fornecedor) => fornecedor.fornecedorId === fornecedorId,
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -4383,37 +5224,102 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Nova compra</h1>
+    <form
+      className="grid gap-6 rounded-2xl border bg-white p-6"
+      onSubmit={handleSubmit}
+    >
+      <div>
+        <h1 className="text-2xl font-semibold">Nova compra</h1>
+        <p className="text-sm text-slate-600">
+          Selecione o fornecedor usando nome, documento, e-mail ou telefone. Os
+          itens serão adicionados na próxima etapa.
+        </p>
+      </div>
 
-      <p>Crie uma compra para depois adicionar os itens.</p>
+      {erro ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {erro}
+        </div>
+      ) : null}
 
-      {erro ? <p role="alert">{erro}</p> : null}
+      {erroFornecedores ? (
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+          Não foi possível carregar a lista de fornecedores: {erroFornecedores}
+        </div>
+      ) : null}
 
-      <label>
-        Fornecedor ID opcional
-        <input
-          value={fornecedorId}
-          onChange={(event) => setFornecedorId(event.target.value)}
-          placeholder="Fornecedor ID"
-        />
-      </label>
+      <section className="grid gap-4 rounded-2xl border p-4">
+        <h2 className="text-lg font-semibold">Fornecedor</h2>
 
-      <label>
-        Observação
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Buscar fornecedor</span>
+          <input
+            className="rounded-xl border px-3 py-2"
+            placeholder="Nome, documento, e-mail ou telefone"
+            value={buscaFornecedor}
+            onChange={(event) => setBuscaFornecedor(event.target.value)}
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Fornecedor selecionado</span>
+          <select
+            className="rounded-xl border px-3 py-2"
+            value={fornecedorId}
+            onChange={(event) => setFornecedorId(event.target.value)}
+            disabled={isLoadingFornecedores}
+          >
+            <option value="">
+              {isLoadingFornecedores
+                ? "Carregando fornecedores..."
+                : "Compra sem fornecedor"}
+            </option>
+
+            {fornecedoresFiltrados.map((fornecedor) => (
+              <option
+                key={fornecedor.fornecedorId}
+                value={fornecedor.fornecedorId}
+              >
+                {labelFornecedor(fornecedor)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {fornecedorSelecionado ? (
+          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm">
+            <div><strong>Nome:</strong> {fornecedorSelecionado.nome}</div>
+            <div><strong>Documento:</strong> {fornecedorSelecionado.documento ?? "—"}</div>
+            <div><strong>E-mail:</strong> {fornecedorSelecionado.email ?? "—"}</div>
+            <div><strong>Telefone:</strong> {fornecedorSelecionado.telefone ?? "—"}</div>
+          </div>
+        ) : null}
+      </section>
+
+      <label className="grid gap-1">
+        <span className="text-sm font-medium">Observação</span>
         <textarea
+          className="rounded-xl border px-3 py-2"
           value={observacao}
           onChange={(event) => setObservacao(event.target.value)}
           placeholder="Observação da compra"
+          rows={3}
         />
       </label>
 
-      <button type="submit" disabled={isSaving}>
-        {isSaving ? "Criando..." : "Criar compra"}
-      </button>
+      <div className="flex justify-end">
+        <button
+          className="rounded-xl border px-4 py-2"
+          type="submit"
+          disabled={isSaving}
+        >
+          {isSaving ? "Criando..." : "Criar compra"}
+        </button>
+      </div>
     </form>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/fornecedores/api/fornecedoresApi.ts =====
 
@@ -5120,9 +6026,18 @@ export type ListarFornecedoresResponse = {
   itens: Fornecedor[];
 };
 
-export type ObterFornecedorResponse = Fornecedor;
-export type CriarFornecedorResponse = Fornecedor;
-export type AtualizarFornecedorResponse = Fornecedor;
+export type ObterFornecedorResponse = {
+  item: Fornecedor;
+};
+
+export type CriarFornecedorResponse = {
+  item: Fornecedor;
+};
+
+export type AtualizarFornecedorResponse = {
+  item: Fornecedor;
+};
+
 export type ExcluirFornecedorResponse = void;
 
 export type CriarFornecedorInput = {
@@ -6798,13 +7713,90 @@ export const transacoesApi = {
 // apps/web/src/features/tenant-admin/transacoes/components/TransacoesTable.tsx
 
 import { Link } from "react-router-dom";
+import type { Cliente } from "../../clientes/tipos";
+import type { Fornecedor } from "../../fornecedores/tipos";
 import type { Transacao } from "../tipos";
 
 type Props = {
   itens: Transacao[];
+  clientes?: Cliente[];
+  fornecedores?: Fornecedor[];
 };
 
-export function TransacoesTable({ itens }: Props) {
+function formatarMoeda(valor?: number | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatarData(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("pt-BR");
+}
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toUpperCase();
+}
+
+function labelPessoa(
+  transacao: Transacao,
+  clientesPorId: Map<string, Cliente>,
+  fornecedoresPorId: Map<string, Fornecedor>,
+): string {
+  if (transacao.tipo === "COMPRA") {
+    if (!transacao.fornecedorId) return "—";
+
+    const fornecedor = fornecedoresPorId.get(transacao.fornecedorId);
+
+    if (!fornecedor) return `Fornecedor ${codigoCurto(transacao.fornecedorId)}`;
+
+    return fornecedor.documento
+      ? `${fornecedor.nome} — ${fornecedor.documento}`
+      : fornecedor.nome;
+  }
+
+  if (!transacao.clienteId) return "—";
+
+  const cliente = clientesPorId.get(transacao.clienteId);
+
+  if (!cliente) return `Cliente ${codigoCurto(transacao.clienteId)}`;
+
+  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
+}
+
+function statusBadgeClass(status: string): string {
+  const normalizado = status.trim().toUpperCase();
+
+  if (normalizado === "CONCLUIDA") {
+    return "rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700";
+  }
+
+  if (normalizado === "CANCELADA") {
+    return "rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700";
+  }
+
+  if (normalizado === "RASCUNHO" || normalizado === "ABERTA") {
+    return "rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700";
+  }
+
+  return "rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700";
+}
+
+export function TransacoesTable({
+  itens,
+  clientes = [],
+  fornecedores = [],
+}: Props) {
+  const clientesPorId = new Map(clientes.map((cliente) => [cliente.clienteId, cliente]));
+  const fornecedoresPorId = new Map(
+    fornecedores.map((fornecedor) => [fornecedor.fornecedorId, fornecedor]),
+  );
+
   if (itens.length === 0) {
     return (
       <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
@@ -6818,10 +7810,14 @@ export function TransacoesTable({ itens }: Props) {
       <table className="min-w-full border-collapse text-sm">
         <thead>
           <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">ID</th>
+            <th className="px-4 py-3">Código</th>
             <th className="px-4 py-3">Tipo</th>
+            <th className="px-4 py-3">Cliente/fornecedor</th>
             <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Subtotal</th>
+            <th className="px-4 py-3">Desconto</th>
             <th className="px-4 py-3">Total</th>
+            <th className="px-4 py-3">Criada em</th>
             <th className="px-4 py-3">Ações</th>
           </tr>
         </thead>
@@ -6829,10 +7825,24 @@ export function TransacoesTable({ itens }: Props) {
         <tbody>
           {itens.map((transacao) => (
             <tr key={transacao.transacaoId} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{transacao.transacaoId}</td>
+              <td className="px-4 py-3 font-medium">
+                {codigoCurto(transacao.transacaoId)}
+              </td>
               <td className="px-4 py-3">{transacao.tipo}</td>
-              <td className="px-4 py-3">{transacao.status}</td>
-              <td className="px-4 py-3">{transacao.valorTotal ?? 0}</td>
+              <td className="px-4 py-3">
+                {labelPessoa(transacao, clientesPorId, fornecedoresPorId)}
+              </td>
+              <td className="px-4 py-3">
+                <span className={statusBadgeClass(transacao.status)}>
+                  {transacao.status}
+                </span>
+              </td>
+              <td className="px-4 py-3">{formatarMoeda(transacao.valorSubtotal)}</td>
+              <td className="px-4 py-3">{formatarMoeda(transacao.valorDesconto)}</td>
+              <td className="px-4 py-3 font-medium">
+                {formatarMoeda(transacao.valorTotal)}
+              </td>
+              <td className="px-4 py-3">{formatarData(transacao.criadoEm)}</td>
               <td className="px-4 py-3">
                 <Link
                   className="text-blue-600 underline"
@@ -6848,6 +7858,7 @@ export function TransacoesTable({ itens }: Props) {
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/transacoes/hooks/useTransacaoActions.ts =====
 
@@ -6930,10 +7941,10 @@ export function useTransacaoActions({ transacaoId, onSuccess }: Params = {}) {
 import { useCallback, useEffect, useState } from "react";
 import { mapError } from "../../../../core/errors/mapError";
 import { transacoesApi } from "../api/transacoesApi";
-import type { Transacao } from "../tipos";
+import type { TransacaoDetalhada } from "../tipos";
 
 export function useTransacaoDetails(transacaoId?: string) {
-  const [transacao, setTransacao] = useState<Transacao | null>(null);
+  const [transacao, setTransacao] = useState<TransacaoDetalhada | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -6949,7 +7960,7 @@ export function useTransacaoDetails(transacaoId?: string) {
 
     try {
       const response = await transacoesApi.obter(transacaoId);
-      setTransacao(response);
+      setTransacao(response.item);
     } catch (error) {
       setErro(mapError(error).message);
     } finally {
@@ -7055,10 +8066,67 @@ export { default as TransacaoDetailsPage } from "./pages/TransacaoDetailsPage";
 
 // apps/web/src/features/tenant-admin/transacoes/pages/TransacaoDetailsPage.tsx
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { clientesApi } from "../../clientes/api/clientesApi";
+import type { Cliente } from "../../clientes/tipos";
+import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
+import type { Fornecedor } from "../../fornecedores/tipos";
+import { produtosApi } from "../../produtos/api/produtosApi";
+import type { Produto } from "../../produtos/tipos";
 import { useTransacaoActions } from "../hooks/useTransacaoActions";
 import { useTransacaoDetails } from "../hooks/useTransacaoDetails";
+
+function parseNumero(value: string): number {
+  const normalized = value.trim().replace(",", ".");
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatarMoeda(valor?: number | string | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatarNumero(valor?: number | string | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR");
+}
+
+function formatarData(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("pt-BR");
+}
+
+function valorTexto(valor: unknown): string {
+  if (valor === null || valor === undefined || valor === "") return "—";
+  return String(valor);
+}
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toUpperCase();
+}
+
+function labelProduto(produto: Produto): string {
+  return produto.sku ? `${produto.nome} — ${produto.sku}` : produto.nome;
+}
+
+function labelCliente(cliente: Cliente): string {
+  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
+}
+
+function labelFornecedor(fornecedor: Fornecedor): string {
+  return fornecedor.documento
+    ? `${fornecedor.nome} — ${fornecedor.documento}`
+    : fornecedor.nome;
+}
 
 export default function TransacaoDetailsPage() {
   const params = useParams<{ transacaoId: string }>();
@@ -7080,28 +8148,94 @@ export default function TransacaoDetailsPage() {
     onSuccess: recarregar,
   });
 
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [erroApoio, setErroApoio] = useState<string | null>(null);
+
   const [produtoId, setProdutoId] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [quantidade, setQuantidade] = useState("1");
   const [valorUnitario, setValorUnitario] = useState("0");
+  const [valorDesconto, setValorDesconto] = useState("0");
 
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
 
   const [itemEditandoId, setItemEditandoId] = useState<string | null>(null);
+  const [descricaoEditando, setDescricaoEditando] = useState("");
   const [quantidadeEditando, setQuantidadeEditando] = useState("");
   const [valorUnitarioEditando, setValorUnitarioEditando] = useState("");
+  const [valorDescontoEditando, setValorDescontoEditando] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarDadosDeApoio() {
+      setErroApoio(null);
+
+      try {
+        const [clientesResponse, fornecedoresResponse, produtosResponse] =
+          await Promise.all([
+            clientesApi.listar(),
+            fornecedoresApi.listar(),
+            produtosApi.listar(),
+          ]);
+
+        if (!ativo) return;
+
+        setClientes(clientesResponse.itens);
+        setFornecedores(fornecedoresResponse.itens);
+        setProdutos(produtosResponse.itens);
+      } catch (error) {
+        if (ativo) setErroApoio(mapError(error).message);
+      }
+    }
+
+    void carregarDadosDeApoio();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const clientesPorId = useMemo(
+    () => new Map(clientes.map((cliente) => [cliente.clienteId, cliente])),
+    [clientes],
+  );
+
+  const fornecedoresPorId = useMemo(
+    () =>
+      new Map(
+        fornecedores.map((fornecedor) => [
+          fornecedor.fornecedorId,
+          fornecedor,
+        ]),
+      ),
+    [fornecedores],
+  );
+
+  const produtosPorId = useMemo(
+    () => new Map(produtos.map((produto) => [produto.produtoId, produto])),
+    [produtos],
+  );
 
   async function handleAdicionarItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     await adicionarItem({
-      produtoId,
-      quantidade: Number(quantidade),
-      valorUnitario: Number(valorUnitario),
+      produtoId: produtoId.trim(),
+      estoqueId: null,
+      descricao: descricao.trim() || null,
+      quantidade: parseNumero(quantidade),
+      valorUnitario: parseNumero(valorUnitario),
+      valorDesconto: parseNumero(valorDesconto),
     });
 
     setProdutoId("");
+    setDescricao("");
     setQuantidade("1");
     setValorUnitario("0");
+    setValorDesconto("0");
   }
 
   async function handleAtualizarItem(event: React.FormEvent<HTMLFormElement>) {
@@ -7110,13 +8244,30 @@ export default function TransacaoDetailsPage() {
     if (!itemEditandoId) return;
 
     await atualizarItem(itemEditandoId, {
-      quantidade: Number(quantidadeEditando),
-      valorUnitario: Number(valorUnitarioEditando),
+      descricao: descricaoEditando.trim() || null,
+      quantidade: parseNumero(quantidadeEditando),
+      valorUnitario: parseNumero(valorUnitarioEditando),
+      valorDesconto: parseNumero(valorDescontoEditando),
     });
 
     setItemEditandoId(null);
+    setDescricaoEditando("");
     setQuantidadeEditando("");
     setValorUnitarioEditando("");
+    setValorDescontoEditando("");
+  }
+
+  function handleSelecionarProduto(value: string) {
+    setProdutoId(value);
+
+    const produto = produtosPorId.get(value);
+    if (!produto) return;
+
+    setValorUnitario(String(produto.precoVenda ?? 0));
+
+    if (!descricao.trim() && produto.descricao) {
+      setDescricao(produto.descricao);
+    }
   }
 
   if (isLoading) {
@@ -7143,29 +8294,72 @@ export default function TransacaoDetailsPage() {
     );
   }
 
-  const podeEditar = transacao.status === "ABERTA";
+  const podeEditar =
+    transacao.status === "ABERTA" || transacao.status === "RASCUNHO";
+
+  const itens = transacao.itens ?? [];
+  const codigoTransacao = codigoCurto(transacao.transacaoId);
+
+  const cliente = transacao.clienteId
+    ? clientesPorId.get(transacao.clienteId)
+    : undefined;
+
+  const fornecedor = transacao.fornecedorId
+    ? fornecedoresPorId.get(transacao.fornecedorId)
+    : undefined;
+
+  const pessoaTitulo = transacao.tipo === "COMPRA" ? "Fornecedor" : "Cliente";
+  const pessoaNome =
+    transacao.tipo === "COMPRA"
+      ? fornecedor
+        ? labelFornecedor(fornecedor)
+        : transacao.fornecedorId
+          ? `Fornecedor ${codigoCurto(transacao.fornecedorId)}`
+          : "—"
+      : cliente
+        ? labelCliente(cliente)
+        : transacao.clienteId
+          ? `Cliente ${codigoCurto(transacao.clienteId)}`
+          : "—";
+
+  const pessoaDocumento =
+    transacao.tipo === "COMPRA" ? fornecedor?.documento : cliente?.documento;
+  const pessoaEmail =
+    transacao.tipo === "COMPRA" ? fornecedor?.email : cliente?.email;
+  const pessoaTelefone =
+    transacao.tipo === "COMPRA" ? fornecedor?.telefone : cliente?.telefone;
 
   return (
     <div className="grid gap-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">
-            {transacao.tipo} #{transacao.transacaoId}
-          </h1>
           <p className="text-sm text-slate-600">
-            Status: {transacao.status}
+            Transações / {transacao.tipo === "COMPRA" ? "Compras" : "Vendas"}
+          </p>
+
+          <h1 className="text-2xl font-semibold">
+            {transacao.tipo} #{codigoTransacao}
+          </h1>
+
+          <p className="text-sm text-slate-600">
+            Status: <strong>{transacao.status}</strong>
           </p>
         </div>
 
         <div className="grid gap-2">
-          <input
-            className="rounded-xl border px-3 py-2"
-            placeholder="Motivo do cancelamento"
-            value={motivoCancelamento}
-            onChange={(event) => setMotivoCancelamento(event.target.value)}
-          />
+          <label className="grid gap-1">
+            <span className="text-xs text-slate-500">
+              Motivo do cancelamento
+            </span>
+            <input
+              className="rounded-xl border px-3 py-2"
+              placeholder="Informe apenas se for cancelar"
+              value={motivoCancelamento}
+              onChange={(event) => setMotivoCancelamento(event.target.value)}
+            />
+          </label>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <button
               className="rounded-xl border px-4 py-2"
               type="button"
@@ -7181,7 +8375,7 @@ export default function TransacaoDetailsPage() {
               disabled={isSubmitting || transacao.status === "CANCELADA"}
               onClick={() =>
                 void cancelar({
-                  motivo: motivoCancelamento || undefined,
+                  motivo: motivoCancelamento.trim() || null,
                 })
               }
             >
@@ -7197,51 +8391,189 @@ export default function TransacaoDetailsPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>ID:</strong> {transacao.transacaoId}</div>
-        <div><strong>Tipo:</strong> {transacao.tipo}</div>
-        <div><strong>Status:</strong> {transacao.status}</div>
-        <div><strong>Cliente:</strong> {transacao.clienteId ?? "—"}</div>
-        <div><strong>Fornecedor:</strong> {transacao.fornecedorId ?? "—"}</div>
-        <div><strong>Total:</strong> {transacao.valorTotal ?? 0}</div>
+      {erroApoio ? (
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          Não foi possível carregar alguns dados auxiliares. A tela usará dados
+          internos como fallback. Detalhe: {erroApoio}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <section className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
+          <h2 className="text-lg font-semibold">Informações gerais</h2>
+
+          <div>
+            <div className="text-xs text-slate-500">Código</div>
+            <div>{codigoTransacao}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Tipo</div>
+            <div>{transacao.tipo}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Status</div>
+            <div>{transacao.status}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Criada em</div>
+            <div>{formatarData(transacao.criadoEm)}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Atualizada em</div>
+            <div>{formatarData(transacao.atualizadoEm)}</div>
+          </div>
+
+          <details className="text-slate-500">
+            <summary className="cursor-pointer">Ver identificadores internos</summary>
+            <div className="mt-2 grid gap-1">
+              <div>Transação ID: {transacao.transacaoId}</div>
+              <div>Locatário ID: {transacao.locatarioId}</div>
+            </div>
+          </details>
+        </section>
+
+        <section className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
+          <h2 className="text-lg font-semibold">Dados de {pessoaTitulo.toLowerCase()}</h2>
+
+          <div>
+            <div className="text-xs text-slate-500">{pessoaTitulo}</div>
+            <div>{pessoaNome}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Documento</div>
+            <div>{valorTexto(pessoaDocumento)}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">E-mail</div>
+            <div>{valorTexto(pessoaEmail)}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Telefone</div>
+            <div>{valorTexto(pessoaTelefone)}</div>
+          </div>
+        </section>
+
+        <section className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
+          <h2 className="text-lg font-semibold">Resumo financeiro</h2>
+
+          <div>
+            <div className="text-xs text-slate-500">Subtotal</div>
+            <div>{formatarMoeda(transacao.valorSubtotal)}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Desconto</div>
+            <div>{formatarMoeda(transacao.valorDesconto)}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Acréscimo</div>
+            <div>{formatarMoeda(transacao.valorAcrescimo)}</div>
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500">Total</div>
+            <div className="text-lg font-semibold">
+              {formatarMoeda(transacao.valorTotal)}
+            </div>
+          </div>
+        </section>
       </div>
+
+      {transacao.observacao ? (
+        <section className="rounded-2xl border bg-white p-6 text-sm">
+          <h2 className="mb-2 text-lg font-semibold">Observação</h2>
+          <p className="text-slate-700">{transacao.observacao}</p>
+        </section>
+      ) : null}
 
       {podeEditar ? (
         <form
           className="grid gap-4 rounded-2xl border bg-white p-6"
           onSubmit={handleAdicionarItem}
         >
-          <h2 className="text-lg font-semibold">Adicionar item</h2>
+          <div>
+            <h2 className="text-lg font-semibold">Adicionar item</h2>
+            <p className="text-sm text-slate-600">
+              Selecione produto/serviço e informe quantidade e valores. O
+              estoque será decidido pela movimentação automática.
+            </p>
+          </div>
 
-          <input
-            className="rounded-xl border px-3 py-2"
-            placeholder="Produto ID"
-            value={produtoId}
-            onChange={(event) => setProdutoId(event.target.value)}
-            required
-          />
+          <div className="grid gap-3 md:grid-cols-6">
+            <label className="grid gap-1 md:col-span-2">
+              <span className="text-xs text-slate-500">Produto/serviço</span>
+              <select
+                className="rounded-xl border px-3 py-2"
+                value={produtoId}
+                onChange={(event) => handleSelecionarProduto(event.target.value)}
+                required
+              >
+                <option value="">Selecione...</option>
 
-          <input
-            className="rounded-xl border px-3 py-2"
-            type="number"
-            min="1"
-            step="1"
-            placeholder="Quantidade"
-            value={quantidade}
-            onChange={(event) => setQuantidade(event.target.value)}
-            required
-          />
+                {produtos.map((produto) => (
+                  <option key={produto.produtoId} value={produto.produtoId}>
+                    {labelProduto(produto)}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <input
-            className="rounded-xl border px-3 py-2"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Valor unitário"
-            value={valorUnitario}
-            onChange={(event) => setValorUnitario(event.target.value)}
-            required
-          />
+            <label className="grid gap-1 md:col-span-2">
+              <span className="text-xs text-slate-500">Descrição</span>
+              <input
+                className="rounded-xl border px-3 py-2"
+                placeholder="Descrição opcional"
+                value={descricao}
+                onChange={(event) => setDescricao(event.target.value)}
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-xs text-slate-500">Quantidade</span>
+              <input
+                className="rounded-xl border px-3 py-2"
+                type="text"
+                inputMode="decimal"
+                placeholder="Quantidade"
+                value={quantidade}
+                onChange={(event) => setQuantidade(event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-xs text-slate-500">Valor unitário</span>
+              <input
+                className="rounded-xl border px-3 py-2"
+                type="text"
+                inputMode="decimal"
+                placeholder="Valor unitário"
+                value={valorUnitario}
+                onChange={(event) => setValorUnitario(event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-xs text-slate-500">Desconto</span>
+              <input
+                className="rounded-xl border px-3 py-2"
+                type="text"
+                inputMode="decimal"
+                placeholder="Desconto"
+                value={valorDesconto}
+                onChange={(event) => setValorDesconto(event.target.value)}
+              />
+            </label>
+          </div>
 
           <div className="flex justify-end">
             <button
@@ -7262,27 +8594,58 @@ export default function TransacaoDetailsPage() {
         >
           <h2 className="text-lg font-semibold">Editar item</h2>
 
-          <input
-            className="rounded-xl border px-3 py-2"
-            type="number"
-            min="1"
-            step="1"
-            value={quantidadeEditando}
-            onChange={(event) => setQuantidadeEditando(event.target.value)}
-            required
-          />
+          <label className="grid gap-1">
+            <span className="text-xs text-slate-500">Descrição</span>
+            <input
+              className="rounded-xl border px-3 py-2"
+              placeholder="Descrição opcional"
+              value={descricaoEditando}
+              onChange={(event) => setDescricaoEditando(event.target.value)}
+            />
+          </label>
 
-          <input
-            className="rounded-xl border px-3 py-2"
-            type="number"
-            min="0"
-            step="0.01"
-            value={valorUnitarioEditando}
-            onChange={(event) => setValorUnitarioEditando(event.target.value)}
-            required
-          />
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="grid gap-1">
+              <span className="text-xs text-slate-500">Quantidade</span>
+              <input
+                className="rounded-xl border px-3 py-2"
+                type="text"
+                inputMode="decimal"
+                value={quantidadeEditando}
+                onChange={(event) => setQuantidadeEditando(event.target.value)}
+                required
+              />
+            </label>
 
-          <div className="flex gap-2 justify-end">
+            <label className="grid gap-1">
+              <span className="text-xs text-slate-500">Valor unitário</span>
+              <input
+                className="rounded-xl border px-3 py-2"
+                type="text"
+                inputMode="decimal"
+                value={valorUnitarioEditando}
+                onChange={(event) =>
+                  setValorUnitarioEditando(event.target.value)
+                }
+                required
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-xs text-slate-500">Desconto</span>
+              <input
+                className="rounded-xl border px-3 py-2"
+                type="text"
+                inputMode="decimal"
+                value={valorDescontoEditando}
+                onChange={(event) =>
+                  setValorDescontoEditando(event.target.value)
+                }
+              />
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2">
             <button
               className="rounded-xl border px-4 py-2"
               type="button"
@@ -7302,83 +8665,175 @@ export default function TransacaoDetailsPage() {
         </form>
       ) : null}
 
-      <div className="overflow-x-auto rounded-2xl border bg-white">
+      <section className="overflow-x-auto rounded-2xl border bg-white">
+        <div className="border-b bg-slate-50 px-4 py-3">
+          <h2 className="text-lg font-semibold">
+            {transacao.tipo === "COMPRA" ? "Itens da compra" : "Itens da venda"}
+          </h2>
+          <p className="text-sm text-slate-600">
+            Produtos e serviços adicionados à transação.
+          </p>
+        </div>
+
         <table className="min-w-full border-collapse text-sm">
           <thead>
             <tr className="border-b bg-slate-50 text-left">
-              <th className="px-4 py-3">Produto</th>
-              <th className="px-4 py-3">Quantidade</th>
-              <th className="px-4 py-3">Valor unitário</th>
+              <th className="px-4 py-3">Produto/serviço</th>
+              <th className="px-4 py-3">SKU</th>
+              <th className="px-4 py-3">Unidade</th>
+              <th className="px-4 py-3">Tipo</th>
+              <th className="px-4 py-3">Descrição</th>
+              <th className="px-4 py-3">Qtd.</th>
+              <th className="px-4 py-3">Valor unit.</th>
+              <th className="px-4 py-3">Desconto</th>
               <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">Estoque</th>
               <th className="px-4 py-3">Ações</th>
             </tr>
           </thead>
 
           <tbody>
-            {(transacao.itens ?? []).map((item) => (
-              <tr key={item.itemTransacaoId} className="border-b last:border-b-0">
-                <td className="px-4 py-3">
-                  {item.descricao ?? item.produtoId}
-                </td>
-                <td className="px-4 py-3">{item.quantidade}</td>
-                <td className="px-4 py-3">{item.valorUnitario}</td>
-                <td className="px-4 py-3">{item.valorTotal}</td>
-                <td className="px-4 py-3">
-                  {podeEditar ? (
-                    <div className="flex gap-3">
-                      <button
-                        className="text-blue-600 underline"
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={() => {
-                          setItemEditandoId(item.itemTransacaoId);
-                          setQuantidadeEditando(String(item.quantidade));
-                          setValorUnitarioEditando(String(item.valorUnitario));
-                        }}
-                      >
-                        Editar
-                      </button>
+            {itens.map((item) => {
+              const produto = produtosPorId.get(item.produtoId);
 
-                      <button
-                        className="text-red-600 underline"
-                        type="button"
-                        disabled={isSubmitting}
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-              </tr>
-            ))}
+              return (
+                <tr
+                  key={item.itemTransacaoId}
+                  className="border-b last:border-b-0"
+                >
+                  <td className="px-4 py-3">{produto?.nome ?? item.produtoId}</td>
+                  <td className="px-4 py-3">{produto?.sku ?? "—"}</td>
+                  <td className="px-4 py-3">{produto?.unidade ?? "—"}</td>
+                  <td className="px-4 py-3">{produto?.tipo ?? item.tipoProduto}</td>
+                  <td className="px-4 py-3">{item.descricao ?? produto?.descricao ?? "—"}</td>
+                  <td className="px-4 py-3">{formatarNumero(item.quantidade)}</td>
+                  <td className="px-4 py-3">{formatarMoeda(item.valorUnitario)}</td>
+                  <td className="px-4 py-3">{formatarMoeda(item.valorDesconto)}</td>
+                  <td className="px-4 py-3 font-medium">{formatarMoeda(item.valorTotal)}</td>
+                  <td className="px-4 py-3">
+                    {item.movimentaEstoque ? "Movimenta" : "Não movimenta"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {podeEditar ? (
+                      <div className="flex gap-3">
+                        <button
+                          className="text-blue-600 underline"
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={() => {
+                            setItemEditandoId(item.itemTransacaoId);
+                            setDescricaoEditando(item.descricao ?? "");
+                            setQuantidadeEditando(String(item.quantidade));
+                            setValorUnitarioEditando(
+                              String(item.valorUnitario),
+                            );
+                            setValorDescontoEditando(
+                              String(item.valorDesconto),
+                            );
+                          }}
+                        >
+                          Editar
+                        </button>
 
-            {(transacao.itens ?? []).length === 0 ? (
+                        <button
+                          className="text-red-600 underline"
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={() => void removerItem(item.itemTransacaoId)}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+
+            {itens.length === 0 ? (
               <tr>
-                <td className="px-4 py-8 text-center text-slate-500" colSpan={5}>
+                <td
+                  className="px-4 py-8 text-center text-slate-500"
+                  colSpan={11}
+                >
                   Nenhum item adicionado.
                 </td>
               </tr>
             ) : null}
           </tbody>
         </table>
-      </div>
+      </section>
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/transacoes/pages/TransacoesListPage.tsx =====
 
 // apps/web/src/features/tenant-admin/transacoes/pages/TransacoesListPage.tsx
 
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { clientesApi } from "../../clientes/api/clientesApi";
+import type { Cliente } from "../../clientes/tipos";
+import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
+import type { Fornecedor } from "../../fornecedores/tipos";
 import { TransacoesTable } from "../components/TransacoesTable";
 import { useTransacoes } from "../hooks/useTransacoes";
+import type { Transacao } from "../tipos";
+
+type FiltroTipo = "TODOS" | "VENDA" | "COMPRA";
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toLowerCase();
+}
+
+function normalizar(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function labelPessoaBusca(
+  transacao: Transacao,
+  clientesPorId: Map<string, Cliente>,
+  fornecedoresPorId: Map<string, Fornecedor>,
+): string {
+  if (transacao.tipo === "COMPRA" && transacao.fornecedorId) {
+    const fornecedor = fornecedoresPorId.get(transacao.fornecedorId);
+
+    return [
+      fornecedor?.nome,
+      fornecedor?.documento,
+      fornecedor?.email,
+      fornecedor?.telefone,
+      transacao.fornecedorId,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  if (transacao.clienteId) {
+    const cliente = clientesPorId.get(transacao.clienteId);
+
+    return [
+      cliente?.nome,
+      cliente?.documento,
+      cliente?.email,
+      cliente?.telefone,
+      transacao.clienteId,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return "";
+}
 
 export default function TransacoesListPage() {
   const {
-    transacoesFiltradas,
+    transacoes,
     busca,
     setBusca,
     tipo,
@@ -7388,13 +8843,87 @@ export default function TransacoesListPage() {
     recarregar,
   } = useTransacoes();
 
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [erroApoio, setErroApoio] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarApoio() {
+      setErroApoio(null);
+
+      try {
+        const [clientesResponse, fornecedoresResponse] = await Promise.all([
+          clientesApi.listar(),
+          fornecedoresApi.listar(),
+        ]);
+
+        if (!ativo) return;
+
+        setClientes(clientesResponse.itens);
+        setFornecedores(fornecedoresResponse.itens);
+      } catch (error) {
+        if (ativo) {
+          setErroApoio(mapError(error).message);
+        }
+      }
+    }
+
+    void carregarApoio();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const clientesPorId = useMemo(
+    () => new Map(clientes.map((cliente) => [cliente.clienteId, cliente])),
+    [clientes],
+  );
+
+  const fornecedoresPorId = useMemo(
+    () =>
+      new Map(
+        fornecedores.map((fornecedor) => [
+          fornecedor.fornecedorId,
+          fornecedor,
+        ]),
+      ),
+    [fornecedores],
+  );
+
+  const transacoesFiltradas = useMemo(() => {
+    const termo = normalizar(busca);
+
+    return transacoes.filter((transacao) => {
+      const atendeTipo = tipo === "TODOS" || transacao.tipo === tipo;
+
+      if (!termo) return atendeTipo;
+
+      const textoBusca = [
+        transacao.transacaoId,
+        codigoCurto(transacao.transacaoId),
+        transacao.tipo,
+        transacao.status,
+        transacao.observacao,
+        labelPessoaBusca(transacao, clientesPorId, fornecedoresPorId),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return atendeTipo && textoBusca.includes(termo);
+    });
+  }, [transacoes, busca, tipo, clientesPorId, fornecedoresPorId]);
+
   return (
     <div className="grid gap-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Transações</h1>
           <p className="text-sm text-slate-600">
-            Gerencie vendas e compras.
+            Acompanhe vendas e compras por cliente, fornecedor, status e valor.
           </p>
         </div>
 
@@ -7412,7 +8941,7 @@ export default function TransacoesListPage() {
       <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
         <input
           className="rounded-xl border px-3 py-2"
-          placeholder="Buscar por ID ou status"
+          placeholder="Buscar por cliente, fornecedor, documento, status ou código"
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
         />
@@ -7420,9 +8949,7 @@ export default function TransacoesListPage() {
         <select
           className="rounded-xl border px-3 py-2"
           value={tipo}
-          onChange={(event) =>
-            setTipo(event.target.value as "TODOS" | "VENDA" | "COMPRA")
-          }
+          onChange={(event) => setTipo(event.target.value as FiltroTipo)}
         >
           <option value="TODOS">Todos</option>
           <option value="VENDA">Vendas</option>
@@ -7444,14 +8971,28 @@ export default function TransacoesListPage() {
         </div>
       ) : null}
 
+      {erroApoio ? (
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          Não foi possível carregar nomes de clientes/fornecedores. A listagem
+          continuará funcionando com dados internos. Detalhe: {erroApoio}
+        </div>
+      ) : null}
+
       {isLoading ? (
-        <div className="rounded-2xl border bg-white p-6">Carregando transações...</div>
+        <div className="rounded-2xl border bg-white p-6">
+          Carregando transações...
+        </div>
       ) : (
-        <TransacoesTable itens={transacoesFiltradas} />
+        <TransacoesTable
+          itens={transacoesFiltradas}
+          clientes={clientes}
+          fornecedores={fornecedores}
+        />
       )}
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/transacoes/tipos.ts =====
 
@@ -7465,7 +9006,8 @@ export type StatusTransacao =
   | "AGUARDANDO_PAGAMENTO"
   | "ENVIADA"
   | "CONCLUIDA"
-  | "CANCELADA";
+  | "CANCELADA"
+  | "RASCUNHO";
 
 export type TransacaoItem = {
   itemTransacaoId: string;
@@ -7502,14 +9044,16 @@ export type Transacao = {
   itens?: TransacaoItem[];
 };
 
+export type TransacaoDetalhada = Transacao & {
+  itens: TransacaoItem[];
+};
+
 export type ListarTransacoesResponse = {
   itens: Transacao[];
 };
 
 export type ObterTransacaoResponse = {
-  item: Transacao & {
-    itens: TransacaoItem[];
-  };
+  item: TransacaoDetalhada;
 };
 
 export type CriarTransacaoResponse = {
@@ -9442,18 +10986,78 @@ export { default as NovaVendaPage } from "./pages/NovaVendaPage";
 
 // apps/web/src/features/tenant-admin/vendas/pages/NovaVendaPage.tsx
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
+import { clientesApi } from "../../clientes/api/clientesApi";
+import type { Cliente } from "../../clientes/tipos";
 import { vendasApi } from "../api/vendasApi";
+
+function labelCliente(cliente: Cliente): string {
+  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
+}
+
+function textoBuscaCliente(cliente: Cliente): string {
+  return [cliente.nome, cliente.documento, cliente.email, cliente.telefone]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
 
 export default function NovaVendaPage() {
   const navigate = useNavigate();
 
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteId, setClienteId] = useState("");
+  const [buscaCliente, setBuscaCliente] = useState("");
   const [observacao, setObservacao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  const [erroClientes, setErroClientes] = useState<string | null>(null);
+  const [isLoadingClientes, setIsLoadingClientes] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarClientes() {
+      setIsLoadingClientes(true);
+      setErroClientes(null);
+
+      try {
+        const response = await clientesApi.listar();
+
+        if (ativo) {
+          setClientes(response.itens);
+        }
+      } catch (error) {
+        if (ativo) {
+          setErroClientes(mapError(error).message);
+        }
+      } finally {
+        if (ativo) {
+          setIsLoadingClientes(false);
+        }
+      }
+    }
+
+    void carregarClientes();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const clientesFiltrados = useMemo(() => {
+    const termo = buscaCliente.trim().toLowerCase();
+
+    if (!termo) return clientes;
+
+    return clientes.filter((cliente) => textoBuscaCliente(cliente).includes(termo));
+  }, [clientes, buscaCliente]);
+
+  const clienteSelecionado = clientes.find(
+    (cliente) => cliente.clienteId === clienteId,
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -9476,37 +11080,97 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Nova venda</h1>
+    <form
+      className="grid gap-6 rounded-2xl border bg-white p-6"
+      onSubmit={handleSubmit}
+    >
+      <div>
+        <h1 className="text-2xl font-semibold">Nova venda</h1>
+        <p className="text-sm text-slate-600">
+          Selecione o cliente usando nome, documento, e-mail ou telefone. Os
+          itens serão adicionados na próxima etapa.
+        </p>
+      </div>
 
-      <p>Crie uma venda para depois adicionar os itens.</p>
+      {erro ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {erro}
+        </div>
+      ) : null}
 
-      {erro ? <p role="alert">{erro}</p> : null}
+      {erroClientes ? (
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+          Não foi possível carregar a lista de clientes: {erroClientes}
+        </div>
+      ) : null}
 
-      <label>
-        Cliente ID opcional
-        <input
-          value={clienteId}
-          onChange={(event) => setClienteId(event.target.value)}
-          placeholder="Cliente ID"
-        />
-      </label>
+      <section className="grid gap-4 rounded-2xl border p-4">
+        <h2 className="text-lg font-semibold">Cliente</h2>
 
-      <label>
-        Observação
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Buscar cliente</span>
+          <input
+            className="rounded-xl border px-3 py-2"
+            placeholder="Nome, documento, e-mail ou telefone"
+            value={buscaCliente}
+            onChange={(event) => setBuscaCliente(event.target.value)}
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Cliente selecionado</span>
+          <select
+            className="rounded-xl border px-3 py-2"
+            value={clienteId}
+            onChange={(event) => setClienteId(event.target.value)}
+            disabled={isLoadingClientes}
+          >
+            <option value="">
+              {isLoadingClientes ? "Carregando clientes..." : "Venda sem cliente"}
+            </option>
+
+            {clientesFiltrados.map((cliente) => (
+              <option key={cliente.clienteId} value={cliente.clienteId}>
+                {labelCliente(cliente)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {clienteSelecionado ? (
+          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm">
+            <div><strong>Nome:</strong> {clienteSelecionado.nome}</div>
+            <div><strong>Documento:</strong> {clienteSelecionado.documento ?? "—"}</div>
+            <div><strong>E-mail:</strong> {clienteSelecionado.email ?? "—"}</div>
+            <div><strong>Telefone:</strong> {clienteSelecionado.telefone ?? "—"}</div>
+          </div>
+        ) : null}
+      </section>
+
+      <label className="grid gap-1">
+        <span className="text-sm font-medium">Observação</span>
         <textarea
+          className="rounded-xl border px-3 py-2"
           value={observacao}
           onChange={(event) => setObservacao(event.target.value)}
           placeholder="Observação da venda"
+          rows={3}
         />
       </label>
 
-      <button type="submit" disabled={isSaving}>
-        {isSaving ? "Criando..." : "Criar venda"}
-      </button>
+      <div className="flex justify-end">
+        <button
+          className="rounded-xl border px-4 py-2"
+          type="submit"
+          disabled={isSaving}
+        >
+          {isSaving ? "Criando..." : "Criar venda"}
+        </button>
+      </div>
     </form>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/vendas/tipos.ts =====
 
@@ -9514,13 +11178,13 @@ export default function NovaVendaPage() {
 
 export type CriarVendaInput = {
   clienteId?: string | null;
+  observacao?: string | null;
 };
 
 export type CriarVendaResponse = {
-  vendaId?: string;
-  locatarioId?: string;
-  clienteId?: string | null;
-  criadoEm?: string;
+  item: {
+    transacaoId: string;
+  };
 };
 
 ===== apps/web/src/layouts/authLayout.tsx =====
@@ -9542,7 +11206,7 @@ export default function AuthLayout(): JSX.Element {
   if (isAuthenticated && user) {
     return (
       <Navigate
-        to={isPlataforma(user) ? "/superadmin" : "/app"}
+        to={isPlataforma(user) ? "/plataforma" : "/app"}
         replace
       />
     );
@@ -9599,8 +11263,8 @@ export default function SuperAdminLayout(): JSX.Element {
           </div>
 
           <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <NavLink to="/superadmin">Dashboard</NavLink>
-            <NavLink to="/superadmin/locatarios">Locatários</NavLink>
+            <NavLink to="/plataforma">Dashboard</NavLink>
+            <NavLink to="/plataforma/locatarios">Locatários</NavLink>
 
             <span style={{ fontSize: 14, color: "#6b7280" }}>
               {user?.email ?? user?.nome ?? user?.usuarioId ?? "Usuário autenticado"}
@@ -9760,3 +11424,8 @@ export default function NotFound() {
     </main>
   );
 }
+
+
+===== apps/web/src/vite-env.d.ts =====
+
+/// <reference types="vite/client" />

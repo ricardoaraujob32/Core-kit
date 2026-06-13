@@ -1,15 +1,19 @@
 // apps/web/src/layouts/authLayout.tsx
 
+import type { JSX } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../core/auth/useAuth";
 import { isPlataforma } from "../core/auth/tipos";
-import { JSX } from "react";
+import { useAuth } from "../core/auth/useAuth";
 
 export default function AuthLayout(): JSX.Element {
   const { isLoading, isAuthenticated, user } = useAuth();
 
   if (isLoading) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-50 text-slate-700">
+        Carregando...
+      </div>
+    );
   }
 
   if (isAuthenticated && user) {
@@ -22,8 +26,8 @@ export default function AuthLayout(): JSX.Element {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-      <div style={{ width: "100%", maxWidth: 420, padding: 24 }}>
+    <div className="grid min-h-screen place-items-center bg-slate-50 px-4">
+      <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm">
         <Outlet />
       </div>
     </div>

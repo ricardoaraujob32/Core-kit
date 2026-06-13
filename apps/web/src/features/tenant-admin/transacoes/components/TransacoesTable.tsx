@@ -1,6 +1,7 @@
 // apps/web/src/features/tenant-admin/transacoes/components/TransacoesTable.tsx
 
 import { Link } from "react-router-dom";
+import { StatusBadge } from "../../../../shared/ui";
 import type { Cliente } from "../../clientes/tipos";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import type { Transacao } from "../tipos";
@@ -24,7 +25,7 @@ function formatarData(value?: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleString("pt-BR");
+  return date.toLocaleDateString("pt-BR");
 }
 
 function codigoCurto(id: string): string {
@@ -37,42 +38,24 @@ function labelPessoa(
   fornecedoresPorId: Map<string, Fornecedor>,
 ): string {
   if (transacao.tipo === "COMPRA") {
-    if (!transacao.fornecedorId) return "—";
+    if (!transacao.fornecedorId) return "Sem fornecedor";
 
     const fornecedor = fornecedoresPorId.get(transacao.fornecedorId);
 
-    if (!fornecedor) return `Fornecedor ${codigoCurto(transacao.fornecedorId)}`;
+    if (!fornecedor) return `Fornecedor #${codigoCurto(transacao.fornecedorId)}`;
 
     return fornecedor.documento
       ? `${fornecedor.nome} — ${fornecedor.documento}`
       : fornecedor.nome;
   }
 
-  if (!transacao.clienteId) return "—";
+  if (!transacao.clienteId) return "Sem cliente";
 
   const cliente = clientesPorId.get(transacao.clienteId);
 
-  if (!cliente) return `Cliente ${codigoCurto(transacao.clienteId)}`;
+  if (!cliente) return `Cliente #${codigoCurto(transacao.clienteId)}`;
 
   return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
-}
-
-function statusBadgeClass(status: string): string {
-  const normalizado = status.trim().toUpperCase();
-
-  if (normalizado === "CONCLUIDA") {
-    return "rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700";
-  }
-
-  if (normalizado === "CANCELADA") {
-    return "rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700";
-  }
-
-  if (normalizado === "RASCUNHO" || normalizado === "ABERTA") {
-    return "rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700";
-  }
-
-  return "rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700";
 }
 
 export function TransacoesTable({
@@ -80,69 +63,101 @@ export function TransacoesTable({
   clientes = [],
   fornecedores = [],
 }: Props) {
-  const clientesPorId = new Map(clientes.map((cliente) => [cliente.clienteId, cliente]));
+  const clientesPorId = new Map(
+    clientes.map((cliente) => [cliente.clienteId, cliente]),
+  );
+
   const fornecedoresPorId = new Map(
     fornecedores.map((fornecedor) => [fornecedor.fornecedorId, fornecedor]),
   );
 
-  if (itens.length === 0) {
-    return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhuma transação encontrada.
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white">
-      <table className="min-w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">Código</th>
-            <th className="px-4 py-3">Tipo</th>
-            <th className="px-4 py-3">Cliente/fornecedor</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Subtotal</th>
-            <th className="px-4 py-3">Desconto</th>
-            <th className="px-4 py-3">Total</th>
-            <th className="px-4 py-3">Criada em</th>
-            <th className="px-4 py-3">Ações</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {itens.map((transacao) => (
-            <tr key={transacao.transacaoId} className="border-b last:border-b-0">
-              <td className="px-4 py-3 font-medium">
-                {codigoCurto(transacao.transacaoId)}
-              </td>
-              <td className="px-4 py-3">{transacao.tipo}</td>
-              <td className="px-4 py-3">
-                {labelPessoa(transacao, clientesPorId, fornecedoresPorId)}
-              </td>
-              <td className="px-4 py-3">
-                <span className={statusBadgeClass(transacao.status)}>
-                  {transacao.status}
-                </span>
-              </td>
-              <td className="px-4 py-3">{formatarMoeda(transacao.valorSubtotal)}</td>
-              <td className="px-4 py-3">{formatarMoeda(transacao.valorDesconto)}</td>
-              <td className="px-4 py-3 font-medium">
-                {formatarMoeda(transacao.valorTotal)}
-              </td>
-              <td className="px-4 py-3">{formatarData(transacao.criadoEm)}</td>
-              <td className="px-4 py-3">
-                <Link
-                  className="text-blue-600 underline"
-                  to={`/app/transacoes/${transacao.transacaoId}`}
-                >
-                  Detalhes
-                </Link>
-              </td>
+    <div className="grid gap-3">
+      <div className="hidden overflow-x-auto rounded-2xl border bg-white md:block">
+        <table className="min-w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b bg-slate-50 text-left">
+              <th className="px-4 py-3">Código</th>
+              <th className="px-4 py-3">Tipo</th>
+              <th className="px-4 py-3">Cliente/fornecedor</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">Criada em</th>
+              <th className="px-4 py-3">Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {itens.map((transacao) => (
+              <tr key={transacao.transacaoId} className="border-b last:border-b-0">
+                <td className="px-4 py-3 font-medium">
+                  #{codigoCurto(transacao.transacaoId)}
+                </td>
+                <td className="px-4 py-3">{transacao.tipo}</td>
+                <td className="px-4 py-3">
+                  {labelPessoa(transacao, clientesPorId, fornecedoresPorId)}
+                </td>
+                <td className="px-4 py-3">
+                  <StatusBadge value={transacao.status} />
+                </td>
+                <td className="px-4 py-3 font-medium">
+                  {formatarMoeda(transacao.valorTotal)}
+                </td>
+                <td className="px-4 py-3">{formatarData(transacao.criadoEm)}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    className="text-blue-600 underline"
+                    to={`/app/transacoes/${transacao.transacaoId}`}
+                  >
+                    Detalhes
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="grid gap-3 md:hidden">
+        {itens.map((transacao) => (
+          <article
+            key={transacao.transacaoId}
+            className="grid gap-3 rounded-2xl border bg-white p-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-semibold">
+                  {transacao.tipo} #{codigoCurto(transacao.transacaoId)}
+                </div>
+                <div className="text-sm text-slate-600">
+                  {labelPessoa(transacao, clientesPorId, fornecedoresPorId)}
+                </div>
+              </div>
+
+              <StatusBadge value={transacao.status} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-slate-500">Total</div>
+                <div className="font-medium">{formatarMoeda(transacao.valorTotal)}</div>
+              </div>
+
+              <div>
+                <div className="text-xs text-slate-500">Criada em</div>
+                <div>{formatarData(transacao.criadoEm)}</div>
+              </div>
+            </div>
+
+            <Link
+              className="rounded-xl border px-4 py-2 text-center text-sm"
+              to={`/app/transacoes/${transacao.transacaoId}`}
+            >
+              Ver detalhes
+            </Link>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

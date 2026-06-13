@@ -1,7 +1,7 @@
 // apps/web/src/features/tenant-admin/compras/pages/NovaCompraPage.tsx
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
@@ -47,17 +47,11 @@ export default function NovaCompraPage() {
       try {
         const response = await fornecedoresApi.listar();
 
-        if (ativo) {
-          setFornecedores(response.itens);
-        }
+        if (ativo) setFornecedores(response.itens);
       } catch (error) {
-        if (ativo) {
-          setErroFornecedores(mapError(error).message);
-        }
+        if (ativo) setErroFornecedores(mapError(error).message);
       } finally {
-        if (ativo) {
-          setIsLoadingFornecedores(false);
-        }
+        if (ativo) setIsLoadingFornecedores(false);
       }
     }
 
@@ -103,16 +97,19 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <form
-      className="grid gap-6 rounded-2xl border bg-white p-6"
-      onSubmit={handleSubmit}
-    >
-      <div>
-        <h1 className="text-2xl font-semibold">Nova compra</h1>
-        <p className="text-sm text-slate-600">
-          Selecione o fornecedor usando nome, documento, e-mail ou telefone. Os
-          itens serão adicionados na próxima etapa.
-        </p>
+    <form className="grid gap-6" onSubmit={handleSubmit}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Nova compra</h1>
+          <p className="text-sm text-slate-600">
+            Primeiro crie a compra. Os produtos serão adicionados na tela de
+            detalhes.
+          </p>
+        </div>
+
+        <Link className="rounded-xl border px-4 py-2" to="/app/transacoes">
+          Voltar
+        </Link>
       </div>
 
       {erro ? (
@@ -123,18 +120,23 @@ export default function NovaCompraPage() {
 
       {erroFornecedores ? (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-          Não foi possível carregar a lista de fornecedores: {erroFornecedores}
+          Não foi possível carregar fornecedores: {erroFornecedores}
         </div>
       ) : null}
 
-      <section className="grid gap-4 rounded-2xl border p-4">
-        <h2 className="text-lg font-semibold">Fornecedor</h2>
+      <section className="grid gap-4 rounded-2xl border bg-white p-6">
+        <div>
+          <h2 className="text-lg font-semibold">Fornecedor</h2>
+          <p className="text-sm text-slate-600">
+            Busque por nome, documento, e-mail ou telefone.
+          </p>
+        </div>
 
         <label className="grid gap-1">
           <span className="text-sm font-medium">Buscar fornecedor</span>
           <input
             className="rounded-xl border px-3 py-2"
-            placeholder="Nome, documento, e-mail ou telefone"
+            placeholder="Ex.: Distribuidora, CNPJ, e-mail..."
             value={buscaFornecedor}
             onChange={(event) => setBuscaFornecedor(event.target.value)}
           />
@@ -166,25 +168,42 @@ export default function NovaCompraPage() {
         </label>
 
         {fornecedorSelecionado ? (
-          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm">
-            <div><strong>Nome:</strong> {fornecedorSelecionado.nome}</div>
-            <div><strong>Documento:</strong> {fornecedorSelecionado.documento ?? "—"}</div>
-            <div><strong>E-mail:</strong> {fornecedorSelecionado.email ?? "—"}</div>
-            <div><strong>Telefone:</strong> {fornecedorSelecionado.telefone ?? "—"}</div>
+          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm md:grid-cols-2">
+            <div>
+              <div className="text-xs text-slate-500">Nome</div>
+              <div>{fornecedorSelecionado.nome}</div>
+            </div>
+
+            <div>
+              <div className="text-xs text-slate-500">Documento</div>
+              <div>{fornecedorSelecionado.documento ?? "—"}</div>
+            </div>
+
+            <div>
+              <div className="text-xs text-slate-500">E-mail</div>
+              <div>{fornecedorSelecionado.email ?? "—"}</div>
+            </div>
+
+            <div>
+              <div className="text-xs text-slate-500">Telefone</div>
+              <div>{fornecedorSelecionado.telefone ?? "—"}</div>
+            </div>
           </div>
         ) : null}
       </section>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Observação</span>
-        <textarea
-          className="rounded-xl border px-3 py-2"
-          value={observacao}
-          onChange={(event) => setObservacao(event.target.value)}
-          placeholder="Observação da compra"
-          rows={3}
-        />
-      </label>
+      <section className="grid gap-4 rounded-2xl border bg-white p-6">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Observação</span>
+          <textarea
+            className="rounded-xl border px-3 py-2"
+            value={observacao}
+            onChange={(event) => setObservacao(event.target.value)}
+            placeholder="Observação da compra"
+            rows={3}
+          />
+        </label>
+      </section>
 
       <div className="flex justify-end">
         <button
@@ -192,7 +211,7 @@ export default function NovaCompraPage() {
           type="submit"
           disabled={isSaving}
         >
-          {isSaving ? "Criando..." : "Criar compra"}
+          {isSaving ? "Criando..." : "Criar compra e adicionar itens"}
         </button>
       </div>
     </form>
