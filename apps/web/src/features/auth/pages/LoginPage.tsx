@@ -1,86 +1,110 @@
 // apps/web/src/features/auth/pages/LoginPage.tsx
 
-import type { JSX, FormEvent } from "react";
+import type { JSX } from "react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
-import { mapError } from "../../../core/errors/mapError";
 
 export default function LoginPage(): JSX.Element {
-  const navigate = useNavigate();
   const { login, isLoading } = useAuth();
 
+  const [locatarioSlug, setLocatarioSlug] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [locatarioSlug, setLocatarioSlug] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
 
     try {
       await login({
+        locatarioSlug: locatarioSlug.trim(),
         email: email.trim(),
         senha,
-        locatarioSlug: locatarioSlug.trim(),
       });
-
-      navigate("/app", { replace: true });
     } catch (error) {
-      setErro(mapError(error).message);
+      setErro(error instanceof Error ? error.message : "Erro ao autenticar.");
     }
   }
 
   return (
-    <main>
-      <h1>Entrar</h1>
+    <form
+      className="overflow-hidden rounded-3xl border border-white/10 bg-white shadow-2xl"
+      onSubmit={handleSubmit}
+    >
+      <div className="bg-gradient-to-br from-slate-950 to-blue-900 px-8 py-8 text-white">
+        <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-white/10 text-lg font-black shadow-inner">
+          CK
+        </div>
 
-      <p>Área administrativa do locatário.</p>
+        <div className="text-center">
+          <h1 className="text-2xl font-black tracking-tight">
+            Entrar no Core-kit
+          </h1>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="locatarioSlug">Locatário</label>
+          <p className="mt-2 text-sm text-blue-100">
+            Acesse a área do locatário para operar clientes, produtos, compras e vendas.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 px-8 py-8">
+        {erro ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {erro}
+          </div>
+        ) : null}
+
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold text-slate-700">Locatário</span>
           <input
-            id="locatarioSlug"
-            type="text"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+            placeholder="Ex.: loja"
             value={locatarioSlug}
             onChange={(event) => setLocatarioSlug(event.target.value)}
             autoComplete="organization"
             required
           />
-        </div>
+        </label>
 
-        <div>
-          <label htmlFor="email">E-mail</label>
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold text-slate-700">E-mail</span>
           <input
-            id="email"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+            placeholder="usuario@email.com.br"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             required
           />
-        </div>
+        </label>
 
-        <div>
-          <label htmlFor="senha">Senha</label>
+        <label className="grid gap-1">
+          <span className="text-sm font-semibold text-slate-700">Senha</span>
           <input
-            id="senha"
+            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+            placeholder="Sua senha"
             type="password"
             value={senha}
             onChange={(event) => setSenha(event.target.value)}
             autoComplete="current-password"
             required
           />
-        </div>
+        </label>
 
-        {erro ? <p role="alert">{erro}</p> : null}
-
-        <button type="submit" disabled={isLoading}>
+        <button
+          className="mt-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          type="submit"
+          disabled={isLoading}
+        >
           {isLoading ? "Entrando..." : "Entrar"}
         </button>
-      </form>
-    </main>
+
+        <p className="text-center text-xs text-slate-500">
+          Core-kit Beta • Demonstração de portfólio
+        </p>
+      </div>
+    </form>
   );
 }
