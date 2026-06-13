@@ -5,16 +5,16 @@ import { Outlet } from "react-router-dom";
 import { AppShell, type AppNavItem } from "../shared/layout";
 
 const TENANT_NAV_ITEMS: AppNavItem[] = [
-  { label: "Dashboard", to: "/app", end: true },
-  { label: "Clientes", to: "/app/clientes" },
-  { label: "Fornecedores", to: "/app/fornecedores" },
-  { label: "Produtos", to: "/app/produtos" },
-  { label: "Transações", to: "/app/transacoes" },
-  { label: "Nova venda", to: "/app/vendas/nova" },
-  { label: "Nova compra", to: "/app/compras/nova" },
-  { label: "Usuários", to: "/app/usuarios" },
-  { label: "Locatário", to: "/app/locatario" },
-  { label: "Módulos", to: "/app/assinatura/modulos" },
+  { label: "Dashboard", to: "/app", end: true, icon: "📊" },
+  { label: "Clientes", to: "/app/clientes", icon: "👥" },
+  { label: "Fornecedores", to: "/app/fornecedores", icon: "🏢" },
+  { label: "Produtos", to: "/app/produtos", icon: "📦" },
+  { label: "Transações", to: "/app/transacoes", icon: "📄" },
+  { label: "Nova venda", to: "/app/vendas/nova", icon: "💰" },
+  { label: "Nova compra", to: "/app/compras/nova", icon: "🛒" },
+  { label: "Usuários", to: "/app/usuarios", icon: "🔐" },
+  { label: "Locatário", to: "/app/locatario", icon: "⚙️" },
+  { label: "Módulos", to: "/app/assinatura/modulos", icon: "🧩" },
 ];
 
 export default function TenantLayout(): JSX.Element {

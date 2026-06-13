@@ -9,6 +9,7 @@ export type AppNavItem = {
   label: string;
   to: string;
   end?: boolean;
+  icon?: string;
 };
 
 type AppHeaderProps = {
@@ -18,12 +19,12 @@ type AppHeaderProps = {
 
 const APP_ENV = import.meta.env.VITE_APP_ENV ?? "Beta";
 
-function navLinkClass({ isActive }: { isActive: boolean }): string {
+function mobileNavLinkClass({ isActive }: { isActive: boolean }): string {
   return [
-    "rounded-full px-3 py-2 text-sm font-medium transition",
+    "flex min-w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition",
     isActive
-      ? "bg-slate-900 text-white shadow-sm"
-      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+      ? "bg-slate-950 text-white shadow-sm"
+      : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-950",
   ].join(" ");
 }
 
@@ -61,7 +62,7 @@ export function AppHeader({ variant, navItems }: AppHeaderProps): JSX.Element {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4">
+      <div className="mx-auto max-w-screen-2xl px-4">
         <div className="flex min-h-20 flex-wrap items-center justify-between gap-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             {variant === "tenant" && branding?.logoUrl ? (
@@ -92,8 +93,8 @@ export function AppHeader({ variant, navItems }: AppHeaderProps): JSX.Element {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="hidden items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 lg:flex">
-              Buscar em breve...
+            <div className="hidden items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 xl:flex">
+              Busca global em breve
             </div>
 
             <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
@@ -121,15 +122,16 @@ export function AppHeader({ variant, navItems }: AppHeaderProps): JSX.Element {
           </div>
         </div>
 
-        <nav className="flex gap-2 overflow-x-auto border-t border-slate-100 py-3">
+        <nav className="flex gap-2 overflow-x-auto border-t border-slate-100 py-3 lg:hidden">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
-              className={navLinkClass}
+              className={mobileNavLinkClass}
               end={item.end}
               to={item.to}
             >
-              {item.label}
+              <span>{item.icon ?? "•"}</span>
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>

@@ -12,7 +12,7 @@ const APP_ENV = import.meta.env.VITE_APP_ENV ?? "Beta";
 export function AppFooter({ variant }: AppFooterProps): JSX.Element {
   return (
     <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto grid max-w-7xl gap-4 px-4 py-6 text-sm text-slate-500 md:grid-cols-[1fr_auto] md:items-center">
+      <div className="mx-auto grid max-w-screen-2xl gap-4 px-4 py-6 text-sm text-slate-500 md:grid-cols-[1fr_auto] md:items-center">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <strong className="text-slate-900">Core-kit</strong>

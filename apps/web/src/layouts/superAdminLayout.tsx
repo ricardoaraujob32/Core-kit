@@ -5,8 +5,8 @@ import { Outlet } from "react-router-dom";
 import { AppShell, type AppNavItem } from "../shared/layout";
 
 const PLATAFORMA_NAV_ITEMS: AppNavItem[] = [
-  { label: "Dashboard", to: "/plataforma", end: true },
-  { label: "Locatários", to: "/plataforma/locatarios" },
+  { label: "Dashboard", to: "/plataforma", end: true, icon: "📊" },
+  { label: "Locatários", to: "/plataforma/locatarios", icon: "🏬" },
 ];
 
 export default function SuperAdminLayout(): JSX.Element {
