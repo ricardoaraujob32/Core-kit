@@ -3,6 +3,7 @@
 import type { JSX } from "react";
 import { useState } from "react";
 import { useAuth } from "../../../core/auth/useAuth";
+import "./login.css";
 
 export default function LoginPage(): JSX.Element {
   const { login, isLoading } = useAuth();
@@ -28,63 +29,69 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <form className="mx-auto grid w-full max-w-sm gap-4" onSubmit={handleSubmit}>
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold">Entrar</h1>
-        <p className="text-sm text-slate-600">Acesse a área do locatário.</p>
-      </div>
+    <main className="ck-login-shell">
+      <form className="ck-login-card ck-login-tenant" onSubmit={handleSubmit}>
+        <header className="ck-login-header">
+          <div className="ck-login-header-content">
+            <div className="ck-login-mark">CK</div>
+            <span className="ck-login-badge">Beta • Portfólio</span>
+            <h1 className="ck-login-title">Entrar no Core-kit</h1>
+            <p className="ck-login-subtitle">
+              Sistema de gestão para clientes, produtos, compras e vendas.
+            </p>
+          </div>
+        </header>
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
+        <section className="ck-login-body">
+          {erro ? <div className="ck-login-error">{erro}</div> : null}
 
-      <label className="grid gap-1">
-        <span className="text-center text-sm font-medium">Locatário</span>
-        <input
-          className="rounded-xl border px-3 py-2 text-center"
-          placeholder="Ex.: loja"
-          value={locatarioSlug}
-          onChange={(event) => setLocatarioSlug(event.target.value)}
-          autoComplete="organization"
-          required
-        />
-      </label>
+          <label className="ck-login-field">
+            <span className="ck-login-label">Locatário</span>
+            <input
+              className="ck-login-input"
+              placeholder="Ex.: loja"
+              value={locatarioSlug}
+              onChange={(event) => setLocatarioSlug(event.target.value)}
+              autoComplete="organization"
+              required
+            />
+          </label>
 
-      <label className="grid gap-1">
-        <span className="text-center text-sm font-medium">E-mail</span>
-        <input
-          className="rounded-xl border px-3 py-2 text-center"
-          placeholder="usuario@email.com.br"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          autoComplete="email"
-          required
-        />
-      </label>
+          <label className="ck-login-field">
+            <span className="ck-login-label">E-mail</span>
+            <input
+              className="ck-login-input"
+              placeholder="usuario@email.com.br"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              required
+            />
+          </label>
 
-      <label className="grid gap-1">
-        <span className="text-center text-sm font-medium">Senha</span>
-        <input
-          className="rounded-xl border px-3 py-2 text-center"
-          placeholder="Sua senha"
-          type="password"
-          value={senha}
-          onChange={(event) => setSenha(event.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </label>
+          <label className="ck-login-field">
+            <span className="ck-login-label">Senha</span>
+            <input
+              className="ck-login-input"
+              placeholder="Sua senha"
+              type="password"
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
 
-      <button
-        className="rounded-xl border px-4 py-2"
-        type="submit"
-        disabled={isLoading}
-      >
-        {isLoading ? "Entrando..." : "Entrar"}
-      </button>
-    </form>
+          <button className="ck-login-submit" type="submit" disabled={isLoading}>
+            {isLoading ? "Entrando..." : "Entrar"}
+          </button>
+
+          <p className="ck-login-footer">
+            <strong>Core-kit Beta</strong> • Demonstração de portfólio
+          </p>
+        </section>
+      </form>
+    </main>
   );
 }
