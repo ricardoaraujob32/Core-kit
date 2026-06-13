@@ -1,0 +1,427 @@
+/* apps/web/src/features/tenant-admin/cadastros/cadastros.css */
+
+.ck-register-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.ck-register-hero {
+  overflow: hidden;
+  position: relative;
+  border-radius: 2rem;
+  padding: 1.35rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(124, 58, 237, 0.14), transparent 20rem),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 55%, #f5f3ff 100%);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.ck-register-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ck-register-kicker {
+  color: #7c3aed;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ck-register-title {
+  margin-top: 0.25rem;
+  color: #020617;
+  font-size: clamp(1.7rem, 3vw, 2.45rem);
+  line-height: 1.05;
+  font-weight: 850;
+  letter-spacing: -0.055em;
+}
+
+.ck-register-description {
+  margin-top: 0.45rem;
+  max-width: 44rem;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.ck-register-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.ck-register-action-primary,
+.ck-register-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.65rem;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 160ms ease;
+}
+
+.ck-register-action-primary {
+  border: 1px solid #020617;
+  background: #020617;
+  color: white;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+}
+
+.ck-register-action-primary:hover {
+  transform: translateY(-1px);
+  background: #0f172a;
+}
+
+.ck-register-action-secondary {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: white;
+  color: #334155;
+}
+
+.ck-register-action-secondary:hover {
+  background: #f8fafc;
+}
+
+.ck-register-stats {
+  display: grid;
+  gap: 1rem;
+}
+
+.ck-register-stat {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.45rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+}
+
+.ck-register-stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.33rem;
+  background: var(--stat-color, #7c3aed);
+}
+
+.ck-register-stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ck-register-stat-label {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ck-register-stat-value {
+  margin-top: 0.35rem;
+  color: #020617;
+  font-size: 1.65rem;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: -0.05em;
+}
+
+.ck-register-stat-hint {
+  margin-top: 0.45rem;
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.ck-register-stat-icon {
+  display: grid;
+  width: 2.55rem;
+  height: 2.55rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--stat-color, #7c3aed) 12%, white);
+  color: var(--stat-color, #7c3aed);
+  font-size: 1.15rem;
+}
+
+.ck-register-filter {
+  border-radius: 1.45rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  padding: 1rem;
+}
+
+.ck-register-filter-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.ck-register-input,
+.ck-register-select,
+.ck-register-textarea {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #0f172a;
+  padding: 0.68rem 0.85rem;
+  font-size: 0.9rem;
+  outline: none;
+  transition: 160ms ease;
+}
+
+.ck-register-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.ck-register-input:focus,
+.ck-register-select:focus,
+.ck-register-textarea:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.18);
+}
+
+.ck-register-button {
+  min-height: 2.75rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #334155;
+  padding: 0.68rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.ck-register-button:hover {
+  background: #f8fafc;
+}
+
+.ck-register-table-panel {
+  overflow: hidden;
+  border-radius: 1.45rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: white;
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+}
+
+.ck-register-table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.ck-register-table thead tr {
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+}
+
+.ck-register-table th {
+  padding: 0.9rem 1rem;
+  color: #64748b;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ck-register-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.ck-register-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.ck-register-main {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.ck-register-sub {
+  margin-top: 0.12rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.ck-register-pill {
+  display: inline-flex;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #0f172a;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.ck-register-link {
+  color: #2563eb;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ck-register-link:hover {
+  text-decoration: underline;
+}
+
+.ck-register-card-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.ck-register-card {
+  display: grid;
+  gap: 0.9rem;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+}
+
+.ck-register-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.ck-register-card-title {
+  color: #0f172a;
+  font-weight: 850;
+}
+
+.ck-register-card-desc {
+  margin-top: 0.18rem;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.ck-register-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.ck-register-label {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ck-register-value {
+  margin-top: 0.12rem;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.ck-register-empty {
+  border-radius: 1.45rem;
+  border: 1px dashed #cbd5e1;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 2rem;
+  text-align: center;
+}
+
+.ck-register-empty-title {
+  color: #0f172a;
+  font-weight: 850;
+}
+
+.ck-register-empty-desc {
+  margin: 0.5rem auto 0;
+  max-width: 34rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.ck-register-form-card {
+  border-radius: 1.6rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: white;
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.ck-register-form-header {
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  padding: 1.1rem 1.25rem;
+}
+
+.ck-register-form-title {
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.ck-register-form-desc {
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.ck-register-form-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.ck-register-field {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.ck-register-field span {
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.ck-register-alert {
+  border-radius: 1rem;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 0.85rem 1rem;
+  font-size: 0.88rem;
+}
+
+@media (min-width: 768px) {
+  .ck-register-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ck-register-filter-grid {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .ck-register-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}

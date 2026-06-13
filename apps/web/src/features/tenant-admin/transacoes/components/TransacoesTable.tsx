@@ -1,7 +1,6 @@
 // apps/web/src/features/tenant-admin/transacoes/components/TransacoesTable.tsx
 
 import { Link } from "react-router-dom";
-import { StatusBadge } from "../../../../shared/ui";
 import type { Cliente } from "../../clientes/tipos";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import type { Transacao } from "../tipos";
@@ -32,30 +31,61 @@ function codigoCurto(id: string): string {
   return id.slice(0, 8).toUpperCase();
 }
 
-function labelPessoa(
+function statusClass(status: string): string {
+  const normalized = status.trim().toUpperCase();
+
+  if (normalized === "CONCLUIDA") return "ck-status ck-status-success";
+  if (normalized === "CANCELADA") return "ck-status ck-status-danger";
+
+  if (normalized === "ABERTA" || normalized === "RASCUNHO") {
+    return "ck-status ck-status-warning";
+  }
+
+  return "ck-status";
+}
+
+function pessoaInfo(
   transacao: Transacao,
   clientesPorId: Map<string, Cliente>,
   fornecedoresPorId: Map<string, Fornecedor>,
-): string {
+): { nome: string; detalhe: string } {
   if (transacao.tipo === "COMPRA") {
-    if (!transacao.fornecedorId) return "Sem fornecedor";
+    if (!transacao.fornecedorId) {
+      return { nome: "Sem fornecedor", detalhe: "Compra avulsa" };
+    }
 
     const fornecedor = fornecedoresPorId.get(transacao.fornecedorId);
 
-    if (!fornecedor) return `Fornecedor #${codigoCurto(transacao.fornecedorId)}`;
+    if (!fornecedor) {
+      return {
+        nome: `Fornecedor #${codigoCurto(transacao.fornecedorId)}`,
+        detalhe: "Cadastro não carregado",
+      };
+    }
 
-    return fornecedor.documento
-      ? `${fornecedor.nome} — ${fornecedor.documento}`
-      : fornecedor.nome;
+    return {
+      nome: fornecedor.nome,
+      detalhe: fornecedor.documento ?? fornecedor.email ?? "Fornecedor",
+    };
   }
 
-  if (!transacao.clienteId) return "Sem cliente";
+  if (!transacao.clienteId) {
+    return { nome: "Sem cliente", detalhe: "Venda balcão" };
+  }
 
   const cliente = clientesPorId.get(transacao.clienteId);
 
-  if (!cliente) return `Cliente #${codigoCurto(transacao.clienteId)}`;
+  if (!cliente) {
+    return {
+      nome: `Cliente #${codigoCurto(transacao.clienteId)}`,
+      detalhe: "Cadastro não carregado",
+    };
+  }
 
-  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
+  return {
+    nome: cliente.nome,
+    detalhe: cliente.documento ?? cliente.email ?? "Cliente",
+  };
 }
 
 export function TransacoesTable({
@@ -72,91 +102,111 @@ export function TransacoesTable({
   );
 
   return (
-    <div className="grid gap-3">
-      <div className="hidden overflow-x-auto rounded-2xl border bg-white md:block">
-        <table className="min-w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b bg-slate-50 text-left">
-              <th className="px-4 py-3">Código</th>
-              <th className="px-4 py-3">Tipo</th>
-              <th className="px-4 py-3">Cliente/fornecedor</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Criada em</th>
-              <th className="px-4 py-3">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {itens.map((transacao) => (
-              <tr key={transacao.transacaoId} className="border-b last:border-b-0">
-                <td className="px-4 py-3 font-medium">
-                  #{codigoCurto(transacao.transacaoId)}
-                </td>
-                <td className="px-4 py-3">{transacao.tipo}</td>
-                <td className="px-4 py-3">
-                  {labelPessoa(transacao, clientesPorId, fornecedoresPorId)}
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge value={transacao.status} />
-                </td>
-                <td className="px-4 py-3 font-medium">
-                  {formatarMoeda(transacao.valorTotal)}
-                </td>
-                <td className="px-4 py-3">{formatarData(transacao.criadoEm)}</td>
-                <td className="px-4 py-3">
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/app/transacoes/${transacao.transacaoId}`}
-                  >
-                    Detalhes
-                  </Link>
-                </td>
+    <div>
+      <div className="hidden overflow-x-auto md:block">
+        <div className="ck-table-panel">
+          <table className="ck-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Tipo</th>
+                <th>Cliente/fornecedor</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Criada em</th>
+                <th>Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {itens.map((transacao) => {
+                const pessoa = pessoaInfo(
+                  transacao,
+                  clientesPorId,
+                  fornecedoresPorId,
+                );
+
+                return (
+                  <tr key={transacao.transacaoId}>
+                    <td>
+                      <span className="ck-code-pill">
+                        #{codigoCurto(transacao.transacaoId)}
+                      </span>
+                    </td>
+                    <td>{transacao.tipo}</td>
+                    <td>
+                      <div className="ck-person-main">{pessoa.nome}</div>
+                      <div className="ck-person-sub">{pessoa.detalhe}</div>
+                    </td>
+                    <td>
+                      <span className={statusClass(transacao.status)}>
+                        {transacao.status}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{formatarMoeda(transacao.valorTotal)}</strong>
+                    </td>
+                    <td>{formatarData(transacao.criadoEm)}</td>
+                    <td>
+                      <Link
+                        className="ck-row-link"
+                        to={`/app/transacoes/${transacao.transacaoId}`}
+                      >
+                        Detalhes
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="grid gap-3 md:hidden">
-        {itens.map((transacao) => (
-          <article
-            key={transacao.transacaoId}
-            className="grid gap-3 rounded-2xl border bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-semibold">
-                  {transacao.tipo} #{codigoCurto(transacao.transacaoId)}
+      <div className="ck-mobile-list md:hidden">
+        {itens.map((transacao) => {
+          const pessoa = pessoaInfo(transacao, clientesPorId, fornecedoresPorId);
+
+          return (
+            <article className="ck-transaction-card" key={transacao.transacaoId}>
+              <div className="ck-transaction-card-top">
+                <div>
+                  <div className="ck-transaction-title">
+                    {transacao.tipo} #{codigoCurto(transacao.transacaoId)}
+                  </div>
+                  <div className="ck-transaction-desc">{pessoa.nome}</div>
                 </div>
-                <div className="text-sm text-slate-600">
-                  {labelPessoa(transacao, clientesPorId, fornecedoresPorId)}
+
+                <span className={statusClass(transacao.status)}>
+                  {transacao.status}
+                </span>
+              </div>
+
+              <div className="ck-card-grid">
+                <div>
+                  <div className="ck-card-label">Total</div>
+                  <div className="ck-card-value">
+                    {formatarMoeda(transacao.valorTotal)}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-card-label">Criada em</div>
+                  <div className="ck-card-value">
+                    {formatarData(transacao.criadoEm)}
+                  </div>
                 </div>
               </div>
 
-              <StatusBadge value={transacao.status} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-xs text-slate-500">Total</div>
-                <div className="font-medium">{formatarMoeda(transacao.valorTotal)}</div>
-              </div>
-
-              <div>
-                <div className="text-xs text-slate-500">Criada em</div>
-                <div>{formatarData(transacao.criadoEm)}</div>
-              </div>
-            </div>
-
-            <Link
-              className="rounded-xl border px-4 py-2 text-center text-sm"
-              to={`/app/transacoes/${transacao.transacaoId}`}
-            >
-              Ver detalhes
-            </Link>
-          </article>
-        ))}
+              <Link
+                className="ck-action-secondary"
+                to={`/app/transacoes/${transacao.transacaoId}`}
+              >
+                Ver detalhes
+              </Link>
+            </article>
+          );
+        })}
       </div>
     </div>
   );

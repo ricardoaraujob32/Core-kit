@@ -5,65 +5,114 @@ import type { Produto } from "../tipos";
 
 type Props = {
   itens: Produto[];
-  onExcluir?: (produtoId: string) => void;
 };
 
-export function ProdutosTable({ itens, onExcluir }: Props) {
+function formatarMoeda(valor?: number | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toUpperCase();
+}
+
+export function ProdutosTable({ itens }: Props) {
   if (itens.length === 0) {
     return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhum produto/serviço encontrado.
+      <div className="ck-register-empty">
+        <div className="ck-register-empty-title">Nenhum produto encontrado</div>
+        <p className="ck-register-empty-desc">
+          Cadastre produtos e serviços para usar nas vendas e compras.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white">
-      <table className="min-w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">Nome</th>
-            <th className="px-4 py-3">Tipo</th>
-            <th className="px-4 py-3">Preço</th>
-            <th className="px-4 py-3">Ações</th>
-          </tr>
-        </thead>
+    <div>
+      <div className="hidden overflow-x-auto md:block">
+        <div className="ck-register-table-panel">
+          <table className="ck-register-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>SKU</th>
+                <th>Tipo</th>
+                <th>Unidade</th>
+                <th>Preço venda</th>
+                <th>Código</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          {itens.map((produto) => (
-            <tr key={produto.produtoId} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{produto.nome}</td>
-              <td className="px-4 py-3">{produto.tipo}</td>
-              <td className="px-4 py-3">{produto.precoVenda}</td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/app/produtos/${produto.produtoId}`}
-                  >
-                    Detalhes
-                  </Link>
+            <tbody>
+              {itens.map((produto) => (
+                <tr key={produto.produtoId}>
+                  <td>
+                    <div className="ck-register-main">{produto.nome}</div>
+                    <div className="ck-register-sub">{produto.descricao ?? "Sem descrição"}</div>
+                  </td>
+                  <td>{produto.sku ?? "—"}</td>
+                  <td>{produto.tipo}</td>
+                  <td>{produto.unidade ?? "—"}</td>
+                  <td><strong>{formatarMoeda(produto.precoVenda)}</strong></td>
+                  <td>
+                    <span className="ck-register-pill">
+                      #{codigoCurto(produto.produtoId)}
+                    </span>
+                  </td>
+                  <td>
+                    <Link
+                      className="ck-register-link"
+                      to={`/app/produtos/${produto.produtoId}`}
+                    >
+                      Detalhes
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/app/produtos/${produto.produtoId}/editar`}
-                  >
-                    Editar
-                  </Link>
-
-                  <button
-                    className="text-red-600 underline"
-                    type="button"
-                    onClick={() => onExcluir?.(produto.produtoId)}
-                  >
-                    Excluir
-                  </button>
+      <div className="ck-register-card-list md:hidden">
+        {itens.map((produto) => (
+          <article className="ck-register-card" key={produto.produtoId}>
+            <div className="ck-register-card-top">
+              <div>
+                <div className="ck-register-card-title">{produto.nome}</div>
+                <div className="ck-register-card-desc">
+                  {produto.sku ?? "Sem SKU"} • {produto.tipo}
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+
+              <span className="ck-register-pill">#{codigoCurto(produto.produtoId)}</span>
+            </div>
+
+            <div className="ck-register-card-grid">
+              <div>
+                <div className="ck-register-label">Unidade</div>
+                <div className="ck-register-value">{produto.unidade ?? "—"}</div>
+              </div>
+
+              <div>
+                <div className="ck-register-label">Preço venda</div>
+                <div className="ck-register-value">{formatarMoeda(produto.precoVenda)}</div>
+              </div>
+            </div>
+
+            <Link
+              className="ck-register-action-secondary"
+              to={`/app/produtos/${produto.produtoId}`}
+            >
+              Ver detalhes
+            </Link>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

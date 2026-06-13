@@ -2,101 +2,102 @@
 
 import { Link } from "react-router-dom";
 import { ProdutosTable } from "../components/ProdutosTable";
-import { useProdutoActions } from "../hooks/useProdutoActions";
 import { useProdutos } from "../hooks/useProdutos";
-import type { TipoProduto } from "../tipos";
+import type { Produto } from "../tipos";
+import "../../cadastros/cadastros.css";
+
+function contarSemPreco(itens: Produto[]): number {
+  return itens.filter((item) => Number(item.precoVenda ?? 0) <= 0).length;
+}
+
+function contarComSku(itens: Produto[]): number {
+  return itens.filter((item) => Boolean(item.sku?.trim())).length;
+}
 
 export default function ProdutosListPage() {
-  const {
-    produtosFiltrados,
-    busca,
-    setBusca,
-    tipo,
-    setTipo,
-    isLoading,
-    erro,
-    recarregar,
-  } = useProdutos();
-
-  const {
-    excluir,
-    erro: erroAcao,
-    isSubmitting,
-  } = useProdutoActions({
-    onSuccess: recarregar,
-  });
+  const { produtos, busca, setBusca, isLoading, erro, recarregar } = useProdutos();
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Produtos e serviços</h1>
-          <p className="text-sm text-slate-600">
-            Gerencie produtos e serviços do locatário.
-          </p>
+    <div className="ck-register-page">
+      <section className="ck-register-hero">
+        <div className="ck-register-hero-inner">
+          <div>
+            <div className="ck-register-kicker">Catálogo</div>
+            <h1 className="ck-register-title">Produtos</h1>
+            <p className="ck-register-description">
+              Cadastre produtos e serviços com SKU, unidade, preço de venda e
+              custo de referência.
+            </p>
+          </div>
+
+          <div className="ck-register-actions">
+            <Link className="ck-register-action-primary" to="/app/produtos/novo">
+              Novo produto
+            </Link>
+          </div>
         </div>
+      </section>
 
-        <Link className="rounded-xl border px-4 py-2" to="/app/produtos/novo">
-          Novo produto/serviço
-        </Link>
-      </div>
+      <section className="ck-register-stats">
+        <article className="ck-register-stat" style={{ "--stat-color": "#f97316" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Produtos</div>
+              <div className="ck-register-stat-value">{produtos.length}</div>
+              <div className="ck-register-stat-hint">Total no catálogo</div>
+            </div>
+            <div className="ck-register-stat-icon">📦</div>
+          </div>
+        </article>
 
-      <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
-        <input
-          className="rounded-xl border px-3 py-2"
-          placeholder="Buscar por nome ou descrição"
-          value={busca}
-          onChange={(event) => setBusca(event.target.value)}
-        />
+        <article className="ck-register-stat" style={{ "--stat-color": "#2563eb" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Com SKU</div>
+              <div className="ck-register-stat-value">{contarComSku(produtos)}</div>
+              <div className="ck-register-stat-hint">Identificação comercial</div>
+            </div>
+            <div className="ck-register-stat-icon">🏷️</div>
+          </div>
+        </article>
 
-        <select
-          className="rounded-xl border px-3 py-2"
-          value={tipo}
-          onChange={(event) =>
-            setTipo(event.target.value as TipoProduto | "TODOS")
-          }
-        >
-          <option value="TODOS">Todos</option>
-          <option value="PRODUTO">Produto</option>
-          <option value="SERVICO">Serviço</option>
-        </select>
+        <article className="ck-register-stat" style={{ "--stat-color": "#dc2626" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Sem preço</div>
+              <div className="ck-register-stat-value">{contarSemPreco(produtos)}</div>
+              <div className="ck-register-stat-hint">Revisar antes de vender</div>
+            </div>
+            <div className="ck-register-stat-icon">⚠️</div>
+          </div>
+        </article>
+      </section>
 
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="button"
-          onClick={() => void recarregar()}
-        >
-          Recarregar
-        </button>
-      </div>
+      <section className="ck-register-filter">
+        <div className="ck-register-filter-grid">
+          <input
+            className="ck-register-input"
+            placeholder="Buscar por nome, SKU, descrição ou tipo"
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+          />
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erro}
+          <button
+            className="ck-register-button"
+            type="button"
+            onClick={() => void recarregar()}
+          >
+            Recarregar
+          </button>
         </div>
-      ) : null}
+      </section>
 
-      {erroAcao ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erroAcao}
-        </div>
-      ) : null}
-
-      {isSubmitting ? (
-        <div className="rounded-xl border bg-white px-4 py-3 text-sm">
-          Processando ação...
-        </div>
-      ) : null}
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
       {isLoading ? (
-        <div className="rounded-2xl border bg-white p-6">
-          Carregando produtos...
-        </div>
+        <div className="ck-register-filter">Carregando produtos...</div>
       ) : (
-        <ProdutosTable
-          itens={produtosFiltrados}
-          onExcluir={(produtoId) => void excluir(produtoId)}
-        />
+        <ProdutosTable itens={produtos} />
       )}
     </div>
   );

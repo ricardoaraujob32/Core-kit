@@ -1,0 +1,311 @@
+/* apps/web/src/features/tenant-admin/pages/dashboard.css */
+
+.ck-dashboard {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.ck-dashboard-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  padding: 1.6rem;
+  color: white;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(96, 165, 250, 0.45), transparent 18rem),
+    radial-gradient(circle at 85% 0%, rgba(168, 85, 247, 0.32), transparent 16rem),
+    linear-gradient(135deg, #020617 0%, #0f172a 55%, #1e3a8a 100%);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.ck-dashboard-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto -4rem -6rem auto;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.ck-dashboard-hero-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.ck-dashboard-kicker {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.32rem 0.65rem;
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ck-dashboard-title {
+  max-width: 46rem;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.05;
+  font-weight: 850;
+  letter-spacing: -0.055em;
+}
+
+.ck-dashboard-subtitle {
+  max-width: 42rem;
+  color: #cbd5e1;
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.ck-dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ck-dashboard-action-primary,
+.ck-dashboard-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 160ms ease;
+}
+
+.ck-dashboard-action-primary {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+}
+
+.ck-dashboard-action-primary:hover {
+  transform: translateY(-1px);
+}
+
+.ck-dashboard-action-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ck-dashboard-action-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ck-metrics-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.ck-metric-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 1.15rem;
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
+}
+
+.ck-metric-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.35rem;
+  background: var(--metric-color, #2563eb);
+}
+
+.ck-metric-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ck-metric-icon {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--metric-color, #2563eb) 12%, white);
+  color: var(--metric-color, #2563eb);
+  font-size: 1.25rem;
+}
+
+.ck-metric-label {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.ck-metric-value {
+  margin-top: 0.35rem;
+  color: #020617;
+  font-size: 1.85rem;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: -0.05em;
+}
+
+.ck-metric-hint {
+  margin-top: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.ck-dashboard-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.ck-panel {
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07);
+}
+
+.ck-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  padding: 1rem 1.15rem;
+}
+
+.ck-panel-title {
+  font-size: 1rem;
+  font-weight: 850;
+  color: #0f172a;
+}
+
+.ck-panel-desc {
+  margin-top: 0.25rem;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.ck-panel-body {
+  padding: 1rem 1.15rem;
+}
+
+.ck-alert-list,
+.ck-activity-list,
+.ck-quick-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ck-alert-item,
+.ck-activity-item,
+.ck-quick-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: #f8fafc;
+  padding: 0.85rem;
+  text-decoration: none;
+}
+
+.ck-alert-icon,
+.ck-activity-icon,
+.ck-quick-icon {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 2.35rem;
+  place-items: center;
+  border-radius: 0.9rem;
+  background: white;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.ck-alert-title,
+.ck-activity-title,
+.ck-quick-title {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.ck-alert-desc,
+.ck-activity-desc,
+.ck-quick-desc {
+  margin-top: 0.12rem;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.ck-activity-meta {
+  margin-left: auto;
+  white-space: nowrap;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.ck-empty-panel {
+  border-radius: 1rem;
+  border: 1px dashed #cbd5e1;
+  padding: 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.ck-skeleton {
+  overflow: hidden;
+  position: relative;
+  min-height: 7rem;
+  border-radius: 1.4rem;
+  background: #e2e8f0;
+}
+
+.ck-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
+  animation: ck-shimmer 1.25s infinite;
+}
+
+@keyframes ck-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (min-width: 768px) {
+  .ck-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ck-dashboard-grid {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ck-metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
