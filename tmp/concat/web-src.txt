@@ -1983,110 +1983,120 @@ export async function logout(input: LogoutInput): Promise<void> {
 
 // apps/web/src/features/auth/pages/LoginPage.tsx
 
-import type { JSX, FormEvent } from "react";
+import type { JSX } from "react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
-import { mapError } from "../../../core/errors/mapError";
+import "./login.css";
 
 export default function LoginPage(): JSX.Element {
-  const navigate = useNavigate();
   const { login, isLoading } = useAuth();
 
+  const [locatarioSlug, setLocatarioSlug] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [locatarioSlug, setLocatarioSlug] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
 
     try {
       await login({
+        locatarioSlug: locatarioSlug.trim(),
         email: email.trim(),
         senha,
-        locatarioSlug: locatarioSlug.trim(),
       });
-
-      navigate("/app", { replace: true });
     } catch (error) {
-      setErro(mapError(error).message);
+      setErro(error instanceof Error ? error.message : "Erro ao autenticar.");
     }
   }
 
   return (
-    <main>
-      <h1>Entrar</h1>
+    <main className="ck-login-shell">
+      <form className="ck-login-card ck-login-tenant" onSubmit={handleSubmit}>
+        <header className="ck-login-header">
+          <div className="ck-login-header-content">
+            <div className="ck-login-mark">CK</div>
+            <span className="ck-login-badge">Beta • Portfólio</span>
+            <h1 className="ck-login-title">Entrar no Core-kit</h1>
+            <p className="ck-login-subtitle">
+              Sistema de gestão para clientes, produtos, compras e vendas.
+            </p>
+          </div>
+        </header>
 
-      <p>Área administrativa do locatário.</p>
+        <section className="ck-login-body">
+          {erro ? <div className="ck-login-error">{erro}</div> : null}
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="locatarioSlug">Locatário</label>
-          <input
-            id="locatarioSlug"
-            type="text"
-            value={locatarioSlug}
-            onChange={(event) => setLocatarioSlug(event.target.value)}
-            autoComplete="organization"
-            required
-          />
-        </div>
+          <label className="ck-login-field">
+            <span className="ck-login-label">Locatário</span>
+            <input
+              className="ck-login-input"
+              placeholder="Ex.: loja"
+              value={locatarioSlug}
+              onChange={(event) => setLocatarioSlug(event.target.value)}
+              autoComplete="organization"
+              required
+            />
+          </label>
 
-        <div>
-          <label htmlFor="email">E-mail</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-          />
-        </div>
+          <label className="ck-login-field">
+            <span className="ck-login-label">E-mail</span>
+            <input
+              className="ck-login-input"
+              placeholder="usuario@email.com.br"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              required
+            />
+          </label>
 
-        <div>
-          <label htmlFor="senha">Senha</label>
-          <input
-            id="senha"
-            type="password"
-            value={senha}
-            onChange={(event) => setSenha(event.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </div>
+          <label className="ck-login-field">
+            <span className="ck-login-label">Senha</span>
+            <input
+              className="ck-login-input"
+              placeholder="Sua senha"
+              type="password"
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
 
-        {erro ? <p role="alert">{erro}</p> : null}
+          <button className="ck-login-submit" type="submit" disabled={isLoading}>
+            {isLoading ? "Entrando..." : "Entrar"}
+          </button>
 
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Entrando..." : "Entrar"}
-        </button>
+          <p className="ck-login-footer">
+            <strong>Core-kit Beta</strong> • Demonstração de portfólio
+          </p>
+        </section>
       </form>
     </main>
   );
 }
 
+
 ===== apps/web/src/features/auth/pages/PlataformaLoginPage.tsx =====
 
 // apps/web/src/features/auth/pages/PlataformaLoginPage.tsx
 
-import type { FormEvent, JSX } from "react";
+import type { JSX } from "react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
-import { mapError } from "../../../core/errors/mapError";
+import "./login.css";
 
 export default function PlataformaLoginPage(): JSX.Element {
-  const navigate = useNavigate();
   const { loginPlataforma, isLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
 
@@ -2095,54 +2105,63 @@ export default function PlataformaLoginPage(): JSX.Element {
         email: email.trim(),
         senha,
       });
-
-      navigate("/plataforma", { replace: true });
     } catch (error) {
-      setErro(mapError(error).message);
+      setErro(error instanceof Error ? error.message : "Erro ao autenticar.");
     }
   }
 
   return (
-    <main>
-      <h1>Entrar na plataforma</h1>
+    <main className="ck-login-shell">
+      <form className="ck-login-card ck-login-platform" onSubmit={handleSubmit}>
+        <header className="ck-login-header">
+          <div className="ck-login-header-content">
+            <div className="ck-login-mark">CK</div>
+            <span className="ck-login-badge">Plataforma</span>
+            <h1 className="ck-login-title">Login da plataforma</h1>
+            <p className="ck-login-subtitle">
+              Administração global de locatários, módulos e usuários.
+            </p>
+          </div>
+        </header>
 
-      <p>Área administrativa da plataforma.</p>
+        <section className="ck-login-body">
+          {erro ? <div className="ck-login-error">{erro}</div> : null}
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">E-mail</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-          />
-        </div>
+          <label className="ck-login-field">
+            <span className="ck-login-label">E-mail</span>
+            <input
+              className="ck-login-input"
+              placeholder="admin@plataforma.com"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              required
+            />
+          </label>
 
-        <div>
-          <label htmlFor="senha">Senha</label>
-          <input
-            id="senha"
-            type="password"
-            value={senha}
-            onChange={(event) => setSenha(event.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </div>
+          <label className="ck-login-field">
+            <span className="ck-login-label">Senha</span>
+            <input
+              className="ck-login-input"
+              placeholder="Sua senha"
+              type="password"
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
 
-        {erro ? <p role="alert">{erro}</p> : null}
+          <button className="ck-login-submit" type="submit" disabled={isLoading}>
+            {isLoading ? "Entrando..." : "Entrar na plataforma"}
+          </button>
 
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Entrando..." : "Entrar"}
-        </button>
+          <p className="ck-login-footer">
+            <strong>Core-kit Plataforma</strong> • Área administrativa
+          </p>
+        </section>
       </form>
-
-      <p>
-        <Link to="/login">Ir para login do locatário</Link>
-      </p>
     </main>
   );
 }
@@ -4490,62 +4509,116 @@ import type { Cliente } from "../tipos";
 
 type Props = {
   itens: Cliente[];
-  onExcluir?: (clienteId: string) => void;
 };
 
-export function ClientesTable({ itens, onExcluir }: Props) {
+function formatarData(value?: string | null): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR");
+}
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toUpperCase();
+}
+
+export function ClientesTable({ itens }: Props) {
   if (itens.length === 0) {
     return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhum cliente encontrado.
+      <div className="ck-register-empty">
+        <div className="ck-register-empty-title">Nenhum cliente encontrado</div>
+        <p className="ck-register-empty-desc">
+          Cadastre clientes para agilizar novas vendas e manter histórico.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white">
-      <table className="min-w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">Nome</th>
-            <th className="px-4 py-3">Documento</th>
-            <th className="px-4 py-3">E-mail</th>
-            <th className="px-4 py-3">Ações</th>
-          </tr>
-        </thead>
+    <div>
+      <div className="hidden overflow-x-auto md:block">
+        <div className="ck-register-table-panel">
+          <table className="ck-register-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Documento</th>
+                <th>Contato</th>
+                <th>Cadastrado em</th>
+                <th>Código</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          {itens.map((cliente) => (
-            <tr key={cliente.clienteId} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{cliente.nome}</td>
-              <td className="px-4 py-3">{cliente.documento ?? "—"}</td>
-              <td className="px-4 py-3">{cliente.email ?? "—"}</td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-3">
-                  <Link className="text-blue-600 underline" to={`/app/clientes/${cliente.clienteId}`}>
-                    Detalhes
-                  </Link>
+            <tbody>
+              {itens.map((cliente) => (
+                <tr key={cliente.clienteId}>
+                  <td>
+                    <div className="ck-register-main">{cliente.nome}</div>
+                    <div className="ck-register-sub">{cliente.email ?? "Sem e-mail"}</div>
+                  </td>
+                  <td>{cliente.documento ?? "—"}</td>
+                  <td>{cliente.telefone ?? "—"}</td>
+                  <td>{formatarData(cliente.criadoEm)}</td>
+                  <td>
+                    <span className="ck-register-pill">
+                      #{codigoCurto(cliente.clienteId)}
+                    </span>
+                  </td>
+                  <td>
+                    <Link
+                      className="ck-register-link"
+                      to={`/app/clientes/${cliente.clienteId}`}
+                    >
+                      Detalhes
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-                  <Link className="text-blue-600 underline" to={`/app/clientes/${cliente.clienteId}/editar`}>
-                    Editar
-                  </Link>
-
-                  <button
-                    className="text-red-600 underline"
-                    type="button"
-                    onClick={() => onExcluir?.(cliente.clienteId)}
-                  >
-                    Excluir
-                  </button>
+      <div className="ck-register-card-list md:hidden">
+        {itens.map((cliente) => (
+          <article className="ck-register-card" key={cliente.clienteId}>
+            <div className="ck-register-card-top">
+              <div>
+                <div className="ck-register-card-title">{cliente.nome}</div>
+                <div className="ck-register-card-desc">
+                  {cliente.documento ?? "Sem documento"}
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+
+              <span className="ck-register-pill">#{codigoCurto(cliente.clienteId)}</span>
+            </div>
+
+            <div className="ck-register-card-grid">
+              <div>
+                <div className="ck-register-label">E-mail</div>
+                <div className="ck-register-value">{cliente.email ?? "—"}</div>
+              </div>
+
+              <div>
+                <div className="ck-register-label">Telefone</div>
+                <div className="ck-register-value">{cliente.telefone ?? "—"}</div>
+              </div>
+            </div>
+
+            <Link
+              className="ck-register-action-secondary"
+              to={`/app/clientes/${cliente.clienteId}`}
+            >
+              Ver detalhes
+            </Link>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/clientes/hooks/useClienteActions.ts =====
 
@@ -4848,88 +4921,106 @@ export default function ClienteDetailsPage() {
 
 import { Link } from "react-router-dom";
 import { ClientesTable } from "../components/ClientesTable";
-import { useClienteActions } from "../hooks/useClienteActions";
 import { useClientes } from "../hooks/useClientes";
+import "../../cadastros/cadastros.css";
+
+function contarComEmail<T extends { email?: string | null }>(itens: T[]): number {
+  return itens.filter((item) => Boolean(item.email?.trim())).length;
+}
+
+function contarComDocumento<T extends { documento?: string | null }>(itens: T[]): number {
+  return itens.filter((item) => Boolean(item.documento?.trim())).length;
+}
 
 export default function ClientesListPage() {
-  const {
-    clientesFiltrados,
-    busca,
-    setBusca,
-    isLoading,
-    erro,
-    recarregar,
-  } = useClientes();
-
-  const {
-    excluir,
-    erro: erroAcao,
-    isSubmitting,
-  } = useClienteActions({
-    onSuccess: recarregar,
-  });
+  const { clientes, busca, setBusca, isLoading, erro, recarregar } = useClientes();
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Clientes</h1>
-          <p className="text-sm text-slate-600">
-            Gerencie os clientes do locatário.
-          </p>
+    <div className="ck-register-page">
+      <section className="ck-register-hero">
+        <div className="ck-register-hero-inner">
+          <div>
+            <div className="ck-register-kicker">Cadastros</div>
+            <h1 className="ck-register-title">Clientes</h1>
+            <p className="ck-register-description">
+              Organize clientes para vendas rápidas, histórico de atendimento e
+              identificação por documento ou contato.
+            </p>
+          </div>
+
+          <div className="ck-register-actions">
+            <Link className="ck-register-action-primary" to="/app/clientes/novo">
+              Novo cliente
+            </Link>
+          </div>
         </div>
+      </section>
 
-        <Link className="rounded-xl border px-4 py-2" to="/app/clientes/novo">
-          Novo cliente
-        </Link>
-      </div>
+      <section className="ck-register-stats">
+        <article className="ck-register-stat" style={{ "--stat-color": "#7c3aed" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Clientes</div>
+              <div className="ck-register-stat-value">{clientes.length}</div>
+              <div className="ck-register-stat-hint">Total cadastrado</div>
+            </div>
+            <div className="ck-register-stat-icon">👥</div>
+          </div>
+        </article>
 
-      <div className="flex gap-3">
-        <input
-          className="w-full rounded-xl border px-3 py-2"
-          placeholder="Buscar por nome, documento ou e-mail"
-          value={busca}
-          onChange={(event) => setBusca(event.target.value)}
-        />
+        <article className="ck-register-stat" style={{ "--stat-color": "#2563eb" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Com documento</div>
+              <div className="ck-register-stat-value">{contarComDocumento(clientes)}</div>
+              <div className="ck-register-stat-hint">CPF/CNPJ informado</div>
+            </div>
+            <div className="ck-register-stat-icon">🪪</div>
+          </div>
+        </article>
 
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="button"
-          onClick={() => void recarregar()}
-        >
-          Recarregar
-        </button>
-      </div>
+        <article className="ck-register-stat" style={{ "--stat-color": "#16a34a" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Com e-mail</div>
+              <div className="ck-register-stat-value">{contarComEmail(clientes)}</div>
+              <div className="ck-register-stat-hint">Contato digital</div>
+            </div>
+            <div className="ck-register-stat-icon">✉️</div>
+          </div>
+        </article>
+      </section>
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erro}
+      <section className="ck-register-filter">
+        <div className="ck-register-filter-grid">
+          <input
+            className="ck-register-input"
+            placeholder="Buscar por nome, documento, e-mail ou telefone"
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+          />
+
+          <button
+            className="ck-register-button"
+            type="button"
+            onClick={() => void recarregar()}
+          >
+            Recarregar
+          </button>
         </div>
-      ) : null}
+      </section>
 
-      {erroAcao ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erroAcao}
-        </div>
-      ) : null}
-
-      {isSubmitting ? (
-        <div className="rounded-xl border bg-white px-4 py-3 text-sm">
-          Processando ação...
-        </div>
-      ) : null}
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
       {isLoading ? (
-        <div className="rounded-2xl border bg-white p-6">Carregando clientes...</div>
+        <div className="ck-register-filter">Carregando clientes...</div>
       ) : (
-        <ClientesTable
-          itens={clientesFiltrados}
-          onExcluir={(clienteId) => void excluir(clienteId)}
-        />
+        <ClientesTable itens={clientes} />
       )}
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/clientes/pages/EditarClientePage.tsx =====
 
@@ -5122,11 +5213,12 @@ export { default as NovaCompraPage } from "./pages/NovaCompraPage";
 // apps/web/src/features/tenant-admin/compras/pages/NovaCompraPage.tsx
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import { comprasApi } from "../api/comprasApi";
+import "../../transacoes/pages/transacoes.css";
 
 function labelFornecedor(fornecedor: Fornecedor): string {
   return fornecedor.documento
@@ -5168,17 +5260,11 @@ export default function NovaCompraPage() {
       try {
         const response = await fornecedoresApi.listar();
 
-        if (ativo) {
-          setFornecedores(response.itens);
-        }
+        if (ativo) setFornecedores(response.itens);
       } catch (error) {
-        if (ativo) {
-          setErroFornecedores(mapError(error).message);
-        }
+        if (ativo) setErroFornecedores(mapError(error).message);
       } finally {
-        if (ativo) {
-          setIsLoadingFornecedores(false);
-        }
+        if (ativo) setIsLoadingFornecedores(false);
       }
     }
 
@@ -5224,96 +5310,129 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <form
-      className="grid gap-6 rounded-2xl border bg-white p-6"
-      onSubmit={handleSubmit}
-    >
-      <div>
-        <h1 className="text-2xl font-semibold">Nova compra</h1>
-        <p className="text-sm text-slate-600">
-          Selecione o fornecedor usando nome, documento, e-mail ou telefone. Os
-          itens serão adicionados na próxima etapa.
-        </p>
-      </div>
-
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
-
-      {erroFornecedores ? (
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-          Não foi possível carregar a lista de fornecedores: {erroFornecedores}
-        </div>
-      ) : null}
-
-      <section className="grid gap-4 rounded-2xl border p-4">
-        <h2 className="text-lg font-semibold">Fornecedor</h2>
-
-        <label className="grid gap-1">
-          <span className="text-sm font-medium">Buscar fornecedor</span>
-          <input
-            className="rounded-xl border px-3 py-2"
-            placeholder="Nome, documento, e-mail ou telefone"
-            value={buscaFornecedor}
-            onChange={(event) => setBuscaFornecedor(event.target.value)}
-          />
-        </label>
-
-        <label className="grid gap-1">
-          <span className="text-sm font-medium">Fornecedor selecionado</span>
-          <select
-            className="rounded-xl border px-3 py-2"
-            value={fornecedorId}
-            onChange={(event) => setFornecedorId(event.target.value)}
-            disabled={isLoadingFornecedores}
-          >
-            <option value="">
-              {isLoadingFornecedores
-                ? "Carregando fornecedores..."
-                : "Compra sem fornecedor"}
-            </option>
-
-            {fornecedoresFiltrados.map((fornecedor) => (
-              <option
-                key={fornecedor.fornecedorId}
-                value={fornecedor.fornecedorId}
-              >
-                {labelFornecedor(fornecedor)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {fornecedorSelecionado ? (
-          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm">
-            <div><strong>Nome:</strong> {fornecedorSelecionado.nome}</div>
-            <div><strong>Documento:</strong> {fornecedorSelecionado.documento ?? "—"}</div>
-            <div><strong>E-mail:</strong> {fornecedorSelecionado.email ?? "—"}</div>
-            <div><strong>Telefone:</strong> {fornecedorSelecionado.telefone ?? "—"}</div>
+    <form className="ck-page" onSubmit={handleSubmit}>
+      <section className="ck-page-hero">
+        <div className="ck-page-hero-inner">
+          <div>
+            <div className="ck-page-kicker">Compras</div>
+            <h1 className="ck-page-title">Nova compra</h1>
+            <p className="ck-page-description">
+              Crie a compra e depois adicione os produtos na tela de detalhes.
+            </p>
           </div>
-        ) : null}
+
+          <div className="ck-page-actions">
+            <Link className="ck-action-secondary" to="/app/transacoes">
+              Voltar
+            </Link>
+          </div>
+        </div>
       </section>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Observação</span>
-        <textarea
-          className="rounded-xl border px-3 py-2"
-          value={observacao}
-          onChange={(event) => setObservacao(event.target.value)}
-          placeholder="Observação da compra"
-          rows={3}
-        />
-      </label>
+      {erro ? <div className="ck-alert">{erro}</div> : null}
+
+      {erroFornecedores ? (
+        <div className="ck-alert ck-alert-warning">
+          Não foi possível carregar fornecedores: {erroFornecedores}
+        </div>
+      ) : null}
+
+      <section className="ck-form-card">
+        <div className="ck-form-card-header">
+          <div className="ck-form-card-title">Fornecedor</div>
+          <p className="ck-form-card-desc">
+            Busque por nome, documento, e-mail ou telefone.
+          </p>
+        </div>
+
+        <div className="ck-form-card-body">
+          <label className="ck-field">
+            <span>Buscar fornecedor</span>
+            <input
+              className="ck-input"
+              placeholder="Ex.: Distribuidora, CNPJ, e-mail..."
+              value={buscaFornecedor}
+              onChange={(event) => setBuscaFornecedor(event.target.value)}
+            />
+          </label>
+
+          <label className="ck-field">
+            <span>Fornecedor selecionado</span>
+            <select
+              className="ck-select"
+              value={fornecedorId}
+              onChange={(event) => setFornecedorId(event.target.value)}
+              disabled={isLoadingFornecedores}
+            >
+              <option value="">
+                {isLoadingFornecedores
+                  ? "Carregando fornecedores..."
+                  : "Compra sem fornecedor"}
+              </option>
+
+              {fornecedoresFiltrados.map((fornecedor) => (
+                <option
+                  key={fornecedor.fornecedorId}
+                  value={fornecedor.fornecedorId}
+                >
+                  {labelFornecedor(fornecedor)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {fornecedorSelecionado ? (
+            <div className="ck-selected-box">
+              <div className="ck-selected-grid">
+                <div>
+                  <div className="ck-selected-label">Nome</div>
+                  <div className="ck-selected-value">{fornecedorSelecionado.nome}</div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">Documento</div>
+                  <div className="ck-selected-value">{fornecedorSelecionado.documento ?? "—"}</div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">E-mail</div>
+                  <div className="ck-selected-value">{fornecedorSelecionado.email ?? "—"}</div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">Telefone</div>
+                  <div className="ck-selected-value">{fornecedorSelecionado.telefone ?? "—"}</div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="ck-form-card">
+        <div className="ck-form-card-header">
+          <div className="ck-form-card-title">Observação</div>
+          <p className="ck-form-card-desc">
+            Informação opcional para facilitar o histórico.
+          </p>
+        </div>
+
+        <div className="ck-form-card-body">
+          <label className="ck-field">
+            <span>Observação da compra</span>
+            <textarea
+              className="ck-input ck-textarea"
+              value={observacao}
+              onChange={(event) => setObservacao(event.target.value)}
+              placeholder="Ex.: reposição de estoque, compra de fornecedor, lote especial..."
+            />
+          </label>
+        </div>
+      </section>
 
       <div className="flex justify-end">
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? "Criando..." : "Criar compra"}
+        <button className="ck-action-primary" disabled={isSaving} type="submit">
+          {isSaving ? "Criando..." : "Criar compra e adicionar itens"}
         </button>
       </div>
     </form>
@@ -5361,68 +5480,116 @@ import type { Fornecedor } from "../tipos";
 
 type Props = {
   itens: Fornecedor[];
-  onExcluir?: (fornecedorId: string) => void;
 };
 
-export function FornecedoresTable({ itens, onExcluir }: Props) {
+function formatarData(value?: string | null): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR");
+}
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toUpperCase();
+}
+
+export function FornecedoresTable({ itens }: Props) {
   if (itens.length === 0) {
     return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhum fornecedor encontrado.
+      <div className="ck-register-empty">
+        <div className="ck-register-empty-title">Nenhum fornecedor encontrado</div>
+        <p className="ck-register-empty-desc">
+          Cadastre fornecedores para organizar compras e reposições.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white">
-      <table className="min-w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">Nome</th>
-            <th className="px-4 py-3">Documento</th>
-            <th className="px-4 py-3">E-mail</th>
-            <th className="px-4 py-3">Ações</th>
-          </tr>
-        </thead>
+    <div>
+      <div className="hidden overflow-x-auto md:block">
+        <div className="ck-register-table-panel">
+          <table className="ck-register-table">
+            <thead>
+              <tr>
+                <th>Fornecedor</th>
+                <th>Documento</th>
+                <th>Contato</th>
+                <th>Cadastrado em</th>
+                <th>Código</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          {itens.map((fornecedor) => (
-            <tr key={fornecedor.fornecedorId} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{fornecedor.nome}</td>
-              <td className="px-4 py-3">{fornecedor.documento ?? "—"}</td>
-              <td className="px-4 py-3">{fornecedor.email ?? "—"}</td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/app/fornecedores/${fornecedor.fornecedorId}`}
-                  >
-                    Detalhes
-                  </Link>
+            <tbody>
+              {itens.map((fornecedor) => (
+                <tr key={fornecedor.fornecedorId}>
+                  <td>
+                    <div className="ck-register-main">{fornecedor.nome}</div>
+                    <div className="ck-register-sub">{fornecedor.email ?? "Sem e-mail"}</div>
+                  </td>
+                  <td>{fornecedor.documento ?? "—"}</td>
+                  <td>{fornecedor.telefone ?? "—"}</td>
+                  <td>{formatarData(fornecedor.criadoEm)}</td>
+                  <td>
+                    <span className="ck-register-pill">
+                      #{codigoCurto(fornecedor.fornecedorId)}
+                    </span>
+                  </td>
+                  <td>
+                    <Link
+                      className="ck-register-link"
+                      to={`/app/fornecedores/${fornecedor.fornecedorId}`}
+                    >
+                      Detalhes
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/app/fornecedores/${fornecedor.fornecedorId}/editar`}
-                  >
-                    Editar
-                  </Link>
-
-                  <button
-                    className="text-red-600 underline"
-                    type="button"
-                    onClick={() => onExcluir?.(fornecedor.fornecedorId)}
-                  >
-                    Excluir
-                  </button>
+      <div className="ck-register-card-list md:hidden">
+        {itens.map((fornecedor) => (
+          <article className="ck-register-card" key={fornecedor.fornecedorId}>
+            <div className="ck-register-card-top">
+              <div>
+                <div className="ck-register-card-title">{fornecedor.nome}</div>
+                <div className="ck-register-card-desc">
+                  {fornecedor.documento ?? "Sem documento"}
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+
+              <span className="ck-register-pill">#{codigoCurto(fornecedor.fornecedorId)}</span>
+            </div>
+
+            <div className="ck-register-card-grid">
+              <div>
+                <div className="ck-register-label">E-mail</div>
+                <div className="ck-register-value">{fornecedor.email ?? "—"}</div>
+              </div>
+
+              <div>
+                <div className="ck-register-label">Telefone</div>
+                <div className="ck-register-value">{fornecedor.telefone ?? "—"}</div>
+              </div>
+            </div>
+
+            <Link
+              className="ck-register-action-secondary"
+              to={`/app/fornecedores/${fornecedor.fornecedorId}`}
+            >
+              Ver detalhes
+            </Link>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/fornecedores/components/FornecedorForm.tsx =====
 
@@ -5890,12 +6057,20 @@ export default function FornecedorDetailsPage() {
 
 import { Link } from "react-router-dom";
 import { FornecedoresTable } from "../components/FornecedoresTable";
-import { useFornecedorActions } from "../hooks/useFornecedorActions";
 import { useFornecedores } from "../hooks/useFornecedores";
+import "../../cadastros/cadastros.css";
+
+function contarComEmail<T extends { email?: string | null }>(itens: T[]): number {
+  return itens.filter((item) => Boolean(item.email?.trim())).length;
+}
+
+function contarComDocumento<T extends { documento?: string | null }>(itens: T[]): number {
+  return itens.filter((item) => Boolean(item.documento?.trim())).length;
+}
 
 export default function FornecedoresListPage() {
   const {
-    fornecedoresFiltrados,
+    fornecedores,
     busca,
     setBusca,
     isLoading,
@@ -5903,61 +6078,92 @@ export default function FornecedoresListPage() {
     recarregar,
   } = useFornecedores();
 
-  const {
-    excluir,
-    erro: erroAcao,
-    isSubmitting,
-  } = useFornecedorActions({
-    onSuccess: recarregar,
-  });
-
   return (
-    <div className="grid gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Fornecedores</h1>
-          <p className="text-sm text-slate-600">
-            Gerencie os fornecedores do locatário.
-          </p>
+    <div className="ck-register-page">
+      <section className="ck-register-hero">
+        <div className="ck-register-hero-inner">
+          <div>
+            <div className="ck-register-kicker">Cadastros</div>
+            <h1 className="ck-register-title">Fornecedores</h1>
+            <p className="ck-register-description">
+              Organize fornecedores para compras, reposições e histórico de
+              relacionamento comercial.
+            </p>
+          </div>
+
+          <div className="ck-register-actions">
+            <Link className="ck-register-action-primary" to="/app/fornecedores/novo">
+              Novo fornecedor
+            </Link>
+          </div>
         </div>
+      </section>
 
-        <Link className="rounded-xl border px-4 py-2" to="/app/fornecedores/novo">
-          Novo fornecedor
-        </Link>
-      </div>
+      <section className="ck-register-stats">
+        <article className="ck-register-stat" style={{ "--stat-color": "#2563eb" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Fornecedores</div>
+              <div className="ck-register-stat-value">{fornecedores.length}</div>
+              <div className="ck-register-stat-hint">Total cadastrado</div>
+            </div>
+            <div className="ck-register-stat-icon">🏢</div>
+          </div>
+        </article>
 
-      <div className="flex gap-3">
-        <input
-          className="w-full rounded-xl border px-3 py-2"
-          placeholder="Buscar por nome, documento ou e-mail"
-          value={busca}
-          onChange={(event) => setBusca(event.target.value)}
-        />
+        <article className="ck-register-stat" style={{ "--stat-color": "#7c3aed" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Com documento</div>
+              <div className="ck-register-stat-value">{contarComDocumento(fornecedores)}</div>
+              <div className="ck-register-stat-hint">CPF/CNPJ informado</div>
+            </div>
+            <div className="ck-register-stat-icon">🪪</div>
+          </div>
+        </article>
 
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="button"
-          onClick={() => void recarregar()}
-        >
-          Recarregar
-        </button>
-      </div>
+        <article className="ck-register-stat" style={{ "--stat-color": "#16a34a" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Com e-mail</div>
+              <div className="ck-register-stat-value">{contarComEmail(fornecedores)}</div>
+              <div className="ck-register-stat-hint">Contato digital</div>
+            </div>
+            <div className="ck-register-stat-icon">✉️</div>
+          </div>
+        </article>
+      </section>
 
-      {erro ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div> : null}
-      {erroAcao ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroAcao}</div> : null}
-      {isSubmitting ? <div className="rounded-xl border bg-white px-4 py-3 text-sm">Processando ação...</div> : null}
+      <section className="ck-register-filter">
+        <div className="ck-register-filter-grid">
+          <input
+            className="ck-register-input"
+            placeholder="Buscar por nome, documento, e-mail ou telefone"
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+          />
+
+          <button
+            className="ck-register-button"
+            type="button"
+            onClick={() => void recarregar()}
+          >
+            Recarregar
+          </button>
+        </div>
+      </section>
+
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
       {isLoading ? (
-        <div className="rounded-2xl border bg-white p-6">Carregando fornecedores...</div>
+        <div className="ck-register-filter">Carregando fornecedores...</div>
       ) : (
-        <FornecedoresTable
-          itens={fornecedoresFiltrados}
-          onExcluir={(fornecedorId) => void excluir(fornecedorId)}
-        />
+        <FornecedoresTable itens={fornecedores} />
       )}
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/fornecedores/pages/NovoFornecedorPage.tsx =====
 
@@ -6816,35 +7022,434 @@ export type AtivarConfiguracaoLocatarioResponse = {
 
 ===== apps/web/src/features/tenant-admin/pages/dashboard.tsx =====
 
-// frontend/src/features/tenant-admin/pages/Dashboard.tsx
+// apps/web/src/features/tenant-admin/pages/dashboard.tsx
 
-import { JSX } from "react";
-import { useAuth } from "../../../core/auth/useAuth";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { mapError } from "../../../core/errors/mapError";
 import { useTenant } from "../../../core/tenant/useTenant";
+import { clientesApi } from "../clientes/api/clientesApi";
+import type { Cliente } from "../clientes/tipos";
+import { fornecedoresApi } from "../fornecedores/api/fornecedoresApi";
+import type { Fornecedor } from "../fornecedores/tipos";
+import { produtosApi } from "../produtos/api/produtosApi";
+import type { Produto } from "../produtos/tipos";
+import { transacoesApi } from "../transacoes/api/transacoesApi";
+import type { Transacao } from "../transacoes/tipos";
+import "./dashboard.css";
 
-export default function Dashboard(): JSX.Element {
-  const { user } = useAuth();
+type DashboardData = {
+  clientes: Cliente[];
+  fornecedores: Fornecedor[];
+  produtos: Produto[];
+  transacoes: Transacao[];
+};
+
+function formatarMoeda(valor: number): string {
+  return valor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatarData(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("pt-BR");
+}
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toUpperCase();
+}
+
+function somaTransacoes(itens: Transacao[], tipo: "VENDA" | "COMPRA"): number {
+  return itens
+    .filter((item) => item.tipo === tipo && item.status === "CONCLUIDA")
+    .reduce((acc, item) => acc + Number(item.valorTotal ?? 0), 0);
+}
+
+function contarAbertas(itens: Transacao[]): number {
+  return itens.filter(
+    (item) => item.status === "ABERTA" || item.status === "RASCUNHO",
+  ).length;
+}
+
+function contarConcluidas(itens: Transacao[]): number {
+  return itens.filter((item) => item.status === "CONCLUIDA").length;
+}
+
+function produtoSemPreco(produto: Produto): boolean {
+  return Number(produto.precoVenda ?? 0) <= 0;
+}
+
+function transacaoLabel(transacao: Transacao): string {
+  return `${transacao.tipo} #${codigoCurto(transacao.transacaoId)}`;
+}
+
+function transacaoDescricao(transacao: Transacao): string {
+  return `${transacao.status} • ${formatarMoeda(Number(transacao.valorTotal ?? 0))}`;
+}
+
+export default function TenantAdminDashboard() {
   const { branding } = useTenant();
 
-  return (
-    <section>
-      <h1>Dashboard do Locatário</h1>
-      <p>Integração com backend validada para área tenant-aware.</p>
+  const [data, setData] = useState<DashboardData>({
+    clientes: [],
+    fornecedores: [],
+    produtos: [],
+    transacoes: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
-      <pre>
-        {JSON.stringify(
-          {
-            id: user?.usuarioId,
-            locatarioId: user?.locatarioId,
-            papeis: user?.papeis,
-            permissoes: user?.permissoes,
-            branding,
-          },
-          null,
-          2,
-        )}
-      </pre>
-    </section>
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarDashboard() {
+      setIsLoading(true);
+      setErro(null);
+
+      try {
+        const [clientesResponse, fornecedoresResponse, produtosResponse, transacoesResponse] =
+          await Promise.all([
+            clientesApi.listar(),
+            fornecedoresApi.listar(),
+            produtosApi.listar(),
+            transacoesApi.listar(),
+          ]);
+
+        if (!ativo) return;
+
+        setData({
+          clientes: clientesResponse.itens,
+          fornecedores: fornecedoresResponse.itens,
+          produtos: produtosResponse.itens,
+          transacoes: transacoesResponse.itens,
+        });
+      } catch (error) {
+        if (ativo) setErro(mapError(error).message);
+      } finally {
+        if (ativo) setIsLoading(false);
+      }
+    }
+
+    void carregarDashboard();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const resumo = useMemo(() => {
+    const vendasConcluidas = somaTransacoes(data.transacoes, "VENDA");
+    const comprasConcluidas = somaTransacoes(data.transacoes, "COMPRA");
+    const abertas = contarAbertas(data.transacoes);
+    const concluidas = contarConcluidas(data.transacoes);
+    const produtosSemPreco = data.produtos.filter(produtoSemPreco).length;
+
+    return {
+      vendasConcluidas,
+      comprasConcluidas,
+      abertas,
+      concluidas,
+      produtosSemPreco,
+    };
+  }, [data]);
+
+  const ultimasTransacoes = [...data.transacoes]
+    .sort((a, b) => {
+      const dataA = new Date(a.criadoEm ?? "").getTime();
+      const dataB = new Date(b.criadoEm ?? "").getTime();
+
+      return dataB - dataA;
+    })
+    .slice(0, 5);
+
+  const nomeLocatario = branding?.nomeFantasia?.trim() || "seu negócio";
+
+  if (isLoading) {
+    return (
+      <div className="ck-dashboard">
+        <div className="ck-skeleton" />
+        <div className="ck-metrics-grid">
+          <div className="ck-skeleton" />
+          <div className="ck-skeleton" />
+          <div className="ck-skeleton" />
+          <div className="ck-skeleton" />
+        </div>
+      </div>
+    );
+  }
+
+  if (erro) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+        {erro}
+      </div>
+    );
+  }
+
+  return (
+    <div className="ck-dashboard">
+      <section className="ck-dashboard-hero">
+        <div className="ck-dashboard-hero-content">
+          <span className="ck-dashboard-kicker">Painel do locatário</span>
+
+          <div>
+            <h1 className="ck-dashboard-title">
+              Visão rápida de {nomeLocatario}
+            </h1>
+
+            <p className="ck-dashboard-subtitle">
+              Acompanhe vendas, compras, produtos e cadastros em um só lugar.
+              Esta tela é o ponto de partida operacional da beta.
+            </p>
+          </div>
+
+          <div className="ck-dashboard-actions">
+            <Link className="ck-dashboard-action-primary" to="/app/vendas/nova">
+              Criar venda
+            </Link>
+
+            <Link className="ck-dashboard-action-secondary" to="/app/compras/nova">
+              Registrar compra
+            </Link>
+
+            <Link className="ck-dashboard-action-secondary" to="/app/transacoes">
+              Ver transações
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="ck-metrics-grid">
+        <article className="ck-metric-card" style={{ "--metric-color": "#16a34a" } as React.CSSProperties}>
+          <div className="ck-metric-top">
+            <div>
+              <div className="ck-metric-label">Vendas concluídas</div>
+              <div className="ck-metric-value">
+                {formatarMoeda(resumo.vendasConcluidas)}
+              </div>
+              <div className="ck-metric-hint">{data.transacoes.filter((item) => item.tipo === "VENDA").length} venda(s) no histórico</div>
+            </div>
+            <div className="ck-metric-icon">💰</div>
+          </div>
+        </article>
+
+        <article className="ck-metric-card" style={{ "--metric-color": "#2563eb" } as React.CSSProperties}>
+          <div className="ck-metric-top">
+            <div>
+              <div className="ck-metric-label">Compras concluídas</div>
+              <div className="ck-metric-value">
+                {formatarMoeda(resumo.comprasConcluidas)}
+              </div>
+              <div className="ck-metric-hint">{data.transacoes.filter((item) => item.tipo === "COMPRA").length} compra(s) no histórico</div>
+            </div>
+            <div className="ck-metric-icon">🛒</div>
+          </div>
+        </article>
+
+        <article className="ck-metric-card" style={{ "--metric-color": "#7c3aed" } as React.CSSProperties}>
+          <div className="ck-metric-top">
+            <div>
+              <div className="ck-metric-label">Clientes</div>
+              <div className="ck-metric-value">{data.clientes.length}</div>
+              <div className="ck-metric-hint">{data.fornecedores.length} fornecedor(es) cadastrados</div>
+            </div>
+            <div className="ck-metric-icon">👥</div>
+          </div>
+        </article>
+
+        <article className="ck-metric-card" style={{ "--metric-color": "#f97316" } as React.CSSProperties}>
+          <div className="ck-metric-top">
+            <div>
+              <div className="ck-metric-label">Produtos</div>
+              <div className="ck-metric-value">{data.produtos.length}</div>
+              <div className="ck-metric-hint">{resumo.produtosSemPreco} produto(s) sem preço de venda</div>
+            </div>
+            <div className="ck-metric-icon">📦</div>
+          </div>
+        </article>
+      </section>
+
+      <section className="ck-dashboard-grid">
+        <div className="ck-panel">
+          <div className="ck-panel-header">
+            <div>
+              <div className="ck-panel-title">Próximas ações</div>
+              <p className="ck-panel-desc">
+                Pontos que merecem atenção para manter a operação organizada.
+              </p>
+            </div>
+          </div>
+
+          <div className="ck-panel-body">
+            <div className="ck-alert-list">
+              <Link className="ck-alert-item" to="/app/transacoes">
+                <span className="ck-alert-icon">⚠️</span>
+                <span>
+                  <span className="ck-alert-title">{resumo.abertas} transação(ões) abertas</span>
+                  <span className="ck-alert-desc">
+                    Confirme ou cancele vendas/compras em rascunho.
+                  </span>
+                </span>
+              </Link>
+
+              <Link className="ck-alert-item" to="/app/produtos">
+                <span className="ck-alert-icon">🏷️</span>
+                <span>
+                  <span className="ck-alert-title">{resumo.produtosSemPreco} produto(s) sem preço</span>
+                  <span className="ck-alert-desc">
+                    Produtos sem preço dificultam vendas rápidas.
+                  </span>
+                </span>
+              </Link>
+
+              <Link className="ck-alert-item" to="/app/clientes/novo">
+                <span className="ck-alert-icon">✨</span>
+                <span>
+                  <span className="ck-alert-title">Cadastre clientes recorrentes</span>
+                  <span className="ck-alert-desc">
+                    Melhora o histórico e reduz digitação em novas vendas.
+                  </span>
+                </span>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="ck-panel">
+          <div className="ck-panel-header">
+            <div>
+              <div className="ck-panel-title">Atalhos rápidos</div>
+              <p className="ck-panel-desc">
+                Ações comuns para operação diária.
+              </p>
+            </div>
+          </div>
+
+          <div className="ck-panel-body">
+            <div className="ck-quick-list">
+              <Link className="ck-quick-item" to="/app/clientes/novo">
+                <span className="ck-quick-icon">👤</span>
+                <span>
+                  <span className="ck-quick-title">Novo cliente</span>
+                  <span className="ck-quick-desc">Cadastrar pessoa ou empresa.</span>
+                </span>
+              </Link>
+
+              <Link className="ck-quick-item" to="/app/produtos/novo">
+                <span className="ck-quick-icon">📦</span>
+                <span>
+                  <span className="ck-quick-title">Novo produto</span>
+                  <span className="ck-quick-desc">Adicionar item vendável.</span>
+                </span>
+              </Link>
+
+              <Link className="ck-quick-item" to="/app/fornecedores/novo">
+                <span className="ck-quick-icon">🏢</span>
+                <span>
+                  <span className="ck-quick-title">Novo fornecedor</span>
+                  <span className="ck-quick-desc">Organizar origem das compras.</span>
+                </span>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="ck-panel">
+          <div className="ck-panel-header">
+            <div>
+              <div className="ck-panel-title">Últimas transações</div>
+              <p className="ck-panel-desc">
+                Histórico recente de compras e vendas.
+              </p>
+            </div>
+
+            <Link className="text-sm font-semibold text-blue-700 hover:underline" to="/app/transacoes">
+              Ver todas
+            </Link>
+          </div>
+
+          <div className="ck-panel-body">
+            {ultimasTransacoes.length === 0 ? (
+              <div className="ck-empty-panel">
+                Nenhuma transação criada ainda.
+              </div>
+            ) : (
+              <div className="ck-activity-list">
+                {ultimasTransacoes.map((transacao) => (
+                  <Link
+                    className="ck-activity-item"
+                    key={transacao.transacaoId}
+                    to={`/app/transacoes/${transacao.transacaoId}`}
+                  >
+                    <span className="ck-activity-icon">
+                      {transacao.tipo === "VENDA" ? "💰" : "🛒"}
+                    </span>
+
+                    <span>
+                      <span className="ck-activity-title">
+                        {transacaoLabel(transacao)}
+                      </span>
+                      <span className="ck-activity-desc">
+                        {transacaoDescricao(transacao)}
+                      </span>
+                    </span>
+
+                    <span className="ck-activity-meta">
+                      {formatarData(transacao.criadoEm)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="ck-panel">
+          <div className="ck-panel-header">
+            <div>
+              <div className="ck-panel-title">Resumo operacional</div>
+              <p className="ck-panel-desc">
+                Cadastros básicos disponíveis.
+              </p>
+            </div>
+          </div>
+
+          <div className="ck-panel-body">
+            <div className="ck-alert-list">
+              <div className="ck-alert-item">
+                <span className="ck-alert-icon">✅</span>
+                <span>
+                  <span className="ck-alert-title">{resumo.concluidas} transação(ões) concluídas</span>
+                  <span className="ck-alert-desc">Histórico operacional finalizado.</span>
+                </span>
+              </div>
+
+              <div className="ck-alert-item">
+                <span className="ck-alert-icon">📇</span>
+                <span>
+                  <span className="ck-alert-title">{data.clientes.length + data.fornecedores.length} contato(s)</span>
+                  <span className="ck-alert-desc">Clientes e fornecedores cadastrados.</span>
+                </span>
+              </div>
+
+              <div className="ck-alert-item">
+                <span className="ck-alert-icon">🧪</span>
+                <span>
+                  <span className="ck-alert-title">Beta publicada</span>
+                  <span className="ck-alert-desc">Base pronta para evoluir PWA e relatórios.</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -6990,68 +7595,118 @@ import type { Produto } from "../tipos";
 
 type Props = {
   itens: Produto[];
-  onExcluir?: (produtoId: string) => void;
 };
 
-export function ProdutosTable({ itens, onExcluir }: Props) {
+function formatarMoeda(valor?: number | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function codigoCurto(id: string): string {
+  return id.slice(0, 8).toUpperCase();
+}
+
+export function ProdutosTable({ itens }: Props) {
   if (itens.length === 0) {
     return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhum produto/serviço encontrado.
+      <div className="ck-register-empty">
+        <div className="ck-register-empty-title">Nenhum produto encontrado</div>
+        <p className="ck-register-empty-desc">
+          Cadastre produtos e serviços para usar nas vendas e compras.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white">
-      <table className="min-w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">Nome</th>
-            <th className="px-4 py-3">Tipo</th>
-            <th className="px-4 py-3">Preço</th>
-            <th className="px-4 py-3">Ações</th>
-          </tr>
-        </thead>
+    <div>
+      <div className="hidden overflow-x-auto md:block">
+        <div className="ck-register-table-panel">
+          <table className="ck-register-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>SKU</th>
+                <th>Tipo</th>
+                <th>Unidade</th>
+                <th>Preço venda</th>
+                <th>Código</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          {itens.map((produto) => (
-            <tr key={produto.produtoId} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{produto.nome}</td>
-              <td className="px-4 py-3">{produto.tipo}</td>
-              <td className="px-4 py-3">{produto.precoVenda}</td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/app/produtos/${produto.produtoId}`}
-                  >
-                    Detalhes
-                  </Link>
+            <tbody>
+              {itens.map((produto) => (
+                <tr key={produto.produtoId}>
+                  <td>
+                    <div className="ck-register-main">{produto.nome}</div>
+                    <div className="ck-register-sub">{produto.descricao ?? "Sem descrição"}</div>
+                  </td>
+                  <td>{produto.sku ?? "—"}</td>
+                  <td>{produto.tipo}</td>
+                  <td>{produto.unidade ?? "—"}</td>
+                  <td><strong>{formatarMoeda(produto.precoVenda)}</strong></td>
+                  <td>
+                    <span className="ck-register-pill">
+                      #{codigoCurto(produto.produtoId)}
+                    </span>
+                  </td>
+                  <td>
+                    <Link
+                      className="ck-register-link"
+                      to={`/app/produtos/${produto.produtoId}`}
+                    >
+                      Detalhes
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-                  <Link
-                    className="text-blue-600 underline"
-                    to={`/app/produtos/${produto.produtoId}/editar`}
-                  >
-                    Editar
-                  </Link>
-
-                  <button
-                    className="text-red-600 underline"
-                    type="button"
-                    onClick={() => onExcluir?.(produto.produtoId)}
-                  >
-                    Excluir
-                  </button>
+      <div className="ck-register-card-list md:hidden">
+        {itens.map((produto) => (
+          <article className="ck-register-card" key={produto.produtoId}>
+            <div className="ck-register-card-top">
+              <div>
+                <div className="ck-register-card-title">{produto.nome}</div>
+                <div className="ck-register-card-desc">
+                  {produto.sku ?? "Sem SKU"} • {produto.tipo}
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+
+              <span className="ck-register-pill">#{codigoCurto(produto.produtoId)}</span>
+            </div>
+
+            <div className="ck-register-card-grid">
+              <div>
+                <div className="ck-register-label">Unidade</div>
+                <div className="ck-register-value">{produto.unidade ?? "—"}</div>
+              </div>
+
+              <div>
+                <div className="ck-register-label">Preço venda</div>
+                <div className="ck-register-value">{formatarMoeda(produto.precoVenda)}</div>
+              </div>
+            </div>
+
+            <Link
+              className="ck-register-action-secondary"
+              to={`/app/produtos/${produto.produtoId}`}
+            >
+              Ver detalhes
+            </Link>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/produtos/hooks/useProdutoActions.ts =====
 
@@ -7510,105 +8165,107 @@ export default function ProdutoDetailsPage() {
 
 import { Link } from "react-router-dom";
 import { ProdutosTable } from "../components/ProdutosTable";
-import { useProdutoActions } from "../hooks/useProdutoActions";
 import { useProdutos } from "../hooks/useProdutos";
-import type { TipoProduto } from "../tipos";
+import type { Produto } from "../tipos";
+import "../../cadastros/cadastros.css";
+
+function contarSemPreco(itens: Produto[]): number {
+  return itens.filter((item) => Number(item.precoVenda ?? 0) <= 0).length;
+}
+
+function contarComSku(itens: Produto[]): number {
+  return itens.filter((item) => Boolean(item.sku?.trim())).length;
+}
 
 export default function ProdutosListPage() {
-  const {
-    produtosFiltrados,
-    busca,
-    setBusca,
-    tipo,
-    setTipo,
-    isLoading,
-    erro,
-    recarregar,
-  } = useProdutos();
-
-  const {
-    excluir,
-    erro: erroAcao,
-    isSubmitting,
-  } = useProdutoActions({
-    onSuccess: recarregar,
-  });
+  const { produtos, busca, setBusca, isLoading, erro, recarregar } = useProdutos();
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Produtos e serviços</h1>
-          <p className="text-sm text-slate-600">
-            Gerencie produtos e serviços do locatário.
-          </p>
+    <div className="ck-register-page">
+      <section className="ck-register-hero">
+        <div className="ck-register-hero-inner">
+          <div>
+            <div className="ck-register-kicker">Catálogo</div>
+            <h1 className="ck-register-title">Produtos</h1>
+            <p className="ck-register-description">
+              Cadastre produtos e serviços com SKU, unidade, preço de venda e
+              custo de referência.
+            </p>
+          </div>
+
+          <div className="ck-register-actions">
+            <Link className="ck-register-action-primary" to="/app/produtos/novo">
+              Novo produto
+            </Link>
+          </div>
         </div>
+      </section>
 
-        <Link className="rounded-xl border px-4 py-2" to="/app/produtos/novo">
-          Novo produto/serviço
-        </Link>
-      </div>
+      <section className="ck-register-stats">
+        <article className="ck-register-stat" style={{ "--stat-color": "#f97316" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Produtos</div>
+              <div className="ck-register-stat-value">{produtos.length}</div>
+              <div className="ck-register-stat-hint">Total no catálogo</div>
+            </div>
+            <div className="ck-register-stat-icon">📦</div>
+          </div>
+        </article>
 
-      <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
-        <input
-          className="rounded-xl border px-3 py-2"
-          placeholder="Buscar por nome ou descrição"
-          value={busca}
-          onChange={(event) => setBusca(event.target.value)}
-        />
+        <article className="ck-register-stat" style={{ "--stat-color": "#2563eb" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Com SKU</div>
+              <div className="ck-register-stat-value">{contarComSku(produtos)}</div>
+              <div className="ck-register-stat-hint">Identificação comercial</div>
+            </div>
+            <div className="ck-register-stat-icon">🏷️</div>
+          </div>
+        </article>
 
-        <select
-          className="rounded-xl border px-3 py-2"
-          value={tipo}
-          onChange={(event) =>
-            setTipo(event.target.value as TipoProduto | "TODOS")
-          }
-        >
-          <option value="TODOS">Todos</option>
-          <option value="PRODUTO">Produto</option>
-          <option value="SERVICO">Serviço</option>
-        </select>
+        <article className="ck-register-stat" style={{ "--stat-color": "#dc2626" } as React.CSSProperties}>
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Sem preço</div>
+              <div className="ck-register-stat-value">{contarSemPreco(produtos)}</div>
+              <div className="ck-register-stat-hint">Revisar antes de vender</div>
+            </div>
+            <div className="ck-register-stat-icon">⚠️</div>
+          </div>
+        </article>
+      </section>
 
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="button"
-          onClick={() => void recarregar()}
-        >
-          Recarregar
-        </button>
-      </div>
+      <section className="ck-register-filter">
+        <div className="ck-register-filter-grid">
+          <input
+            className="ck-register-input"
+            placeholder="Buscar por nome, SKU, descrição ou tipo"
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+          />
 
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erro}
+          <button
+            className="ck-register-button"
+            type="button"
+            onClick={() => void recarregar()}
+          >
+            Recarregar
+          </button>
         </div>
-      ) : null}
+      </section>
 
-      {erroAcao ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erroAcao}
-        </div>
-      ) : null}
-
-      {isSubmitting ? (
-        <div className="rounded-xl border bg-white px-4 py-3 text-sm">
-          Processando ação...
-        </div>
-      ) : null}
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
       {isLoading ? (
-        <div className="rounded-2xl border bg-white p-6">
-          Carregando produtos...
-        </div>
+        <div className="ck-register-filter">Carregando produtos...</div>
       ) : (
-        <ProdutosTable
-          itens={produtosFiltrados}
-          onExcluir={(produtoId) => void excluir(produtoId)}
-        />
+        <ProdutosTable itens={produtos} />
       )}
     </div>
   );
 }
+
 
 ===== apps/web/src/features/tenant-admin/produtos/tipos.ts =====
 
@@ -7736,55 +8393,68 @@ function formatarData(value?: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleString("pt-BR");
+  return date.toLocaleDateString("pt-BR");
 }
 
 function codigoCurto(id: string): string {
   return id.slice(0, 8).toUpperCase();
 }
 
-function labelPessoa(
+function statusClass(status: string): string {
+  const normalized = status.trim().toUpperCase();
+
+  if (normalized === "CONCLUIDA") return "ck-status ck-status-success";
+  if (normalized === "CANCELADA") return "ck-status ck-status-danger";
+
+  if (normalized === "ABERTA" || normalized === "RASCUNHO") {
+    return "ck-status ck-status-warning";
+  }
+
+  return "ck-status";
+}
+
+function pessoaInfo(
   transacao: Transacao,
   clientesPorId: Map<string, Cliente>,
   fornecedoresPorId: Map<string, Fornecedor>,
-): string {
+): { nome: string; detalhe: string } {
   if (transacao.tipo === "COMPRA") {
-    if (!transacao.fornecedorId) return "—";
+    if (!transacao.fornecedorId) {
+      return { nome: "Sem fornecedor", detalhe: "Compra avulsa" };
+    }
 
     const fornecedor = fornecedoresPorId.get(transacao.fornecedorId);
 
-    if (!fornecedor) return `Fornecedor ${codigoCurto(transacao.fornecedorId)}`;
+    if (!fornecedor) {
+      return {
+        nome: `Fornecedor #${codigoCurto(transacao.fornecedorId)}`,
+        detalhe: "Cadastro não carregado",
+      };
+    }
 
-    return fornecedor.documento
-      ? `${fornecedor.nome} — ${fornecedor.documento}`
-      : fornecedor.nome;
+    return {
+      nome: fornecedor.nome,
+      detalhe: fornecedor.documento ?? fornecedor.email ?? "Fornecedor",
+    };
   }
 
-  if (!transacao.clienteId) return "—";
+  if (!transacao.clienteId) {
+    return { nome: "Sem cliente", detalhe: "Venda balcão" };
+  }
 
   const cliente = clientesPorId.get(transacao.clienteId);
 
-  if (!cliente) return `Cliente ${codigoCurto(transacao.clienteId)}`;
-
-  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
-}
-
-function statusBadgeClass(status: string): string {
-  const normalizado = status.trim().toUpperCase();
-
-  if (normalizado === "CONCLUIDA") {
-    return "rounded-full border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700";
+  if (!cliente) {
+    return {
+      nome: `Cliente #${codigoCurto(transacao.clienteId)}`,
+      detalhe: "Cadastro não carregado",
+    };
   }
 
-  if (normalizado === "CANCELADA") {
-    return "rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700";
-  }
-
-  if (normalizado === "RASCUNHO" || normalizado === "ABERTA") {
-    return "rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700";
-  }
-
-  return "rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700";
+  return {
+    nome: cliente.nome,
+    detalhe: cliente.documento ?? cliente.email ?? "Cliente",
+  };
 }
 
 export function TransacoesTable({
@@ -7792,69 +8462,121 @@ export function TransacoesTable({
   clientes = [],
   fornecedores = [],
 }: Props) {
-  const clientesPorId = new Map(clientes.map((cliente) => [cliente.clienteId, cliente]));
+  const clientesPorId = new Map(
+    clientes.map((cliente) => [cliente.clienteId, cliente]),
+  );
+
   const fornecedoresPorId = new Map(
     fornecedores.map((fornecedor) => [fornecedor.fornecedorId, fornecedor]),
   );
 
-  if (itens.length === 0) {
-    return (
-      <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">
-        Nenhuma transação encontrada.
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white">
-      <table className="min-w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">Código</th>
-            <th className="px-4 py-3">Tipo</th>
-            <th className="px-4 py-3">Cliente/fornecedor</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Subtotal</th>
-            <th className="px-4 py-3">Desconto</th>
-            <th className="px-4 py-3">Total</th>
-            <th className="px-4 py-3">Criada em</th>
-            <th className="px-4 py-3">Ações</th>
-          </tr>
-        </thead>
+    <div>
+      <div className="hidden overflow-x-auto md:block">
+        <div className="ck-table-panel">
+          <table className="ck-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Tipo</th>
+                <th>Cliente/fornecedor</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Criada em</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
 
-        <tbody>
-          {itens.map((transacao) => (
-            <tr key={transacao.transacaoId} className="border-b last:border-b-0">
-              <td className="px-4 py-3 font-medium">
-                {codigoCurto(transacao.transacaoId)}
-              </td>
-              <td className="px-4 py-3">{transacao.tipo}</td>
-              <td className="px-4 py-3">
-                {labelPessoa(transacao, clientesPorId, fornecedoresPorId)}
-              </td>
-              <td className="px-4 py-3">
-                <span className={statusBadgeClass(transacao.status)}>
+            <tbody>
+              {itens.map((transacao) => {
+                const pessoa = pessoaInfo(
+                  transacao,
+                  clientesPorId,
+                  fornecedoresPorId,
+                );
+
+                return (
+                  <tr key={transacao.transacaoId}>
+                    <td>
+                      <span className="ck-code-pill">
+                        #{codigoCurto(transacao.transacaoId)}
+                      </span>
+                    </td>
+                    <td>{transacao.tipo}</td>
+                    <td>
+                      <div className="ck-person-main">{pessoa.nome}</div>
+                      <div className="ck-person-sub">{pessoa.detalhe}</div>
+                    </td>
+                    <td>
+                      <span className={statusClass(transacao.status)}>
+                        {transacao.status}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{formatarMoeda(transacao.valorTotal)}</strong>
+                    </td>
+                    <td>{formatarData(transacao.criadoEm)}</td>
+                    <td>
+                      <Link
+                        className="ck-row-link"
+                        to={`/app/transacoes/${transacao.transacaoId}`}
+                      >
+                        Detalhes
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="ck-mobile-list md:hidden">
+        {itens.map((transacao) => {
+          const pessoa = pessoaInfo(transacao, clientesPorId, fornecedoresPorId);
+
+          return (
+            <article className="ck-transaction-card" key={transacao.transacaoId}>
+              <div className="ck-transaction-card-top">
+                <div>
+                  <div className="ck-transaction-title">
+                    {transacao.tipo} #{codigoCurto(transacao.transacaoId)}
+                  </div>
+                  <div className="ck-transaction-desc">{pessoa.nome}</div>
+                </div>
+
+                <span className={statusClass(transacao.status)}>
                   {transacao.status}
                 </span>
-              </td>
-              <td className="px-4 py-3">{formatarMoeda(transacao.valorSubtotal)}</td>
-              <td className="px-4 py-3">{formatarMoeda(transacao.valorDesconto)}</td>
-              <td className="px-4 py-3 font-medium">
-                {formatarMoeda(transacao.valorTotal)}
-              </td>
-              <td className="px-4 py-3">{formatarData(transacao.criadoEm)}</td>
-              <td className="px-4 py-3">
-                <Link
-                  className="text-blue-600 underline"
-                  to={`/app/transacoes/${transacao.transacaoId}`}
-                >
-                  Detalhes
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+
+              <div className="ck-card-grid">
+                <div>
+                  <div className="ck-card-label">Total</div>
+                  <div className="ck-card-value">
+                    {formatarMoeda(transacao.valorTotal)}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-card-label">Criada em</div>
+                  <div className="ck-card-value">
+                    {formatarData(transacao.criadoEm)}
+                  </div>
+                </div>
+              </div>
+
+              <Link
+                className="ck-action-secondary"
+                to={`/app/transacoes/${transacao.transacaoId}`}
+              >
+                Ver detalhes
+              </Link>
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -8784,8 +9506,16 @@ import type { Fornecedor } from "../../fornecedores/tipos";
 import { TransacoesTable } from "../components/TransacoesTable";
 import { useTransacoes } from "../hooks/useTransacoes";
 import type { Transacao } from "../tipos";
+import "./transacoes.css";
 
 type FiltroTipo = "TODOS" | "VENDA" | "COMPRA";
+
+function formatarMoeda(valor: number): string {
+  return valor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
 
 function codigoCurto(id: string): string {
   return id.slice(0, 8).toLowerCase();
@@ -8793,6 +9523,14 @@ function codigoCurto(id: string): string {
 
 function normalizar(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
+}
+
+function totalPorStatus(itens: Transacao[], status: string): number {
+  return itens.filter((item) => item.status === status).length;
+}
+
+function somaTotal(itens: Transacao[]): number {
+  return itens.reduce((acc, item) => acc + Number(item.valorTotal ?? 0), 0);
 }
 
 function labelPessoaBusca(
@@ -8864,9 +9602,7 @@ export default function TransacoesListPage() {
         setClientes(clientesResponse.itens);
         setFornecedores(fornecedoresResponse.itens);
       } catch (error) {
-        if (ativo) {
-          setErroApoio(mapError(error).message);
-        }
+        if (ativo) setErroApoio(mapError(error).message);
       }
     }
 
@@ -8917,76 +9653,135 @@ export default function TransacoesListPage() {
     });
   }, [transacoes, busca, tipo, clientesPorId, fornecedoresPorId]);
 
+  const vendas = transacoes.filter((item) => item.tipo === "VENDA");
+  const compras = transacoes.filter((item) => item.tipo === "COMPRA");
+  const abertas = transacoes.filter(
+    (item) => item.status === "ABERTA" || item.status === "RASCUNHO",
+  );
+
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Transações</h1>
-          <p className="text-sm text-slate-600">
-            Acompanhe vendas e compras por cliente, fornecedor, status e valor.
-          </p>
+    <div className="ck-page">
+      <section className="ck-page-hero">
+        <div className="ck-page-hero-inner">
+          <div>
+            <div className="ck-page-kicker">Operação</div>
+            <h1 className="ck-page-title">Transações</h1>
+            <p className="ck-page-description">
+              Acompanhe compras e vendas com filtros, totais e status de cada
+              operação.
+            </p>
+          </div>
+
+          <div className="ck-page-actions">
+            <Link className="ck-action-primary" to="/app/vendas/nova">
+              Nova venda
+            </Link>
+
+            <Link className="ck-action-secondary" to="/app/compras/nova">
+              Nova compra
+            </Link>
+          </div>
         </div>
+      </section>
 
-        <div className="flex gap-2">
-          <Link className="rounded-xl border px-4 py-2" to="/app/vendas/nova">
-            Nova venda
-          </Link>
+      <section className="ck-stats-grid">
+        <article className="ck-stat-card" style={{ "--stat-color": "#16a34a" } as React.CSSProperties}>
+          <div className="ck-stat-row">
+            <div>
+              <div className="ck-stat-label">Vendas</div>
+              <div className="ck-stat-value">{formatarMoeda(somaTotal(vendas))}</div>
+              <div className="ck-stat-hint">{vendas.length} transação(ões)</div>
+            </div>
+            <div className="ck-stat-icon">💰</div>
+          </div>
+        </article>
 
-          <Link className="rounded-xl border px-4 py-2" to="/app/compras/nova">
-            Nova compra
-          </Link>
+        <article className="ck-stat-card" style={{ "--stat-color": "#2563eb" } as React.CSSProperties}>
+          <div className="ck-stat-row">
+            <div>
+              <div className="ck-stat-label">Compras</div>
+              <div className="ck-stat-value">{formatarMoeda(somaTotal(compras))}</div>
+              <div className="ck-stat-hint">{compras.length} transação(ões)</div>
+            </div>
+            <div className="ck-stat-icon">🛒</div>
+          </div>
+        </article>
+
+        <article className="ck-stat-card" style={{ "--stat-color": "#f59e0b" } as React.CSSProperties}>
+          <div className="ck-stat-row">
+            <div>
+              <div className="ck-stat-label">Abertas</div>
+              <div className="ck-stat-value">{abertas.length}</div>
+              <div className="ck-stat-hint">Aguardando conclusão</div>
+            </div>
+            <div className="ck-stat-icon">⚠️</div>
+          </div>
+        </article>
+
+        <article className="ck-stat-card" style={{ "--stat-color": "#7c3aed" } as React.CSSProperties}>
+          <div className="ck-stat-row">
+            <div>
+              <div className="ck-stat-label">Concluídas</div>
+              <div className="ck-stat-value">{totalPorStatus(transacoes, "CONCLUIDA")}</div>
+              <div className="ck-stat-hint">Histórico finalizado</div>
+            </div>
+            <div className="ck-stat-icon">✅</div>
+          </div>
+        </article>
+      </section>
+
+      <section className="ck-filter-panel">
+        <div className="ck-filter-grid">
+          <input
+            className="ck-input"
+            placeholder="Buscar por cliente, fornecedor, documento, status ou código"
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+          />
+
+          <select
+            className="ck-select"
+            value={tipo}
+            onChange={(event) => setTipo(event.target.value as FiltroTipo)}
+          >
+            <option value="TODOS">Todos</option>
+            <option value="VENDA">Vendas</option>
+            <option value="COMPRA">Compras</option>
+          </select>
+
+          <button
+            className="ck-button"
+            type="button"
+            onClick={() => void recarregar()}
+          >
+            Recarregar
+          </button>
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
-        <input
-          className="rounded-xl border px-3 py-2"
-          placeholder="Buscar por cliente, fornecedor, documento, status ou código"
-          value={busca}
-          onChange={(event) => setBusca(event.target.value)}
-        />
-
-        <select
-          className="rounded-xl border px-3 py-2"
-          value={tipo}
-          onChange={(event) => setTipo(event.target.value as FiltroTipo)}
-        >
-          <option value="TODOS">Todos</option>
-          <option value="VENDA">Vendas</option>
-          <option value="COMPRA">Compras</option>
-        </select>
-
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="button"
-          onClick={() => void recarregar()}
-        >
-          Recarregar
-        </button>
-      </div>
-
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
+      {erro ? <div className="ck-alert">{erro}</div> : null}
 
       {erroApoio ? (
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-          Não foi possível carregar nomes de clientes/fornecedores. A listagem
-          continuará funcionando com dados internos. Detalhe: {erroApoio}
+        <div className="ck-alert ck-alert-warning">
+          Não foi possível carregar nomes de clientes/fornecedores. Detalhe:{" "}
+          {erroApoio}
         </div>
       ) : null}
 
       {isLoading ? (
-        <div className="rounded-2xl border bg-white p-6">
-          Carregando transações...
+        <div className="ck-filter-panel">Carregando transações...</div>
+      ) : transacoesFiltradas.length === 0 ? (
+        <div className="ck-empty">
+          <div className="ck-empty-title">Nenhuma transação encontrada</div>
+          <p className="ck-empty-desc">
+            Crie uma venda ou compra para começar a movimentar o sistema.
+          </p>
         </div>
       ) : (
         <TransacoesTable
-          itens={transacoesFiltradas}
           clientes={clientes}
           fornecedores={fornecedores}
+          itens={transacoesFiltradas}
         />
       )}
     </div>
@@ -10987,11 +11782,12 @@ export { default as NovaVendaPage } from "./pages/NovaVendaPage";
 // apps/web/src/features/tenant-admin/vendas/pages/NovaVendaPage.tsx
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { vendasApi } from "../api/vendasApi";
+import "../../transacoes/pages/transacoes.css";
 
 function labelCliente(cliente: Cliente): string {
   return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
@@ -11026,17 +11822,11 @@ export default function NovaVendaPage() {
       try {
         const response = await clientesApi.listar();
 
-        if (ativo) {
-          setClientes(response.itens);
-        }
+        if (ativo) setClientes(response.itens);
       } catch (error) {
-        if (ativo) {
-          setErroClientes(mapError(error).message);
-        }
+        if (ativo) setErroClientes(mapError(error).message);
       } finally {
-        if (ativo) {
-          setIsLoadingClientes(false);
-        }
+        if (ativo) setIsLoadingClientes(false);
       }
     }
 
@@ -11080,91 +11870,124 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <form
-      className="grid gap-6 rounded-2xl border bg-white p-6"
-      onSubmit={handleSubmit}
-    >
-      <div>
-        <h1 className="text-2xl font-semibold">Nova venda</h1>
-        <p className="text-sm text-slate-600">
-          Selecione o cliente usando nome, documento, e-mail ou telefone. Os
-          itens serão adicionados na próxima etapa.
-        </p>
-      </div>
-
-      {erro ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {erro}
-        </div>
-      ) : null}
-
-      {erroClientes ? (
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
-          Não foi possível carregar a lista de clientes: {erroClientes}
-        </div>
-      ) : null}
-
-      <section className="grid gap-4 rounded-2xl border p-4">
-        <h2 className="text-lg font-semibold">Cliente</h2>
-
-        <label className="grid gap-1">
-          <span className="text-sm font-medium">Buscar cliente</span>
-          <input
-            className="rounded-xl border px-3 py-2"
-            placeholder="Nome, documento, e-mail ou telefone"
-            value={buscaCliente}
-            onChange={(event) => setBuscaCliente(event.target.value)}
-          />
-        </label>
-
-        <label className="grid gap-1">
-          <span className="text-sm font-medium">Cliente selecionado</span>
-          <select
-            className="rounded-xl border px-3 py-2"
-            value={clienteId}
-            onChange={(event) => setClienteId(event.target.value)}
-            disabled={isLoadingClientes}
-          >
-            <option value="">
-              {isLoadingClientes ? "Carregando clientes..." : "Venda sem cliente"}
-            </option>
-
-            {clientesFiltrados.map((cliente) => (
-              <option key={cliente.clienteId} value={cliente.clienteId}>
-                {labelCliente(cliente)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {clienteSelecionado ? (
-          <div className="grid gap-2 rounded-xl border bg-slate-50 p-4 text-sm">
-            <div><strong>Nome:</strong> {clienteSelecionado.nome}</div>
-            <div><strong>Documento:</strong> {clienteSelecionado.documento ?? "—"}</div>
-            <div><strong>E-mail:</strong> {clienteSelecionado.email ?? "—"}</div>
-            <div><strong>Telefone:</strong> {clienteSelecionado.telefone ?? "—"}</div>
+    <form className="ck-page" onSubmit={handleSubmit}>
+      <section className="ck-page-hero">
+        <div className="ck-page-hero-inner">
+          <div>
+            <div className="ck-page-kicker">Vendas</div>
+            <h1 className="ck-page-title">Nova venda</h1>
+            <p className="ck-page-description">
+              Crie a venda e depois adicione os produtos na tela de detalhes.
+            </p>
           </div>
-        ) : null}
+
+          <div className="ck-page-actions">
+            <Link className="ck-action-secondary" to="/app/transacoes">
+              Voltar
+            </Link>
+          </div>
+        </div>
       </section>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Observação</span>
-        <textarea
-          className="rounded-xl border px-3 py-2"
-          value={observacao}
-          onChange={(event) => setObservacao(event.target.value)}
-          placeholder="Observação da venda"
-          rows={3}
-        />
-      </label>
+      {erro ? <div className="ck-alert">{erro}</div> : null}
+
+      {erroClientes ? (
+        <div className="ck-alert ck-alert-warning">
+          Não foi possível carregar clientes: {erroClientes}
+        </div>
+      ) : null}
+
+      <section className="ck-form-card">
+        <div className="ck-form-card-header">
+          <div className="ck-form-card-title">Cliente</div>
+          <p className="ck-form-card-desc">
+            Busque por nome, documento, e-mail ou telefone.
+          </p>
+        </div>
+
+        <div className="ck-form-card-body">
+          <label className="ck-field">
+            <span>Buscar cliente</span>
+            <input
+              className="ck-input"
+              placeholder="Ex.: Maria, CPF/CNPJ, e-mail..."
+              value={buscaCliente}
+              onChange={(event) => setBuscaCliente(event.target.value)}
+            />
+          </label>
+
+          <label className="ck-field">
+            <span>Cliente selecionado</span>
+            <select
+              className="ck-select"
+              value={clienteId}
+              onChange={(event) => setClienteId(event.target.value)}
+              disabled={isLoadingClientes}
+            >
+              <option value="">
+                {isLoadingClientes ? "Carregando clientes..." : "Venda sem cliente"}
+              </option>
+
+              {clientesFiltrados.map((cliente) => (
+                <option key={cliente.clienteId} value={cliente.clienteId}>
+                  {labelCliente(cliente)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {clienteSelecionado ? (
+            <div className="ck-selected-box">
+              <div className="ck-selected-grid">
+                <div>
+                  <div className="ck-selected-label">Nome</div>
+                  <div className="ck-selected-value">{clienteSelecionado.nome}</div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">Documento</div>
+                  <div className="ck-selected-value">{clienteSelecionado.documento ?? "—"}</div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">E-mail</div>
+                  <div className="ck-selected-value">{clienteSelecionado.email ?? "—"}</div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">Telefone</div>
+                  <div className="ck-selected-value">{clienteSelecionado.telefone ?? "—"}</div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="ck-form-card">
+        <div className="ck-form-card-header">
+          <div className="ck-form-card-title">Observação</div>
+          <p className="ck-form-card-desc">
+            Informação opcional para facilitar o histórico.
+          </p>
+        </div>
+
+        <div className="ck-form-card-body">
+          <label className="ck-field">
+            <span>Observação da venda</span>
+            <textarea
+              className="ck-input ck-textarea"
+              value={observacao}
+              onChange={(event) => setObservacao(event.target.value)}
+              placeholder="Ex.: venda balcão, pedido especial, condições combinadas..."
+            />
+          </label>
+        </div>
+      </section>
 
       <div className="flex justify-end">
-        <button
-          className="rounded-xl border px-4 py-2"
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? "Criando..." : "Criar venda"}
+        <button className="ck-action-primary" disabled={isSaving} type="submit">
+          {isSaving ? "Criando..." : "Criar venda e adicionar itens"}
         </button>
       </div>
     </form>
@@ -11191,179 +12014,85 @@ export type CriarVendaResponse = {
 
 // apps/web/src/layouts/authLayout.tsx
 
+import type { JSX } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "../core/auth/useAuth";
 import { isPlataforma } from "../core/auth/tipos";
-import { JSX } from "react";
+import { useAuth } from "../core/auth/useAuth";
+import "../features/auth/pages/login.css";
 
 export default function AuthLayout(): JSX.Element {
   const { isLoading, isAuthenticated, user } = useAuth();
 
   if (isLoading) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="ck-auth-page">
+        <div className="ck-auth-loading">Carregando...</div>
+      </div>
+    );
   }
 
   if (isAuthenticated && user) {
     return (
-      <Navigate
-        to={isPlataforma(user) ? "/plataforma" : "/app"}
-        replace
-      />
+      <Navigate to={isPlataforma(user) ? "/plataforma" : "/app"} replace />
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-      <div style={{ width: "100%", maxWidth: 420, padding: 24 }}>
-        <Outlet />
-      </div>
+    <div className="ck-auth-page">
+      <Outlet />
     </div>
   );
 }
+
 
 ===== apps/web/src/layouts/superAdminLayout.tsx =====
 
-// frontend/src/layouts/SuperAdminLayout.tsx
+// apps/web/src/layouts/superAdminLayout.tsx
 
-import { Outlet, NavLink } from "react-router-dom";
-import { useAuth } from "../core/auth/useAuth";
-import { JSX } from "react";
+import type { JSX } from "react";
+import { Outlet } from "react-router-dom";
+import { AppShell, type AppNavItem } from "../shared/layout";
+
+const PLATAFORMA_NAV_ITEMS: AppNavItem[] = [
+  { label: "Dashboard", to: "/plataforma", end: true, icon: "📊" },
+  { label: "Locatários", to: "/plataforma/locatarios", icon: "🏬" },
+];
 
 export default function SuperAdminLayout(): JSX.Element {
-  const { user, logout } = useAuth();
-
-  async function handleLogout() {
-    await logout();
-  }
-
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f7fb", color: "#111827" }}>
-      <header
-        style={{
-          borderBottom: "1px solid #d1d5db",
-          background: "#ffffff",
-          padding: "16px 24px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
-          <div>
-            <strong>Painel SuperAdmin</strong>
-            <div style={{ fontSize: 14, color: "#6b7280" }}>
-              Plataforma
-            </div>
-          </div>
-
-          <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <NavLink to="/plataforma">Dashboard</NavLink>
-            <NavLink to="/plataforma/locatarios">Locatários</NavLink>
-
-            <span style={{ fontSize: 14, color: "#6b7280" }}>
-              {user?.email ?? user?.nome ?? user?.usuarioId ?? "Usuário autenticado"}
-            </span>
-
-            <button type="button" onClick={handleLogout}>
-              Sair
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: 24 }}>
-        <Outlet />
-      </main>
-    </div>
+    <AppShell navItems={PLATAFORMA_NAV_ITEMS} variant="plataforma">
+      <Outlet />
+    </AppShell>
   );
 }
+
 
 ===== apps/web/src/layouts/tenantLayout.tsx =====
 
 // apps/web/src/layouts/tenantLayout.tsx
 
-import { Outlet, NavLink } from "react-router-dom";
-import { useAuth } from "../core/auth/useAuth";
-import { JSX } from "react";
+import type { JSX } from "react";
+import { Outlet } from "react-router-dom";
+import { AppShell, type AppNavItem } from "../shared/layout";
 
-/**
- * 
- * @returns 
- */
+const TENANT_NAV_ITEMS: AppNavItem[] = [
+  { label: "Dashboard", to: "/app", end: true, icon: "📊" },
+  { label: "Clientes", to: "/app/clientes", icon: "👥" },
+  { label: "Fornecedores", to: "/app/fornecedores", icon: "🏢" },
+  { label: "Produtos", to: "/app/produtos", icon: "📦" },
+  { label: "Transações", to: "/app/transacoes", icon: "📄" },
+  { label: "Nova venda", to: "/app/vendas/nova", icon: "💰" },
+  { label: "Nova compra", to: "/app/compras/nova", icon: "🛒" },
+  { label: "Usuários", to: "/app/usuarios", icon: "🔐" },
+  { label: "Locatário", to: "/app/locatario", icon: "⚙️" },
+  { label: "Módulos", to: "/app/assinatura/modulos", icon: "🧩" },
+];
+
 export default function TenantLayout(): JSX.Element {
-  const { user, logout } = useAuth();
-
-  async function handleLogout() {
-    await logout();
-  }
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f9fafb",
-        color: "#111827",
-      }}
-    >
-      <header
-        style={{
-          borderBottom: "1px solid #d1d5db",
-          background: "#ffffff",
-          padding: "16px 24px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
-          <div>
-            <strong>Mini SaaS Admin</strong>
-            <div style={{ fontSize: 14, color: "#6b7280" }}>
-              Área administrativa do locatário
-            </div>
-          </div>
-
-          <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <NavLink to="/app">Dashboard</NavLink>
-            <NavLink to="/app/usuarios">Usuários</NavLink>
-            <NavLink to="/app/locatario">Locatário</NavLink>
-            <NavLink to="/app/locatario/configuracoes">Configurações</NavLink>
-            <NavLink to="/app/assinatura/modulos">Módulos</NavLink>
-            <NavLink to="/app/minha-senha">Minha senha</NavLink>
-            <NavLink to="/app/clientes">Cliente</NavLink>
-            <NavLink to="/app/fornecedores">Fornecedor</NavLink>
-            <NavLink to="/app/produtos">Produto</NavLink>
-            <NavLink to="/app/transacoes">Transações</NavLink>
-            <NavLink to="/app/vendas/nova">Nova venda</NavLink>
-            <NavLink to="/app/compras/nova">Nova compra</NavLink>
-
-            <span style={{ fontSize: 14, color: "#6b7280" }}>
-              {user?.email ?? user?.nome ?? user?.usuarioId ?? "Usuário autenticado"}
-            </span>
-
-            <button type="button" onClick={handleLogout}>
-              Sair
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: 24 }}>
-        <Outlet />
-      </main>
-    </div>
+    <AppShell navItems={TENANT_NAV_ITEMS} variant="tenant">
+      <Outlet />
+    </AppShell>
   );
 }
 
@@ -11423,6 +12152,681 @@ export default function NotFound() {
       <Link to="/login">Ir para login</Link>
     </main>
   );
+}
+
+
+===== apps/web/src/shared/layout/AppBreadcrumb.tsx =====
+
+// apps/web/src/shared/layout/AppBreadcrumb.tsx
+
+import type { JSX } from "react";
+import { Link, useLocation } from "react-router-dom";
+
+type AppBreadcrumbProps = {
+  variant: "tenant" | "plataforma";
+};
+
+const LABELS: Record<string, string> = {
+  app: "Início",
+  plataforma: "Plataforma",
+  usuarios: "Usuários",
+  locatario: "Locatário",
+  locatarios: "Locatários",
+  configuracoes: "Configurações",
+  assinatura: "Assinatura",
+  modulos: "Módulos",
+  clientes: "Clientes",
+  fornecedores: "Fornecedores",
+  produtos: "Produtos",
+  transacoes: "Transações",
+  vendas: "Vendas",
+  compras: "Compras",
+  nova: "Nova",
+  novo: "Novo",
+  editar: "Editar",
+  "minha-senha": "Minha senha",
+};
+
+function isLikelyId(segment: string): boolean {
+  return (
+    segment.length >= 16 ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(segment)
+  );
+}
+
+function formatSegment(segment: string): string {
+  const known = LABELS[segment];
+
+  if (known) return known;
+
+  if (isLikelyId(segment)) {
+    return `#${segment.slice(0, 8).toUpperCase()}`;
+  }
+
+  return segment
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function AppBreadcrumb({ variant }: AppBreadcrumbProps): JSX.Element {
+  const location = useLocation();
+
+  const segments = location.pathname
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  const rootPath = variant === "plataforma" ? "/plataforma" : "/app";
+
+  if (segments.length <= 1) {
+    return (
+      <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+        <span>{variant === "plataforma" ? "Plataforma" : "Início"}</span>
+      </nav>
+    );
+  }
+
+  return (
+    <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+      <ol className="flex flex-wrap items-center gap-2">
+        {segments.map((segment, index) => {
+          const path = `/${segments.slice(0, index + 1).join("/")}`;
+          const isLast = index === segments.length - 1;
+          const label =
+            index === 0
+              ? variant === "plataforma"
+                ? "Plataforma"
+                : "Início"
+              : formatSegment(segment);
+
+          if (index === 0 && path !== rootPath) {
+            return null;
+          }
+
+          return (
+            <li key={`${path}-${segment}`} className="flex items-center gap-2">
+              {index > 0 ? <span className="text-slate-300">/</span> : null}
+
+              {isLast ? (
+                <span className="font-medium text-slate-700">{label}</span>
+              ) : (
+                <Link className="hover:text-slate-900 hover:underline" to={path}>
+                  {label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+
+===== apps/web/src/shared/layout/AppFooter.tsx =====
+
+// apps/web/src/shared/layout/AppFooter.tsx
+
+import type { JSX } from "react";
+
+type AppFooterProps = {
+  variant: "tenant" | "plataforma";
+};
+
+const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "0.9.0";
+const APP_ENV = import.meta.env.VITE_APP_ENV ?? "Beta";
+
+export function AppFooter({ variant }: AppFooterProps): JSX.Element {
+  return (
+    <footer className="ck-footer">
+      <div className="ck-footer-inner">
+        <div>
+          <div className="ck-footer-brand">
+            <strong>Core-kit</strong>
+            <span className="ck-beta-badge">{APP_ENV}</span>
+            <span className="ck-dot">•</span>
+            <span>v{APP_VERSION}</span>
+          </div>
+
+          <p className="ck-footer-desc">
+            {variant === "plataforma"
+              ? "Administração da plataforma multi-locatário."
+              : "Sistema de gestão para vendas, compras, produtos e clientes."}
+          </p>
+        </div>
+
+        <div className="ck-footer-links">
+          <span>Suporte em preparação</span>
+          <span className="ck-dot">•</span>
+          <span>Documentação em preparação</span>
+          <span className="ck-dot">•</span>
+          <span>Publicado na Vercel</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+
+===== apps/web/src/shared/layout/AppHeader.tsx =====
+
+// apps/web/src/shared/layout/AppHeader.tsx
+
+import type { JSX } from "react";
+import { NavLink } from "react-router-dom";
+import { useAuth } from "../../core/auth/useAuth";
+import { useTenant } from "../../core/tenant/useTenant";
+
+export type AppNavItem = {
+  label: string;
+  to: string;
+  end?: boolean;
+  icon?: string;
+};
+
+type AppHeaderProps = {
+  variant: "tenant" | "plataforma";
+  navItems: AppNavItem[];
+};
+
+const APP_ENV = import.meta.env.VITE_APP_ENV ?? "Beta";
+
+function userLabel(user: ReturnType<typeof useAuth>["user"]): string {
+  return (
+    user?.nome?.trim() ||
+    user?.email?.trim() ||
+    user?.usuarioId?.slice(0, 8) ||
+    "Usuário"
+  );
+}
+
+function userInitial(user: ReturnType<typeof useAuth>["user"]): string {
+  const label = userLabel(user).trim();
+  return label.charAt(0).toUpperCase() || "U";
+}
+
+export function AppHeader({ variant, navItems }: AppHeaderProps): JSX.Element {
+  const { user, logout } = useAuth();
+  const { branding } = useTenant();
+
+  const isPlataforma = variant === "plataforma";
+
+  const title = isPlataforma
+    ? "Core-kit Plataforma"
+    : branding?.nomeFantasia?.trim() || "Core-kit";
+
+  const subtitle = isPlataforma
+    ? "Painel de administração do SaaS"
+    : "Painel operacional do locatário";
+
+  async function handleLogout() {
+    await logout();
+  }
+
+  return (
+    <header className="ck-header">
+      <div className="ck-header-inner">
+        <div className="ck-brand">
+          {variant === "tenant" && branding?.logoUrl ? (
+            <img alt={title} className="ck-brand-logo" src={branding.logoUrl} />
+          ) : (
+            <div className="ck-brand-mark">CK</div>
+          )}
+
+          <div>
+            <div className="ck-brand-title-row">
+              <strong className="ck-brand-title">{title}</strong>
+              <span className="ck-beta-badge">{APP_ENV}</span>
+            </div>
+
+            <p className="ck-brand-subtitle">{subtitle}</p>
+          </div>
+        </div>
+
+        <div className="ck-header-actions">
+          <div className="ck-search-pill">⌕ Busca global em breve</div>
+
+          <div className="ck-user-card">
+            <div className="ck-user-avatar">{userInitial(user)}</div>
+
+            <div className="ck-user-meta">
+              <div className="ck-user-name">{userLabel(user)}</div>
+              <div className="ck-user-role">
+                {isPlataforma ? "Plataforma" : "Locatário"}
+              </div>
+            </div>
+
+            <button
+              className="ck-logout-button"
+              type="button"
+              onClick={() => void handleLogout()}
+            >
+              Sair
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <nav className="ck-mobile-nav">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            className="ck-mobile-nav-link"
+            end={item.end}
+            to={item.to}
+          >
+            <span>{item.icon ?? "•"}</span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </header>
+  );
+}
+
+
+===== apps/web/src/shared/layout/AppShell.tsx =====
+
+// apps/web/src/shared/layout/AppShell.tsx
+
+import type { JSX, PropsWithChildren } from "react";
+import "./appShell.css";
+import { AppBreadcrumb } from "./AppBreadcrumb";
+import { AppFooter } from "./AppFooter";
+import { AppHeader, type AppNavItem } from "./AppHeader";
+import { AppSidebar } from "./AppSidebar";
+
+type AppShellProps = PropsWithChildren<{
+  variant: "tenant" | "plataforma";
+  navItems: AppNavItem[];
+}>;
+
+export function AppShell({
+  children,
+  variant,
+  navItems,
+}: AppShellProps): JSX.Element {
+  return (
+    <div className="ck-shell">
+      <AppHeader navItems={navItems} variant={variant} />
+
+      <div className="ck-body">
+        <AppSidebar navItems={navItems} variant={variant} />
+
+        <main className="ck-main">
+          <div className="ck-breadcrumb-wrap">
+            <AppBreadcrumb variant={variant} />
+          </div>
+
+          {children}
+        </main>
+      </div>
+
+      <AppFooter variant={variant} />
+    </div>
+  );
+}
+
+
+===== apps/web/src/shared/layout/AppSidebar.tsx =====
+
+// apps/web/src/shared/layout/AppSidebar.tsx
+
+import type { JSX } from "react";
+import { NavLink } from "react-router-dom";
+import type { AppNavItem } from "./AppHeader";
+
+type AppSidebarProps = {
+  variant: "tenant" | "plataforma";
+  navItems: AppNavItem[];
+};
+
+export function AppSidebar({
+  variant,
+  navItems,
+}: AppSidebarProps): JSX.Element {
+  return (
+    <aside className="ck-sidebar">
+      <div className="ck-sidebar-panel">
+        <div className="ck-sidebar-top">
+          <div className="ck-sidebar-kicker">
+            {variant === "plataforma" ? "Administração" : "Operação"}
+          </div>
+
+          <div className="ck-sidebar-title">
+            {variant === "plataforma" ? "Plataforma" : "Módulos do sistema"}
+          </div>
+
+          <p className="ck-sidebar-desc">
+            {variant === "plataforma"
+              ? "Gerencie locatários, módulos e usuários da plataforma."
+              : "Acesse rapidamente as áreas principais do locatário."}
+          </p>
+        </div>
+
+        <nav className="ck-sidebar-nav">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              className="ck-sidebar-link"
+              end={item.end}
+              to={item.to}
+            >
+              <span className="ck-sidebar-icon">{item.icon ?? "•"}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="ck-sidebar-footer">
+          <strong>Core-kit Beta</strong>
+          <br />
+          Interface em evolução para PWA, mobile e operação diária.
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+
+===== apps/web/src/shared/layout/index.ts =====
+
+// apps/web/src/shared/layout/index.ts
+
+export { AppShell } from "./AppShell";
+export { AppHeader } from "./AppHeader";
+export { AppFooter } from "./AppFooter";
+export { AppBreadcrumb } from "./AppBreadcrumb";
+export { AppSidebar } from "./AppSidebar";
+export type { AppNavItem } from "./AppHeader";
+
+
+===== apps/web/src/shared/ui/Alert.tsx =====
+
+// apps/web/src/shared/ui/Alert.tsx
+
+import type { JSX, PropsWithChildren } from "react";
+
+type AlertVariant = "error" | "warning" | "success" | "info";
+type AlertProps = PropsWithChildren<{ variant?: AlertVariant }>;
+
+function variantClass(variant: AlertVariant): string {
+  switch (variant) {
+    case "error": return "border-red-200 bg-red-50 text-red-700";
+    case "warning": return "border-yellow-200 bg-yellow-50 text-yellow-800";
+    case "success": return "border-green-200 bg-green-50 text-green-700";
+    case "info": default: return "border-blue-200 bg-blue-50 text-blue-700";
+  }
+}
+
+export function Alert({ children, variant = "info" }: AlertProps): JSX.Element {
+  return <div className={["rounded-xl border px-4 py-3 text-sm", variantClass(variant)].join(" ")}>{children}</div>;
+}
+
+
+===== apps/web/src/shared/ui/Button.tsx =====
+
+// apps/web/src/shared/ui/Button.tsx
+
+import type { ButtonHTMLAttributes, JSX, PropsWithChildren } from "react";
+
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+
+type ButtonProps = PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }>;
+
+function variantClass(variant: ButtonVariant): string {
+  switch (variant) {
+    case "primary": return "border-transparent bg-slate-900 text-white hover:bg-slate-800";
+    case "danger": return "border-red-200 bg-red-50 text-red-700 hover:bg-red-100";
+    case "ghost": return "border-transparent text-slate-700 hover:bg-slate-100";
+    case "secondary": default: return "border-slate-200 bg-white text-slate-700 hover:bg-slate-50";
+  }
+}
+
+export function Button({ children, className = "", disabled, type = "button", variant = "secondary", ...props }: ButtonProps): JSX.Element {
+  return <button {...props} className={["inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50", variantClass(variant), className].join(" ")} disabled={disabled} type={type}>{children}</button>;
+}
+
+
+===== apps/web/src/shared/ui/Card.tsx =====
+
+// apps/web/src/shared/ui/Card.tsx
+
+import type { JSX, PropsWithChildren, ReactNode } from "react";
+
+type CardProps = PropsWithChildren<{ title?: ReactNode; description?: ReactNode; actions?: ReactNode; className?: string; bodyClassName?: string }>;
+
+export function Card({ title, description, actions, children, className = "", bodyClassName = "" }: CardProps): JSX.Element {
+  const hasHeader = title || description || actions;
+  return <section className={["rounded-2xl border bg-white shadow-sm", className].join(" ")}>{hasHeader ? <div className="flex flex-wrap items-start justify-between gap-4 border-b bg-slate-50 px-5 py-4"><div>{title ? <h2 className="text-lg font-semibold text-slate-900">{title}</h2> : null}{description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}</div>{actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}</div> : null}<div className={["p-5", bodyClassName].join(" ")}>{children}</div></section>;
+}
+
+
+===== apps/web/src/shared/ui/DescriptionList.tsx =====
+
+// apps/web/src/shared/ui/DescriptionList.tsx
+
+import type { JSX, ReactNode } from "react";
+
+export type DescriptionItem = { label: ReactNode; value: ReactNode };
+type DescriptionListProps = { items: DescriptionItem[]; columns?: 1 | 2 | 3 };
+
+function columnsClass(columns: 1 | 2 | 3): string {
+  switch (columns) { case 3: return "md:grid-cols-3"; case 2: return "md:grid-cols-2"; case 1: default: return "md:grid-cols-1"; }
+}
+
+export function DescriptionList({ items, columns = 2 }: DescriptionListProps): JSX.Element {
+  return <dl className={["grid gap-4 text-sm", columnsClass(columns)].join(" ")}>{items.map((item, index) => <div key={index} className="grid gap-1"><dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{item.label}</dt><dd className="text-slate-900">{item.value}</dd></div>)}</dl>;
+}
+
+
+===== apps/web/src/shared/ui/EmptyState.tsx =====
+
+// apps/web/src/shared/ui/EmptyState.tsx
+
+import type { JSX, ReactNode } from "react";
+
+type Props = {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+};
+
+export function EmptyState({ title, description, action }: Props): JSX.Element {
+  return (
+    <div className="rounded-2xl border bg-white p-8 text-center">
+      <div className="text-base font-semibold text-slate-900">{title}</div>
+
+      {description ? (
+        <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600">
+          {description}
+        </p>
+      ) : null}
+
+      {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  );
+}
+
+
+===== apps/web/src/shared/ui/Field.tsx =====
+
+// apps/web/src/shared/ui/Field.tsx
+
+import type { JSX, PropsWithChildren, ReactNode } from "react";
+
+type FieldProps = PropsWithChildren<{ label: string; hint?: ReactNode; error?: ReactNode }>;
+
+export function Field({ label, hint, error, children }: FieldProps): JSX.Element {
+  return <label className="grid gap-1"><span className="text-sm font-medium text-slate-700">{label}</span>{children}{hint ? <span className="text-xs text-slate-500">{hint}</span> : null}{error ? <span className="text-xs text-red-600">{error}</span> : null}</label>;
+}
+
+
+===== apps/web/src/shared/ui/index.ts =====
+
+// apps/web/src/shared/ui/index.ts
+
+export { Alert } from "./Alert";
+export { Button } from "./Button";
+export { Card } from "./Card";
+export { DescriptionList } from "./DescriptionList";
+export { EmptyState } from "./EmptyState";
+export { Field } from "./Field";
+export { Input } from "./Input";
+export { LinkButton } from "./LinkButton";
+export { PageHeader } from "./PageHeader";
+export { Select } from "./Select";
+export { StatusBadge } from "./StatusBadge";
+export { SummaryCard } from "./SummaryCard";
+export { Textarea } from "./Textarea";
+export type { DescriptionItem } from "./DescriptionList";
+
+
+===== apps/web/src/shared/ui/Input.tsx =====
+
+// apps/web/src/shared/ui/Input.tsx
+
+import type { InputHTMLAttributes, JSX } from "react";
+
+type InputProps = InputHTMLAttributes<HTMLInputElement>;
+
+export function Input({ className = "", ...props }: InputProps): JSX.Element {
+  return <input {...props} className={["w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500", className].join(" ")} />;
+}
+
+
+===== apps/web/src/shared/ui/LinkButton.tsx =====
+
+// apps/web/src/shared/ui/LinkButton.tsx
+
+import type { JSX, PropsWithChildren } from "react";
+import { Link, type LinkProps } from "react-router-dom";
+
+type LinkButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type LinkButtonProps = PropsWithChildren<LinkProps & { variant?: LinkButtonVariant }>;
+
+function variantClass(variant: LinkButtonVariant): string {
+  switch (variant) {
+    case "primary": return "border-transparent bg-slate-900 text-white hover:bg-slate-800";
+    case "danger": return "border-red-200 bg-red-50 text-red-700 hover:bg-red-100";
+    case "ghost": return "border-transparent text-slate-700 hover:bg-slate-100";
+    case "secondary": default: return "border-slate-200 bg-white text-slate-700 hover:bg-slate-50";
+  }
+}
+
+export function LinkButton({ children, className = "", variant = "secondary", ...props }: LinkButtonProps): JSX.Element {
+  return <Link {...props} className={["inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition", variantClass(variant), className].join(" ")}>{children}</Link>;
+}
+
+
+===== apps/web/src/shared/ui/PageHeader.tsx =====
+
+// apps/web/src/shared/ui/PageHeader.tsx
+
+import type { JSX, ReactNode } from "react";
+
+type PageHeaderProps = { title: ReactNode; description?: ReactNode; actions?: ReactNode };
+
+export function PageHeader({ title, description, actions }: PageHeaderProps): JSX.Element {
+  return <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold text-slate-900">{title}</h1>{description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}</div>{actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}</div>;
+}
+
+
+===== apps/web/src/shared/ui/Select.tsx =====
+
+// apps/web/src/shared/ui/Select.tsx
+
+import type { JSX, SelectHTMLAttributes } from "react";
+
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement>;
+
+export function Select({ className = "", ...props }: SelectProps): JSX.Element {
+  return <select {...props} className={["w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500", className].join(" ")} />;
+}
+
+
+===== apps/web/src/shared/ui/StatusBadge.tsx =====
+
+// apps/web/src/shared/ui/StatusBadge.tsx
+
+import type { JSX } from "react";
+
+type Props = {
+  value: string;
+};
+
+function statusClass(value: string): string {
+  const normalized = value.trim().toUpperCase();
+
+  if (normalized === "CONCLUIDA" || normalized === "ATIVO") {
+    return "border-green-200 bg-green-50 text-green-700";
+  }
+
+  if (normalized === "CANCELADA" || normalized === "ENCERRADO") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  if (
+    normalized === "ABERTA" ||
+    normalized === "RASCUNHO" ||
+    normalized === "EM_PROCESSAMENTO" ||
+    normalized === "AGUARDANDO_PAGAMENTO"
+  ) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-700";
+}
+
+export function StatusBadge({ value }: Props): JSX.Element {
+  return (
+    <span
+      className={[
+        "inline-flex rounded-full border px-2 py-1 text-xs font-medium",
+        statusClass(value),
+      ].join(" ")}
+    >
+      {value}
+    </span>
+  );
+}
+
+
+===== apps/web/src/shared/ui/SummaryCard.tsx =====
+
+// apps/web/src/shared/ui/SummaryCard.tsx
+
+import type { JSX, ReactNode } from "react";
+
+type Props = {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+};
+
+export function SummaryCard({ label, value, hint }: Props): JSX.Element {
+  return (
+    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="text-sm text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-semibold text-slate-900">{value}</div>
+      {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
+    </div>
+  );
+}
+
+
+===== apps/web/src/shared/ui/Textarea.tsx =====
+
+// apps/web/src/shared/ui/Textarea.tsx
+
+import type { JSX, TextareaHTMLAttributes } from "react";
+
+type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
+
+export function Textarea({ className = "", ...props }: TextareaProps): JSX.Element {
+  return <textarea {...props} className={["w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500", className].join(" ")} />;
 }
 
 

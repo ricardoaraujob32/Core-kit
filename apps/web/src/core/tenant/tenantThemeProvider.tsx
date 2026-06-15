@@ -1,8 +1,7 @@
-// frontend/src/core/tenant/TenantThemeProvider.tsx
+// apps/web/src/core/tenant/tenantThemeProvider.tsx
 
 import { useEffect, type PropsWithChildren } from "react";
 import { useTenant } from "./tenantContext";
-
 
 const DEFAULT_THEME = {
   primary: "#2563eb",
@@ -11,9 +10,7 @@ const DEFAULT_THEME = {
   text: "#111827",
 };
 
-export function TenantThemeProvider({
-  children,
-}: PropsWithChildren) {
+export function TenantThemeProvider({ children }: PropsWithChildren) {
   const { branding } = useTenant();
 
   useEffect(() => {
@@ -29,11 +26,21 @@ export function TenantThemeProvider({
     root.style.setProperty("--tenant-color-background", background);
     root.style.setProperty("--tenant-color-text", text);
 
+    root.style.setProperty("--ck-primary", primary);
+    root.style.setProperty("--ck-secondary", secondary);
+    root.style.setProperty("--ck-background", background);
+    root.style.setProperty("--ck-text", text);
+
     return () => {
       root.style.setProperty("--tenant-color-primary", DEFAULT_THEME.primary);
       root.style.setProperty("--tenant-color-secondary", DEFAULT_THEME.secondary);
       root.style.setProperty("--tenant-color-background", DEFAULT_THEME.background);
       root.style.setProperty("--tenant-color-text", DEFAULT_THEME.text);
+
+      root.style.setProperty("--ck-primary", DEFAULT_THEME.primary);
+      root.style.setProperty("--ck-secondary", DEFAULT_THEME.secondary);
+      root.style.setProperty("--ck-background", DEFAULT_THEME.background);
+      root.style.setProperty("--ck-text", DEFAULT_THEME.text);
     };
   }, [branding]);
 

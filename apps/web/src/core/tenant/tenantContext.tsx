@@ -1,4 +1,4 @@
-// frontend/src/core/tenant/TenantContext.tsx
+// apps/web/src/core/tenant/tenantContext.tsx
 
 import {
   createContext,
@@ -13,18 +13,17 @@ import {
 import { HttpError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { isSuperAdmin } from "../auth/tipos";
-import { getTenantBranding } from "./tenantApi";
+import { getTenantConfiguracaoAtiva } from "./tenantApi";
 import {
   buildFallbackTenantBranding,
+  mapConfiguracaoAtivaToTenantBranding,
   normalizeTenantBranding,
 } from "./tenantBranding";
 import type { TenantBranding, TenantContextValue } from "./tipos";
 
 const TenantContext = createContext<TenantContextValue | undefined>(undefined);
 
-export function TenantProvider({
-  children,
-}: PropsWithChildren) {
+export function TenantProvider({ children }: PropsWithChildren) {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [branding, setBranding] = useState<TenantBranding | null>(null);
@@ -44,12 +43,16 @@ export function TenantProvider({
     setIsLoading(true);
 
     try {
-      const response = await getTenantBranding(user.locatarioId);
-      setBranding(normalizeTenantBranding(response.branding));
+      const response = await getTenantConfiguracaoAtiva();
+
+      setBranding(
+        normalizeTenantBranding(
+          mapConfiguracaoAtivaToTenantBranding(response.item),
+        ),
+      );
     } catch (error) {
       if (error instanceof HttpError) {
         setBranding(buildFallbackTenantBranding(user.locatarioId));
-        setIsLoading(false);
         return;
       }
 
@@ -60,9 +63,7 @@ export function TenantProvider({
   }, [isAuthenticated, user]);
 
   useEffect(() => {
-    if (isAuthLoading) {
-      return;
-    }
+    if (isAuthLoading) return;
 
     void refreshBranding();
   }, [isAuthLoading, refreshBranding]);

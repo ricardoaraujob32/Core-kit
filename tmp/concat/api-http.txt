@@ -1,0 +1,5466 @@
+==================================================
+FILE: apps/api/src/modules/assinaturas/assinaturaModulos.controller.ts
+==================================================
+// apps/api/src/modules/assinaturas/assinaturaModulos.controller.ts
+
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { createErroApp, createFnDesvincularModuloDaAssinatura, createFnListarModulosHabilitados, createFnVincularModuloNaAssinatura, metaAcao, Permissoes } from "@core-kit/core";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { createModulosHabilitadosRepositorio } from "../../infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma.js";
+import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma.js";
+import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.js";
+import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma.js";
+import { parseModuloIdParams, parseVincularModuloAssinaturaBody } from "./assinaturaModulos.dto.js";
+import type { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "./assinaturaModulos.dto.js";
+import { toModuloHabilitadoDto, toVinculoModuloDto } from "./assinaturaModulos.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+
+function criarDepsAssinaturaModulos() {
+  return {
+    assinaturasRepositorio: createAssinaturasRepositorioPrisma(clientePrisma),
+    assinaturasModulosRepositorio: createAssinaturasModulosRepositorioPrisma(clientePrisma),
+    modulosConsultaRepositorio: createModulosConsultaRepositorioPrisma(clientePrisma),
+    modulosHabilitadosRepositorio: createModulosHabilitadosRepositorio(clientePrisma),
+    relogio: getAuthBootstrap().runtime.technical.relogio,
+    transacao: getAuthBootstrap().runtime.transacao,
+  };
+}
+
+function responderErroValidacao(
+  reply: FastifyReply,
+  parseResult: {
+    error: {
+      flatten: () => {
+        fieldErrors: Record<string, string[] | undefined>;
+        formErrors: string[];
+      };
+    };
+  },
+) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: {
+      operacao: "http.assinaturaModulos.validacao",
+      campos: fieldErrors,
+      formulario: formErrors,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarMeusModulosAssinaturaController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_ASSINATURA_LER,
+    modulo: "ASSINATURAS",
+  });
+  if (!ctx) return;
+
+  const { modulosHabilitadosRepositorio } = criarDepsAssinaturaModulos();
+
+  const listarModulosHabilitados = createFnListarModulosHabilitados({
+    repositorio: modulosHabilitadosRepositorio,
+  });
+
+  const resultado = await listarModulosHabilitados({
+    locatarioId: ctx.locatarioId,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    locatarioId: resultado.value.locatarioId,
+    modulos: resultado.value.modulos.map(toModuloHabilitadoDto),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function vincularModuloNaMinhaAssinaturaController(request: FastifyRequest<{ Body: VincularModuloAssinaturaBodyDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_ASSINATURA_ATUALIZAR,
+    modulo: "ASSINATURAS",
+  });
+  if (!ctx) return;
+
+  const bodyParse = parseVincularModuloAssinaturaBody(request.body);
+  if (!bodyParse.success) return responderErroValidacao(reply, bodyParse);
+
+  const deps = criarDepsAssinaturaModulos();
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(ctx.locatarioId);
+
+  if (!assinaturaAtiva.ok) return sendHttpError(reply, assinaturaAtiva.error);
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Nenhuma assinatura ativa encontrada para este locatário.",
+      detalhes: {
+        locatarioId: ctx.locatarioId,
+      },
+    });
+  }
+
+  const vincularModuloNaAssinatura = createFnVincularModuloNaAssinatura({
+    assinaturasRepositorio: deps.assinaturasRepositorio,
+    assinaturasModulosRepositorio: deps.assinaturasModulosRepositorio,
+    modulosConsultaRepositorio: deps.modulosConsultaRepositorio,
+    relogio: deps.relogio,
+    transacao: deps.transacao,
+  });
+
+  const resultado = await vincularModuloNaAssinatura({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: bodyParse.data.moduloId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "assinatura.modulo.vinculado",
+    sucesso: resultado.ok,
+    entidadeTipo: "assinatura_modulo",
+    entidadeId: bodyParse.data.moduloId,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      assinaturaId: assinaturaAtiva.value.assinaturaId,
+      moduloId: bodyParse.data.moduloId,
+    }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(201).send({
+    item: toVinculoModuloDto({
+      assinaturaId: resultado.value.assinaturaId,
+      moduloId: resultado.value.moduloId,
+      origem: resultado.value.origem,
+      gratuito: resultado.value.gratuito,
+      habilitadoEm: resultado.value.habilitadoEm,
+      desabilitadoEm: null,
+    }),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function desvincularModuloDaMinhaAssinaturaController(request: FastifyRequest<{ Params: ModuloIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_ASSINATURA_ATUALIZAR,
+    modulo: "ASSINATURAS",
+  });
+  if (!ctx) return;
+
+  const paramsParse = parseModuloIdParams(request.params);
+  if (!paramsParse.success) return responderErroValidacao(reply, paramsParse);
+
+  const deps = criarDepsAssinaturaModulos();
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(ctx.locatarioId);
+
+  if (!assinaturaAtiva.ok) return sendHttpError(reply, assinaturaAtiva.error);
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Nenhuma assinatura ativa encontrada para este locatário.",
+      detalhes: {
+        locatarioId: ctx.locatarioId,
+      },
+    });
+  }
+
+  const desvincularModuloDaAssinatura = createFnDesvincularModuloDaAssinatura({
+    assinaturasRepositorio: deps.assinaturasRepositorio,
+    assinaturasModulosRepositorio: deps.assinaturasModulosRepositorio,
+    relogio: deps.relogio,
+    transacao: deps.transacao,
+  });
+
+  const resultado = await desvincularModuloDaAssinatura({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: paramsParse.data.moduloId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "assinatura.modulo.desvinculado",
+    sucesso: resultado.ok,
+    entidadeTipo: "assinatura_modulo",
+    entidadeId: paramsParse.data.moduloId,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      assinaturaId: assinaturaAtiva.value.assinaturaId,
+      moduloId: paramsParse.data.moduloId,
+    }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    item: {
+      assinaturaId: resultado.value.assinaturaId,
+      moduloId: resultado.value.moduloId,
+      desabilitadoEm: resultado.value.desabilitadoEm.toISOString(),
+    },
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/assinaturas/assinaturaModulos.dto.ts
+==================================================
+// apps/api/src/modules/assinaturas/assinaturaModulos.dto.ts
+
+import { z } from "zod";
+
+export const vincularModuloAssinaturaBodySchema = z.object({
+  moduloId: z.string().uuid(),
+});
+
+export type VincularModuloAssinaturaBodyDto = z.infer<
+  typeof vincularModuloAssinaturaBodySchema
+>;
+
+export const moduloIdParamsSchema = z.object({
+  moduloId: z.string().uuid(),
+});
+
+export type ModuloIdParamsDto = z.infer<typeof moduloIdParamsSchema>;
+
+export function parseVincularModuloAssinaturaBody(input: unknown) {
+  return vincularModuloAssinaturaBodySchema.safeParse(input);
+}
+
+export function parseModuloIdParams(input: unknown) {
+  return moduloIdParamsSchema.safeParse(input);
+}
+
+
+==================================================
+FILE: apps/api/src/modules/assinaturas/assinaturaModulos.presenter.ts
+==================================================
+// apps/api/src/modules/assinaturas/assinaturaModulos.presenter.ts
+
+import type { ModuloHabilitado, ModuloHabilitadoAssinatura } from "@core-kit/core";
+
+export function toModuloHabilitadoDto(modulo: ModuloHabilitado) {
+  return {
+    codigo: modulo.codigo,
+    origem: modulo.origem,
+  };
+}
+
+export function toVinculoModuloDto(vinculo: ModuloHabilitadoAssinatura) {
+  return {
+    assinaturaId: vinculo.assinaturaId,
+    moduloId: vinculo.moduloId,
+    origem: vinculo.origem,
+    gratuito: vinculo.gratuito,
+    habilitadoEm: vinculo.habilitadoEm.toISOString(),
+    desabilitadoEm: vinculo.desabilitadoEm?.toISOString() ?? null,
+  };
+}
+
+
+==================================================
+FILE: apps/api/src/modules/auditoria/auditoria.controller.ts
+==================================================
+// // apps/api/src/modules/auditoria/auditoria.controller.ts
+
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { toListarAuditoriaResponseDto } from "./auditoria.presenter.js";
+import { createFnListarAuditoriaLocatario, createFnListarAuditoriaPlataforma, Permissoes } from "@core-kit/core";
+import { FastifyReply, FastifyRequest } from "fastify";
+import { createAuditoriaLocatarioRepositorio } from "../../infra/prisma/auditoria/auditoriaAtivaLocatarioRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { ListarAuditoriaQueryDto, parseListarAuditoriaQuery } from "./auditoria.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { createAuditoriaPlataformaRepositorio } from "../../infra/prisma/auditoria/auditoriaInternaRepositorioPrisma.js";
+
+function responderErroValidacao(reply: FastifyReply, parseResult: {
+    error: {
+      flatten: () => {
+        fieldErrors: Record<string, string[] | undefined>;
+        formErrors: string[];
+      };
+    };
+  },
+) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: {
+      operacao: "http.auditoria.validacao",
+      campos: fieldErrors,
+      formulario: formErrors,
+    },
+  });
+}
+
+function criarDepsAuditoriaLocatario() {
+  return {
+    auditoriaLocatarioRepositorio: createAuditoriaLocatarioRepositorio(clientePrisma),
+  };
+}
+
+function criarDepsAuditoriaPlataforma() {
+  return {
+    auditoriaPlataformaRepositorio: createAuditoriaPlataformaRepositorio(clientePrisma),
+  };
+}
+
+export async function listarMinhaAuditoriaController(request: FastifyRequest<{ Querystring: ListarAuditoriaQueryDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    // permissao: Permissoes.TENANT_AUDITORIA_LISTAR,
+    // modulo: "AUDITORIA",
+  });
+  if (!ctx) return;
+
+  const queryParse = parseListarAuditoriaQuery(request.query ?? {});
+  if (!queryParse.success) {
+    return responderErroValidacao(reply, queryParse);
+  }
+
+  const listarAuditoria = createFnListarAuditoriaLocatario(
+    criarDepsAuditoriaLocatario(),
+  );
+
+  const resultado = await listarAuditoria({
+    locatarioId: ctx.locatarioId,
+    ...queryParse.data,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarAuditoriaResponseDto(resultado.value.itens),
+  });
+}
+
+export async function listarAuditoriaPlataformaController(request: FastifyRequest<{ Querystring: ListarAuditoriaQueryDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    exigeSuperadmin: true,
+  });
+  if (!ctx) return;
+
+  const queryParse = parseListarAuditoriaQuery(request.query ?? {});
+  if (!queryParse.success) {
+    return responderErroValidacao(reply, queryParse);
+  }
+
+  const listarAuditoria = createFnListarAuditoriaPlataforma(
+    criarDepsAuditoriaPlataforma(),
+  );
+
+  const resultado = await listarAuditoria({
+    ...queryParse.data,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarAuditoriaResponseDto(resultado.value.itens),
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/auditoria/auditoria.dto.ts
+==================================================
+// apps/api/src/modules/auditoria/auditoria.dto.ts
+
+import { z } from "zod";
+
+function parseDateOpcional(value: unknown) {
+  if (value === undefined || value === null || value === "") return undefined;
+  const date = new Date(String(value));
+  return date;
+}
+
+export const listarAuditoriaQuerySchema = z.object({
+  evento: z.string().trim().optional(),
+  eventoPrefixo: z.string().trim().optional(),
+  sucesso: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) =>
+      value === undefined ? undefined : value === "true",
+    ),
+  erroCodigo: z.string().trim().optional(),
+  entidadeNome: z.string().trim().optional(),
+  entidadeTipo: z.string().trim().optional(),
+  entidadeId: z.string().trim().optional(),
+  usuarioId: z.string().trim().optional(),
+  origem: z.string().trim().optional(),
+  requisicaoId: z.string().trim().optional(),
+  agenteTipo: z.string().trim().optional(),
+  criadoDe: z.preprocess(parseDateOpcional, z.date().optional()),
+  criadoAte: z.preprocess(parseDateOpcional, z.date().optional()),
+  textoLivre: z.string().trim().optional(),
+  cursor: z.string().trim().optional(),
+  limite: z.coerce.number().int().positive().max(500).optional(),
+});
+
+export type ListarAuditoriaQueryDto = z.infer<
+  typeof listarAuditoriaQuerySchema
+>;
+
+export function parseListarAuditoriaQuery(input: unknown) {
+  return listarAuditoriaQuerySchema.safeParse(input);
+}
+
+
+==================================================
+FILE: apps/api/src/modules/auditoria/auditoriaPlataforma.controller.ts
+==================================================
+// apps/api/src/modules/auditoria/auditoriaPlataforma.controller.ts
+
+// import type { FastifyReply, FastifyRequest } from "fastify";
+
+// import { sendHttpError } from "../../http/serializarErroApp.js";
+// import { clientePrisma } from "../../infra/prisma/client.js";
+// import { auditar } from "./auditoria.dispatcher.instance.js";
+// import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto.js";
+// import { criarContextoAuditoria } from "./auditoria.helpers.js";
+
+/**
+ * Controller HTTP para listagem da auditoria da plataforma.
+ *
+ * Regras:
+ * - acesso exclusivo de superadmin;
+ * - lê apenas `auditoria_plataforma`;
+ * - suporta filtros avançados.
+ */
+// export async function listarAuditoriaPlataformaController(request: FastifyRequest<{ Querystring: ListarAuditoriaPlataformaQuery }>, reply: FastifyReply) {
+  // const ctx = await obterCtxAutorizadoOuResponderErro(request, reply, {
+  //   exigeSuperadmin: true,
+  // });
+  // if (!ctx) return;
+
+  // const listarAuditoriaPlataforma = createFnListarAuditoriaPlataforma({
+  //   auditoriaPlataformaRepositorio:
+  //     createAuditoriaPlataformaRepositorio(clientePrisma),
+  // });
+
+  // const resultado = await listarAuditoriaPlataforma({
+  //   evento: request.query.evento,
+  //   eventoPrefixo: request.query.eventoPrefixo,
+  //   categoria: request.query.categoria,
+  //   sucesso:
+  //     request.query.sucesso === undefined
+  //       ? undefined
+  //       : request.query.sucesso === "true",
+  //   erroCodigo: request.query.erroCodigo,
+  //   entidadeNome: request.query.entidadeNome,
+  //   entidadeTipo: request.query.entidadeTipo,
+  //   entidadeId: request.query.entidadeId,
+  //   usuarioId: request.query.usuarioId,
+  //   origem: request.query.origem,
+  //   requisicaoId: request.query.requisicaoId,
+  //   agenteTipo: request.query.agenteTipo,
+  //   textoLivre: request.query.textoLivre,
+  //   cursor: request.query.cursor,
+  //   limite: request.query.limite ? Number(request.query.limite) : undefined,
+  //   criadoDe: request.query.criadoDe ? new Date(request.query.criadoDe) : undefined,
+  //   criadoAte: request.query.criadoAte ? new Date(request.query.criadoAte) : undefined,
+  //   locatarioAlvoId: request.query.locatarioAlvoId,
+  // });
+
+  // await auditar(criarContextoAuditoria(request, ctx, { isSuperadmin: true }),
+  //   {
+  //     evento: "auditoria.plataforma.listada",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "auditoria",
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: {
+  //       contexto: {
+  //         filtrosAplicados: request.query,
+  //         quantidadeResultados: resultado.ok ? resultado.value.lista.length : 0,
+  //       },
+  //     },
+  //   },
+  // );
+
+  // if (!resultado.ok) {
+  //   return sendHttpError(reply, resultado.error);
+  // }
+
+  // return reply.status(200).send({
+  //   lista: resultado.value.lista,
+  // });
+// }
+
+
+==================================================
+FILE: apps/api/src/modules/auditoria/auditoria.presenter.ts
+==================================================
+// apps/api/src/modules/auditoria/auditoria.presenter.ts
+
+import type { EventoAuditoriaLocatario, EventoAuditoriaPlataforma } from "@core-kit/core";
+
+export function toAuditoriaResponseDto(evento: EventoAuditoriaLocatario | EventoAuditoriaPlataforma) {
+  return {
+    auditoriaId: evento.auditoriaId,
+    locatarioId: "locatarioId" in evento ? evento.locatarioId : "locatarioAlvoId" in evento ? evento.locatarioAlvoId : null,
+    usuarioId: evento.usuarioId,
+    evento: evento.evento,
+    categoria: evento.categoria,
+    sucesso: evento.sucesso,
+    erroCodigo: evento.erroCodigo,
+    erroMensagem: evento.erroMensagem,
+    entidadeNome: evento.entidadeNome,
+    entidadeTipo: evento.entidadeTipo,
+    entidadeId: evento.entidadeId,
+    origem: evento.origem,
+    requisicaoId: evento.requisicaoId,
+    enderecoIp: evento.enderecoIp,
+    agenteUsuario: evento.agenteUsuario,
+    agenteTipo: evento.agenteTipo,
+    metadados: evento.metadados,
+    criadoEm: evento.criadoEm,
+  };
+}
+
+export function toListarAuditoriaResponseDto(itens: Array<EventoAuditoriaLocatario | EventoAuditoriaPlataforma>) {
+  return itens.map(toAuditoriaResponseDto);
+}
+
+==================================================
+FILE: apps/api/src/modules/auth/auth.controller.ts
+==================================================
+// apps/api/src/modules/auth/auth.controller.ts
+
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshResponse, SessionUserDto } from "./auth.dto.js";
+import { ContextoExecucao, LocatarioId, metaAcao, UsuarioId } from "@core-kit/core";
+import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditar } from "../auditoria/auditoria.dispatcher.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+
+/**
+ * Serializa o contexto autorizado para o shape de usuário esperado pelo frontend.
+ */
+function serializarUsuarioSessao(ctx: ContextoExecucao): SessionUserDto {
+  return {
+    usuarioId: ctx.usuarioId,
+    locatarioId: ctx.locatarioId,
+    perfil: "TENANT",
+  };
+}
+
+function serializarUsuarioPlataformaSessao(params: {
+  usuarioId: UsuarioId;
+}): SessionUserDto {
+  return {
+    usuarioId: params.usuarioId,
+    locatarioId: null,
+    perfil: "PLATAFORMA",
+  };
+}
+
+/**
+ * Controller HTTP de login.
+ *
+ * Fluxo:
+ * 1. cria runtime de auth;
+ * 2. executa `emitirSessao`;
+ * 3. em caso de erro, serializa `ErroApp` para HTTP;
+ * 4. em caso de sucesso, devolve a sessão materializada.
+ *
+ * Observação:
+ * - este controller não assina JWT manualmente;
+ * - o access token já vem pronto do Core.
+ *
+ * @param request Requisição Fastify com `LoginBody`.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP de sucesso ou erro.
+ */
+export async function loginController(request: FastifyRequest<{ Body: LoginBody }>, reply: FastifyReply) {
+  const resultado = await getAuthBootstrap().runtime.emitirSessao({
+    locatarioSlug: request.body.locatarioSlug,
+    email: request.body.email,
+    senha: request.body.senha,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+   }// else {
+  // await auditar(
+  //   {
+  //     escopo: "LOCATARIO",
+  //     locatarioId: resultado.value.sessao.locatarioId ?? null,
+  //     usuarioId: resultado.value.sessao.usuarioId ?? null,
+  //     origem: "API",
+  //     requisicaoId: null,
+  //     enderecoIp: request.ip ?? null,
+  //     agenteUsuario: request.headers["user-agent"] ?? null,
+  //     agenteTipo: "USUARIO_AUTENTICADO",
+  //   },
+  //   {
+  //     evento: "auth.login.sucesso",
+  //     sucesso: true,
+  //     entidadeTipo: "sessao",
+  //     entidadeId: resultado.value.contexto?.usuarioId ?? null,
+  //     erroCodigo: null,
+  //     erroMensagem: null,
+  //     metadados: metaAcao({
+  //       locatarioSlug: request.body.locatarioSlug,
+  //       email: request.body.email,
+  //     }),
+  //   },);
+  // }
+
+  const payload: LoginResponse = {
+    accessToken: resultado.value.sessao.accessToken,
+    refreshToken: resultado.value.sessao.refreshToken,
+  };
+
+  return reply.status(200).send(payload);
+}
+
+/**
+ * Controller HTTP da sessão atual.
+ *
+ * Fluxo:
+ * - pressupõe autenticação prévia via `authGuard`;
+ * - obtém o contexto já resolvido pela borda;
+ * - serializa o usuário autenticado/autorizado para o frontend.
+ */
+export async function meController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const payload: MeResponse = {
+    usuario: serializarUsuarioSessao(ctx),
+  };
+
+  return reply.status(200).send(payload);
+}
+
+/**
+ * Controller HTTP de rotação de refresh token.
+ *
+ * Fluxo:
+ * 1. cria runtime de auth;
+ * 2. executa `rotacionarRefresh`;
+ * 3. serializa erro HTTP quando necessário;
+ * 4. devolve nova sessão materializada.
+ *
+ * @param request Requisição Fastify com `RefreshBody`.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP de sucesso ou erro.
+ */
+export async function refreshController(request: FastifyRequest<{ Body: RefreshBody }>, reply: FastifyReply) {
+  // const resultado = await authRuntime.rotacionarRefresh({
+  //   locatarioId: request.body.locatarioId,
+  //   refreshToken: request.body.refreshToken,
+  // });
+
+  // await auditar(criarContextoAuditoriaAuth(request, { locatarioId: request.body.locatarioId, agenteTipo: "TOKEN_REFRESH", }),
+  //   {
+  //     evento: resultado.ok ? "auth.refresh.sucesso" : "auth.refresh.falha",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "sessao",
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: metaAcao({
+  //       locatarioId: request.body.locatarioId,
+  //     }),
+  //   },
+  // );
+
+  // if (!resultado.ok) {
+  //   return sendHttpError(reply, resultado.error);
+  // }
+
+  // const payload: RefreshResponse = {
+  //   accessToken: resultado.value.sessao.accessToken,
+  //   refreshToken: resultado.value.sessao.refreshToken,
+  // };
+
+  // return reply.status(200).send(payload);
+
+  const refreshToken = request.body?.refreshToken ?? "";
+  const locatarioId = request.body?.locatarioId;
+
+  console.info("[auth.refresh] request.received", {
+    locatarioId,
+    hasRefreshToken: typeof refreshToken === "string" && refreshToken.length > 0,
+    refreshTokenLength: typeof refreshToken === "string" ? refreshToken.length : 0,
+  });
+
+  try {
+    const resultado = await getAuthBootstrap().runtime.rotacionarRefresh({
+      locatarioId,
+      refreshToken,
+    });
+
+    if (!resultado.ok) {
+      console.warn("[auth.refresh] result.error", {
+        locatarioId,
+        codigo: resultado.error.codigo,
+        mensagem: resultado.error.mensagem,
+        detalhes: resultado.error.detalhes ?? null,
+      });
+
+      return sendHttpError(reply, resultado.error);
+    }
+
+    const payload: RefreshResponse = {
+      accessToken: resultado.value.sessao.accessToken,
+      refreshToken: resultado.value.sessao.refreshToken,
+    };
+
+    console.info("[auth.refresh] result.ok", {
+      locatarioId,
+      hasAccessToken: Boolean(payload.accessToken),
+      hasRefreshToken: Boolean(payload.refreshToken),
+    });
+
+    return reply.status(200).send(payload);
+  } catch (causa) {
+    console.error("[auth.refresh] unhandled.exception", {
+      locatarioId,
+      errorName: causa instanceof Error ? causa.name : "UnknownError",
+      errorMessage: causa instanceof Error ? causa.message : String(causa),
+      stack: causa instanceof Error ? causa.stack : undefined,
+    });
+
+    return sendHttpError(reply, {
+      codigo: "ERRO_INTERNO",
+      mensagem: "Falha interna ao rotacionar refresh token.",
+      detalhes: {
+        operacao: "http.auth.refresh",
+      },
+    });
+  }
+}
+
+/**
+ * Controller HTTP de logout.
+ *
+ * Estratégia atual:
+ * - revoga o refresh token atual;
+ * - responde `204 No Content`.
+ */
+export async function logoutController(request: FastifyRequest<{ Body: LogoutBody }>, reply: FastifyReply) {
+  const resultado = await getAuthBootstrap().runtime.logout({
+    locatarioId: request.body.locatarioId,
+    refreshToken: request.body.refreshToken,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  } else {
+  const ctx = await autorizarHttp(request, reply);
+  if (ctx) {
+    await auditarController(request, ctx, {
+      evento: "auth.logout.sucesso",
+      sucesso: true,
+      entidadeTipo: "sessao",
+      erroCodigo: null,
+      erroMensagem: null,
+      metadados: metaAcao({
+        locatarioId: request.body.locatarioId,
+      }),
+    });
+  }
+  }
+
+  return reply.status(204).send();
+}
+
+
+==================================================
+FILE: apps/api/src/modules/auth/auth.dto.ts
+==================================================
+// apps/api/src/modules/auth/auth.dto.ts
+
+import { LocatarioId, LocatarioSlug, ModuloCodigo, Papel, Permissao, UsuarioId } from "@core-kit/core";
+
+/**
+ * Payload HTTP esperado no endpoint de login.
+ *
+ * Campos:
+ * - `locatarioId`: escopo do login;
+ * - `email`: credencial do usuário;
+ * - `senha`: segredo em texto puro recebido da borda.
+ */
+export type LoginBody = {
+  locatarioSlug: LocatarioSlug;
+  email: string;
+  senha: string;
+};
+
+/**
+ * Resposta do login.
+ */
+export type LoginResponse = {
+  accessToken: string;
+  refreshToken?: string;
+};
+
+/**
+ * Payload HTTP esperado no endpoint de refresh.
+ *
+ * Campos:
+ * - `locatarioId`: locatário esperado para o refresh;
+ * - `refreshToken`: token bruto enviado pelo cliente.
+ */
+export type RefreshBody = {
+  locatarioId: LocatarioId;
+  refreshToken: string;
+};
+
+/**
+ * Resposta do refresh.
+ */
+export type RefreshResponse = {
+  accessToken: string;
+  refreshToken?: string;
+};
+
+/**
+ * Payload HTTP esperado no endpoint de logout.
+ *
+ * Observação:
+ * - o contrato atual de logout usa o refresh token bruto;
+ * - isso combina com o modelo atual de revogação persistida.
+ */
+export type LogoutBody = {
+  locatarioId: LocatarioId;
+  refreshToken: string;
+};
+
+/**
+ * Usuário de sessão serializado para o frontend.
+ */
+export type SessionUserDto = {
+  usuarioId: UsuarioId;
+  locatarioId: LocatarioId | null;
+  perfil: "PLATAFORMA" | "TENANT";
+};
+
+/**
+ * Resposta do endpoint `auth/me`.
+ */
+export type MeResponse = {
+  usuario: SessionUserDto;
+};
+
+
+
+==================================================
+FILE: apps/api/src/modules/auth/auth.plataforma.controller.ts
+==================================================
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { LoginPlataformaBodyDto, RefreshPlataformaBodyDto, LogoutPlataformaBodyDto } from "./auth.plataforma.dto.js";
+import { parseLoginPlataformaBody, parseRefreshPlataformaBody, parseLogoutPlataformaBody } from "./auth.plataforma.dto.js";
+
+function responderErroValidacao(reply: FastifyReply) {
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: "Entrada inválida.",
+    detalhes: {
+      operacao: "auth.plataforma.login.validacao",
+    },
+  });
+}
+
+export async function loginPlataformaController(request: FastifyRequest<{ Body: LoginPlataformaBodyDto }>, reply: FastifyReply) {
+  const body = parseLoginPlataformaBody(request.body);
+  if (!body.success) return responderErroValidacao(reply);
+
+  const resultado = await getAuthBootstrap().runtime.emitirSessaoPlataforma({
+      email: body.data.email,
+      senha: body.data.senha,
+    });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    accessToken: resultado.value.accessToken,
+    accessExpiraEm: resultado.value.accessExpiraEm,
+    refreshToken: resultado.value.refreshToken,
+    refreshExpiraEm: resultado.value.refreshExpiraEm,
+    usuario: {
+      usuarioId: resultado.value.usuarioId,
+      locatarioId: null,
+      perfil: "PLATAFORMA",
+    },
+  });
+}
+
+export async function refreshPlataformaController(
+  request: FastifyRequest<{ Body: RefreshPlataformaBodyDto }>,
+  reply: FastifyReply,
+) {
+  const body = parseRefreshPlataformaBody(request.body);
+  if (!body.success) return responderErroValidacao(reply);
+
+  const resultado = await getAuthBootstrap().runtime.rotacionarRefreshPlataforma({
+    refreshToken: body.data.refreshToken,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    accessToken: resultado.value.sessao.accessToken,
+    refreshToken: resultado.value.sessao.refreshToken,
+    accessExpiraEm: resultado.value.sessao.accessExpiraEm,
+    refreshExpiraEm: resultado.value.sessao.refreshExpiraEm,
+    usuario: {
+      usuarioId: resultado.value.usuarioId,
+      locatarioId: null,
+      perfil: "PLATAFORMA",
+    },
+  });
+}
+
+export async function logoutPlataformaController(
+  request: FastifyRequest<{ Body: LogoutPlataformaBodyDto }>,
+  reply: FastifyReply,
+) {
+  const body = parseLogoutPlataformaBody(request.body);
+  if (!body.success) return responderErroValidacao(reply);
+
+  const resultado = await getAuthBootstrap().runtime.logoutPlataforma({
+    refreshToken: body.data.refreshToken,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(204).send();
+}
+
+==================================================
+FILE: apps/api/src/modules/auth/auth.plataforma.dto.ts
+==================================================
+// apps/api/src/modules/auth/auth.plataforma.dto.ts
+
+import { UsuarioId } from "@core-kit/core";
+import { z } from "zod";
+
+export const loginPlataformaBodySchema = z.object({
+  email: z.string().trim().email(),
+  senha: z.string().min(1),
+});
+
+export type LoginPlataformaBodyDto = z.infer<typeof loginPlataformaBodySchema>;
+
+export function parseLoginPlataformaBody(input: unknown) {
+  return loginPlataformaBodySchema.safeParse(input);
+}
+
+export const refreshPlataformaBodySchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type RefreshPlataformaBodyDto = z.infer<typeof refreshPlataformaBodySchema>;
+
+export function parseRefreshPlataformaBody(input: unknown) {
+  return refreshPlataformaBodySchema.safeParse(input);
+}
+
+export const logoutPlataformaBodySchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type LogoutPlataformaBodyDto = z.infer<typeof logoutPlataformaBodySchema>;
+
+export function parseLogoutPlataformaBody(input: unknown) {
+  return logoutPlataformaBodySchema.safeParse(input);
+}
+
+/**
+ * Usuário serializado para sessão de plataforma.
+ *
+ * Este DTO é propositalmente mínimo: não inclui papéis, permissões nem módulos.
+ */
+export type UsuarioSessaoPlataformaDto = {
+  usuarioId: UsuarioId;
+  locatarioId: null;
+  perfil: "PLATAFORMA";
+};
+
+/**
+ * Resposta HTTP oficial de `POST /api/auth/plataforma/login`.
+ *
+ * Regras de segurança:
+ * - não retorna `refreshToken`;
+ * - não retorna `refreshExpiraEm`;
+ * - não retorna permissões;
+ * - não retorna papéis;
+ * - não retorna módulos.
+ */
+export type LoginPlataformaResponseDto = {
+  accessToken: string;
+  accessExpiraEm: Date | string;
+  usuario: UsuarioSessaoPlataformaDto;
+  refreshToken: string;
+  refreshExpiraEm: Date | string;
+};
+
+==================================================
+FILE: apps/api/src/modules/auth/auth.plataforma.presenter.ts
+==================================================
+// apps/api/src/modules/auth/auth.plataforma.presenter.ts
+
+import type { LoginPlataformaResponseDto, UsuarioSessaoPlataformaDto } from "./auth.plataforma.dto.js";
+import type { UsuarioId } from "@core-kit/core";
+
+export function toUsuarioSessaoPlataformaDto(usuarioId: UsuarioId): UsuarioSessaoPlataformaDto {
+  return {
+    usuarioId,
+    locatarioId: null,
+    perfil: "PLATAFORMA",
+  };
+}
+
+export function toLoginPlataformaResponseDto(params: {
+  accessToken: string;
+  refreshToken: string;
+  accessExpiraEm: Date | string;
+  refreshExpiraEm: Date | string;
+  usuarioId: UsuarioId;
+}): LoginPlataformaResponseDto {
+  return {
+    accessToken: params.accessToken,
+    refreshToken: params.refreshToken,
+    accessExpiraEm: params.accessExpiraEm instanceof Date ? params.accessExpiraEm.toISOString() : params.accessExpiraEm,
+    refreshExpiraEm: params.refreshExpiraEm instanceof Date ? params.refreshExpiraEm.toISOString() : params.refreshExpiraEm,
+    usuario: toUsuarioSessaoPlataformaDto(params.usuarioId),
+  };
+}
+
+export function serializarSessaoPlataforma(params: {
+  accessToken: string;
+  refreshToken?: string;
+  accessExpiraEm: Date | string;
+  refreshExpiraEm?: Date | string;
+  usuarioId: UsuarioId;
+}): LoginPlataformaResponseDto {
+  return toLoginPlataformaResponseDto({
+    accessToken: params.accessToken,
+    refreshToken: params.refreshToken ?? "",
+    accessExpiraEm: params.accessExpiraEm,
+    refreshExpiraEm: params.refreshExpiraEm ?? "",
+    usuarioId: params.usuarioId,
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/clientes/clientes.controller.ts
+==================================================
+// apps/api/src/modules/clientes/clientes.controller.ts
+
+import { createFnAtualizarCliente, createFnCriarCliente, createFnExcluirCliente, createFnListarClientes, createFnObterCliente, metaAcao, metaAtualizacao, metaCriacao } from "@core-kit/core";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto, parseAtualizarClienteBody, parseClienteIdParams, parseCriarClienteBody } from "./clientes.dto.js";
+import { FastifyReply, FastifyRequest } from "fastify";
+import { toClienteResponseDto, toListarClientesResponseDto } from "./clientes.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+
+function criarDepsClientes() {
+  return {
+    clientesRepositorio: createClientesRepositorio(clientePrisma),
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+  };
+}
+
+function responderErroValidacao(reply: FastifyReply, parseResult: {
+  error: { flatten: () => { fieldErrors: Record<string, string[] | undefined>; formErrors: string[] } };
+}) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0],
+    detalhes: { campos: fieldErrors },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarClientesController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { clientesRepositorio } = criarDepsClientes();
+
+  const listarClientes = createFnListarClientes({ clientesRepositorio });
+
+  const res = await listarClientes({ locatarioId: ctx.locatarioId });
+
+  if (!res.ok) return sendHttpError(reply, res.error);
+
+  return reply.send({
+    itens: toListarClientesResponseDto(res.value.itens),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function obterClienteController(request: FastifyRequest<{ Params: ClienteIdParamsDto }>, reply: FastifyReply) {
+  const parse = parseClienteIdParams(request.params);
+  if (!parse.success) return responderErroValidacao(reply, parse);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { clientesRepositorio } = criarDepsClientes();
+
+  const obterCliente = createFnObterCliente({ clientesRepositorio });
+
+  const res = await obterCliente({
+    locatarioId: ctx.locatarioId,
+    clienteId: parse.data.id,
+  });
+
+  if (!res.ok) return sendHttpError(reply, res.error);
+
+  return reply.send({
+    item: toClienteResponseDto(res.value.cliente),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarClienteController(request: FastifyRequest<{ Body: CriarClienteBodyDto }>, reply: FastifyReply) {
+  const parse = parseCriarClienteBody(request.body);
+  if (!parse.success) return responderErroValidacao(reply, parse);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const criarCliente = createFnCriarCliente(criarDepsClientes());
+
+  const res = await criarCliente({
+    locatarioId: ctx.locatarioId,
+    ...parse.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "cliente.criado",
+    sucesso: res.ok,
+    entidadeTipo: "cliente",
+    entidadeId: res.ok ? res.value.clienteId : null,
+    entidadeNome: parse.data.nome,
+    erroCodigo: !res.ok ? res.error.codigo : null,
+    erroMensagem: !res.ok ? res.error.mensagem : null,
+    metadados: res.ok
+      ? metaCriacao({ clienteId: res.value.clienteId })
+      : metaAcao({ body: parse.data }),
+  });
+
+  if (!res.ok) return sendHttpError(reply, res.error);
+
+  return reply.status(201).send({
+    item: { clienteId: res.value.clienteId },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function atualizarClienteController(request: FastifyRequest<{ Params: ClienteIdParamsDto; Body: AtualizarClienteBodyDto }>, reply: FastifyReply) {
+  const params = parseClienteIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params);
+
+  const body = parseAtualizarClienteBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const atualizarCliente = createFnAtualizarCliente(criarDepsClientes());
+
+  const res = await atualizarCliente({
+    locatarioId: ctx.locatarioId,
+    clienteId: params.data.id,
+    ...body.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "cliente.atualizado",
+    sucesso: res.ok,
+    entidadeTipo: "cliente",
+    entidadeId: params.data.id,
+    entidadeNome: res.ok ? res.value.cliente.nome : null,
+    erroCodigo: !res.ok ? res.error.codigo : null,
+    erroMensagem: !res.ok ? res.error.mensagem : null,
+    metadados: res.ok
+      ? metaAtualizacao({}, toClienteResponseDto(res.value.cliente), Object.keys(body.data))
+      : metaAcao({ clienteId: params.data.id, body: body.data }),
+  });
+
+  if (!res.ok) return sendHttpError(reply, res.error);
+
+  return reply.send({
+    item: toClienteResponseDto(res.value.cliente),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function excluirClienteController(request: FastifyRequest<{ Params: ClienteIdParamsDto }>, reply: FastifyReply) {
+  const params = parseClienteIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const excluirCliente = createFnExcluirCliente(criarDepsClientes());
+
+  const res = await excluirCliente({
+    locatarioId: ctx.locatarioId,
+    clienteId: params.data.id,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "cliente.excluido",
+    sucesso: res.ok,
+    entidadeTipo: "cliente",
+    entidadeId: params.data.id,
+    entidadeNome: res.ok ? res.value.cliente.nome : null,
+    erroCodigo: !res.ok ? res.error.codigo : null,
+    erroMensagem: !res.ok ? res.error.mensagem : null,
+    metadados: metaAcao({ clienteId: params.data.id }),
+  });
+
+  if (!res.ok) return sendHttpError(reply, res.error);
+
+  return reply.send({
+    item: toClienteResponseDto(res.value.cliente),
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/clientes/clientes.dto.ts
+==================================================
+// apps/api/src/modules/clientes/clientes.dto.ts
+
+import { z } from "zod";
+
+export const clienteIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+export const criarClienteBodySchema = z.object({
+  nome: z.string().trim().min(2, "O campo 'nome' deve ter ao menos 2 caracteres."),
+  documento: z.string().trim().optional().nullable(),
+  email: z.string().trim().email("E-mail inválido.").optional().nullable(),
+  telefone: z.string().trim().optional().nullable(),
+});
+
+export const atualizarClienteBodySchema = z
+  .object({
+    nome: z.string().trim().min(2).optional(),
+    documento: z.string().trim().optional().nullable(),
+    email: z.string().trim().email("E-mail inválido.").optional().nullable(),
+    telefone: z.string().trim().optional().nullable(),
+  })
+  .refine(
+    (data) =>
+      data.nome !== undefined ||
+      data.documento !== undefined ||
+      data.email !== undefined ||
+      data.telefone !== undefined,
+    { message: "Informe ao menos um campo para atualização." },
+  );
+
+export type ClienteIdParamsDto = z.infer<typeof clienteIdParamsSchema>;
+export type CriarClienteBodyDto = z.infer<typeof criarClienteBodySchema>;
+export type AtualizarClienteBodyDto = z.infer<typeof atualizarClienteBodySchema>;
+
+export function parseClienteIdParams(input: unknown) {
+  return clienteIdParamsSchema.safeParse(input);
+}
+
+export function parseCriarClienteBody(input: unknown) {
+  return criarClienteBodySchema.safeParse(input);
+}
+
+export function parseAtualizarClienteBody(input: unknown) {
+  return atualizarClienteBodySchema.safeParse(input);
+}
+
+==================================================
+FILE: apps/api/src/modules/clientes/clientes.presenter.ts
+==================================================
+// apps/api/src/modules/clientes/clientes.presenter.ts
+
+import type { Cliente } from "@core-kit/core";
+
+export function toClienteResponseDto(cliente: Cliente) {
+  return {
+    clienteId: cliente.clienteId,
+    locatarioId: cliente.locatarioId,
+    nome: cliente.nome,
+    documento: cliente.documento,
+    email: cliente.email,
+    telefone: cliente.telefone,
+    criadoEm: cliente.criadoEm,
+    atualizadoEm: cliente.atualizadoEm,
+    excluidoEm: cliente.excluidoEm,
+  };
+}
+
+export function toListarClientesResponseDto(itens: Cliente[]) {
+  return itens.map(toClienteResponseDto);
+}
+
+==================================================
+FILE: apps/api/src/modules/fornecedores/fornecedores.controller.ts
+==================================================
+// apps/api/src/modules/fornecedores/fornecedores.controller.ts
+
+import { createFnAtualizarFornecedor, createFnCriarFornecedor, createFnExcluirFornecedor, createFnListarFornecedores, createFnObterFornecedor, metaAcao } from "@core-kit/core";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto, parseAtualizarFornecedorBody, parseCriarFornecedorBody, parseFornecedorIdParams } from "./fornecedores.dto.js";
+import { FastifyReply, FastifyRequest } from "fastify";
+import { toFornecedorResponseDto, toListarFornecedoresResponseDto } from "./fornecedores.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+
+function criarDepsFornecedores() {
+  return {
+    fornecedoresRepositorio: createFornecedoresRepositorio(clientePrisma),
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+  };
+}
+
+function responderErroValidacao(
+  reply: FastifyReply,
+  parseResult: {
+    error: {
+      flatten: () => {
+        fieldErrors: Record<string, string[] | undefined>;
+        formErrors: string[];
+      };
+    };
+  },
+) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: {
+      operacao: "http.fornecedores.validacao",
+      campos: fieldErrors,
+      formulario: formErrors,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarFornecedoresController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { fornecedoresRepositorio } = criarDepsFornecedores();
+
+  const listarFornecedores = createFnListarFornecedores({
+    fornecedoresRepositorio,
+  });
+
+  const resultado = await listarFornecedores({
+    locatarioId: ctx.locatarioId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarFornecedoresResponseDto(resultado.value.itens),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function obterFornecedorController(request: FastifyRequest<{ Params: FornecedorIdParamsDto }>, reply: FastifyReply) {
+  const paramsParse = parseFornecedorIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { fornecedoresRepositorio } = criarDepsFornecedores();
+
+  const obterFornecedor = createFnObterFornecedor({
+    fornecedoresRepositorio,
+  });
+
+  const resultado = await obterFornecedor({
+    locatarioId: ctx.locatarioId,
+    fornecedorId: paramsParse.data.id,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toFornecedorResponseDto(resultado.value.fornecedor),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarFornecedorController(request: FastifyRequest<{ Body: CriarFornecedorBodyDto }>, reply: FastifyReply) {
+  const bodyParse = parseCriarFornecedorBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { fornecedoresRepositorio, transacao, relogio, idPorta } =
+    criarDepsFornecedores();
+
+  const criarFornecedor = createFnCriarFornecedor({
+    fornecedoresRepositorio,
+    transacao,
+    relogio,
+    idPorta,
+  });
+
+  const resultado = await criarFornecedor({
+    locatarioId: ctx.locatarioId,
+    ...bodyParse.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "fornecedor.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "fornecedor",
+    entidadeId: resultado.ok ? resultado.value.fornecedorId : null,
+    entidadeNome: bodyParse.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: {
+      fornecedorId: resultado.value.fornecedorId,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function atualizarFornecedorController(request: FastifyRequest<{ Params: FornecedorIdParamsDto; Body: AtualizarFornecedorBodyDto; }>, reply: FastifyReply) {
+  const paramsParse = parseFornecedorIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const bodyParse = parseAtualizarFornecedorBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { fornecedoresRepositorio, transacao, relogio } =
+    criarDepsFornecedores();
+
+  const atualizarFornecedor = createFnAtualizarFornecedor({
+    fornecedoresRepositorio,
+    transacao,
+    relogio,
+  });
+
+  const resultado = await atualizarFornecedor({
+    locatarioId: ctx.locatarioId,
+    fornecedorId: paramsParse.data.id,
+    ...bodyParse.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "fornecedor.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "fornecedor",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.fornecedor.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      fornecedorId: paramsParse.data.id,
+      alteracoes: bodyParse.data,
+    }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toFornecedorResponseDto(resultado.value.fornecedor),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function excluirFornecedorController(request: FastifyRequest<{ Params: FornecedorIdParamsDto }>, reply: FastifyReply) {
+  const paramsParse = parseFornecedorIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { fornecedoresRepositorio, transacao, relogio } =
+    criarDepsFornecedores();
+
+  const excluirFornecedor = createFnExcluirFornecedor({
+    fornecedoresRepositorio,
+    transacao,
+    relogio,
+  });
+
+  const resultado = await excluirFornecedor({
+    locatarioId: ctx.locatarioId,
+    fornecedorId: paramsParse.data.id,
+    excluidoPor: ctx.usuarioId ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "fornecedor.excluido",
+    sucesso: resultado.ok,
+    entidadeTipo: "fornecedor",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.fornecedor.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ fornecedorId: paramsParse.data.id }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toFornecedorResponseDto(resultado.value.fornecedor),
+  });
+}
+
+==================================================
+FILE: apps/api/src/modules/fornecedores/fornecedores.dto.ts
+==================================================
+// apps/api/src/modules/fornecedores/fornecedores.dto.ts
+
+import { z } from "zod";
+
+export const fornecedorIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+export const criarFornecedorBodySchema = z.object({
+  nome: z.string().trim().min(2, "O campo 'nome' deve ter ao menos 2 caracteres."),
+  documento: z.string().trim().optional().nullable(),
+  email: z.string().trim().email("E-mail inválido.").optional().nullable(),
+  telefone: z.string().trim().optional().nullable(),
+});
+
+export const atualizarFornecedorBodySchema = z
+  .object({
+    nome: z.string().trim().min(2).optional(),
+    documento: z.string().trim().optional().nullable(),
+    email: z.string().trim().email("E-mail inválido.").optional().nullable(),
+    telefone: z.string().trim().optional().nullable(),
+  })
+  .refine(
+    (data) =>
+      data.nome !== undefined ||
+      data.documento !== undefined ||
+      data.email !== undefined ||
+      data.telefone !== undefined,
+    { message: "Informe ao menos um campo para atualização." },
+  );
+
+export type FornecedorIdParamsDto = z.infer<typeof fornecedorIdParamsSchema>;
+export type CriarFornecedorBodyDto = z.infer<typeof criarFornecedorBodySchema>;
+export type AtualizarFornecedorBodyDto = z.infer<typeof atualizarFornecedorBodySchema>;
+
+export function parseFornecedorIdParams(input: unknown) {
+  return fornecedorIdParamsSchema.safeParse(input);
+}
+
+export function parseCriarFornecedorBody(input: unknown) {
+  return criarFornecedorBodySchema.safeParse(input);
+}
+
+export function parseAtualizarFornecedorBody(input: unknown) {
+  return atualizarFornecedorBodySchema.safeParse(input);
+}
+
+==================================================
+FILE: apps/api/src/modules/fornecedores/fornecedores.presenter.ts
+==================================================
+// apps/api/src/modules/fornecedores/fornecedores.presenter.ts
+
+import type { Fornecedor } from "@core-kit/core";
+
+export function toFornecedorResponseDto(fornecedor: Fornecedor) {
+  return {
+    fornecedorId: fornecedor.fornecedorId,
+    locatarioId: fornecedor.locatarioId,
+    nome: fornecedor.nome,
+    documento: fornecedor.documento,
+    email: fornecedor.email,
+    telefone: fornecedor.telefone,
+    criadoEm: fornecedor.criadoEm,
+    atualizadoEm: fornecedor.atualizadoEm,
+    excluidoEm: fornecedor.excluidoEm,
+  };
+}
+
+export function toListarFornecedoresResponseDto(itens: Fornecedor[]) {
+  return itens.map(toFornecedorResponseDto);
+}
+
+==================================================
+FILE: apps/api/src/modules/locatarios/locatarios.controller.ts
+==================================================
+// apps/api/src/modules/locatarios/locatarios.controller.ts
+
+import { FastifyReply, FastifyRequest } from "fastify";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createFnAtivarConfiguracaoLocatario, createFnAtualizarConfiguracaoLocatario, createFnAtualizarLocatario, createFnCriarConfiguracaoLocatario, 
+  createFnCriarLocatario, createFnDesvincularModuloDaAssinatura, createFnEncerrarLocatario, createFnListarLocatarios, createFnListarModulosHabilitadosLocatario, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, 
+  createFnVincularModuloNaAssinatura, 
+  metaAcao } from "@core-kit/core";
+import { exigirMesmoLocatarioHttp } from "../../http/routeGuards.js";
+//import { auditar } from "../auditoria/auditoria.dispatcher.instance.js";
+import { criarContextoAuditoria } from "../auditoria/auditoria.helpers.js";
+import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma.js";
+import { AtualizarConfiguracaoBodyDto, AtualizarLocatarioBodyDto, ConfiguracaoIdOnlyParamsDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, CriarLocatarioBodyDto, EncerrarLocatarioBodyDto, 
+  LocatarioIdParamsDto, ModuloIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
+  parseEncerrarLocatarioBody, parseLocatarioIdParams, parseModuloIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, parseVincularModuloAssinaturaBody, ReativarLocatarioBodyDto, 
+  SuspenderLocatarioBodyDto, 
+  VincularModuloAssinaturaBodyDto} from "./locatarios.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp.js";
+import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma.js";
+import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma.js";
+import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.js";
+import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma.js";
+import { responderErroValidacaoZod } from "../helpersValidacao.js";
+
+function criarDepsLocatarios() {
+  const locatariosRepositorio = createLocatariosRepositorio(clientePrisma);
+
+  return {
+    locatariosRepositorio,
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+  };
+}
+
+function criarDepsAssinaturas() {
+  return {
+    assinaturasRepositorio: createAssinaturasRepositorioPrisma(clientePrisma),
+    assinaturasModulosRepositorio: createAssinaturasModulosRepositorioPrisma(clientePrisma),
+    modulosConsultaRepositorio: createModulosConsultaRepositorioPrisma(clientePrisma),
+    relogio: {
+      agora: () => new Date(),
+    },
+  };
+}
+
+function responderErroValidacao(reply: FastifyReply, issues: Array<{ path: (string | number)[]; message: string }>) {
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: "Entrada inválida.",
+    detalhes: {
+      campos: issues.map((issue) => ({
+        caminho: issue.path.join("."),
+        mensagem: issue.message,
+      })),
+    },
+  });
+}
+
+/* ===========================
+ * SUPERADMIN
+ * =========================== */
+
+/**
+ * Controller de listagem global de locatários.
+ *
+ * Uso restrito ao fluxo superadmin da borda HTTP.
+ *
+ * @param request Requisição Fastify autenticada.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP padronizada.
+ */
+export async function listarLocatariosPlataformaController(request: FastifyRequest, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const { locatariosRepositorio } = criarDepsLocatarios();
+
+  const listarLocatarios = createFnListarLocatarios({
+    locatariosRepositorio: locatariosRepositorio,
+  });
+
+  const resultado = await listarLocatarios({});
+
+  // await auditar(criarContextoAuditoria(request, ctx, { isSuperadmin: true }),
+  //   {
+  //     evento: "plataforma.locatario.listado",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "locatario",
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: metaAcao({
+  //       quantidadeResultados: resultado.ok
+  //         ? Array.isArray(resultado.value)
+  //           ? resultado.value.length
+  //           : resultado.value.itens?.length ?? 0
+  //         : 0,
+  //     }),
+  //   },
+  // );
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ itens: resultado.value.itens });
+}
+
+/**
+ * Controller de consulta global de locatário.
+ *
+ * Uso restrito ao fluxo superadmin da borda HTTP.
+ *
+ * @param request Requisição Fastify com `id` do locatário.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP padronizada.
+ */
+export async function obterLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
+  const params = parseLocatarioIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const { locatariosRepositorio } = criarDepsLocatarios();
+
+  const obterLocatario = createFnObterLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+  });
+
+  const resultado = await obterLocatario({
+    locatarioId: params.data.id,
+  });
+
+  // await auditar(criarContextoAuditoria(request, ctx, {
+  //     isSuperadmin: true,
+  //     locatarioAlvoId: request.params.id,
+  //   }),
+  //   {
+  //     evento: "plataforma.locatario.obtido",
+  //     sucesso: resultado.ok,
+  //     entidadeTipo: "locatario",
+  //     entidadeId: request.params.id,
+  //     entidadeNome: resultado.ok
+  //       ? (resultado.value as any).nome ?? (resultado.value as any).locatario ?? null
+  //       : null,
+  //     erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //     erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //     metadados: metaAcao(),
+  //   },
+  // );
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.locatario });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarLocatarioPlataformaController(request: FastifyRequest<{ Body: CriarLocatarioBodyDto }>, reply: FastifyReply) {
+  const body = parseCriarLocatarioBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const { locatariosRepositorio, relogio, idPorta, transacao } = criarDepsLocatarios();
+
+  const criarLocatario = createFnCriarLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    idPorta,
+    transacao,
+  });
+
+  const resultado = await criarLocatario(body.data);
+
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatarioId : null,
+    entidadeNome: body.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(201).send({
+    item: {
+      locatarioId: resultado.value.locatarioId,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function atualizarLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: AtualizarLocatarioBodyDto }>, reply: FastifyReply) {
+  const params = parseLocatarioIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const body = parseAtualizarLocatarioBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
+
+  const atualizarLocatario = createFnAtualizarLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await atualizarLocatario({
+    locatarioId: params.data.id,
+    ...body.data,
+  });
+
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: body.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.locatario });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function suspenderLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: SuspenderLocatarioBodyDto }>, reply: FastifyReply) {
+  const params = parseLocatarioIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const body = parseSuspenderLocatarioBody(request.body ?? {});
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
+
+  const suspenderLocatario = createFnSuspenderLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await suspenderLocatario({
+    locatarioId: params.data.id,
+    motivoSuspensao: body.data.motivoSuspensao,
+  });
+
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.suspenso",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: resultado.ok ? resultado.value.locatario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.locatario });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function reativarLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: ReativarLocatarioBodyDto }>, reply: FastifyReply) {
+  const params = parseLocatarioIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const body = parseReativarLocatarioBody(request.body ?? {});
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;  
+
+  const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
+
+  const reativarLocatario = createFnReativarLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await reativarLocatario({
+    locatarioId: params.data.id,
+    motivoReativacao: body.data.motivoReativacao,
+  });
+
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.reativado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: resultado.ok ? resultado.value.locatario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.locatario });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function encerrarLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: EncerrarLocatarioBodyDto }>, reply: FastifyReply) {
+  const params = parseLocatarioIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const body = parseEncerrarLocatarioBody(request.body ?? {});
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
+
+  const encerrarLocatario = createFnEncerrarLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await encerrarLocatario({
+    locatarioId: params.data.id,
+    motivoExclusao: body.data.motivoExclusao,
+  });
+
+  await auditarControllerPlataforma(request, plataforma, {
+    evento: "plataforma.locatario.encerrado",
+    sucesso: resultado.ok,
+    entidadeTipo: "locatario",
+    entidadeId: resultado.ok ? resultado.value.locatario.locatarioId : null,
+    entidadeNome: resultado.ok ? resultado.value.locatario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.locatario });
+}
+
+/* ===========================
+ * PRÓPRIO LOCATÁRIO
+ * =========================== */
+
+/**
+ * Controller do tenant admin:
+ * só permite consultar o próprio locatário.
+ *
+ * @param request Requisição Fastify com `id` do locatário.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP padronizada.
+ */
+export async function obterMeuLocatarioController(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { locatariosRepositorio } = criarDepsLocatarios();
+
+  const obterLocatario = createFnObterLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+  });
+
+  const resultado = await obterLocatario({
+    locatarioId: ctx.locatarioId,
+  });
+
+  // await auditar(criarContextoAuditoria(request, ctx), {
+  //   evento: "locatario.obtido",
+  //   sucesso: resultado.ok,
+  //   entidadeTipo: "locatario",
+  //   entidadeId: request.params.id,
+  //   entidadeNome: resultado.ok
+  //     ? (resultado.value as any).locatario ?? (resultado.value as any).nome ?? null
+  //     : null,
+  //   erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+  //   erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+  //   metadados: metaAcao(),
+  // });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.locatario });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarConfiguracoesLocatarioController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { locatariosRepositorio } = criarDepsLocatarios();
+  const resultado = await locatariosRepositorio.listarConfiguracoes({
+    locatarioId: ctx.locatarioId,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ itens: resultado.value });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function obterConfiguracaoAtivaLocatarioController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { locatariosRepositorio } = criarDepsLocatarios();
+  const resultado = await locatariosRepositorio.obterConfiguracaoAtiva({
+    locatarioId: ctx.locatarioId,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value });
+}
+
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarConfiguracaoLocatarioController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: CriarConfiguracaoBodyDto }>, reply: FastifyReply) {
+  const body = parseCriarConfiguracaoBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { locatariosRepositorio, relogio, idPorta, transacao } = criarDepsLocatarios();
+
+  const criarConfiguracao = createFnCriarConfiguracaoLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    idPorta,
+    transacao,
+  });
+
+  const resultado = await criarConfiguracao({
+    locatarioId: ctx.locatarioId,
+    ...body.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "locatario.configuracao.criada",
+    sucesso: resultado.ok,
+    entidadeTipo: "configuracao_locatario",
+    entidadeId: resultado.ok ? resultado.value.configuracaoId ?? null : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(201).send({ item: resultado.value });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function atualizarConfiguracaoLocatarioController(request: FastifyRequest<{ Params: ConfiguracaoIdParamsDto; Body: AtualizarConfiguracaoBodyDto }>, reply: FastifyReply) {
+  const params = parseConfiguracaoIdOnlyParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const body = parseAtualizarConfiguracaoBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
+
+  const atualizarConfiguracao = createFnAtualizarConfiguracaoLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await atualizarConfiguracao({
+    locatarioId: ctx.locatarioId,
+    configuracaoId: params.data.configuracaoId,
+    ...body.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "locatario.configuracao.atualizada",
+    sucesso: resultado.ok,
+    entidadeTipo: "configuracao_locatario",
+    entidadeId: resultado.ok ? resultado.value.configuracao.configuracaoId ?? null : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: body.data }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.configuracao });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function ativarConfiguracaoLocatarioController(request: FastifyRequest<{ Params: ConfiguracaoIdParamsDto }>, reply: FastifyReply) {
+  const params = parseConfiguracaoIdOnlyParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { locatariosRepositorio, relogio, transacao } = criarDepsLocatarios();
+
+  const ativarConfiguracao = createFnAtivarConfiguracaoLocatario({
+    locatariosRepositorio: locatariosRepositorio,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await ativarConfiguracao({
+    locatarioId: ctx.locatarioId,
+    configuracaoId: params.data.configuracaoId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "locatario.configuracao.ativada",
+    sucesso: resultado.ok,
+    entidadeTipo: "configuracao_locatario",
+    entidadeId: resultado.ok ? resultado.value.configuracao.configuracaoId ?? null : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ configuracaoId: params.data.configuracaoId }),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: resultado.value.configuracao });
+}
+
+export async function listarModulosLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseLocatarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const listar = createFnListarModulosHabilitadosLocatario(criarDepsAssinaturas());
+
+  const resultado = await listar({
+    locatarioId: paramsParse.data.id,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: resultado.value,
+  });
+}
+
+export async function vincularModuloLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: VincularModuloAssinaturaBodyDto; }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseLocatarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const bodyParse = parseVincularModuloAssinaturaBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacaoZod(reply, bodyParse, "http.plataforma.locatarios.modulos.body");
+  }
+
+  const deps = criarDepsAssinaturas();
+
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
+    paramsParse.data.id,
+  );
+
+  if (!assinaturaAtiva.ok) {
+    return sendHttpError(reply, assinaturaAtiva.error);
+  }
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Locatário não possui assinatura ativa.",
+      detalhes: {
+        locatarioId: paramsParse.data.id,
+        operacao: "http.plataforma.locatarios.modulos.vincular.assinaturaAtiva",
+      },
+    });
+  }
+
+  const vincular = createFnVincularModuloNaAssinatura(deps);
+
+  const resultado = await vincular({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: bodyParse.data.moduloId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: resultado.value,
+  });
+}
+
+export async function desvincularModuloLocatarioPlataformaController(request: FastifyRequest<{ Params: ModuloIdParamsDto }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseModuloIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const deps = criarDepsAssinaturas();
+
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
+    paramsParse.data.id,
+  );
+
+  if (!assinaturaAtiva.ok) {
+    return sendHttpError(reply, assinaturaAtiva.error);
+  }
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Locatário não possui assinatura ativa.",
+      detalhes: {
+        locatarioId: paramsParse.data.id,
+        operacao: "http.plataforma.locatarios.modulos.desvincular.assinaturaAtiva",
+      },
+    });
+  }
+
+  const desvincular = createFnDesvincularModuloDaAssinatura(deps);
+
+  const resultado = await desvincular({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: paramsParse.data.moduloId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: resultado.value,
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/locatarios/locatarios.dto.ts
+==================================================
+// apps/api/src/modules/locatarios/locatarios.dto.ts
+
+import { z } from "zod";
+
+export const locatarioIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+export const configuracaoIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+  configuracaoId: z.string().trim().min(1, "O parâmetro 'configuracaoId' é obrigatório."),
+});
+
+export const configuracaoIdOnlyParamsSchema = z.object({
+  configuracaoId: z.string().trim().min(1, "O parâmetro 'configuracaoId' é obrigatório."),
+});
+
+export const criarLocatarioBodySchema = z.object({
+  nome: z.string().trim().min(2, "O campo 'nome' deve ter ao menos 2 caracteres."),
+  slug: z.string().trim().min(2, "O campo 'slug' deve ter ao menos 2 caracteres."),
+  email: z.string().trim().email("O campo 'email' deve conter um e-mail válido."),
+  documento: z.string().trim().min(5).optional().nullable(),
+  fusoHorario: z.string().trim().min(3).optional(),
+  configuracaoInicial: z.object({
+    modoTema: z.enum(["SISTEMA", "CLARO", "ESCURO"]).optional(),
+    identidadeVisual: z.string().trim().min(2),
+    corPrimaria: z.string().trim().optional().nullable(),
+    corSecundaria: z.string().trim().optional().nullable(),
+    corTerciaria: z.string().trim().optional().nullable(),
+    urlLogo: z.string().trim().url().optional().nullable(),
+    ativa: z.boolean(),
+  }),
+});
+
+export const atualizarLocatarioBodySchema = z.object({
+  nome: z.string().trim().min(2).optional(),
+  email: z.string().trim().email().optional(),
+  documento: z.string().trim().min(5).optional().nullable(),
+  fusoHorario: z.string().trim().min(3).optional(),
+}).refine(
+  (data) =>
+    data.nome !== undefined ||
+    data.email !== undefined ||
+    data.documento !== undefined ||
+    data.fusoHorario !== undefined,
+  { message: "Informe ao menos um campo para atualização." },
+);
+
+export const suspenderLocatarioBodySchema = z.object({
+  motivoSuspensao: z.string().trim().optional().nullable(),
+});
+
+export const reativarLocatarioBodySchema = z.object({
+  motivoReativacao: z.string().trim().optional().nullable(),
+});
+
+export const encerrarLocatarioBodySchema = z.object({
+  motivoExclusao: z.string().trim().optional().nullable(),
+});
+
+export const criarConfiguracaoBodySchema = z.object({
+  modoTema: z.enum(["SISTEMA", "CLARO", "ESCURO"]).optional(),
+  identidadeVisual: z.string().trim().min(2),
+  corPrimaria: z.string().trim().optional().nullable(),
+  corSecundaria: z.string().trim().optional().nullable(),
+  corTerciaria: z.string().trim().optional().nullable(),
+  urlLogo: z.string().trim().url().optional().nullable(),
+  ativa: z.boolean(),
+});
+
+export const atualizarConfiguracaoBodySchema = z.object({
+  modoTema: z.enum(["SISTEMA", "CLARO", "ESCURO"]).optional(),
+  identidadeVisual: z.string().trim().min(2).optional(),
+  corPrimaria: z.string().trim().optional().nullable(),
+  corSecundaria: z.string().trim().optional().nullable(),
+  corTerciaria: z.string().trim().optional().nullable(),
+  urlLogo: z.string().trim().url().optional().nullable(),
+}).refine(
+  (data) =>
+    data.modoTema !== undefined ||
+    data.identidadeVisual !== undefined ||
+    data.corPrimaria !== undefined ||
+    data.corSecundaria !== undefined ||
+    data.corTerciaria !== undefined ||
+    data.urlLogo !== undefined,
+  { message: "Informe ao menos um campo para atualização da configuração." },
+);
+
+export const moduloIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+  moduloId: z.string().trim().min(1, "O parâmetro 'moduloId' é obrigatório."),
+});
+
+export const vincularModuloAssinaturaBodySchema = z.object({
+  moduloId: z.string().trim().min(1, "O campo 'moduloId' é obrigatório."),
+});
+
+export type LocatarioIdParamsDto = z.infer<typeof locatarioIdParamsSchema>;
+export type ConfiguracaoIdParamsDto = z.infer<typeof configuracaoIdParamsSchema>;
+export type ConfiguracaoIdOnlyParamsDto = z.infer<typeof configuracaoIdOnlyParamsSchema>;
+export type CriarLocatarioBodyDto = z.infer<typeof criarLocatarioBodySchema>;
+export type AtualizarLocatarioBodyDto = z.infer<typeof atualizarLocatarioBodySchema>;
+export type SuspenderLocatarioBodyDto = z.infer<typeof suspenderLocatarioBodySchema>;
+export type ReativarLocatarioBodyDto = z.infer<typeof reativarLocatarioBodySchema>;
+export type EncerrarLocatarioBodyDto = z.infer<typeof encerrarLocatarioBodySchema>;
+export type CriarConfiguracaoBodyDto = z.infer<typeof criarConfiguracaoBodySchema>;
+export type AtualizarConfiguracaoBodyDto = z.infer<typeof atualizarConfiguracaoBodySchema>;
+export type ModuloIdParamsDto = z.infer<typeof moduloIdParamsSchema>;
+export type VincularModuloAssinaturaBodyDto = z.infer<typeof vincularModuloAssinaturaBodySchema>;
+
+export type ConfiguracaoLocatarioResponseDto = {
+  locatarioId: string;
+  configuracaoId: string;
+  modoTema: "SISTEMA" | "CLARO" | "ESCURO";
+  identidadeVisual: string;
+  corPrimaria: string | null;
+  corSecundaria: string | null;
+  corTerciaria: string | null;
+  urlLogo: string | null;
+  ativa: boolean;
+  criadoEm: string | null;
+  atualizadoEm: string | null;
+};
+
+export type LocatarioResponseDto = {
+  locatarioId: string;
+  nome: string;
+  slug: string;
+  documento: string | null;
+  email: string;
+  fusoHorario: string;
+  status: string;
+  criadoEm: string | null;
+  atualizadoEm: string | null;
+  excluidoEm: string | null;
+  motivoExclusao: string | null;
+  suspensoEm: string | null;
+  motivoSuspensao: string | null;
+  reativadoEm: string | null;
+  motivoReativacao: string | null;
+  configuracoes: ConfiguracaoLocatarioResponseDto[];
+};
+
+export type ItemResponseDto<T> = {
+  item: T;
+};
+
+export type ListaResponseDto<T> = {
+  itens: T[];
+};
+
+export function parseLocatarioIdParams(input: unknown) {
+  return locatarioIdParamsSchema.safeParse(input);
+}
+
+export function parseConfiguracaoIdOnlyParams(input: unknown) {
+  return configuracaoIdOnlyParamsSchema.safeParse(input);
+}
+
+export function parseConfiguracaoIdParams(input: unknown) {
+  return configuracaoIdParamsSchema.safeParse(input);
+}
+
+export function parseCriarLocatarioBody(input: unknown) {
+  return criarLocatarioBodySchema.safeParse(input);
+}
+
+export function parseAtualizarLocatarioBody(input: unknown) {
+  return atualizarLocatarioBodySchema.safeParse(input);
+}
+
+export function parseSuspenderLocatarioBody(input: unknown) {
+  return suspenderLocatarioBodySchema.safeParse(input);
+}
+
+export function parseReativarLocatarioBody(input: unknown) {
+  return reativarLocatarioBodySchema.safeParse(input);
+}
+
+export function parseEncerrarLocatarioBody(input: unknown) {
+  return encerrarLocatarioBodySchema.safeParse(input);
+}
+
+export function parseCriarConfiguracaoBody(input: unknown) {
+  return criarConfiguracaoBodySchema.safeParse(input);
+}
+
+export function parseAtualizarConfiguracaoBody(input: unknown) {
+  return atualizarConfiguracaoBodySchema.safeParse(input);
+}
+
+export function parseModuloIdParams(input: unknown) {
+  return moduloIdParamsSchema.safeParse(input);
+}
+
+export function parseVincularModuloAssinaturaBody(input: unknown) {
+  return vincularModuloAssinaturaBodySchema.safeParse(input);
+}
+
+
+==================================================
+FILE: apps/api/src/modules/locatarios/locatarios.presenter.ts
+==================================================
+// apps/api/src/modules/locatarios/locatarios.presenter.ts
+
+import type { ConfiguracaoLocatario, Locatario } from "@core-kit/core";
+import type { ConfiguracaoLocatarioResponseDto, LocatarioResponseDto } from "./locatarios.dto.js";
+
+function serializarData(valor: Date | null): string | null {
+  return valor ? valor.toISOString() : null;
+}
+
+export function serializarConfiguracaoLocatario(configuracao: ConfiguracaoLocatario): ConfiguracaoLocatarioResponseDto {
+  return {
+    locatarioId: configuracao.locatarioId,
+    configuracaoId: configuracao.configuracaoId,
+    modoTema: configuracao.modoTema,
+    identidadeVisual: configuracao.identidadeVisual,
+    corPrimaria: configuracao.corPrimaria,
+    corSecundaria: configuracao.corSecundaria,
+    corTerciaria: configuracao.corTerciaria,
+    urlLogo: configuracao.urlLogo,
+    ativa: configuracao.ativa,
+    criadoEm: serializarData(configuracao.criadoEm),
+    atualizadoEm: serializarData(configuracao.atualizadoEm),
+  };
+}
+
+export function serializarLocatario(locatario: Locatario): LocatarioResponseDto {
+  return {
+    locatarioId: locatario.locatarioId,
+    nome: locatario.nome,
+    slug: locatario.slug,
+    documento: locatario.documento,
+    email: locatario.email,
+    fusoHorario: locatario.fusoHorario,
+    status: locatario.status,
+    criadoEm: serializarData(locatario.criadoEm),
+    atualizadoEm: serializarData(locatario.atualizadoEm),
+    excluidoEm: serializarData(locatario.excluidoEm),
+    motivoExclusao: locatario.motivoExclusao,
+    suspensoEm: serializarData(locatario.suspensoEm),
+    motivoSuspensao: locatario.motivoSuspensao,
+    reativadoEm: serializarData(locatario.reativadoEm),
+    motivoReativacao: locatario.motivoReativacao,
+    configuracoes: locatario.configuracoes.map(serializarConfiguracaoLocatario),
+  };
+}
+
+
+==================================================
+FILE: apps/api/src/modules/produtos/produtos.controller.ts
+==================================================
+// apps/api/src/modules/produtos/produtos.controller.ts
+
+import { createFnAtualizarProduto, createFnCriarProduto, createFnExcluirProduto, createFnListarProdutos, createFnObterProduto, metaAcao } from "@core-kit/core";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, parseAtualizarProdutoBody, parseCriarProdutoBody, parseProdutoIdParams, ProdutoIdParamsDto } from "./produtos.dto.js";
+import { FastifyReply, FastifyRequest } from "fastify";
+import { toListarProdutosResponseDto, toProdutoResponseDto } from "./produtos.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+
+function criarDepsProdutos() {
+  return {
+    produtosRepositorio: createProdutosRepositorio(clientePrisma),
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+  };
+}
+
+function responderErroValidacao(
+  reply: FastifyReply,
+  parseResult: {
+    error: {
+      flatten: () => {
+        fieldErrors: Record<string, string[] | undefined>;
+        formErrors: string[];
+      };
+    };
+  },
+) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: {
+      operacao: "http.produtos.validacao",
+      campos: fieldErrors,
+      formulario: formErrors,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarProdutosController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { produtosRepositorio } = criarDepsProdutos();
+
+  const listarProdutos = createFnListarProdutos({
+    produtosRepositorio,
+  });
+
+  const resultado = await listarProdutos({
+    locatarioId: ctx.locatarioId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarProdutosResponseDto(resultado.value.itens),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function obterProdutoController(request: FastifyRequest<{ Params: ProdutoIdParamsDto }>, reply: FastifyReply) {
+  const paramsParse = parseProdutoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { produtosRepositorio } = criarDepsProdutos();
+
+  const obterProduto = createFnObterProduto({
+    produtosRepositorio,
+  });
+
+  const resultado = await obterProduto({
+    locatarioId: ctx.locatarioId,
+    produtoId: paramsParse.data.id,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toProdutoResponseDto(resultado.value.produto),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarProdutoController(request: FastifyRequest<{ Body: CriarProdutoBodyDto }>, reply: FastifyReply) {
+  const bodyParse = parseCriarProdutoBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { produtosRepositorio, transacao, relogio, idPorta } =
+    criarDepsProdutos();
+
+  const criarProduto = createFnCriarProduto({
+    produtosRepositorio,
+    transacao,
+    relogio,
+    idPorta,
+  });
+
+  const resultado = await criarProduto({
+    locatarioId: ctx.locatarioId,
+    ...bodyParse.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "produto.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "produto",
+    entidadeId: resultado.ok ? resultado.value.produtoId : null,
+    entidadeNome: bodyParse.data.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: {
+      produtoId: resultado.value.produtoId,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function atualizarProdutoController(request: FastifyRequest<{ Params: ProdutoIdParamsDto; Body: AtualizarProdutoBodyDto; }>, reply: FastifyReply) {
+  const paramsParse = parseProdutoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const bodyParse = parseAtualizarProdutoBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { produtosRepositorio, transacao, relogio } = criarDepsProdutos();
+
+  const atualizarProduto = createFnAtualizarProduto({
+    produtosRepositorio,
+    transacao,
+    relogio,
+  });
+
+  const resultado = await atualizarProduto({
+    locatarioId: ctx.locatarioId,
+    produtoId: paramsParse.data.id,
+    ...bodyParse.data,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "produto.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "produto",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.produto.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      produtoId: paramsParse.data.id,
+      alteracoes: bodyParse.data,
+    }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toProdutoResponseDto(resultado.value.produto),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function excluirProdutoController(request: FastifyRequest<{ Params: ProdutoIdParamsDto }>, reply: FastifyReply) {
+  const paramsParse = parseProdutoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { produtosRepositorio, transacao, relogio } = criarDepsProdutos();
+
+  const excluirProduto = createFnExcluirProduto({
+    produtosRepositorio,
+    transacao,
+    relogio,
+  });
+
+  const resultado = await excluirProduto({
+    locatarioId: ctx.locatarioId,
+    produtoId: paramsParse.data.id,
+    excluidoPor: ctx.usuarioId ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "produto.excluido",
+    sucesso: resultado.ok,
+    entidadeTipo: "produto",
+    entidadeId: paramsParse.data.id,
+    entidadeNome: resultado.ok ? resultado.value.produto.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ produtoId: paramsParse.data.id }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toProdutoResponseDto(resultado.value.produto),
+  });
+}
+
+==================================================
+FILE: apps/api/src/modules/produtos/produtos.dto.ts
+==================================================
+// apps/api/src/modules/produtos/produtos.dto.ts
+
+import { z } from "zod";
+
+export const produtoIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+export const criarProdutoBodySchema = z.object({
+  sku: z.string().trim().optional().nullable(),
+  nome: z.string().trim().min(2, "O campo 'nome' deve ter ao menos 2 caracteres."),
+  descricao: z.string().trim().optional().nullable(),
+  unidade: z.string().trim().min(1).default("UN"),
+  tipo: z.enum(["PRODUTO", "SERVICO"]),
+  precoVenda: z.coerce.number().nonnegative().default(0),
+  custoReferencia: z.coerce.number().nonnegative().optional().nullable(),
+  ativo: z.boolean().default(true),
+});
+
+export const atualizarProdutoBodySchema = z
+  .object({
+    sku: z.string().trim().optional().nullable(),
+    nome: z.string().trim().min(2).optional(),
+    descricao: z.string().trim().optional().nullable(),
+    unidade: z.string().trim().min(1).optional(),
+    tipo: z.enum(["PRODUTO", "SERVICO"]).optional(),
+    precoVenda: z.coerce.number().nonnegative().optional(),
+    custoReferencia: z.coerce.number().nonnegative().optional().nullable(),
+    ativo: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.sku !== undefined ||
+      data.nome !== undefined ||
+      data.descricao !== undefined ||
+      data.unidade !== undefined ||
+      data.tipo !== undefined ||
+      data.precoVenda !== undefined ||
+      data.custoReferencia !== undefined ||
+      data.ativo !== undefined,
+    { message: "Informe ao menos um campo para atualização." },
+  );
+
+export type ProdutoIdParamsDto = z.infer<typeof produtoIdParamsSchema>;
+export type CriarProdutoBodyDto = z.infer<typeof criarProdutoBodySchema>;
+export type AtualizarProdutoBodyDto = z.infer<typeof atualizarProdutoBodySchema>;
+
+export function parseProdutoIdParams(input: unknown) {
+  return produtoIdParamsSchema.safeParse(input);
+}
+
+export function parseCriarProdutoBody(input: unknown) {
+  return criarProdutoBodySchema.safeParse(input);
+}
+
+export function parseAtualizarProdutoBody(input: unknown) {
+  return atualizarProdutoBodySchema.safeParse(input);
+}
+
+==================================================
+FILE: apps/api/src/modules/produtos/produtos.presenter.ts
+==================================================
+// apps/api/src/modules/produtos/produtos.presenter.ts
+
+import type { Produto } from "@core-kit/core";
+
+export function toProdutoResponseDto(produto: Produto) {
+  return {
+    produtoId: produto.produtoId,
+    locatarioId: produto.locatarioId,
+    sku: produto.sku,
+    nome: produto.nome,
+    descricao: produto.descricao,
+    unidade: produto.unidade,
+    tipo: produto.tipo,
+    precoVenda: produto.precoVenda,
+    custoReferencia: produto.custoReferencia,
+    criadoEm: produto.criadoEm,
+    atualizadoEm: produto.atualizadoEm,
+    excluidoEm: produto.excluidoEm,
+  };
+}
+
+export function toListarProdutosResponseDto(itens: Produto[]) {
+  return itens.map(toProdutoResponseDto);
+}
+
+==================================================
+FILE: apps/api/src/modules/rbac/rbac.controller.ts
+==================================================
+// apps/api/src/modules/rbac/rbac.controller.ts
+
+
+
+==================================================
+FILE: apps/api/src/modules/rbac/rbac.dto.ts
+==================================================
+// apps/api/src/modules/rbac/rbac.dto.ts
+
+import { z } from "zod";
+
+/**
+ * Schema base para parâmetros que carregam o identificador de papel.
+ */
+export const papelIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+/**
+ * Schema base para parâmetros que carregam o identificador de usuário.
+ */
+export const usuarioIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+export type PapelIdParamsDto = z.infer<typeof papelIdParamsSchema>;
+export type UsuarioIdParamsDto = z.infer<typeof usuarioIdParamsSchema>;
+
+/**
+ * Body para criação de papel.
+ */
+export const criarPapelBodySchema = z.object({
+  nome: z
+    .string()
+    .trim()
+    .min(2, "O campo 'nome' deve ter ao menos 2 caracteres."),
+  descricao: z
+    .string()
+    .trim()
+    .min(1, "O campo 'descricao' deve ter ao menos 1 caractere.")
+    .optional(),
+});
+
+export type CriarPapelBodyDto = z.infer<typeof criarPapelBodySchema>;
+
+/**
+ * Body para atualização de papel.
+ */
+export const atualizarPapelBodySchema = z
+  .object({
+    nome: z
+      .string()
+      .trim()
+      .min(2, "O campo 'nome' deve ter ao menos 2 caracteres.")
+      .optional(),
+    descricao: z
+      .string()
+      .trim()
+      .min(1, "O campo 'descricao' deve ter ao menos 1 caractere.")
+      .optional(),
+  })
+  .refine((data) => data.nome !== undefined || data.descricao !== undefined, {
+    message: "Informe ao menos um campo para atualização.",
+  });
+
+export type AtualizarPapelBodyDto = z.infer<typeof atualizarPapelBodySchema>;
+
+/**
+ * Body para atribuir permissão a um papel.
+ */
+export const atribuirPermissaoBodySchema = z.object({
+  permissao: z
+    .string()
+    .trim()
+    .min(1, "O campo 'permissao' é obrigatório."),
+});
+
+export type AtribuirPermissaoBodyDto = z.infer<
+  typeof atribuirPermissaoBodySchema
+>;
+
+/**
+ * Body para remover permissão de um papel.
+ *
+ * Mantido igual ao de atribuição para simplicidade do contrato HTTP.
+ */
+export const removerPermissaoBodySchema = z.object({
+  permissao: z
+    .string()
+    .trim()
+    .min(1, "O campo 'permissao' é obrigatório."),
+});
+
+export type RemoverPermissaoBodyDto = z.infer<
+  typeof removerPermissaoBodySchema
+>;
+
+/**
+ * Body para atualização dos papéis de um usuário.
+ */
+export const atualizarPapeisUsuarioBodySchema = z.object({
+  papeis: z
+    .array(z.string().trim().min(1))
+    .min(1, "Informe ao menos um papel."),
+});
+
+export type AtualizarPapeisUsuarioBodyDto = z.infer<
+  typeof atualizarPapeisUsuarioBodySchema
+>;
+
+/**
+ * Helpers de parse seguro.
+ */
+export function parsePapelIdParams(input: unknown) {
+  return papelIdParamsSchema.safeParse(input);
+}
+
+export function parseUsuarioIdParams(input: unknown) {
+  return usuarioIdParamsSchema.safeParse(input);
+}
+
+export function parseCriarPapelBody(input: unknown) {
+  return criarPapelBodySchema.safeParse(input);
+}
+
+export function parseAtualizarPapelBody(input: unknown) {
+  return atualizarPapelBodySchema.safeParse(input);
+}
+
+export function parseAtribuirPermissaoBody(input: unknown) {
+  return atribuirPermissaoBodySchema.safeParse(input);
+}
+
+export function parseRemoverPermissaoBody(input: unknown) {
+  return removerPermissaoBodySchema.safeParse(input);
+}
+
+export function parseAtualizarPapeisUsuarioBody(input: unknown) {
+  return atualizarPapeisUsuarioBodySchema.safeParse(input);
+}
+
+==================================================
+FILE: apps/api/src/modules/usuarios/usuarios.controller.ts
+==================================================
+// apps/api/src/modules/usuarios/usuarios.controller.ts
+
+import { FastifyReply, FastifyRequest } from "fastify";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma.js";
+import { createFnAtualizarUsuario, createFnCriarUsuario, createFnDesativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
+  createFnReativarUsuario, metaAcao, metaAtualizacao, metaCriacao, Permissoes } from "@core-kit/core";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto.js";
+import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto.js";
+import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp.js";
+
+/**
+ * Monta as dependências operacionais do módulo de usuários na API.
+ *
+ * Responsabilidades:
+ * - criar o repositório operacional Prisma;
+ * - fornecer transação local do módulo;
+ * - reaproveitar `relogio`, `idPorta` e `hashPorta` do runtime oficial de auth.
+ *
+ * @returns Dependências prontas para os controllers de usuários.
+ */
+function criarDepsUsuarios() {
+  const usuariosRepositorio = createUsuariosRepositorio(clientePrisma);
+
+  return {
+    usuariosRepositorio,
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+    hashPorta: getAuthBootstrap().runtime.emitirSessaoDeps.hashPorta,
+  };
+}
+
+/**
+ * 
+ * @param reply 
+ * @param parseResult 
+ * @returns 
+ */
+function responderErroValidacao(reply: FastifyReply, parseResult: {
+  error: { flatten: () => { fieldErrors: Record<string, string[] | undefined>; formErrors: string[] } };
+}) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: {
+      operacao: "http.usuarios.validacao",
+      campos: fieldErrors,
+      formulario: formErrors,
+    },
+  });
+}
+
+
+/**
+  * Lista usuários do locatário autenticado.
+ *
+ * Permissão exigida:
+ * - `tenant.usuario.listar`
+ *
+ * Resposta:
+ * - `200 OK` com `{ itens: Usuario[] }`
+ *
+ * Fluxo:
+ * - `authGuard` autentica;
+ * - `buildContextFromRequest` resolve o contexto;
+ * - o caso de uso do domínio operacional lista usuários no escopo do locatário.
+ *
+ * Observação:
+ * - este controller usa o repositório operacional de usuários;
+ * - não depende mais do adapter de auth.
+ *
+ * @param request Requisição Fastify autenticada.
+ * @param reply Resposta Fastify.
+ * @returns Resposta HTTP padronizada.
+ */
+export async function listarUsuariosController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_LISTAR,
+    modulo: "USUARIOS",
+  });
+  if (!ctx) return;
+
+  const { usuariosRepositorio: usuariosRepositorio } = criarDepsUsuarios();
+
+  const listarUsuariosPorLocatario = createFnListarUsuariosPorLocatario({
+    usuariosRepositorio: usuariosRepositorio,
+  });
+
+  const resultado = await listarUsuariosPorLocatario({
+    locatarioId: ctx.locatarioId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "usuario.listado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      quantidadeResultados: resultado.ok ? resultado.value.itens.length : 0,
+    }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarUsuariosResponseDto(resultado.value.itens),
+  });
+}
+
+/**
+ * Obtém um usuário específico do locatário autenticado.
+ *
+ * Permissão exigida:
+ * - `tenant.usuario.listar`
+ *
+ * Resposta:
+ * - `200 OK` com `{ item: Usuario }`
+ *
+ * @param request Requisição Fastify com `params.id`.
+ * @param reply Resposta Fastify.
+ * @returns Usuário encontrado no escopo do locatário autenticado.
+ */
+export async function obterUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_OBTER,
+    modulo: "USUARIOS",
+  });
+  if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const { usuariosRepositorio } = criarDepsUsuarios();
+
+  const obterUsuario = createFnObterUsuario({
+    usuariosRepositorio,
+  });
+
+  const resultado = await obterUsuario({
+    locatarioId: ctx.locatarioId,
+    usuarioId: request.params.id,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "usuario.obtido",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao(),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toUsuarioResponseDto(resultado.value.usuario),
+  });
+}
+
+/**
+ * Cria um novo usuário no locatário autenticado.
+ *
+ * Permissão exigida:
+ * - `tenant.usuario.criar`
+ *
+ * Fluxo:
+ * 1. autoriza a operação;
+ * 2. gera hash da senha via porta técnica oficial do runtime de auth;
+ * 3. executa o caso de uso de criação no domínio;
+ * 4. devolve apenas o identificador criado.
+ *
+ * Resposta:
+ * - `201 Created` com `{ item: { usuarioId } }`
+ *
+ * @param request Requisição Fastify com `email`, `nome` e `senha`.
+ * @param reply Resposta Fastify.
+ * @returns Identificador do usuário recém-criado.
+ */
+export async function criarUsuarioController(request: FastifyRequest<{ Body: CriarUsuarioBodyDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_CRIAR,
+    modulo: "USUARIOS",
+  });
+  if (!ctx) return;
+
+  const bodyParse = parseCriarUsuarioBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const body = bodyParse.data;
+
+  const senhaHashRes = await getAuthBootstrap().runtime.emitirSessaoDeps.hashPorta.gerarHashSenha(body.senha);
+  if (!senhaHashRes.ok) {
+    return sendHttpError(reply, senhaHashRes.error);
+  }
+
+  const { usuariosRepositorio, transacao, relogio, idPorta } = criarDepsUsuarios();
+
+  const criarUsuario = createFnCriarUsuario({
+    usuariosRepositorio,
+    transacao,
+    relogio,
+    idPorta,
+  });
+
+  const resultado = await criarUsuario({
+    locatarioId: ctx.locatarioId,
+    email: request.body.email,
+    nome: request.body.nome,
+    senhaHash: senhaHashRes.value,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "usuario.criado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: resultado.ok ? resultado.value.usuarioId : null,
+    entidadeNome: request.body.nome,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: resultado.ok
+      ? metaCriacao({
+          usuarioId: resultado.value.usuarioId,
+          nome: request.body.nome,
+          email: request.body.email,
+          status: "ATIVO",
+        })
+      : metaAcao({
+          email: request.body.email,
+        }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: {
+      usuarioId: resultado.value.usuarioId,
+    },
+  });
+}
+
+/**
+ * Atualiza dados cadastrais de um usuário.
+ *
+ * Permissão exigida:
+ * - `tenant.usuario.atualizar`
+ *
+ * Observação:
+ * - esta operação não altera senha;
+ * - senha continua sendo fluxo separado por regra arquitetural.
+ *
+ * Resposta:
+ * - `200 OK` com `{ item: Usuario }`
+ *
+ * @param request Requisição Fastify com `params.id` e body parcial.
+ * @param reply Resposta Fastify.
+ * @returns Usuário atualizado.
+ */
+export async function atualizarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: AtualizarUsuarioBodyDto; }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+    modulo: "USUARIOS",
+  });
+  if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const bodyParse = parseAtualizarUsuarioBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const params = paramsParse.data;
+  const body = bodyParse.data;
+
+  const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
+
+  const usuarioAntes = await usuariosRepositorio.buscarPorId({
+    locatarioId: ctx.locatarioId,
+    usuarioId: request.params.id,
+  });
+
+  const atualizarUsuario = createFnAtualizarUsuario({
+    usuariosRepositorio,
+    transacao,
+    relogio,
+  });
+
+  const resultado = await atualizarUsuario({
+    locatarioId: ctx.locatarioId,
+    usuarioId: params.id,
+    nome: body.nome,
+    email: body.email,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "usuario.atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados:
+      resultado.ok && usuarioAntes.ok && usuarioAntes.value
+        ? metaAtualizacao(
+            {
+              nome: usuarioAntes.value.nome,
+              email: usuarioAntes.value.email,
+              status: usuarioAntes.value.status,
+            },
+            {
+              nome: resultado.value.usuario.nome,
+              email: resultado.value.usuario.email,
+              status: resultado.value.usuario.status,
+            },
+            [
+              ...(request.body.nome !== undefined ? ["nome"] : []),
+              ...(request.body.email !== undefined ? ["email"] : []),
+            ],
+          )
+        : undefined,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toUsuarioResponseDto(resultado.value.usuario),
+  });
+}
+
+/**
+ * Inativa um usuário do locatário autenticado.
+ *
+ * Permissão exigida:
+ * - `tenant.usuario.atualizar`
+ *
+ * @param request Requisição Fastify com `params.id`.
+ * @param reply Resposta Fastify.
+ * @returns Usuário inativado.
+ */
+export async function desativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_INATIVAR,
+    modulo: "USUARIOS",
+  });
+  if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
+
+  const usuarioAntes = await usuariosRepositorio.buscarPorId({
+    locatarioId: ctx.locatarioId,
+    usuarioId: request.params.id,
+  });
+
+  const desativarUsuario = createFnDesativarUsuario({
+    usuariosRepositorio,
+    transacao,
+    relogio,
+  });
+
+  const resultado = await desativarUsuario({
+    locatarioId: ctx.locatarioId,
+    usuarioId: request.params.id,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "usuario.inativado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados:
+      resultado.ok && usuarioAntes.ok && usuarioAntes.value
+        ? metaAtualizacao(
+            { status: usuarioAntes.value.status },
+            { status: resultado.value.usuario.status },
+            ["status"],
+          )
+        : undefined,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toUsuarioResponseDto(resultado.value.usuario),
+  });
+}
+
+/**
+ * Reativa um usuário do locatário autenticado.
+ *
+ * Permissão exigida:
+ * - `tenant.usuario.atualizar`
+ *
+ * @param request Requisição Fastify com `params.id`.
+ * @param reply Resposta Fastify.
+ * @returns Usuário reativado.
+ */
+export async function reativarUsuarioController(request: FastifyRequest<{ Params: UsuarioIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: Permissoes.TENANT_USUARIO_INATIVAR,
+    modulo: "USUARIOS",
+  });
+  if (!ctx) return;
+
+  const paramsParse = parseUsuarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const { usuariosRepositorio, transacao, relogio } = criarDepsUsuarios();
+
+  const usuarioAntes = await usuariosRepositorio.buscarPorId({
+    locatarioId: ctx.locatarioId,
+    usuarioId: request.params.id,
+  });
+
+  const reativarUsuario = createFnReativarUsuario({
+    usuariosRepositorio,
+    transacao,
+    relogio,
+  });
+
+  const resultado = await reativarUsuario({
+    locatarioId: ctx.locatarioId,
+    usuarioId: request.params.id,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "usuario.reativado",
+    sucesso: resultado.ok,
+    entidadeTipo: "usuario",
+    entidadeId: request.params.id,
+    entidadeNome: resultado.ok ? resultado.value.usuario.nome : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados:
+      resultado.ok && usuarioAntes.ok && usuarioAntes.value
+        ? metaAtualizacao(
+            { status: usuarioAntes.value.status },
+            { status: resultado.value.usuario.status },
+            ["status"],
+          )
+        : undefined,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toUsuarioResponseDto(resultado.value.usuario),
+  });
+}
+
+export async function listarUsuariosLocatarioPlataformaController(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const locatarioId = request.params.id;
+
+  const listarUsuarios = createFnListarUsuariosPorLocatario({
+    usuariosRepositorio: createUsuariosRepositorio(clientePrisma),
+  });
+
+  const resultado = await listarUsuarios({
+    locatarioId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarUsuariosResponseDto(resultado.value.itens),
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/usuarios/usuarios.dto.ts
+==================================================
+// apps/api/src/modules/usuarios/usuarios.dto.ts
+
+import { z } from "zod";
+
+/**
+ * Schema base para parâmetros que carregam o identificador de usuário.
+ *
+ * Regras:
+ * - `id` deve ser string;
+ * - não pode ser vazio após `trim`.
+ */
+export const usuarioIdParamsSchema = z.object({
+  id: z
+    .string()
+    .trim()
+    .min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+/**
+ * Tipo inferido para params contendo `id` de usuário.
+ */
+export type UsuarioIdParamsDto = z.infer<typeof usuarioIdParamsSchema>;
+
+/**
+ * Schema do body para criação de usuário.
+ *
+ * Regras:
+ * - `email` obrigatório;
+ * - `nome` obrigatório;
+ * - `senha` obrigatória;
+ * - a força real da senha pode ser refinada depois;
+ * - aqui garantimos apenas o contrato mínimo da borda.
+ */
+export const criarUsuarioBodySchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "O campo 'email' é obrigatório.")
+    .email("O campo 'email' deve conter um e-mail válido."),
+
+  nome: z
+    .string()
+    .trim()
+    .min(2, "O campo 'nome' deve ter ao menos 2 caracteres."),
+
+  senha: z
+    .string()
+    .min(4, "O campo 'senha' deve ter ao menos 4 caracteres."),
+});
+
+/**
+ * Tipo inferido para o body de criação de usuário.
+ */
+export type CriarUsuarioBodyDto = z.infer<typeof criarUsuarioBodySchema>;
+
+/**
+ * Schema do body para atualização cadastral de usuário.
+ *
+ * Regras:
+ * - atualização é parcial;
+ * - pelo menos um dos campos deve ser informado;
+ * - senha não entra neste DTO por decisão arquitetural.
+ */
+export const atualizarUsuarioBodySchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .email("O campo 'email' deve conter um e-mail válido.")
+      .optional(),
+
+    nome: z
+      .string()
+      .trim()
+      .min(2, "O campo 'nome' deve ter ao menos 2 caracteres.")
+      .optional(),
+  })
+  .refine(
+    (data) => data.email !== undefined || data.nome !== undefined,
+    {
+      message: "Informe ao menos um campo para atualização.",
+    },
+  );
+
+/**
+ * Tipo inferido para o body de atualização de usuário.
+ */
+export type AtualizarUsuarioBodyDto = z.infer<typeof atualizarUsuarioBodySchema>;
+
+/**
+ * Schema de resposta para criação de usuário.
+ *
+ * Observação:
+ * - a borda devolve apenas o identificador criado.
+ */
+export const criarUsuarioResponseSchema = z.object({
+  item: z.object({
+    usuarioId: z.string(),
+  }),
+});
+
+/**
+ * Schema de resposta para leitura de um único usuário.
+ *
+ * Observação:
+ * - o shape acompanha o contrato atual dos controllers.
+ * - campos podem ser ajustados se você quiser esconder `senhaHash` da borda.
+ */
+export const usuarioResponseSchema = z.object({
+  item: z.object({
+    usuarioId: z.string(),
+    locatarioId: z.string().nullable(),
+    email: z.string(),
+    nome: z.string(),
+    status: z.enum(["ATIVO", "INATIVO", "SUSPENSO", "ENCERRADO"]),
+    ultimoLoginEm: z.date().nullable(),
+    criadoEm: z.date(),
+    atualizadoEm: z.date(),
+    excluidoEm: z.date().nullable(),
+  }),
+});
+
+/**
+ * Schema de resposta para listagem de usuários.
+ */
+export const listarUsuariosResponseSchema = z.object({
+  itens: z.array(
+    z.object({
+      usuarioId: z.string(),
+      locatarioId: z.string().nullable(),
+      email: z.string(),
+      nome: z.string(),
+      status: z.enum(["ATIVO", "INATIVO", "SUSPENSO", "ENCERRADO"]),
+      ultimoLoginEm: z.date().nullable(),
+      criadoEm: z.date(),
+      atualizadoEm: z.date(),
+      excluidoEm: z.date().nullable(),
+    }),
+  ),
+});
+
+/**
+ * Tipos inferidos das respostas.
+ */
+export type CriarUsuarioResponseDto = z.infer<typeof criarUsuarioResponseSchema>;
+export type UsuarioResponseDto = z.infer<typeof usuarioResponseSchema>;
+export type ListarUsuariosResponseDto = z.infer<typeof listarUsuariosResponseSchema>;
+
+/**
+ * Faz parse seguro dos params `:id` de usuário.
+ *
+ * @param input Valor bruto recebido pela borda.
+ * @returns Resultado do parse com Zod.
+ */
+export function parseUsuarioIdParams(input: unknown) {
+  return usuarioIdParamsSchema.safeParse(input);
+}
+
+/**
+ * Faz parse seguro do body de criação de usuário.
+ *
+ * @param input Valor bruto recebido pela borda.
+ * @returns Resultado do parse com Zod.
+ */
+export function parseCriarUsuarioBody(input: unknown) {
+  return criarUsuarioBodySchema.safeParse(input);
+}
+
+/**
+ * Faz parse seguro do body de atualização de usuário.
+ *
+ * @param input Valor bruto recebido pela borda.
+ * @returns Resultado do parse com Zod.
+ */
+export function parseAtualizarUsuarioBody(input: unknown) {
+  return atualizarUsuarioBodySchema.safeParse(input);
+}
+
+/**
+ * 
+ */
+export const alterarSenhaUsuarioBodySchema = z.object({
+  senhaAtual: z.string().min(4, "O campo 'senhaAtual' deve ter ao menos 4 caracteres."),
+  novaSenha: z.string().min(4, "O campo 'novaSenha' deve ter ao menos 4 caracteres."),
+});
+
+/**
+ * 
+ */
+export type AlterarSenhaUsuarioBodyDto = z.infer<typeof alterarSenhaUsuarioBodySchema>;
+
+/**
+ * 
+ */
+export const redefinirSenhaUsuarioBodySchema = z.object({
+  novaSenha: z.string().min(4, "O campo 'novaSenha' deve ter ao menos 4 caracteres."),
+});
+
+/**
+ * 
+ */
+export type RedefinirSenhaUsuarioBodyDto = z.infer<typeof redefinirSenhaUsuarioBodySchema>;
+
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function parseAlterarSenhaUsuarioBody(input: unknown) {
+  return alterarSenhaUsuarioBodySchema.safeParse(input);
+}
+
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
+export function parseRedefinirSenhaUsuarioBody(input: unknown) {
+  return redefinirSenhaUsuarioBodySchema.safeParse(input);
+}
+
+
+==================================================
+FILE: apps/api/src/modules/usuarios/usuarios.presenter.ts
+==================================================
+// apps/api/src/modules/usuarios/usuarios.presenter.ts
+
+import type { Usuario } from "@core-kit/core";
+import type { ListarUsuariosResponseDto, UsuarioResponseDto } from "./usuarios.dto.js";
+
+/**
+ * 
+ * @param usuario 
+ * @returns 
+ */
+export function toUsuarioResponseDto(usuario: Usuario): UsuarioResponseDto["item"] {
+  return {
+    usuarioId: usuario.usuarioId,
+    locatarioId: usuario.locatarioId,
+    email: usuario.email,
+    nome: usuario.nome,
+    status: usuario.status,
+    ultimoLoginEm: usuario.ultimoLoginEm,
+    criadoEm: usuario.criadoEm,
+    atualizadoEm: usuario.atualizadoEm,
+    excluidoEm: usuario.excluidoEm,
+  };
+}
+
+/**
+ * 
+ * @param itens 
+ * @returns 
+ */
+export function toListarUsuariosResponseDto(itens: Usuario[]): ListarUsuariosResponseDto["itens"] {
+  return itens.map(toUsuarioResponseDto);
+}
+
+==================================================
+FILE: apps/api/src/modules/usuarios/usuarios.senha.controller.ts
+==================================================
+// apps/api/src/modules/usuarios/usuarios.senha.controller.ts
+
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { createFnAlterarSenhaUsuario, createFnRedefinirSenhaUsuario, Permissoes } from "@core-kit/core";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto.js";
+import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { createHashPortaAdapter } from "../../infra/hash/hashPortaAdapter.js";
+
+function criarDepsUsuariosSenha() {
+  return {
+    usuariosRepositorio: createUsuariosRepositorio(clientePrisma),
+    hashPorta: createHashPortaAdapter(),
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    transacao: getAuthBootstrap().runtime.transacao,
+  };
+}
+
+function responderErroValidacao(reply: FastifyReply, issues: Array<{ path: (string | number)[]; message: string }>) {
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: "Entrada inválida.",
+    detalhes: {
+      campos: issues.map((issue) => ({
+        caminho: issue.path.join("."),
+        mensagem: issue.message,
+      })),
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function alterarMinhaSenhaUsuarioController(
+  request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: AlterarSenhaUsuarioBodyDto;}>, reply: FastifyReply,) {
+  const params = parseUsuarioIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const body = parseAlterarSenhaUsuarioBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  if (ctx.usuarioId !== params.data.id) {
+    return sendHttpError(reply, {
+      codigo: "NAO_AUTORIZADO",
+      mensagem: "A operação é permitida apenas no próprio usuário.",
+      detalhes: {
+        operacao: "http.usuarios.alterarMinhaSenha",
+        usuarioIdContexto: ctx.usuarioId,
+        usuarioIdSolicitado: params.data.id,
+      },
+    });
+  }
+
+  const { usuariosRepositorio, hashPorta, relogio, transacao } = criarDepsUsuariosSenha();
+
+  const alterarSenhaUsuario = createFnAlterarSenhaUsuario({
+    usuariosRepositorio,
+    hashPorta,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await alterarSenhaUsuario({
+    locatarioId: ctx.locatarioId,
+    usuarioId: params.data.id,
+    senhaAtual: body.data.senhaAtual,
+    novaSenha: body.data.novaSenha,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    item: {
+      usuarioId: resultado.value.usuarioId,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function redefinirSenhaUsuarioController(
+  request: FastifyRequest<{ Params: UsuarioIdParamsDto; Body: RedefinirSenhaUsuarioBodyDto;}>, reply: FastifyReply,) {
+  const params = parseUsuarioIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params.error.issues);
+
+  const body = parseRedefinirSenhaUsuarioBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body.error.issues);
+
+  const ctx = await autorizarHttp(request, reply, {
+    locatarioIdAlvo: undefined,
+    permissao: Permissoes.TENANT_USUARIO_ATUALIZAR,
+  });
+  if (!ctx) return;
+
+  const { usuariosRepositorio, hashPorta, relogio, transacao } = criarDepsUsuariosSenha();
+
+  const redefinirSenhaUsuario = createFnRedefinirSenhaUsuario({
+    usuariosRepositorio,
+    hashPorta,
+    relogio,
+    transacao,
+  });
+
+  const resultado = await redefinirSenhaUsuario({
+    locatarioId: ctx.locatarioId,
+    usuarioId: params.data.id,
+    novaSenha: body.data.novaSenha,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    item: {
+      usuarioId: resultado.value.usuarioId,
+    },
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/vendas/vendas.controller.ts
+==================================================
+// apps/api/src/modules/vendas/vendas.controller.ts
+
+import { FastifyReply, FastifyRequest } from "fastify";
+import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConcluirTransacao, createFnConfirmarTransacao, createFnCriarCompra,
+  createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, metaAcao, Permissao } from "@core-kit/core";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma.js";
+import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma.js";
+import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma.js";
+import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { parseAdicionarItemTransacaoBody, parseAtualizarItemTransacaoBody, parseCancelarTransacaoBody, parseCriarCompraBody, parseCriarVendaBody, 
+  parseItemTransacaoIdParams, parseTransacaoIdParams } from "./vendas.dto.js";
+import type { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto,
+  TransacaoIdParamsDto } from "./vendas.dto.js";
+import { toListarTransacoesResponseDto, toTransacaoDetalhadaResponseDto, toTransacaoResponseDto } from "./vendas.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { responderErroValidacaoZod } from "../helpersValidacao.js";
+
+function criarDepsVendasBase() {
+  return {
+    vendasRepositorio: createVendasRepositorio(clientePrisma),
+    transacao: getAuthBootstrap().runtime.transacao,
+    relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
+    idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+  };
+}
+
+function criarDepsAdicionarItemTransacao(): Parameters<typeof createFnAdicionarItemTransacao>[0] {
+  return {
+    ...criarDepsVendasBase(),
+    produtosConsulta: createProdutoComercialConsultaPortaPrisma(clientePrisma),
+    estoquePadraoConsulta: createEstoquePadraoConsultaPortaPrisma(clientePrisma),
+  };
+}
+
+function responderErroValidacao(reply: FastifyReply,
+  parseResult: {
+    error: {
+      flatten: () => {
+        fieldErrors: Record<string, string[] | undefined>;
+        formErrors: string[];
+      };
+    };
+  },
+) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: {
+      operacao: "http.vendas.validacao",
+      campos: fieldErrors,
+      formulario: formErrors,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarTransacoesController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { vendasRepositorio } = criarDepsVendasBase();
+
+  const listarTransacoes = createFnListarTransacoes({
+    vendasRepositorio,
+  });
+
+  const resultado = await listarTransacoes({
+    locatarioId: ctx.locatarioId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarTransacoesResponseDto(resultado.value.itens),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function obterTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
+  const paramsParse = parseTransacaoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const { vendasRepositorio } = criarDepsVendasBase();
+
+  const obterTransacao = createFnObterTransacao({
+    vendasRepositorio,
+  });
+
+  const resultado = await obterTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toTransacaoDetalhadaResponseDto({
+      transacao: resultado.value.transacao,
+      itens: resultado.value.itens,
+    }),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarVendaController(request: FastifyRequest<{ Body: CriarVendaBodyDto }>, reply: FastifyReply) {
+  const bodyParse = parseCriarVendaBody(request.body ?? {});
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const criarVenda = createFnCriarVenda(criarDepsVendasBase());
+
+  const resultado = await criarVenda({
+    locatarioId: ctx.locatarioId,
+    clienteId: bodyParse.data.clienteId ?? null,
+    observacao: bodyParse.data.observacao ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.venda.criada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: resultado.ok ? resultado.value.transacaoId : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: {
+      transacaoId: resultado.value.transacaoId,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function criarCompraController(request: FastifyRequest<{ Body: CriarCompraBodyDto }>, reply: FastifyReply) {
+  const bodyParse = parseCriarCompraBody(request.body ?? {});
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const criarCompra = createFnCriarCompra(criarDepsVendasBase());
+
+  const resultado = await criarCompra({
+    locatarioId: ctx.locatarioId,
+    fornecedorId: bodyParse.data.fornecedorId ?? null,
+    observacao: bodyParse.data.observacao ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.compra.criada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: resultado.ok ? resultado.value.transacaoId : null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ body: bodyParse.data }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: {
+      transacaoId: resultado.value.transacaoId,
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function adicionarItemTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto; Body: AdicionarItemTransacaoBodyDto;}>, reply: FastifyReply) {
+  const paramsParse = parseTransacaoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const bodyParse = parseAdicionarItemTransacaoBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const adicionarItemTransacao = createFnAdicionarItemTransacao(
+    criarDepsAdicionarItemTransacao(),
+  );
+
+  const resultado = await adicionarItemTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    produtoId: bodyParse.data.produtoId,
+    estoqueId: bodyParse.data.estoqueId ?? null,
+    quantidade: bodyParse.data.quantidade,
+    valorUnitario: bodyParse.data.valorUnitario,
+    valorDesconto: bodyParse.data.valorDesconto,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.item_adicionado",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      body: bodyParse.data,
+    }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: resultado.value.item,
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function atualizarItemTransacaoController(request: FastifyRequest<{ Params: ItemTransacaoIdParamsDto; Body: AtualizarItemTransacaoBodyDto; }>, reply: FastifyReply) {
+  const paramsParse = parseItemTransacaoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const bodyParse = parseAtualizarItemTransacaoBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const atualizarItemTransacao = createFnAtualizarItemTransacao(criarDepsVendasBase());
+
+  const resultado = await atualizarItemTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    itemTransacaoId: paramsParse.data.itemId,
+    descricao: bodyParse.data.descricao,
+    quantidade: bodyParse.data.quantidade,
+    valorUnitario: bodyParse.data.valorUnitario,
+    valorDesconto: bodyParse.data.valorDesconto,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.item_atualizado",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      itemTransacaoId: paramsParse.data.itemId,
+      alteracoes: bodyParse.data,
+    }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: {
+      item: resultado.value.item,
+      transacao: toTransacaoResponseDto(resultado.value.transacao),
+    },
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function removerItemTransacaoController(request: FastifyRequest<{ Params: ItemTransacaoIdParamsDto }>, reply: FastifyReply) {
+  const paramsParse = parseItemTransacaoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const removerItem = createFnRemoverItemTransacao(criarDepsVendasBase());
+
+  const resultado = await removerItem({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    itemTransacaoId: paramsParse.data.itemId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.item_removido",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      itemTransacaoId: paramsParse.data.itemId,
+    }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toTransacaoResponseDto(resultado.value.transacao),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function confirmarTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
+  const paramsParse = parseTransacaoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const confirmarTransacao = createFnConfirmarTransacao(criarDepsVendasBase());
+
+  const resultado = await confirmarTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    usuarioId: ctx.usuarioId ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.confirmada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({ transacaoId: paramsParse.data.id }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toTransacaoResponseDto(resultado.value.transacao),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function cancelarTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto; Body: CancelarTransacaoBodyDto; }>, reply: FastifyReply) {
+  const paramsParse = parseTransacaoIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacao(reply, paramsParse);
+  }
+
+  const bodyParse = parseCancelarTransacaoBody(request.body ?? {});
+  if (!bodyParse.success) {
+    return responderErroValidacao(reply, bodyParse);
+  }
+
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const cancelarTransacao = createFnCancelarTransacao(criarDepsVendasBase());
+
+  const resultado = await cancelarTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    motivo: bodyParse.data.motivo ?? null,
+    usuarioId: ctx.usuarioId ?? null,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "transacao.cancelada",
+    sucesso: resultado.ok,
+    entidadeTipo: "transacao",
+    entidadeId: paramsParse.data.id,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({
+      transacaoId: paramsParse.data.id,
+      motivo: bodyParse.data.motivo ?? null,
+    }),
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toTransacaoResponseDto(resultado.value.transacao),
+  });
+}
+
+export async function concluirTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const paramsParse = parseTransacaoIdParams(request.params);
+
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(
+      reply,
+      paramsParse,
+      "http.vendas.params",
+    );
+  }
+
+  const concluirTransacao = createFnConcluirTransacao(criarDepsVendasBase());
+
+  const resultado = await concluirTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    usuarioId: ctx.usuarioId ?? null,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toTransacaoResponseDto(resultado.value.transacao),
+  });
+}
+
+
+==================================================
+FILE: apps/api/src/modules/vendas/vendas.dto.ts
+==================================================
+// apps/api/src/modules/vendas/vendas.dto.ts
+
+import { z } from "zod";
+
+export const transacaoIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+});
+
+export const itemTransacaoIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+  itemId: z.string().trim().min(1, "O parâmetro 'itemId' é obrigatório."),
+});
+
+export const criarVendaBodySchema = z.object({
+  clienteId: z.string().trim().optional().nullable(),
+  observacao: z.string().trim().optional().nullable(),
+});
+
+export const criarCompraBodySchema = z.object({
+  fornecedorId: z.string().trim().optional().nullable(),
+  observacao: z.string().trim().optional().nullable(),
+});
+
+export const adicionarItemTransacaoBodySchema = z.object({
+  produtoId: z.string().trim().min(1, "O campo 'produtoId' é obrigatório."),
+  estoqueId: z.string().trim().optional().nullable(),
+  descricao: z.string().trim().optional().nullable(),
+  quantidade: z.coerce.number().positive("Quantidade deve ser maior que zero."),
+  valorUnitario: z.coerce.number().nonnegative("Valor unitário não pode ser negativo.").optional(),
+  valorDesconto: z.coerce.number().nonnegative().default(0),
+});
+
+export const atualizarItemTransacaoBodySchema = z
+  .object({
+    descricao: z.string().trim().optional().nullable(),
+    quantidade: z.coerce.number().positive().optional(),
+    valorUnitario: z.coerce.number().nonnegative().optional(),
+    valorDesconto: z.coerce.number().nonnegative().optional(),
+    valorAcrescimo: z.coerce.number().nonnegative().optional(),
+  })
+  .refine(
+    (data) =>
+      data.descricao !== undefined ||
+      data.quantidade !== undefined ||
+      data.valorUnitario !== undefined ||
+      data.valorDesconto !== undefined ||
+      data.valorAcrescimo !== undefined,
+    { message: "Informe ao menos um campo para atualização do item." },
+  );
+
+export const cancelarTransacaoBodySchema = z.object({
+  motivo: z.string().trim().optional().nullable(),
+});
+
+
+
+export type TransacaoIdParamsDto = z.infer<typeof transacaoIdParamsSchema>;
+export type ItemTransacaoIdParamsDto = z.infer<typeof itemTransacaoIdParamsSchema>;
+export type CriarVendaBodyDto = z.infer<typeof criarVendaBodySchema>;
+export type CriarCompraBodyDto = z.infer<typeof criarCompraBodySchema>;
+export type AdicionarItemTransacaoBodyDto = z.infer<typeof adicionarItemTransacaoBodySchema>;
+export type AtualizarItemTransacaoBodyDto = z.infer<typeof atualizarItemTransacaoBodySchema>;
+export type CancelarTransacaoBodyDto = z.infer<typeof cancelarTransacaoBodySchema>;
+
+export function parseTransacaoIdParams(input: unknown) {
+  return transacaoIdParamsSchema.safeParse(input);
+}
+
+export function parseItemTransacaoIdParams(input: unknown) {
+  return itemTransacaoIdParamsSchema.safeParse(input);
+}
+
+export function parseCriarVendaBody(input: unknown) {
+  return criarVendaBodySchema.safeParse(input);
+}
+
+export function parseCriarCompraBody(input: unknown) {
+  return criarCompraBodySchema.safeParse(input);
+}
+
+export function parseAdicionarItemTransacaoBody(input: unknown) {
+  return adicionarItemTransacaoBodySchema.safeParse(input);
+}
+
+export function parseAtualizarItemTransacaoBody(input: unknown) {
+  return atualizarItemTransacaoBodySchema.safeParse(input);
+}
+
+export function parseCancelarTransacaoBody(input: unknown) {
+  return cancelarTransacaoBodySchema.safeParse(input);
+}
+
+==================================================
+FILE: apps/api/src/modules/vendas/vendas.presenter.ts
+==================================================
+// apps/api/src/modules/vendas/vendas.presenter.ts
+
+import type { ItemTransacaoComercial, TransacaoComercial } from "@core-kit/core";
+
+export function toTransacaoResponseDto(transacao: TransacaoComercial) {
+  return {
+    transacaoId: transacao.transacaoId,
+    locatarioId: transacao.locatarioId,
+    tipo: transacao.tipo,
+    clienteId: transacao.clienteId,
+    fornecedorId: transacao.fornecedorId,
+    status: transacao.status,
+    valorSubtotal: transacao.valorSubtotal,
+    valorDesconto: transacao.valorDesconto,
+    valorAcrescimo: transacao.valorAcrescimo,
+    valorTotal: transacao.valorTotal,
+    observacao: transacao.observacao,
+    criadoEm: transacao.criadoEm,
+    atualizadoEm: transacao.atualizadoEm,
+    canceladoEm: transacao.canceladoEm,
+  };
+}
+
+export function toItemTransacaoResponseDto(item: ItemTransacaoComercial) {
+  return {
+    itemTransacaoId: item.itemTransacaoId,
+    transacaoId: item.transacaoId,
+    locatarioId: item.locatarioId,
+    produtoId: item.produtoId,
+    estoqueId: item.estoqueId,
+    descricao: item.descricao,
+    tipoProduto: item.tipoProduto,
+    quantidade: item.quantidade,
+    valorUnitario: item.valorUnitario,
+    valorSubtotal: item.valorSubtotal,
+    valorDesconto: item.valorDesconto,
+    valorAcrescimo: item.valorAcrescimo,
+    valorTotal: item.valorTotal,
+    movimentaEstoque: item.movimentaEstoque,
+    criadoEm: item.criadoEm,
+    atualizadoEm: item.atualizadoEm,
+  };
+}
+
+export function toListarTransacoesResponseDto(itens: TransacaoComercial[]) {
+  return itens.map(toTransacaoResponseDto);
+}
+
+export function toTransacaoDetalhadaResponseDto(input: {
+  transacao: TransacaoComercial;
+  itens: ItemTransacaoComercial[];
+}) {
+  return {
+    ...toTransacaoResponseDto(input.transacao),
+    itens: input.itens.map(toItemTransacaoResponseDto),
+  };
+}
+
+==================================================
+FILE: apps/api/src/routes/assinaturaModulos.routes.ts
+==================================================
+// apps/api/src/routes/assinaturaModulos.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { desvincularModuloDaMinhaAssinaturaController, listarMeusModulosAssinaturaController, vincularModuloNaMinhaAssinaturaController } from "../modules/assinaturas/assinaturaModulos.controller.js";
+import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "../modules/assinaturas/assinaturaModulos.dto.js";
+
+/**
+ * 
+ * @param app 
+ */
+export const assinaturaModulosRoutes: FastifyPluginAsync = async (app) => {
+  /**
+   * 
+   */
+  app.get(
+    "/me/assinatura/modulos",
+    { preHandler: authGuard },
+    listarMeusModulosAssinaturaController,
+  );
+
+  /**
+   * 
+   */
+  app.post<{ Body: VincularModuloAssinaturaBodyDto }>(
+    "/me/assinatura/modulos",
+    { preHandler: authGuard },
+    vincularModuloNaMinhaAssinaturaController,
+  );
+
+  /**
+   * 
+   */
+  app.delete<{ Params: ModuloIdParamsDto }>(
+    "/me/assinatura/modulos/:moduloId",
+    { preHandler: authGuard },
+    desvincularModuloDaMinhaAssinaturaController,
+  );
+};
+
+
+==================================================
+FILE: apps/api/src/routes/auditoria.routes.ts
+==================================================
+// apps/api/src/routes/auditoria.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { listarAuditoriaPlataformaController, listarMinhaAuditoriaController } from "../modules/auditoria/auditoria.controller.js";
+import type { ListarAuditoriaQueryDto } from "../modules/auditoria/auditoria.dto.js";
+
+export const auditoriaRoutes: FastifyPluginAsync = async (app) => {
+  app.get<{ Querystring: ListarAuditoriaQueryDto }>(
+    "/auditoria",
+    { preHandler: [authGuard] },
+    listarMinhaAuditoriaController,
+  );
+
+  app.get<{ Querystring: ListarAuditoriaQueryDto }>(
+    "/plataforma/auditoria",
+    { preHandler: [authGuard] },
+    listarAuditoriaPlataformaController,
+  );
+};
+
+
+==================================================
+FILE: apps/api/src/routes/auth.routes.ts
+==================================================
+// apps/api/src/routes/auth.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { loginController, logoutController, meController, refreshController } from "../modules/auth/auth.controller.js";
+import { authGuard } from "../middlewares/authGuard.js";
+import { LoginPlataformaBodyDto, LogoutPlataformaBodyDto, RefreshPlataformaBodyDto } from "../modules/auth/auth.plataforma.dto.js";
+import { loginPlataformaController, logoutPlataformaController, refreshPlataformaController } from "../modules/auth/auth.plataforma.controller.js";
+
+export const authRoutes: FastifyPluginAsync = async (app) => {
+  app.post(
+    "/auth/login", 
+    loginController
+  );
+  
+  app.get(
+    "/auth/me", 
+    { preHandler: [authGuard] }, 
+    meController
+  );
+  
+  app.post<{ Body: RefreshPlataformaBodyDto }>(
+    "/auth/plataforma/refresh",
+    refreshPlataformaController,
+  );
+
+  app.post<{ Body: LogoutPlataformaBodyDto }>(
+    "/auth/plataforma/logout",
+    logoutPlataformaController,
+  );
+
+  app.post<{ Body: LoginPlataformaBodyDto }>(
+    "/auth/plataforma/login",
+    loginPlataformaController,
+  );
+};
+
+==================================================
+FILE: apps/api/src/routes/clientes.routes.ts
+==================================================
+// apps/api/src/routes/clientes.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarClienteController, criarClienteController, excluirClienteController, listarClientesController, obterClienteController } from "../modules/clientes/clientes.controller.js";
+import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto } from "../modules/clientes/clientes.dto.js";
+
+export const clientesRoutes: FastifyPluginAsync = async (app) => {
+  app.get(
+    "/clientes",
+    { preHandler: [authGuard] },
+    listarClientesController,
+  );
+
+  app.get<{ Params: ClienteIdParamsDto }>(
+    "/clientes/:id",
+    { preHandler: [authGuard] },
+    obterClienteController,
+  );
+
+  app.post<{ Body: CriarClienteBodyDto }>(
+    "/clientes",
+    { preHandler: [authGuard] },
+    criarClienteController,
+  );
+
+  app.patch<{ Params: ClienteIdParamsDto; Body: AtualizarClienteBodyDto }>(
+    "/clientes/:id",
+    { preHandler: [authGuard] },
+    atualizarClienteController,
+  );
+
+  app.delete<{ Params: ClienteIdParamsDto }>(
+    "/clientes/:id",
+    { preHandler: [authGuard] },
+    excluirClienteController,
+  );
+};
+
+==================================================
+FILE: apps/api/src/routes/fornecedores.routes.ts
+==================================================
+// apps/api/src/routes/fornecedores.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarFornecedorController, criarFornecedorController, excluirFornecedorController, listarFornecedoresController, obterFornecedorController } from "../modules/fornecedores/fornecedores.controller.js";
+import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto } from "../modules/fornecedores/fornecedores.dto.js";
+
+export const fornecedoresRoutes: FastifyPluginAsync = async (app) => {
+  app.get(
+    "/fornecedores",
+    { preHandler: [authGuard] },
+    listarFornecedoresController,
+  );
+
+  app.get<{ Params: FornecedorIdParamsDto }>(
+    "/fornecedores/:id",
+    { preHandler: [authGuard] },
+    obterFornecedorController,
+  );
+
+  app.post<{ Body: CriarFornecedorBodyDto }>(
+    "/fornecedores",
+    { preHandler: [authGuard] },
+    criarFornecedorController,
+  );
+
+  app.patch<{ Params: FornecedorIdParamsDto; Body: AtualizarFornecedorBodyDto }>(
+    "/fornecedores/:id",
+    { preHandler: [authGuard] },
+    atualizarFornecedorController,
+  );
+
+  app.delete<{ Params: FornecedorIdParamsDto }>(
+    "/fornecedores/:id",
+    { preHandler: [authGuard] },
+    excluirFornecedorController,
+  );
+};
+
+==================================================
+FILE: apps/api/src/routes/health.routes.ts
+==================================================
+import type { FastifyPluginAsync } from "fastify";
+
+export const healthRoutes: FastifyPluginAsync = async (app) => {
+  app.get("/health", async () => {
+    return {
+      status: "ok",
+      service: "core-kit-api",
+    };
+  });
+};
+
+==================================================
+FILE: apps/api/src/routes/locatarios.routes.ts
+==================================================
+// apps/api/src/routes/locatarios.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { ativarConfiguracaoLocatarioController, atualizarConfiguracaoLocatarioController, criarConfiguracaoLocatarioController, listarConfiguracoesLocatarioController, obterConfiguracaoAtivaLocatarioController, 
+  obterMeuLocatarioController } from "../modules/locatarios/locatarios.controller.js";
+import { AtualizarConfiguracaoBodyDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, LocatarioIdParamsDto } from "../modules/locatarios/locatarios.dto.js";
+
+/**
+ * 
+ * @param app 
+ */
+export const locatariosRoutes: FastifyPluginAsync = async (app) => {
+  /**
+   * Fluxo do próprio locatário:
+   * admin do tenant consulta somente o próprio locatário.
+   */
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id",
+    { preHandler: [authGuard] },
+    obterMeuLocatarioController,
+  );
+
+  /**
+   * Configurações do próprio locatário.
+   */
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/me/locatario/configuracoes",
+    { preHandler: [authGuard] },
+    listarConfiguracoesLocatarioController,
+  );
+
+  /**
+   * 
+   */
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/me/locatario/configuracoes/ativa",
+    { preHandler: [authGuard] },
+    obterConfiguracaoAtivaLocatarioController,
+  );
+
+  /**
+   * 
+   */
+  app.post<{ Params: LocatarioIdParamsDto; Body: CriarConfiguracaoBodyDto; }>(
+    "/me/locatario/configuracoes",
+    { preHandler: [authGuard] },
+    criarConfiguracaoLocatarioController,
+  );
+
+  /**
+   * 
+   */
+  app.patch<{ Params: ConfiguracaoIdParamsDto; Body: AtualizarConfiguracaoBodyDto; }>(
+    "/me/locatario/configuracoes/:configuracaoId",
+    { preHandler: [authGuard] },
+    atualizarConfiguracaoLocatarioController,
+  );
+
+  /**
+   * 
+   */
+  app.post<{ Params: ConfiguracaoIdParamsDto }>(
+    "/me/locatario/configuracoes/:configuracaoId/ativar",
+    { preHandler: [authGuard] },
+    ativarConfiguracaoLocatarioController,
+  );
+};
+
+
+==================================================
+FILE: apps/api/src/routes/plataforma/plataforma.routes.ts
+==================================================
+// apps/api/src/routes/plataforma/plataforma.routes.ts
+
+import type { FastifyInstance } from "fastify";
+import { authGuard } from "../../middlewares/authGuard.js";
+import { listarLocatariosPlataformaController, obterLocatarioPlataformaController, criarLocatarioPlataformaController, atualizarLocatarioPlataformaController,
+  suspenderLocatarioPlataformaController, reativarLocatarioPlataformaController, encerrarLocatarioPlataformaController,
+  ativarConfiguracaoLocatarioController, atualizarConfiguracaoLocatarioController, criarConfiguracaoLocatarioController, obterConfiguracaoAtivaLocatarioController,
+  listarConfiguracoesLocatarioController,
+  listarModulosLocatarioPlataformaController,
+  vincularModuloLocatarioPlataformaController,
+  desvincularModuloLocatarioPlataformaController
+} from "../../modules/locatarios/locatarios.controller.js";
+import type { LocatarioIdParamsDto, CriarLocatarioBodyDto, AtualizarLocatarioBodyDto, SuspenderLocatarioBodyDto, ReativarLocatarioBodyDto, EncerrarLocatarioBodyDto, AtualizarConfiguracaoBodyDto, ConfiguracaoIdOnlyParamsDto, CriarConfiguracaoBodyDto, ConfiguracaoIdParamsDto,
+} from "../../modules/locatarios/locatarios.dto.js";
+import { listarUsuariosLocatarioPlataformaController } from "../../modules/usuarios/usuarios.controller.js";
+import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "../../modules/assinaturas/assinaturaModulos.dto.js";
+
+export async function plataformaRoutes(app: FastifyInstance) {
+  app.get(
+    "/locatarios",
+    { preHandler: [authGuard] },
+    listarLocatariosPlataformaController,
+  );
+
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id",
+    { preHandler: [authGuard] },
+    obterLocatarioPlataformaController,
+  );
+
+  app.post<{ Body: CriarLocatarioBodyDto }>(
+    "/locatarios",
+    { preHandler: [authGuard] },
+    criarLocatarioPlataformaController,
+  );
+
+  app.patch<{
+    Params: LocatarioIdParamsDto;
+    Body: AtualizarLocatarioBodyDto;
+  }>(
+    "/locatarios/:id",
+    { preHandler: [authGuard] },
+    atualizarLocatarioPlataformaController,
+  );
+
+  app.post<{
+    Params: LocatarioIdParamsDto;
+    Body: SuspenderLocatarioBodyDto;
+  }>(
+    "/locatarios/:id/suspender",
+    { preHandler: [authGuard] },
+    suspenderLocatarioPlataformaController,
+  );
+
+  app.post<{
+    Params: LocatarioIdParamsDto;
+    Body: ReativarLocatarioBodyDto;
+  }>(
+    "/locatarios/:id/reativar",
+    { preHandler: [authGuard] },
+    reativarLocatarioPlataformaController,
+  );
+
+  app.post<{
+    Params: LocatarioIdParamsDto;
+    Body: EncerrarLocatarioBodyDto;
+  }>(
+    "/locatarios/:id/encerrar",
+    { preHandler: [authGuard] },
+    encerrarLocatarioPlataformaController,
+  );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/usuarios",
+    { preHandler: [authGuard] },
+    listarUsuariosLocatarioPlataformaController,
+  );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/configuracoes",
+    { preHandler: [authGuard] },
+    listarConfiguracoesLocatarioController,
+  );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/configuracoes/ativa",
+    { preHandler: [authGuard] },
+    obterConfiguracaoAtivaLocatarioController,
+  );
+
+  app.post<{ Params: LocatarioIdParamsDto; Body: CriarConfiguracaoBodyDto;}>(
+    "/locatarios/:id/configuracoes",
+    { preHandler: [authGuard] },
+    criarConfiguracaoLocatarioController,
+  );
+
+  app.patch<{ Params: ConfiguracaoIdParamsDto; Body: AtualizarConfiguracaoBodyDto; }>(
+    "/locatarios/:id/configuracoes/:configuracaoId",
+    { preHandler: [authGuard] },
+    atualizarConfiguracaoLocatarioController,
+  );
+
+  app.post<{ Params: ConfiguracaoIdParamsDto }>(
+    "/locatarios/:id/configuracoes/:configuracaoId/ativar",
+    { preHandler: [authGuard] },
+    ativarConfiguracaoLocatarioController,
+  );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/modulos",
+    { preHandler: [authGuard] },
+    listarModulosLocatarioPlataformaController,
+  );
+
+  app.post<{ Params: LocatarioIdParamsDto; Body: VincularModuloAssinaturaBodyDto;}>(
+    "/locatarios/:id/modulos",
+    { preHandler: [authGuard] },
+    vincularModuloLocatarioPlataformaController,
+  );
+
+  app.delete<{ Params: LocatarioIdParamsDto & ModuloIdParamsDto;}>(
+    "/locatarios/:id/modulos/:moduloId",
+    { preHandler: [authGuard] },
+    desvincularModuloLocatarioPlataformaController,
+  );
+}
+
+==================================================
+FILE: apps/api/src/routes/produtos.routes.ts
+==================================================
+// apps/api/src/routes/produtos.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarProdutoController, criarProdutoController, excluirProdutoController, listarProdutosController, obterProdutoController } from "../modules/produtos/produtos.controller.js";
+import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, ProdutoIdParamsDto } from "../modules/produtos/produtos.dto.js";
+
+export const produtosRoutes: FastifyPluginAsync = async (app) => {
+  app.get(
+    "/produtos",
+    { preHandler: [authGuard] },
+    listarProdutosController,
+  );
+
+  app.get<{ Params: ProdutoIdParamsDto }>(
+    "/produtos/:id",
+    { preHandler: [authGuard] },
+    obterProdutoController,
+  );
+
+  app.post<{ Body: CriarProdutoBodyDto }>(
+    "/produtos",
+    { preHandler: [authGuard] },
+    criarProdutoController,
+  );
+
+  app.patch<{ Params: ProdutoIdParamsDto; Body: AtualizarProdutoBodyDto }>(
+    "/produtos/:id",
+    { preHandler: [authGuard] },
+    atualizarProdutoController,
+  );
+
+  app.delete<{ Params: ProdutoIdParamsDto }>(
+    "/produtos/:id",
+    { preHandler: [authGuard] },
+    excluirProdutoController,
+  );
+};
+
+==================================================
+FILE: apps/api/src/routes/rbac.routes.ts
+==================================================
+// // apps/api/src/routes/rbac.routes.ts
+
+// import type { FastifyPluginAsync } from "fastify";
+// import { authGuard } from "../middlewares/authGuard.js";
+
+
+// /**
+//  * Registra as rotas HTTP do módulo de RBAC.
+//  *
+//  * Superfície inicial:
+//  * - `POST   /rbac/papeis`
+//  * - `PATCH  /rbac/papeis/:id`
+//  * - `POST   /rbac/papeis/:id/permissoes`
+//  * - `DELETE /rbac/papeis/:id/permissoes`
+//  * - `PUT    /rbac/usuarios/:id/papeis`
+//  *
+//  * @param app Instância Fastify.
+//  * @returns Plugin concluído.
+//  */
+// export const rbacRoutes: FastifyPluginAsync = async (app) => {
+//   app.post(
+//     "/rbac/papeis",
+//     { preHandler: [authGuard] },
+//     criarPapelController,
+//   );
+
+//   app.patch(
+//     "/rbac/papeis/:id",
+//     { preHandler: [authGuard] },
+//     atualizarPapelController,
+//   );
+
+//   app.post(
+//     "/rbac/papeis/:id/permissoes",
+//     { preHandler: [authGuard] },
+//     atribuirPermissaoAoPapelController,
+//   );
+
+//   app.delete(
+//     "/rbac/papeis/:id/permissoes",
+//     { preHandler: [authGuard] },
+//     removerPermissaoDoPapelController,
+//   );
+
+//   app.put(
+//     "/rbac/usuarios/:id/papeis",
+//     { preHandler: [authGuard] },
+//     atualizarPapeisDoUsuarioController,
+//   );
+// };
+
+
+==================================================
+FILE: apps/api/src/routes/usuarios.routes.ts
+==================================================
+// apps/api/src/routes/usuarios.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import {
+  atualizarUsuarioController,
+  criarUsuarioController,
+  desativarUsuarioController,
+  listarUsuariosController,
+  obterUsuarioController,
+  reativarUsuarioController,
+} from "../modules/usuarios/usuarios.controller.js";
+import { alterarMinhaSenhaUsuarioController, redefinirSenhaUsuarioController } from "../modules/usuarios/usuarios.senha.controller.js";
+import { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "../modules/usuarios/usuarios.dto.js";
+
+/**
+ * Registra as rotas HTTP do módulo operacional de usuários.
+ *
+ * Regras gerais:
+ * - todas as rotas exigem autenticação prévia via `authGuard`;
+ * - a autorização fina por permissão acontece nos controllers;
+ * - o escopo efetivo do locatário é sempre derivado do contexto autenticado.
+ *
+ * Superfície atual:
+ * - `GET /usuarios`
+ * - `GET /usuarios/:id`
+ * - `POST /usuarios`
+ * - `PATCH /usuarios/:id`
+ * - `POST /usuarios/:id/inativar`
+ * - `POST /usuarios/:id/reativar`
+ *
+ * @param app Instância Fastify usada para registrar as rotas.
+ * @returns Plugin assíncrono concluído.
+ */
+export const usuariosRoutes: FastifyPluginAsync = async (app) => {
+  /**
+   * Lista usuários do locatário autenticado.
+   */
+  app.get(
+    "/usuarios",
+    { preHandler: [authGuard], },
+    listarUsuariosController,
+  );
+
+  /**
+   * Obtém um usuário específico do locatário autenticado.
+   */
+  app.get<{ Params: { id: string } }>(
+    "/usuarios/:id",
+    { preHandler: [authGuard], },
+    obterUsuarioController,
+  );
+
+  /**
+   * Cria um novo usuário no locatário autenticado.
+   */
+  app.post<{ Body: { email: string; nome: string; senha: string } }>(
+    "/usuarios",
+    { preHandler: [authGuard] },
+    criarUsuarioController,
+  );
+
+  /**
+   * Atualiza dados cadastrais de um usuário.
+   */
+  app.patch<{ Params: { id: string }; Body: { email?: string; nome?: string };}>(
+    "/usuarios/:id",
+    { preHandler: [authGuard] },
+    atualizarUsuarioController,
+  );
+
+  /**
+   * Inativa um usuário existente.
+   */
+  app.post<{ Params: { id: string } }>(
+    "/usuarios/:id/inativar",
+    { preHandler: [authGuard] },
+    desativarUsuarioController,
+  );
+
+  /**
+   * Reativa um usuário previamente inativado.
+   */
+  app.post<{ Params: { id: string } }>(
+    "/usuarios/:id/reativar",
+    { preHandler: [authGuard] },
+    reativarUsuarioController,
+  );
+
+  /**
+   * 
+   */
+  app.post<{ Params: UsuarioIdParamsDto; Body: AlterarSenhaUsuarioBodyDto; }>(
+    "/usuarios/:id/alterar-senha",
+    { preHandler: [authGuard] },
+    alterarMinhaSenhaUsuarioController,
+  );
+
+  /**
+   * 
+   */
+  app.post<{ Params: UsuarioIdParamsDto; Body: RedefinirSenhaUsuarioBodyDto; }>(
+    "/usuarios/:id/redefinir-senha",
+    { preHandler: [authGuard] },
+    redefinirSenhaUsuarioController,
+  );
+};
+
+
+==================================================
+FILE: apps/api/src/routes/vendas.routes.ts
+==================================================
+// apps/api/src/routes/vendas.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { adicionarItemTransacaoController, atualizarItemTransacaoController, cancelarTransacaoController, concluirTransacaoController, confirmarTransacaoController, criarCompraController, criarVendaController, listarTransacoesController, obterTransacaoController, removerItemTransacaoController } from "../modules/vendas/vendas.controller.js";
+import { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto, 
+  TransacaoIdParamsDto } from "../modules/vendas/vendas.dto.js";
+
+export const vendasRoutes: FastifyPluginAsync = async (app) => {
+  app.get(
+    "/transacoes",
+    { preHandler: [authGuard] },
+    listarTransacoesController,
+  );
+
+  app.get<{ Params: TransacaoIdParamsDto }>(
+    "/transacoes/:id",
+    { preHandler: [authGuard] },
+    obterTransacaoController,
+  );
+
+  app.post<{ Body: CriarVendaBodyDto }>(
+    "/vendas",
+    { preHandler: [authGuard] },
+    criarVendaController,
+  );
+
+  app.post<{ Body: CriarCompraBodyDto }>(
+    "/compras",
+    { preHandler: [authGuard] },
+    criarCompraController,
+  );
+
+  app.post<{ Params: TransacaoIdParamsDto; Body: AdicionarItemTransacaoBodyDto }>(
+    "/transacoes/:id/itens",
+    { preHandler: [authGuard] },
+    adicionarItemTransacaoController,
+  );
+
+  app.patch<{ Params: ItemTransacaoIdParamsDto; Body: AtualizarItemTransacaoBodyDto }>(
+    "/transacoes/:id/itens/:itemId",
+    { preHandler: [authGuard] },
+    atualizarItemTransacaoController,
+  );
+
+  app.delete<{ Params: ItemTransacaoIdParamsDto }>(
+    "/transacoes/:id/itens/:itemId",
+    { preHandler: [authGuard] },
+    removerItemTransacaoController,
+  );
+
+  app.post<{ Params: TransacaoIdParamsDto }>(
+    "/transacoes/:id/confirmar",
+    { preHandler: [authGuard] },
+    confirmarTransacaoController,
+  );
+
+  app.post<{ Params: TransacaoIdParamsDto; Body: CancelarTransacaoBodyDto }>(
+    "/transacoes/:id/cancelar",
+    { preHandler: [authGuard] },
+    cancelarTransacaoController,
+  );
+
+  app.post<{ Params: TransacaoIdParamsDto }>(
+    "/transacoes/:id/concluir",
+    { preHandler: [authGuard] },
+    concluirTransacaoController,
+  );
+};
+
