@@ -1,18 +1,43 @@
 // apps/web/src/core/auth/authContext.tsx
 
-import { createContext, useCallback, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
-import { registerAccessTokenGetter, registerRefreshSessionHandler, registerUnauthorizedHandler } from "../api/httpClient";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type PropsWithChildren,
+  type JSX,
+} from "react";
+import {
+  registerAccessTokenGetter,
+  registerRefreshSessionHandler,
+  registerUnauthorizedHandler,
+} from "../api/httpClient";
 import { authStorage } from "./authStorage";
-import { login as loginRequest, loginPlataforma as loginPlataformaRequest, logout as logoutRequest, me as meRequest, 
-  refresh as refreshRequest } from "../../features/auth/api/authApi";
-import type { AuthContextValue, LoginInput, LoginPlataformaInput, SessionUser } from "./tipos";
+import {
+  login as loginRequest,
+  loginPlataforma as loginPlataformaRequest,
+  logout as logoutRequest,
+  logoutPlataforma as logoutPlataformaRequest,
+  me as meRequest,
+  refresh as refreshRequest,
+  refreshPlataforma as refreshPlataformaRequest,
+} from "../../features/auth/api/authApi";
+import type {
+  AuthContextValue,
+  LoginInput,
+  LoginPlataformaInput,
+  SessionUser,
+} from "./tipos";
+import { setupInactivityWatcher } from "./sessionManager";
 
-export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined,
+);
 
 function normalizeUser(user: SessionUser): SessionUser {
-  const perfil =
-    user.perfil ??
-    (user.locatarioId ? "TENANT" : "PLATAFORMA");
+  const perfil = user.perfil ?? (user.locatarioId ? "TENANT" : "PLATAFORMA");
 
   return {
     ...user,
@@ -36,57 +61,84 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     setStatus("unauthenticated");
   }, []);
 
-  const applySession = useCallback((params: {
-    accessToken: string;
-    refreshToken?: string;
-    usuario: SessionUser;
-  }): SessionUser => {
-    const normalizedUser = normalizeUser(params.usuario);
+  const applySession = useCallback(
+    (params: {
+      accessToken: string;
+      refreshToken?: string;
+      usuario: SessionUser;
+    }): SessionUser => {
+      const normalizedUser = normalizeUser(params.usuario);
 
-    authStorage.setAccessToken(params.accessToken);
-    authStorage.setUser(normalizedUser);
-    authStorage.setLocatarioId(normalizedUser.locatarioId);
+      authStorage.setAccessToken(params.accessToken);
+      authStorage.setUser(normalizedUser);
+      authStorage.setLocatarioId(normalizedUser.locatarioId);
 
-    if (params.refreshToken) {
-      authStorage.setRefreshToken(params.refreshToken);
-    } else {
-      authStorage.removeRefreshToken();
-    }
+      if (params.refreshToken) {
+        authStorage.setRefreshToken(params.refreshToken);
+      } else {
+        authStorage.removeRefreshToken();
+      }
 
-    setAccessToken(params.accessToken);
-    setUser(normalizedUser);
-    setStatus("authenticated");
+      setAccessToken(params.accessToken);
+      setUser(normalizedUser);
+      setStatus("authenticated");
 
-    return normalizedUser;
-  }, []);
+      return normalizedUser;
+    },
+    [],
+  );
 
-  const carregarUsuarioAutenticado = useCallback(async (): Promise<SessionUser> => {
-    const meResponse = await meRequest();
-    const normalizedUser = normalizeUser(meResponse.usuario);
+  const carregarUsuarioAutenticado =
+    useCallback(async (): Promise<SessionUser> => {
+      const currentUser = authStorage.getUser();
 
-    authStorage.setUser(normalizedUser);
-    authStorage.setLocatarioId(normalizedUser.locatarioId);
-    setUser(normalizedUser);
+      if (currentUser?.perfil === "PLATAFORMA") {
+        const normalizedUser = normalizeUser(currentUser);
 
-    return normalizedUser;
-  }, []);
+        authStorage.setUser(normalizedUser);
+        authStorage.setLocatarioId(null);
+        setUser(normalizedUser);
+
+        return normalizedUser;
+      }
+
+      const meResponse = await meRequest();
+      const normalizedUser = normalizeUser(meResponse.usuario);
+
+      authStorage.setUser(normalizedUser);
+      authStorage.setLocatarioId(normalizedUser.locatarioId);
+      setUser(normalizedUser);
+
+      return normalizedUser;
+    }, []);
 
   const refreshTokens = useCallback(async (): Promise<boolean> => {
     const currentUser = authStorage.getUser();
-
-    if (currentUser?.perfil === "PLATAFORMA") {
-      return false;
-    }
-
     const refreshToken = authStorage.getRefreshToken();
-    const locatarioId =
-      authStorage.getLocatarioId() ?? currentUser?.locatarioId ?? null;
 
-    if (!refreshToken) {
+    if (!currentUser || !refreshToken) {
       return false;
     }
 
     try {
+      if (currentUser.perfil === "PLATAFORMA") {
+        const response = await refreshPlataformaRequest({ refreshToken });
+
+        authStorage.setAccessToken(response.accessToken);
+        setAccessToken(response.accessToken);
+
+        if (response.refreshToken) {
+          authStorage.setRefreshToken(response.refreshToken);
+        }
+
+        return true;
+      }
+
+      const locatarioId =
+        authStorage.getLocatarioId() ?? currentUser.locatarioId ?? null;
+
+      if (!locatarioId) return false;
+
       const response = await refreshRequest({
         refreshToken,
         locatarioId,
@@ -113,8 +165,6 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       try {
         const response = await loginRequest(input);
 
-        // O login tenant retorna tokens. O usuário da sessão vem de /auth/me.
-        // Por isso, persistimos temporariamente o access token antes de chamar meRequest().
         authStorage.setAccessToken(response.accessToken);
         setAccessToken(response.accessToken);
 
@@ -150,6 +200,7 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
 
         return applySession({
           accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
           usuario: response.usuario,
         });
       } catch (error) {
@@ -163,9 +214,15 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   const logout = useCallback(async (): Promise<void> => {
     const refreshToken = authStorage.getRefreshToken();
     const locatarioId = authStorage.getLocatarioId();
+    const currentUser = authStorage.getUser() ?? user;
 
     try {
-      if (refreshToken && user?.perfil === "TENANT") {
+      if (refreshToken && currentUser?.perfil === "PLATAFORMA") {
+        await logoutPlataformaRequest({ refreshToken });
+        return;
+      }
+
+      if (refreshToken && currentUser?.perfil === "TENANT") {
         await logoutRequest({
           refreshToken,
           locatarioId,
@@ -195,9 +252,7 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       const token = authStorage.getAccessToken();
 
       if (!token) {
-        if (ativo) {
-          setStatus("unauthenticated");
-        }
+        if (ativo) setStatus("unauthenticated");
         return;
       }
 
@@ -206,13 +261,9 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       try {
         await carregarUsuarioAutenticado();
 
-        if (ativo) {
-          setStatus("authenticated");
-        }
+        if (ativo) setStatus("authenticated");
       } catch {
-        if (ativo) {
-          clearSession();
-        }
+        if (ativo) clearSession();
       }
     }
 
@@ -222,6 +273,15 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       ativo = false;
     };
   }, [carregarUsuarioAutenticado, clearSession]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !user) return;
+
+    return setupInactivityWatcher({
+      user,
+      onExpired: logout,
+    });
+  }, [logout, status, user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -235,7 +295,15 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       logout,
       refreshTokens,
     }),
-    [status, user, accessToken, login, loginPlataforma, logout, refreshTokens],
+    [
+      status,
+      user,
+      accessToken,
+      login,
+      loginPlataforma,
+      logout,
+      refreshTokens,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
