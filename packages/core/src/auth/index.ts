@@ -4,6 +4,9 @@ export type {
   UsuarioAuth, 
   LocatarioAuth, 
   JwtPayloadAuth,
+  EmitirSessaoPlataformaInput,
+  EmitirSessaoPlataformaOutput,
+  EmitirSessaoPlataformaResult,
   EmitirSessaoInput,
   EmitirSessaoOutput,
   EmitirSessaoResult,
@@ -36,9 +39,5 @@ export { createFnRotacionarRefresh } from "./usecases/rotacionarRefresh.js";
 export { createFnResolverContextoAutorizado } from "./usecases/resolverContextoAutorizado.js";
 export { createFnLogout } from "./usecases/logout.js";
 export { createFnEmitirSessaoPlataforma } from "./usecases/emitirSessaoPlataforma.js";
-
-export type {
-  EmitirSessaoPlataformaInput,
-  EmitirSessaoPlataformaOutput,
-  EmitirSessaoPlataformaDeps,
-} from "./usecases/emitirSessaoPlataforma.js";
+export { createFnRotacionarRefreshPlataforma } from "./usecases/rotacionarRefreshPlataforma.js";
+export { createFnLogoutPlataforma } from "./usecases/logoutPlataforma.js";

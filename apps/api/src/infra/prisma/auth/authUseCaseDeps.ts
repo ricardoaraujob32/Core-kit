@@ -40,9 +40,21 @@ export type AuthUseCaseDeps = {
     idPorta: IdPorta;
     eventos?: EventosSegurancaPorta;
     issuer: Env["JWT_ISSUER"];
+    tokensPorta: AuthPrismaAdapters["tokensPorta"];
+    ttlAccessSegundos: number;
+    ttlRefreshMs: number;
   };
 
   rotacionarRefreshDeps: {
+    tokensPorta: AuthPrismaAdapters["tokensPorta"];
+    jwtPorta: JwtAuthPorta;
+    relogio: RelogioPorta;
+    idPorta: IdPorta;
+    eventos?: EventosSegurancaPorta;
+    issuer: Env["JWT_ISSUER"];
+  };
+
+  rotacionarRefreshPlataformaDeps: {
     tokensPorta: AuthPrismaAdapters["tokensPorta"];
     jwtPorta: JwtAuthPorta;
     relogio: RelogioPorta;
@@ -56,6 +68,12 @@ export type AuthUseCaseDeps = {
   };
 
   logoutDeps: {
+    tokensPorta: AuthPrismaAdapters["tokensPorta"];
+    relogio: RelogioPorta;
+    eventos?: EventosSegurancaPorta;
+  };
+
+  logoutPlataformaDeps: {
     tokensPorta: AuthPrismaAdapters["tokensPorta"];
     relogio: RelogioPorta;
     eventos?: EventosSegurancaPorta;
@@ -107,10 +125,22 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     relogio,
     idPorta,
     eventos,
+    tokensPorta: adapters.tokensPorta,
     issuer: env.JWT_ISSUER,
+    ttlAccessSegundos: 300,
+    ttlRefreshMs: 1000 * 60 * 60,
   };
 
   const rotacionarRefreshDeps = {
+    tokensPorta: adapters.tokensPorta,
+    jwtPorta,
+    relogio,
+    idPorta,
+    eventos,
+    issuer: env.JWT_ISSUER,
+  };
+
+  const rotacionarRefreshPlataformaDeps = {
     tokensPorta: adapters.tokensPorta,
     jwtPorta,
     relogio,
@@ -124,6 +154,12 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
   };
 
   const logoutDeps = {
+    tokensPorta: adapters.tokensPorta,
+    relogio,
+    eventos,
+  };
+
+  const logoutPlataformaDeps = {
     tokensPorta: adapters.tokensPorta,
     relogio,
     eventos,
@@ -145,8 +181,10 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     emitirSessaoDeps,
     emitirSessaoPlataformaDeps,
     rotacionarRefreshDeps,
+    rotacionarRefreshPlataformaDeps,
     validarSessaoDeps,
     logoutDeps,
+    logoutPlataformaDeps,
     resolverContextoAutorizadoDeps,
     listarModulosHabilitadosDeps,
     snapshotDeps,

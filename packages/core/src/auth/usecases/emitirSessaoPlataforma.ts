@@ -1,52 +1,36 @@
 // packages/core/src/auth/usecases/emitirSessaoPlataforma.ts
 
-// packages/core/src/auth/usecases/emitirSessaoPlataforma.ts
-
-import type {
-  ErroApp,
-  Result,
-  IdPorta,
-  RelogioPorta,
-} from "../../kernel/index.js";
-import { createErroApp, wrapOk } from "../../kernel/index.js";
-
+import type { IdPorta, RelogioPorta, TransacaoPorta } from "../../kernel/index.js";
+import { createErroApp, executarEmTransacao, wrapOk } from "../../kernel/index.js";
 import type {
   EventosSegurancaPorta,
   HashAuthPorta,
   JwtAuthPorta,
+  TokensAuthPorta,
 } from "../portasServico.js";
+import type { UsuariosRepositorioAuth } from "../portasRepositorio.js";
+import {
+  EmitirSessaoPlataformaInput,
+  EmitirSessaoPlataformaOutput,
+  EmitirSessaoPlataformaResult,
+} from "../tipos.js";
 
-import type {
-  UsuariosRepositorioAuth,
-} from "../portasRepositorio.js";
-
-export type EmitirSessaoPlataformaInput = {
-  email: string;
-  senha: string;
-};
-
-export type EmitirSessaoPlataformaOutput = {
-  accessToken: string;
-  accessExpiraEm: Date;
-  usuarioId: string;
-};
-
-export type EmitirSessaoPlataformaDeps = {
+export function createFnEmitirSessaoPlataforma(deps: {
   usuariosRepositorio: UsuariosRepositorioAuth;
+  tokensPorta: TokensAuthPorta;
   hashPorta: HashAuthPorta;
   jwtPorta: JwtAuthPorta;
   relogio: RelogioPorta;
   idPorta: IdPorta;
-  eventos?: EventosSegurancaPorta;
+  transacao?: TransacaoPorta;
   issuer: string;
-};
-
-export function createFnEmitirSessaoPlataforma(
-  deps: EmitirSessaoPlataformaDeps,
-) {
+  eventos?: EventosSegurancaPorta;
+  ttlAccessSegundos?: number;
+  ttlRefreshMs?: number;
+}) {
   return async function emitirSessaoPlataforma(
     input: EmitirSessaoPlataformaInput,
-  ): Promise<Result<EmitirSessaoPlataformaOutput, ErroApp>> {
+  ): EmitirSessaoPlataformaResult {
     const email = input.email?.trim().toLowerCase();
     const agora = deps.relogio.agora();
 
@@ -143,7 +127,7 @@ export function createFnEmitirSessaoPlataforma(
     }
 
     const sessionId = deps.idPorta.gerarId();
-    const ttlSegundos = 10 * 60;
+    const ttlSegundos = deps.ttlAccessSegundos ?? 5 * 60;
 
     const accessTokenResult = await deps.jwtPorta.emitirAccessToken({
       usuarioId: usuario.usuarioId,
@@ -156,6 +140,17 @@ export function createFnEmitirSessaoPlataforma(
 
     if (!accessTokenResult.ok) return accessTokenResult;
 
+    const refreshResult = await executarEmTransacao(deps.transacao, async () => {
+      return deps.tokensPorta.criarRefresh({
+        locatarioId: null,
+        usuarioId: usuario.usuarioId,
+        agora,
+        ttlMs: deps.ttlRefreshMs ?? 1000 * 60 * 60,
+      });
+    });
+
+    if (!refreshResult.ok) return refreshResult;
+
     await deps.eventos?.registrarEvento?.({
       tipo: "auth.login.sucesso",
       usuarioId: usuario.usuarioId,
@@ -163,12 +158,15 @@ export function createFnEmitirSessaoPlataforma(
       quando: agora,
       detalhes: {
         perfil: "PLATAFORMA",
+        sessionId,
       },
     });
 
-    return wrapOk({
+    return wrapOk<EmitirSessaoPlataformaOutput>({
       accessToken: accessTokenResult.value.token,
-      accessExpiraEm: new Date(agora.getTime() + ttlSegundos * 1000),
+      refreshToken: refreshResult.value.tokenBruto,
+      accessExpiraEm: new Date(accessTokenResult.value.payload.exp * 1000),
+      refreshExpiraEm: refreshResult.value.expiraEm,
       usuarioId: usuario.usuarioId,
     });
   };

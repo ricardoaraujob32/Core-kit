@@ -14,6 +14,26 @@ export function parseLoginPlataformaBody(input: unknown) {
   return loginPlataformaBodySchema.safeParse(input);
 }
 
+export const refreshPlataformaBodySchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type RefreshPlataformaBodyDto = z.infer<typeof refreshPlataformaBodySchema>;
+
+export function parseRefreshPlataformaBody(input: unknown) {
+  return refreshPlataformaBodySchema.safeParse(input);
+}
+
+export const logoutPlataformaBodySchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type LogoutPlataformaBodyDto = z.infer<typeof logoutPlataformaBodySchema>;
+
+export function parseLogoutPlataformaBody(input: unknown) {
+  return logoutPlataformaBodySchema.safeParse(input);
+}
+
 /**
  * Usuário serializado para sessão de plataforma.
  *
@@ -39,4 +59,6 @@ export type LoginPlataformaResponseDto = {
   accessToken: string;
   accessExpiraEm: Date | string;
   usuario: UsuarioSessaoPlataformaDto;
+  refreshToken: string;
+  refreshExpiraEm: Date | string;
 };

@@ -1,7 +1,7 @@
 // apps/api/src/infra/prisma/auth/authRuntimeFromDeps.ts
 
 import { createContextoExecucao, createFnEmitirSessao, createFnListarModulosHabilitados, createFnLogout, createFnRotacionarRefresh, createFnValidarSessao, 
-  createFnEmitirSessaoPlataforma, wrapOk } from "@core-kit/core";
+  createFnEmitirSessaoPlataforma, createFnRotacionarRefreshPlataforma, createFnLogoutPlataforma, wrapOk } from "@core-kit/core";
 import type { PrismaDb } from "../tipos.js";
 import type { AuthUseCaseDeps } from "./authUseCaseDeps.js";
 import type { IdPorta, LocatarioId, RelogioPorta, UsuarioId } from "@core-kit/core";
@@ -34,7 +34,9 @@ export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCase
   const emitirSessao = createFnEmitirSessao(deps.emitirSessaoDeps);
   const emitirSessaoPlataforma = createFnEmitirSessaoPlataforma(deps.emitirSessaoPlataformaDeps);
   const rotacionarRefresh = createFnRotacionarRefresh(deps.rotacionarRefreshDeps);
+  const rotacionarRefreshPlataforma = createFnRotacionarRefreshPlataforma(deps.rotacionarRefreshPlataformaDeps);
   const logout = createFnLogout(deps.logoutDeps);
+  const logoutPlataforma = createFnLogoutPlataforma(deps.logoutPlataformaDeps);
   const listarModulosHabilitados = createFnListarModulosHabilitados(deps.listarModulosHabilitadosDeps);
   
   return {
@@ -44,13 +46,18 @@ export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCase
     emitirSessao,
     emitirSessaoPlataforma,
     rotacionarRefresh,
+    rotacionarRefreshPlataforma,
     validarSessao,
     logout,
+    logoutPlataforma,
 
     emitirSessaoDeps: deps.emitirSessaoDeps,
+    emitirSessaoPlataformaDeps: deps.emitirSessaoPlataformaDeps,
     rotacionarRefreshDeps: deps.rotacionarRefreshDeps,
+    rotacionarRefreshPlataformaDeps: deps.rotacionarRefreshPlataformaDeps,
     validarSessaoDeps: deps.validarSessaoDeps,
     logoutDeps: deps.logoutDeps,
+    logoutPlataformaDeps: deps.logoutPlataformaDeps,
     resolverContextoAutorizadoDeps: deps.resolverContextoAutorizadoDeps,
     listarModulosHabilitadosDeps: deps.listarModulosHabilitadosDeps,
     snapshotDeps: deps.snapshotDeps,

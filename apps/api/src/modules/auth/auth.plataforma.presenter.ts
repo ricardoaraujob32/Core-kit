@@ -1,15 +1,9 @@
 // apps/api/src/modules/auth/auth.plataforma.presenter.ts
 
-import { UsuarioId } from "@core-kit/core";
 import type { LoginPlataformaResponseDto, UsuarioSessaoPlataformaDto } from "./auth.plataforma.dto.js";
+import type { UsuarioId } from "@core-kit/core";
 
-export type SessaoPlataformaPresenterInput = {
-  accessToken: string;
-  accessExpiraEm: Date | string;
-  usuarioId: UsuarioId;
-};
-
-export function serializarUsuarioSessaoPlataforma(usuarioId: UsuarioId): UsuarioSessaoPlataformaDto {
+export function toUsuarioSessaoPlataformaDto(usuarioId: UsuarioId): UsuarioSessaoPlataformaDto {
   return {
     usuarioId,
     locatarioId: null,
@@ -17,21 +11,34 @@ export function serializarUsuarioSessaoPlataforma(usuarioId: UsuarioId): Usuario
   };
 }
 
-/**
- * Serializa a sessão de plataforma para a borda HTTP.
- *
- * O presenter é intencionalmente restritivo para impedir vazamento futuro de:
- * - refresh token;
- * - permissões;
- * - papéis;
- * - módulos habilitados.
- */
-export function serializarSessaoPlataforma(input: SessaoPlataformaPresenterInput): LoginPlataformaResponseDto {
+export function toLoginPlataformaResponseDto(params: {
+  accessToken: string;
+  refreshToken: string;
+  accessExpiraEm: Date | string;
+  refreshExpiraEm: Date | string;
+  usuarioId: UsuarioId;
+}): LoginPlataformaResponseDto {
   return {
-    accessToken: input.accessToken,
-    accessExpiraEm: input.accessExpiraEm instanceof Date
-      ? input.accessExpiraEm.toISOString()
-      : input.accessExpiraEm,
-    usuario: serializarUsuarioSessaoPlataforma(input.usuarioId),
+    accessToken: params.accessToken,
+    refreshToken: params.refreshToken,
+    accessExpiraEm: params.accessExpiraEm instanceof Date ? params.accessExpiraEm.toISOString() : params.accessExpiraEm,
+    refreshExpiraEm: params.refreshExpiraEm instanceof Date ? params.refreshExpiraEm.toISOString() : params.refreshExpiraEm,
+    usuario: toUsuarioSessaoPlataformaDto(params.usuarioId),
   };
+}
+
+export function serializarSessaoPlataforma(params: {
+  accessToken: string;
+  refreshToken?: string;
+  accessExpiraEm: Date | string;
+  refreshExpiraEm?: Date | string;
+  usuarioId: UsuarioId;
+}): LoginPlataformaResponseDto {
+  return toLoginPlataformaResponseDto({
+    accessToken: params.accessToken,
+    refreshToken: params.refreshToken ?? "",
+    accessExpiraEm: params.accessExpiraEm,
+    refreshExpiraEm: params.refreshExpiraEm ?? "",
+    usuarioId: params.usuarioId,
+  });
 }

@@ -185,5 +185,38 @@ export interface ResolverContextoAutorizadoOutput {
   ctx: ContextoExecucao;
 }
 
-export type ResolverContextoAutorizadoResult =
-  Promise<Result<ResolverContextoAutorizadoOutput, ErroApp>>;
+export type ResolverContextoAutorizadoResult = Promise<Result<ResolverContextoAutorizadoOutput, ErroApp>>;
+
+export type EmitirSessaoPlataformaInput = {
+  email: string;
+  senha: string;
+};
+
+export interface EmitirSessaoPlataformaOutput {
+  accessToken: string;
+  refreshToken: string;
+  accessExpiraEm: Date;
+  refreshExpiraEm: Date;
+  usuarioId: UsuarioId;
+}
+  
+export type EmitirSessaoPlataformaResult =  Promise<Result<EmitirSessaoPlataformaOutput, ErroApp>>;
+
+export interface RotacionarRefreshPlataformaInput {
+  refreshToken: string;
+}
+
+export interface RotacionarRefreshPlataformaOutput {
+  sessao: Sessao;
+  usuarioId: UsuarioId;
+}
+
+export type RotacionarRefreshPlataformaResult = Promise<Result<RotacionarRefreshPlataformaOutput, ErroApp>>;
+
+export interface LogoutPlataformaInput {
+  refreshToken: string;
+}
+
+export interface LogoutPlataformaOutput {}
+
+export type LogoutPlataformaResult = Promise<Result<LogoutPlataformaOutput, ErroApp>>;
