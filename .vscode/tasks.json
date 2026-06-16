@@ -46,7 +46,13 @@
         "backups"
       ],
       "default": "locatarios"
-    }
+    },
+      {
+        "id": "backupFile",
+        "type": "promptString",
+        "description": "Caminho do arquivo de backup para restaurar",
+        "default": "backups/corekit.backup"
+      }
   ],
   "tasks": [
     {
@@ -1129,7 +1135,28 @@
       "presentation": {
         "reveal": "always",
         "panel": "shared"
-      }
+      },
+    },
+    {
+      "label": "db:backup:neon",
+      "type": "shell",
+      "command": "bash tools/db/backup-neon.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "db:restore:neon",
+      "type": "shell",
+      "command": "bash tools/db/restore-neon.sh",
+      "args": [
+        "${input:backupFile}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

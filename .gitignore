@@ -128,3 +128,8 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Backups
+backups/*.backup
+backups/*.dump
+backups/*.sql
