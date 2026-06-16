@@ -6,11 +6,11 @@
 
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { authPlugin } from "./plugins/auth";
-import { requestIdPlugin } from "./middlewares/requestId";
-import { routes } from ".";
-import { runApplicationBootstrap } from "./bootstrap/applicationBootstrap";
-import { initDb } from "./infra/prisma/initDb";
+import { authPlugin } from "./plugins/auth.js";
+import { requestIdPlugin } from "./middlewares/requestId.js";
+import { routes } from "./index.js";
+import { runApplicationBootstrap } from "./bootstrap/applicationBootstrap.js";
+import { initDb } from "./infra/prisma/initDb.js";
 
 /**
  * Cria e prepara a aplicação Fastify.
@@ -47,8 +47,8 @@ export async function criarApp() {
 // apps/api/src/bootstrap/applicationBootstrap.ts
 
 import type { FastifyInstance } from "fastify";
-import { createAuthorizationBootstrap } from "./authorizationBootstrap";
-import { createAuthBootstrap } from "./authBootstrap";
+import { createAuthorizationBootstrap } from "./authorizationBootstrap.js";
+import { createAuthBootstrap } from "./authBootstrap.js";
 
 export type ApplicationBootstrap = {
   auth: ReturnType<typeof createAuthBootstrap>;
@@ -81,9 +81,9 @@ export async function runApplicationBootstrap(app: FastifyInstance): Promise<App
 
 // apps/api/src/bootstrap/authBootstrap.ts
 
-import { clientePrisma } from "../infra/prisma/client";
-import { createAuthHttpRuntime, type CreateAuthDepsParams } from "../infra/prisma/auth/authHttpRuntime";
-import { createEventosSegurancaPorta } from "../infra/prisma/auth/eventosSegurancaPorta";
+import { clientePrisma } from "../infra/prisma/client.js";
+import { createAuthHttpRuntime, type CreateAuthDepsParams } from "../infra/prisma/auth/authHttpRuntime.js";
+import { createEventosSegurancaPorta } from "../infra/prisma/auth/eventosSegurancaPorta.js";
 
 export type AuthBootstrap = {
   runtime: ReturnType<typeof createAuthHttpRuntime>;
@@ -130,10 +130,10 @@ export function getAuthBootstrap(): AuthBootstrap {
 
 // apps/api/src/bootstrap/authorizationBootstrap.ts
 
-import { clientePrisma } from "../infra/prisma/client";
-import { createBootstrapAutorizacaoRepositorio } from "../infra/prisma/autorizacao/bootstrapAutorizacaoRepositorioPrisma";
-import { createAutorizacaoHttpRuntime } from "../infra/prisma/autorizacao/autorizacaoHttpRuntime";
-import { authorizationCatalogStore, AuthorizationCatalogStore } from "./authorizationCatalogStore";
+import { clientePrisma } from "../infra/prisma/client.js";
+import { createBootstrapAutorizacaoRepositorio } from "../infra/prisma/autorizacao/bootstrapAutorizacaoRepositorioPrisma.js";
+import { createAutorizacaoHttpRuntime } from "../infra/prisma/autorizacao/autorizacaoHttpRuntime.js";
+import { authorizationCatalogStore, AuthorizationCatalogStore } from "./authorizationCatalogStore.js";
 
 export type AuthorizationBootstrap = {
   runtime: ReturnType<typeof createAutorizacaoHttpRuntime>;
@@ -341,9 +341,9 @@ export const env = envSchema.parse(process.env);
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ContextoExecucao, Permissao, ModuloCodigo } from "@core-kit/core";
 import { autorizarOperacao } from "@core-kit/core";
-import { buildContextFromRequest, buildContextoHttpFromRequest } from "./context";
-import { sendHttpError } from "./serializarErroApp";
-import { exigirMesmoLocatarioHttp, exigirSuperAdminHttp } from "./routeGuards";
+import { buildContextFromRequest, buildContextoHttpFromRequest } from "./context.js";
+import { sendHttpError } from "./serializarErroApp.js";
+import { exigirMesmoLocatarioHttp, exigirSuperAdminHttp } from "./routeGuards.js";
 
 /**
  * Política declarativa de autorização da borda HTTP.
@@ -570,8 +570,8 @@ export async function autorizarHttp(request: FastifyRequest, reply: FastifyReply
 // apps/api/src/http/autorizarPlataformaHttp.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { buildContextoHttpFromRequest } from "./context";
-import { sendHttpError } from "./serializarErroApp";
+import { buildContextoHttpFromRequest } from "./context.js";
+import { sendHttpError } from "./serializarErroApp.js";
 
 export type ContextoPlataformaAutorizado = {
   tipo: "PLATAFORMA";
@@ -641,7 +641,7 @@ export function classificarUsuarioHttp(usuario: UsuarioHttpAutenticado): Classif
 import type { FastifyRequest } from "fastify";
 import { createContextoExecucao, createErroApp, wrapOk } from "@core-kit/core";
 import type { ContextoExecucao, ErroApp, Result } from "@core-kit/core";
-import { getAuthorizationBootstrap } from "../bootstrap/authorizationBootstrap";
+import { getAuthorizationBootstrap } from "../bootstrap/authorizationBootstrap.js";
 
 /**
  * Tipo da função oficial de resolução de contexto autorizado.
@@ -1430,17 +1430,17 @@ export function sendHttpError(reply: FastifyReply, erro: ErroApp | ErroHttpLike)
 // apps/api/src/index.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { healthRoutes } from "./routes/health.routes";
-import { authRoutes } from "./routes/auth.routes";
-import { locatariosRoutes } from "./routes/locatarios.routes";
-import { usuariosRoutes } from "./routes/usuarios.routes";
-import { assinaturaModulosRoutes } from "./routes/assinaturaModulos.routes";
-import { clientesRoutes } from "./routes/clientes.routes";
-import { fornecedoresRoutes } from "./routes/fornecedores.routes";
-import { produtosRoutes } from "./routes/produtos.routes";
-import { vendasRoutes } from "./routes/vendas.routes";
-import { auditoriaRoutes } from "./routes/auditoria.routes";
-import { plataformaRoutes } from "./routes/plataforma/plataforma.routes";
+import { healthRoutes } from "./routes/health.routes.js";
+import { authRoutes } from "./routes/auth.routes.js";
+import { locatariosRoutes } from "./routes/locatarios.routes.js";
+import { usuariosRoutes } from "./routes/usuarios.routes.js";
+import { assinaturaModulosRoutes } from "./routes/assinaturaModulos.routes.js";
+import { clientesRoutes } from "./routes/clientes.routes.js";
+import { fornecedoresRoutes } from "./routes/fornecedores.routes.js";
+import { produtosRoutes } from "./routes/produtos.routes.js";
+import { vendasRoutes } from "./routes/vendas.routes.js";
+import { auditoriaRoutes } from "./routes/auditoria.routes.js";
+import { plataformaRoutes } from "./routes/plataforma/plataforma.routes.js";
 
 export const routes: FastifyPluginAsync = async (app) => {
   await app.register(healthRoutes, { prefix: "/api" });
@@ -1461,7 +1461,7 @@ export const routes: FastifyPluginAsync = async (app) => {
 // apps/api/src/infra/hash/hashPortaAdapter.ts
 
 import type { HashPorta } from "@core-kit/core";
-import { hashPorta } from "../prisma/auth/hashPorta";
+import { hashPorta } from "../prisma/auth/hashPorta.js";
 
 export function createHashPortaAdapter(): HashPorta {
   return {
@@ -1499,8 +1499,8 @@ export function createHashPortaAdapter(): HashPorta {
 
 import type { AssinaturaId, AssinaturasModulosRepositorio, ModuloHabilitadoAssinatura, ModuloId, RegistrarModuloAssinaturaParams } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 type ModuloLocatarioRow = {
   modulo_id: string;
@@ -1709,9 +1709,9 @@ export function createAssinaturasModulosRepositorioPrisma(
 
 import type { Assinatura, AssinaturaId, AssinaturasRepositorio, LocatarioId, RegistrarAssinaturaParams } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
+import type { PrismaDb } from "../tipos.js";
 import type { status_assinatura } from "@prisma/client";
-import { mapearErroInfra } from "../erros";
+import { mapearErroInfra } from "../erros.js";
 
 type AssinaturaRow = {
   assinatura_id: string;
@@ -1891,7 +1891,7 @@ export function createAssinaturasRepositorioPrisma(db: PrismaDb): AssinaturasRep
 
 // apps/api/src/infra/prisma/assinaturas/index.ts
 
-// export { AssinaturasRepositorioPrisma } from "./assinaturasRepositorioPrisma";
+// export { AssinaturasRepositorioPrisma } from "./assinaturasRepositorioPrisma.js";
 
 ===== apps/api/src/infra/prisma/assinaturas/modulosConsultaRepositorioPrisma.ts =====
 
@@ -1904,8 +1904,8 @@ import type {
   ValidarModuloExistenteResult,
 } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 export function createModulosConsultaRepositorioPrisma(
   db: PrismaDb,
@@ -1946,8 +1946,8 @@ export function createModulosConsultaRepositorioPrisma(
 
 import type { AuditoriaLocatarioRepositorio, AuditoriaId, ErroApp, EventoAuditoriaLocatario, ListarAuditoriaLocatarioInput, Result } from "@core-kit/core";
 import { resolverEventoAuditoria, wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 import { Prisma } from "@prisma/client";
 
 type AuditoriaLocatarioRow = {
@@ -2194,8 +2194,8 @@ export function createAuditoriaLocatarioRepositorio(db: PrismaDb): AuditoriaLoca
 import type { AuditoriaId, AuditoriaPlataformaRepositorio, CategoriaAuditoria, ErroApp, EventoAuditoriaPlataforma, ListarAuditoriaPlataformaInput, 
   RegistrarEventoAuditoriaPlataformaInput, Result} from "@core-kit/core";
 import { resolverEventoAuditoria, wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 import { Prisma } from "@prisma/client";
 
 type AuditoriaLocatarioRow = {
@@ -2481,9 +2481,9 @@ export function createAuditoriaPlataformaRepositorio(db: PrismaDb): AuditoriaPla
 
 // // apps/api/src/infra/prisma/auditoria/index.ts
 
-// export { createAuditoriaAtivaLocatarioRepositorio } from "./auditoriaAtivaLocatarioRepositorioPrisma";
+// export { createAuditoriaAtivaLocatarioRepositorio } from "./auditoriaAtivaLocatarioRepositorioPrisma.js";
 
-// export { createAuditoriaInternaRepositorio } from "./auditoriaInternaRepositorioPrisma";
+// export { createAuditoriaInternaRepositorio } from "./auditoriaInternaRepositorioPrisma.js";
 
 ===== apps/api/src/infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma.ts =====
 
@@ -2491,8 +2491,8 @@ export function createAuditoriaPlataformaRepositorio(db: PrismaDb): AuditoriaPla
 
 import type { LocatarioId, ModulosHabilitadosRepositorio, ModuloHabilitado, OrigemModuloHabilitado } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../../tipos";
-import { mapearErroInfra } from "../../erros"; 
+import type { PrismaDb } from "../../tipos.js";
+import { mapearErroInfra } from "../../erros.js"; 
 
 /**
  * Normaliza a origem persistida no banco para o contrato canônico do Core.
@@ -2626,18 +2626,18 @@ export function createModulosHabilitadosRepositorio(db: PrismaDb): ModulosHabili
 // apps/api/src/infra/prisma/auth/authHttpRuntime.ts
 
 import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, RelogioPorta, TransacaoPorta } from "@core-kit/core";
-import { AuthUseCaseDeps, createAuthUseCaseDeps } from "./authUseCaseDeps";
-import { AuthContextoBanco, executarAuthComContexto } from "./authPrismaContexto";
-import { hashPorta } from "./hashPorta";
-import { jwtPorta } from "./jwtPorta";
-import { createRelogioPorta } from "./relogioPorta";
-import { createIdPorta } from "./idPorta";
-import { PrismaDb } from "../tipos";
-import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters";
+import { AuthUseCaseDeps, createAuthUseCaseDeps } from "./authUseCaseDeps.js";
+import { AuthContextoBanco, executarAuthComContexto } from "./authPrismaContexto.js";
+import { hashPorta } from "./hashPorta.js";
+import { jwtPorta } from "./jwtPorta.js";
+import { createRelogioPorta } from "./relogioPorta.js";
+import { createIdPorta } from "./idPorta.js";
+import { PrismaDb } from "../tipos.js";
+import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters.js";
 import { PrismaClient } from "@prisma/client"; 
-import { clientePrisma } from "../client";
-import { createTransacaoPorta } from "./TransacaoPorta";
-import { AuthRuntimeTechnicalPorts, createAuthRuntimeFromDeps } from "./authRuntimeFromDeps";
+import { clientePrisma } from "../client.js";
+import { createTransacaoPorta } from "./TransacaoPorta.js";
+import { AuthRuntimeTechnicalPorts, createAuthRuntimeFromDeps } from "./authRuntimeFromDeps.js";
 
 
 /**
@@ -2779,13 +2779,13 @@ export async function executarAuthNoContexto<T>(
 // apps/api/src/infra/prisma/auth/authPrismaAdapters.ts
 
 import type { IdPorta } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { createLocatariosRepositorioAuth } from "./locatario/locatariosRepositorioAuthPrisma";
-import { createUsuariosRepositorioAuth } from "./usuario/usuariosRepositorioAuthPrisma";
-import { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma";
-import { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma";
-import { createAutorizacaoRepositorio } from "../autorizacao/rbac/autorizacaoRepositorioPrisma";
-import { createModulosHabilitadosRepositorio } from "./assinatura/modulosHabilitadosRepositorioPrisma";
+import type { PrismaDb } from "../tipos.js";
+import { createLocatariosRepositorioAuth } from "./locatario/locatariosRepositorioAuthPrisma.js";
+import { createUsuariosRepositorioAuth } from "./usuario/usuariosRepositorioAuthPrisma.js";
+import { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma.js";
+import { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma.js";
+import { createAutorizacaoRepositorio } from "../autorizacao/rbac/autorizacaoRepositorioPrisma.js";
+import { createModulosHabilitadosRepositorio } from "./assinatura/modulosHabilitadosRepositorioPrisma.js";
 
 /**
  * Dependências Prisma de autenticação montadas sobre um `db`.
@@ -2837,8 +2837,8 @@ export function createAuthPrismaAdapters(db: PrismaDb, params: CreateAuthPrismaA
 
 import type { PrismaClient } from "@prisma/client";
 import type { IdPorta, LocatarioId, UsuarioId } from "@core-kit/core";
-import { executarComContexto } from "../execucaoComContexto";
-import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters";
+import { executarComContexto } from "../execucaoComContexto.js";
+import { AuthPrismaAdapters, createAuthPrismaAdapters } from "./authPrismaAdapters.js";
 
 /**
  * Contexto lógico mínimo necessário para abrir uma execução de auth
@@ -2907,9 +2907,9 @@ export async function executarAuthComContexto<T>(
 // apps/api/src/infra/prisma/auth/authRuntimeFromDeps.ts
 
 import { createContextoExecucao, createFnEmitirSessao, createFnListarModulosHabilitados, createFnLogout, createFnRotacionarRefresh, createFnValidarSessao, 
-  createFnEmitirSessaoPlataforma, wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import type { AuthUseCaseDeps } from "./authUseCaseDeps";
+  createFnEmitirSessaoPlataforma, createFnRotacionarRefreshPlataforma, createFnLogoutPlataforma, wrapOk } from "@core-kit/core";
+import type { PrismaDb } from "../tipos.js";
+import type { AuthUseCaseDeps } from "./authUseCaseDeps.js";
 import type { IdPorta, LocatarioId, RelogioPorta, UsuarioId } from "@core-kit/core";
 
 /**
@@ -2940,7 +2940,9 @@ export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCase
   const emitirSessao = createFnEmitirSessao(deps.emitirSessaoDeps);
   const emitirSessaoPlataforma = createFnEmitirSessaoPlataforma(deps.emitirSessaoPlataformaDeps);
   const rotacionarRefresh = createFnRotacionarRefresh(deps.rotacionarRefreshDeps);
+  const rotacionarRefreshPlataforma = createFnRotacionarRefreshPlataforma(deps.rotacionarRefreshPlataformaDeps);
   const logout = createFnLogout(deps.logoutDeps);
+  const logoutPlataforma = createFnLogoutPlataforma(deps.logoutPlataformaDeps);
   const listarModulosHabilitados = createFnListarModulosHabilitados(deps.listarModulosHabilitadosDeps);
   
   return {
@@ -2950,13 +2952,18 @@ export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCase
     emitirSessao,
     emitirSessaoPlataforma,
     rotacionarRefresh,
+    rotacionarRefreshPlataforma,
     validarSessao,
     logout,
+    logoutPlataforma,
 
     emitirSessaoDeps: deps.emitirSessaoDeps,
+    emitirSessaoPlataformaDeps: deps.emitirSessaoPlataformaDeps,
     rotacionarRefreshDeps: deps.rotacionarRefreshDeps,
+    rotacionarRefreshPlataformaDeps: deps.rotacionarRefreshPlataformaDeps,
     validarSessaoDeps: deps.validarSessaoDeps,
     logoutDeps: deps.logoutDeps,
+    logoutPlataformaDeps: deps.logoutPlataformaDeps,
     resolverContextoAutorizadoDeps: deps.resolverContextoAutorizadoDeps,
     listarModulosHabilitadosDeps: deps.listarModulosHabilitadosDeps,
     snapshotDeps: deps.snapshotDeps,
@@ -3081,8 +3088,8 @@ export function createAuthRuntimeFromDeps(db: PrismaDb | null, deps: AuthUseCase
 // apps/api/src/infra/prisma/auth/authUseCaseDeps.ts
 
 import type { EventosSegurancaPorta, HashAuthPorta, IdPorta, JwtAuthPorta, RelogioPorta } from "@core-kit/core";
-import { env, type Env } from "../../../env";
-import type { AuthPrismaAdapters } from "./authPrismaAdapters";
+import { env, type Env } from "../../../env.js";
+import type { AuthPrismaAdapters } from "./authPrismaAdapters.js";
 
 /**
  * 
@@ -3120,9 +3127,21 @@ export type AuthUseCaseDeps = {
     idPorta: IdPorta;
     eventos?: EventosSegurancaPorta;
     issuer: Env["JWT_ISSUER"];
+    tokensPorta: AuthPrismaAdapters["tokensPorta"];
+    ttlAccessSegundos: number;
+    ttlRefreshMs: number;
   };
 
   rotacionarRefreshDeps: {
+    tokensPorta: AuthPrismaAdapters["tokensPorta"];
+    jwtPorta: JwtAuthPorta;
+    relogio: RelogioPorta;
+    idPorta: IdPorta;
+    eventos?: EventosSegurancaPorta;
+    issuer: Env["JWT_ISSUER"];
+  };
+
+  rotacionarRefreshPlataformaDeps: {
     tokensPorta: AuthPrismaAdapters["tokensPorta"];
     jwtPorta: JwtAuthPorta;
     relogio: RelogioPorta;
@@ -3136,6 +3155,12 @@ export type AuthUseCaseDeps = {
   };
 
   logoutDeps: {
+    tokensPorta: AuthPrismaAdapters["tokensPorta"];
+    relogio: RelogioPorta;
+    eventos?: EventosSegurancaPorta;
+  };
+
+  logoutPlataformaDeps: {
     tokensPorta: AuthPrismaAdapters["tokensPorta"];
     relogio: RelogioPorta;
     eventos?: EventosSegurancaPorta;
@@ -3187,10 +3212,22 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     relogio,
     idPorta,
     eventos,
+    tokensPorta: adapters.tokensPorta,
     issuer: env.JWT_ISSUER,
+    ttlAccessSegundos: 300,
+    ttlRefreshMs: 1000 * 60 * 60,
   };
 
   const rotacionarRefreshDeps = {
+    tokensPorta: adapters.tokensPorta,
+    jwtPorta,
+    relogio,
+    idPorta,
+    eventos,
+    issuer: env.JWT_ISSUER,
+  };
+
+  const rotacionarRefreshPlataformaDeps = {
     tokensPorta: adapters.tokensPorta,
     jwtPorta,
     relogio,
@@ -3204,6 +3241,12 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
   };
 
   const logoutDeps = {
+    tokensPorta: adapters.tokensPorta,
+    relogio,
+    eventos,
+  };
+
+  const logoutPlataformaDeps = {
     tokensPorta: adapters.tokensPorta,
     relogio,
     eventos,
@@ -3225,8 +3268,10 @@ export function createAuthUseCaseDeps(params: CreateAuthUseCaseDepsParams): Auth
     emitirSessaoDeps,
     emitirSessaoPlataformaDeps,
     rotacionarRefreshDeps,
+    rotacionarRefreshPlataformaDeps,
     validarSessaoDeps,
     logoutDeps,
+    logoutPlataformaDeps,
     resolverContextoAutorizadoDeps,
     listarModulosHabilitadosDeps,
     snapshotDeps,
@@ -3317,9 +3362,9 @@ export function erroInfraAuth(params: ErroInfraAuthParams) {
 
 import type { EventosSegurancaPorta } from "@core-kit/core";
 import { createFnRegistrarEventoAuditoriaLocatario, createFnRegistrarEventoAuditoriaPlataforma } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { createAuditoriaLocatarioRepositorio } from "../auditoria/auditoriaAtivaLocatarioRepositorioPrisma";
-import { createAuditoriaPlataformaRepositorio } from "../auditoria/auditoriaInternaRepositorioPrisma";
+import type { PrismaDb } from "../tipos.js";
+import { createAuditoriaLocatarioRepositorio } from "../auditoria/auditoriaAtivaLocatarioRepositorioPrisma.js";
+import { createAuditoriaPlataformaRepositorio } from "../auditoria/auditoriaInternaRepositorioPrisma.js";
 
 type RegistrarEventoSegurancaFn = NonNullable<EventosSegurancaPorta["registrarEvento"]>;
 
@@ -3529,16 +3574,16 @@ export function createIdPorta(): IdPorta {
 
 // apps/api/src/infra/prisma/auth/index.ts
 
-export { createAuthHttpRuntime, createAuthRuntimeBase, executarAuthNoContexto } from "./authHttpRuntime";
+export { createAuthHttpRuntime, createAuthRuntimeBase, executarAuthNoContexto } from "./authHttpRuntime.js";
 
-export type { CreateAuthDepsParams } from "./authHttpRuntime";
+export type { CreateAuthDepsParams } from "./authHttpRuntime.js";
 
-export { createEventosSegurancaPorta } from "./eventosSegurancaPorta";
+export { createEventosSegurancaPorta } from "./eventosSegurancaPorta.js";
 
-export { createUsuariosRepositorioAuth as createUsuariosRepositorioAuthPrisma } from "./usuario/usuariosRepositorioAuthPrisma";
-export { createLocatariosRepositorioAuth as createLocatariosRepositorioAuthPrisma } from "./locatario/locatariosRepositorioAuthPrisma";
-export { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma";
-export { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma";
+export { createUsuariosRepositorioAuth as createUsuariosRepositorioAuthPrisma } from "./usuario/usuariosRepositorioAuthPrisma.js";
+export { createLocatariosRepositorioAuth as createLocatariosRepositorioAuthPrisma } from "./locatario/locatariosRepositorioAuthPrisma.js";
+export { createTokensAuthPorta } from "./tokens/tokensAuthPortaPrisma.js";
+export { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma.js";
 
 ===== apps/api/src/infra/prisma/auth/jwtPorta.ts =====
 
@@ -3547,7 +3592,7 @@ export { createRbacAuthPorta } from "./rbac/rbacAuthPortaPrisma";
 import jwt from "jsonwebtoken";
 import { createErroApp, wrapOk } from "@core-kit/core";
 import type { JwtAuthPorta, UsuarioId, LocatarioId } from "@core-kit/core";
-import { env } from "../../../env";
+import { env } from "../../../env.js";
 
 /**
  * Payload interno esperado para os JWTs de autenticação.
@@ -3577,6 +3622,15 @@ type JwtPayloadInterno = {
  */
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+/**
+ * 
+ * @param value 
+ * @returns 
+ */
+function isLocClaimValido(value: unknown): value is LocatarioId | null {
+  return value === null || isNonEmptyString(value);
 }
 
 /**
@@ -3623,7 +3677,7 @@ export const jwtPorta: JwtAuthPorta = {
 
       if (
         !isNonEmptyString(payload.sub) ||
-        !isNonEmptyString(payload.loc) ||
+        !isLocClaimValido(payload.loc) ||
         !isNonEmptyString(payload.session) ||
         typeof payload.exp !== "number"
       ) {
@@ -3684,7 +3738,7 @@ export const jwtPorta: JwtAuthPorta = {
 
       if (
         !isNonEmptyString(payload.sub) ||
-        !isNonEmptyString(payload.loc) ||
+        !isLocClaimValido(payload.loc) ||
         !isNonEmptyString(payload.session) ||
         typeof payload.exp !== "number"
       ) {
@@ -3723,8 +3777,8 @@ export const jwtPorta: JwtAuthPorta = {
 // apps/api/src/infra/prisma/auth/locatarios/locatariosRepositorioAuthPrisma.ts
 
 import { ErroApp, LocatarioAuth, LocatarioSlug, LocatariosRepositorioAuth, Result, wrapOk } from "@core-kit/core";
-import { erroInfraAuth } from "../errosInfraAuth";
-import { PrismaDb } from "../../tipos";
+import { erroInfraAuth } from "../errosInfraAuth.js";
+import { PrismaDb } from "../../tipos.js";
 
 /**
  * Repositório de locatários para autenticação.
@@ -3785,8 +3839,8 @@ export function createLocatariosRepositorioAuth(db: PrismaDb): LocatariosReposit
 // apps/api/src/infra/prisma/auth/rbac/rbacAuthPortaPrisma.ts
 
 import { RbacAuthPorta, ContextoExecucao, Result, ErroApp, createContextoExecucao, wrapOk, Permissao, Papel } from "@core-kit/core";
-import { erroInfraAuth } from "../errosInfraAuth";
-import { PrismaDb } from "../../tipos";
+import { erroInfraAuth } from "../errosInfraAuth.js";
+import { PrismaDb } from "../../tipos.js";
 
 /**
  * Adapter Prisma -> RbacAuthPorta.
@@ -3996,9 +4050,9 @@ export function gerarRefreshTokenBruto(): string {
 // apps/api/src/infra/prisma/auth/tokens/tokensAuthPortaPrisma.ts
 
 import { createErroApp, IdPorta, TokenId, TokensAuthPorta, wrapOk } from "@core-kit/core";
-import { gerarRefreshTokenBruto, hashRefreshToken } from "./tokenHash";
-import { erroInfraAuth } from "../errosInfraAuth";
-import { PrismaDb } from "../../tipos";
+import { gerarRefreshTokenBruto, hashRefreshToken } from "./tokenHash.js";
+import { erroInfraAuth } from "../errosInfraAuth.js";
+import { PrismaDb } from "../../tipos.js";
 
 type TokenRow = {
   token_id: string;
@@ -4261,9 +4315,9 @@ export function createTransacaoPorta(prisma: PrismaClient): TransacaoPorta {
 import { wrapOk } from "@core-kit/core";
 import type { LocatarioId, Result, ErroApp, UsuarioId, UsuarioAuth, UsuariosRepositorioAuth } from "@core-kit/core";
 import type { status_usuario } from "@prisma/client";
-import { erroInfraAuth } from "../errosInfraAuth";
-import { PrismaDb } from "../../tipos";
-import { mapearErroInfra } from "../../erros";
+import { erroInfraAuth } from "../errosInfraAuth.js";
+import { PrismaDb } from "../../tipos.js";
+import { mapearErroInfra } from "../../erros.js";
 
 /**
  * Mapeia o status persistido no banco para o contrato de auth.
@@ -4441,11 +4495,11 @@ export function createUsuariosRepositorioAuth(db: PrismaDb): UsuariosRepositorio
 // apps/api/src/infra/prisma/autorizacao/autorizacaoHttpRuntime.ts
 
 import type { PrismaClient } from "@prisma/client";
-import { clientePrisma } from "../client";
-import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache";
-import { type AutorizacaoPrismaAdapters, createAutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters";
-import { type AutorizacaoUseCaseDeps, createAutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps";
-import { createAutorizacaoRuntimeFromDeps } from "./autorizacaoRuntimeFromDeps";
+import { clientePrisma } from "../client.js";
+import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache.js";
+import { type AutorizacaoPrismaAdapters, createAutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters.js";
+import { type AutorizacaoUseCaseDeps, createAutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps.js";
+import { createAutorizacaoRuntimeFromDeps } from "./autorizacaoRuntimeFromDeps.js";
 
 /**
  * 
@@ -4509,11 +4563,11 @@ export const authorizationHttpRuntime = createAutorizacaoHttpRuntime({
 
 // apps/api/src/infra/prisma/autorizacao/autorizacaoPrismaAdapters.ts
 
-import type { PrismaDb } from "../tipos";
-import type { AutorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache";
-import { createAutorizacaoRepositorio } from "./rbac/autorizacaoRepositorioPrisma";
-import { createModulosHabilitadosRepositorio } from "../auth/assinatura/modulosHabilitadosRepositorioPrisma";
-import { createRbacAuthPorta } from "../auth/rbac/rbacAuthPortaPrisma";
+import type { PrismaDb } from "../tipos.js";
+import type { AutorizacaoSnapshotCache } from "./rbac/autorizacaoSnapshotCache.js";
+import { createAutorizacaoRepositorio } from "./rbac/autorizacaoRepositorioPrisma.js";
+import { createModulosHabilitadosRepositorio } from "../auth/assinatura/modulosHabilitadosRepositorioPrisma.js";
+import { createRbacAuthPorta } from "../auth/rbac/rbacAuthPortaPrisma.js";
 
 /**
  * 
@@ -4560,8 +4614,8 @@ export function createAutorizacaoPrismaAdapters(db: PrismaDb, params: CreateAuto
 // apps/api/src/infra/prisma/autorizacao/autorizacaoRuntimeFromDeps.ts
 
 import { createFnListarModulosHabilitados, createFnResolverContextoAutorizado } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import type { AutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps";
+import type { PrismaDb } from "../tipos.js";
+import type { AutorizacaoUseCaseDeps } from "./autorizacaoUseCaseDeps.js";
 
 /**
  * 
@@ -4598,7 +4652,7 @@ export function createAutorizacaoRuntimeFromDeps(db: PrismaDb, deps: Autorizacao
 // apps/api/src/infra/prisma/autorizacao/autorizacaoUseCaseDeps.ts
 
 import { createFnListarModulosHabilitados } from "@core-kit/core";
-import type { AutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters";
+import type { AutorizacaoPrismaAdapters } from "./autorizacaoPrismaAdapters.js";
 
 /**
  * 
@@ -4643,8 +4697,8 @@ export function createAutorizacaoUseCaseDeps(adapters: AutorizacaoPrismaAdapters
 
 import { wrapOk } from "@core-kit/core";
 import type { BootstrapAutorizacaoRepositorio, CatalogoAutorizacaoBootstrap } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 /**
  *
@@ -4728,9 +4782,9 @@ export function createBootstrapAutorizacaoRepositorio(db: PrismaDb): BootstrapAu
 
 import type { AutorizacaoRepositorio, AutorizacaoSnapshot, LocatarioId, ModuloHabilitado, OrigemModuloHabilitado, Papel, Permissao, UsuarioId } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../../tipos";
-import { mapearErroInfra } from "../../erros";
-import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./autorizacaoSnapshotCache";
+import type { PrismaDb } from "../../tipos.js";
+import { mapearErroInfra } from "../../erros.js";
+import { AutorizacaoSnapshotCache, autorizacaoSnapshotCache } from "./autorizacaoSnapshotCache.js";
 
 function normalizarOrigemModulo(origem: string | null | undefined): OrigemModuloHabilitado {
   switch ((origem ?? "").trim().toUpperCase()) {
@@ -5029,9 +5083,9 @@ export const autorizacaoSnapshotCache = new AutorizacaoSnapshotCache();
 
 import type { ContextoExecucao, ErroApp, Result, RbacAuthPorta } from "@core-kit/core";
 import { createContextoExecucao, wrapOk } from "@core-kit/core";
-import { erroInfraAuth } from "../../auth/errosInfraAuth"; 
-import type { PrismaDb } from "../../tipos";
-import { createAutorizacaoRepositorio } from "./autorizacaoRepositorioPrisma";
+import { erroInfraAuth } from "../../auth/errosInfraAuth.js"; 
+import type { PrismaDb } from "../../tipos.js";
+import { createAutorizacaoRepositorio } from "./autorizacaoRepositorioPrisma.js";
 
 /**
  * 
@@ -5090,8 +5144,8 @@ export function createRbacAuthPorta(db: PrismaDb): RbacAuthPorta {
 
 import type { Cliente, ClienteId, ClientesRepositorio, ErroApp, LocatarioId, Result, UsuarioId } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 type ClienteRow = {
   cliente_id: string;
@@ -5460,8 +5514,8 @@ export async function executarComContexto<T>(prisma: PrismaClient, contexto: Con
 
 import type { ErroApp, Fornecedor, FornecedorId, FornecedoresRepositorio, LocatarioId, Result, UsuarioId } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 type FornecedorRow = {
   fornecedor_id: string;
@@ -5666,7 +5720,7 @@ export function createFornecedoresRepositorio(db: PrismaDb): FornecedoresReposit
 
 //
 
-import { clientePrisma } from "./client";
+import { clientePrisma } from "./client.js";
 
 /**
  * Inicializa a conexão com o banco de dados.
@@ -5700,8 +5754,8 @@ export async function initDb(): Promise<void> {
 
 import type { ConfiguracaoLocatario, ErroApp, Locatario, LocatarioId, LocatariosRepositorio, ModoTemaLocatario, Result } from "@core-kit/core";
 import { createErroApp, wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 import { status_locatario } from "@prisma/client";
 
 type ConfiguracaoLocatarioRow = {
@@ -6328,10 +6382,21 @@ export function criarModulosHabilitadosRepositorioPrisma(
 
 // apps/api/src/infra/prisma/produtos/produtosRepositorioPrisma.ts
 
-import type { ErroApp, LocatarioId, Produto, ProdutoId, ProdutosRepositorio, Result, TipoProduto, UsuarioId } from "@core-kit/core";
+// apps/api/src/infra/prisma/produtos/produtosRepositorioPrisma.ts
+
+import type {
+  ErroApp,
+  LocatarioId,
+  Produto,
+  ProdutoId,
+  ProdutosRepositorio,
+  Result,
+  TipoProduto,
+  UsuarioId,
+} from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 type DecimalLike = { toString(): string } | number | string;
 
@@ -6342,8 +6407,10 @@ type ProdutoRow = {
   nome: string;
   unidade: string | null;
   tipo: string;
-  preco: DecimalLike;
   ativo: boolean;
+  preco_varejo: DecimalLike;
+  preco_atacado: DecimalLike | null;
+  quantidade_minima_atacado: DecimalLike | null;
   criado_em: Date;
   atualizado_em: Date;
   excluido_em: Date | null;
@@ -6358,14 +6425,24 @@ const produtoSelect = {
   nome: true,
   unidade: true,
   tipo: true,
-  preco: true,
   ativo: true,
+  preco_varejo: true,
+  preco_atacado: true,
+  quantidade_minima_atacado: true,
   criado_em: true,
   atualizado_em: true,
   excluido_em: true,
   excluido_por: true,
   excluido_motivo: true,
 } as const;
+
+function numberFromDecimal(value: DecimalLike): number {
+  return typeof value === "number" ? value : Number(value.toString());
+}
+
+function numberFromDecimalNullable(value: DecimalLike | null): number | null {
+  return value === null ? null : numberFromDecimal(value);
+}
 
 function normalizarTextoOpcional(value: string | null): string | null {
   const normalizado = value?.trim();
@@ -6377,18 +6454,25 @@ function mapTipoProduto(tipo: string): TipoProduto {
 }
 
 function mapProduto(row: ProdutoRow): Produto {
+  const precoVarejo = numberFromDecimal(row.preco_varejo);
+
   return {
     produtoId: row.produto_id as ProdutoId,
     locatarioId: row.locatario_id as LocatarioId,
     sku: row.sku,
     nome: row.nome,
-    // O schema atual não possui `descricao`; mantemos `null` até evoluir o banco.
     descricao: null,
     unidade: row.unidade ?? "UN",
     tipo: mapTipoProduto(row.tipo),
     status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
-    // O schema atual não possui preço/custo; valores neutros até evoluir o banco.
-    precoVenda: Number(row.preco.toString()),
+
+    precoVenda: precoVarejo,
+    precoVarejo,
+    precoAtacado: numberFromDecimalNullable(row.preco_atacado),
+    quantidadeMinimaAtacado: numberFromDecimalNullable(
+      row.quantidade_minima_atacado,
+    ),
+
     custoReferencia: null,
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
@@ -6402,8 +6486,9 @@ function mapProduto(row: ProdutoRow): Produto {
  * Repositório Prisma do módulo de produtos/serviços.
  *
  * Observação:
- * - o schema atual ainda não possui `descricao`, `preco_venda` e `custo_referencia`;
- * - o adapter retorna valores neutros para esses campos até a evolução do banco.
+ * - `precoVenda` é mantido como alias de compatibilidade para `precoVarejo`;
+ * - o schema atual usa `preco_varejo`, `preco_atacado`
+ *   e `quantidade_minima_atacado`.
  */
 export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
   return {
@@ -6417,7 +6502,11 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
-            preco: produto.precoVenda,
+
+            preco_varejo: produto.precoVarejo,
+            preco_atacado: produto.precoAtacado,
+            quantidade_minima_atacado: produto.quantidadeMinimaAtacado,
+
             ativo: produto.status === "ATIVO",
             criado_em: produto.criadoEm,
             atualizado_em: produto.atualizadoEm,
@@ -6510,7 +6599,11 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
             nome: produto.nome,
             unidade: produto.unidade,
             tipo: produto.tipo,
-            preco: produto.precoVenda,
+
+            preco_varejo: produto.precoVarejo,
+            preco_atacado: produto.precoAtacado,
+            quantidade_minima_atacado: produto.quantidadeMinimaAtacado,
+
             ativo: produto.status === "ATIVO",
             atualizado_em: produto.atualizadoEm,
             excluido_em: produto.excluidoEm,
@@ -6522,6 +6615,7 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
         return wrapOk({
           ...produto,
           sku: normalizarTextoOpcional(produto.sku),
+          precoVenda: produto.precoVarejo,
           excluidoMotivo: normalizarTextoOpcional(produto.excluidoMotivo),
         });
       } catch (causa) {
@@ -6537,7 +6631,6 @@ export function createProdutosRepositorio(db: PrismaDb): ProdutosRepositorio {
     },
   };
 }
-
 
 ===== apps/api/src/infra/prisma/tipos.ts =====
 
@@ -6559,8 +6652,8 @@ export type PrismaDb = PrismaClient | Prisma.TransactionClient;
 
 import type { ErroApp, LocatarioId, Usuario, UsuarioId, UsuariosRepositorio, Result } from "@core-kit/core";
 import { wrapOk} from "@core-kit/core";
-import { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 import { status_usuario } from "@prisma/client";
 
 type UsuarioRow = {
@@ -7007,10 +7100,10 @@ export function createUsuariosRepositorio(db: PrismaDb): UsuariosRepositorio {
 
 import type { ErroApp, EstoqueId, EstoquePadraoConsultaPorta, HistoricoTransacaoComercial, ItemTransacaoComercial, ItemTransacaoId, LocatarioId, MovimentacaoEstoquePorta,
   ProdutoComercialConsultaPorta, ProdutoId, Result, StatusTransacaoComercial, TipoProduto, TipoTransacaoComercial, TransacaoComercial, TransacaoId, UsuarioId,
-  VendasRepositorio } from "@core-kit/core";
+  VendasRepositorio, MovimentoEstoqueComercial } from "@core-kit/core";
 import { wrapOk } from "@core-kit/core";
-import type { PrismaDb } from "../tipos";
-import { mapearErroInfra } from "../erros";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
 
 type DecimalLike = { toString(): string } | number | string;
 
@@ -7021,11 +7114,18 @@ type TransacaoRow = {
   fornecedor_id: string | null;
   tipo: string;
   origem: string;
-  valor: DecimalLike;
+  valor_subtotal: DecimalLike | null;
+  valor_desconto: DecimalLike | null;
+  valor_acrescimo: DecimalLike | null;
+  valor_total: DecimalLike | null;
+  observacao: string | null;
   vencimento_em: Date;
   status: string;
   criado_em: Date;
   atualizado_em: Date;
+  cancelado_em: Date | null;
+  cancelado_por: string | null;
+  cancelado_motivo: string | null;
   excluido_em: Date | null;
   excluido_por: string | null;
   excluido_motivo: string | null;
@@ -7036,8 +7136,16 @@ type ItemTransacaoRow = {
   item_transacao_id: string;
   transacao_id: string;
   produto_id: string;
-  estoque_id: string;
-  valor: DecimalLike;
+  estoque_id: string | null;
+  descricao: string | null;
+  tipo_produto: string | null;
+  quantidade: DecimalLike | null;
+  valor_unitario: DecimalLike | null;
+  valor_subtotal: DecimalLike | null;
+  valor_desconto: DecimalLike | null;
+  valor_acrescimo: DecimalLike | null;
+  valor_total: DecimalLike | null;
+  movimenta_estoque: boolean | null;
   criado_em: Date;
   atualizado_em: Date;
   excluido_em: Date | null;
@@ -7055,7 +7163,14 @@ type ProdutoConsultaRow = {
   tipo: string;
   ativo: boolean;
   excluido_em: Date | null;
-  preco: DecimalLike,
+  preco_varejo: DecimalLike;
+  preco_atacado: DecimalLike | null;
+  quantidade_minima_atacado: DecimalLike | null;
+};
+
+type ItemTransacaoComValoresParciais = ItemTransacaoComercial & {
+  valorSubtotal?: number;
+  valorAcrescimo?: number;
 };
 
 const transacaoSelect = {
@@ -7065,11 +7180,18 @@ const transacaoSelect = {
   fornecedor_id: true,
   tipo: true,
   origem: true,
-  valor: true,
+  valor_subtotal: true,
+  valor_desconto: true,
+  valor_acrescimo: true,
+  valor_total: true,
+  observacao: true,
   vencimento_em: true,
   status: true,
   criado_em: true,
   atualizado_em: true,
+  cancelado_em: true,
+  cancelado_por: true,
+  cancelado_motivo: true,
   excluido_em: true,
   excluido_por: true,
   excluido_motivo: true,
@@ -7081,7 +7203,15 @@ const itemTransacaoSelect = {
   transacao_id: true,
   produto_id: true,
   estoque_id: true,
-  valor: true,
+  descricao: true,
+  tipo_produto: true,
+  quantidade: true,
+  valor_unitario: true,
+  valor_subtotal: true,
+  valor_desconto: true,
+  valor_acrescimo: true,
+  valor_total: true,
+  movimenta_estoque: true,
   criado_em: true,
   atualizado_em: true,
   excluido_em: true,
@@ -7101,7 +7231,9 @@ const produtoConsultaSelect = {
   tipo: true,
   ativo: true,
   excluido_em: true,
-  preco: true,
+  preco_varejo: true,
+  preco_atacado: true,
+  quantidade_minima_atacado: true,
 } as const;
 
 /**
@@ -7113,11 +7245,15 @@ const produtoConsultaSelect = {
  */
 const historicoTransacoesEmMemoria = new Map<string, HistoricoTransacaoComercial[]>();
 
-function numberFromDecimal(value: DecimalLike): number {
-  return typeof value === "number" ? value : Number(value.toString());
+function numberFromDecimal(value: DecimalLike | null | undefined, fallback = 0): number {
+  if (value === null || value === undefined) return fallback;
+
+  const numero = typeof value === "number" ? value : Number(value.toString());
+
+  return Number.isFinite(numero) ? numero : fallback;
 }
 
-function normalizarTextoOpcional(value: string | null): string | null {
+function normalizarTextoOpcional(value?: string | null): string | null {
   const normalizado = value?.trim();
   return normalizado ? normalizado : null;
 }
@@ -7130,14 +7266,19 @@ function mapStatusTransacaoParaDb(status: string) {
   switch (status) {
     case "RASCUNHO":
       return "ABERTA";
+
     case "ABERTA":
       return "ABERTA";
+
     case "CONFIRMADA":
       return "EM_PROCESSAMENTO";
+
     case "CONCLUIDA":
       return "CONCLUIDA";
+
     case "CANCELADA":
       return "CANCELADA";
+
     default:
       return status;
   }
@@ -7170,8 +7311,30 @@ function historicoKey(locatarioId: LocatarioId, transacaoId: TransacaoId): strin
   return `${locatarioId}:${transacaoId}`;
 }
 
+function getValorSubtotalItem(item: ItemTransacaoComercial): number {
+  const itemComParciais = item as ItemTransacaoComValoresParciais;
+
+  return itemComParciais.valorSubtotal ?? item.quantidade * item.valorUnitario;
+}
+
+function getValorAcrescimoItem(item: ItemTransacaoComercial): number {
+  const itemComParciais = item as ItemTransacaoComValoresParciais;
+
+  return itemComParciais.valorAcrescimo ?? 0;
+}
+
+function getValorTotalItem(item: ItemTransacaoComercial): number {
+  return getValorSubtotalItem(item) - item.valorDesconto + getValorAcrescimoItem(item);
+}
+
 function mapTransacao(row: TransacaoRow): TransacaoComercial {
-  const valorTotal = numberFromDecimal(row.valor);
+  const valorSubtotal = numberFromDecimal(row.valor_subtotal, 0);
+  const valorDesconto = numberFromDecimal(row.valor_desconto, 0);
+  const valorAcrescimo = numberFromDecimal(row.valor_acrescimo, 0);
+  const valorTotal = numberFromDecimal(
+    row.valor_total,
+    valorSubtotal - valorDesconto + valorAcrescimo,
+  );
 
   return {
     transacaoId: row.transacao_id as TransacaoId,
@@ -7180,17 +7343,21 @@ function mapTransacao(row: TransacaoRow): TransacaoComercial {
     clienteId: row.cliente_id,
     fornecedorId: row.fornecedor_id,
     status: mapStatusTransacaoParaDominio(row.status),
-    // O schema atual possui apenas `valor`; subtotal/ajustes são derivados.
-    valorSubtotal: valorTotal,
-    valorDesconto: 0,
-    valorAcrescimo: 0,
+
+    valorSubtotal,
+    valorDesconto,
+    valorAcrescimo,
     valorTotal,
-    observacao: null,
+
+    observacao: row.observacao ?? null,
+
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
-    canceladoEm: row.status.toUpperCase() === "CANCELADA" ? row.atualizado_em : null,
-    canceladoPor: row.status.toUpperCase() === "CANCELADA" ? (row.excluido_por as UsuarioId | null) : null,
-    canceladoMotivo: row.status.toUpperCase() === "CANCELADA" ? row.excluido_motivo : null,
+
+    canceladoEm: row.cancelado_em ?? null,
+    canceladoPor: row.cancelado_por as UsuarioId | null,
+    canceladoMotivo: row.cancelado_motivo ?? null,
+
     excluidoEm: row.excluido_em,
     excluidoPor: row.excluido_por as UsuarioId | null,
     excluidoMotivo: row.excluido_motivo,
@@ -7198,39 +7365,54 @@ function mapTransacao(row: TransacaoRow): TransacaoComercial {
 }
 
 function mapItem(row: ItemTransacaoRow): ItemTransacaoComercial {
-  const valorTotal = numberFromDecimal(row.valor);
-  const tipoProduto = mapTipoProduto(row.produtos?.tipo ?? "PRODUTO");
+  const tipoProduto = mapTipoProduto(row.tipo_produto ?? row.produtos?.tipo ?? "PRODUTO");
+
+  const quantidade = numberFromDecimal(row.quantidade, 1);
+  const valorUnitario = numberFromDecimal(row.valor_unitario, 0);
+  const valorSubtotal = numberFromDecimal(row.valor_subtotal, quantidade * valorUnitario);
+  const valorDesconto = numberFromDecimal(row.valor_desconto, 0);
+  const valorAcrescimo = numberFromDecimal(row.valor_acrescimo, 0);
+  const valorTotal = numberFromDecimal(
+    row.valor_total,
+    valorSubtotal - valorDesconto + valorAcrescimo,
+  );
 
   return {
     itemTransacaoId: row.item_transacao_id as ItemTransacaoId,
     transacaoId: row.transacao_id as TransacaoId,
     locatarioId: row.locatario_id as LocatarioId,
+
     produtoId: row.produto_id as ProdutoId,
-    estoqueId: row.estoque_id as EstoqueId,
-    descricao: row.produtos?.nome ?? "Item",
+    estoqueId: row.estoque_id as EstoqueId | null,
+
+    descricao: row.descricao ?? row.produtos?.nome ?? "Item",
     tipoProduto,
-    // O schema atual não possui quantidade/unitário/desconto; mantém equivalente simples.
-    quantidade: 1,
-    valorUnitario: valorTotal,
-    valorDesconto: 0,
+
+    quantidade,
+    valorUnitario,
+    valorSubtotal,
+    valorDesconto,
+    valorAcrescimo,
     valorTotal,
-    movimentaEstoque: tipoProduto === "PRODUTO",
+
+    movimentaEstoque: row.movimenta_estoque ?? tipoProduto === "PRODUTO",
+
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
+
     excluidoEm: row.excluido_em,
     excluidoPor: row.excluido_por as UsuarioId | null,
     excluidoMotivo: row.excluido_motivo,
-  };
+  } as ItemTransacaoComercial;
 }
 
 /**
  * Repositório Prisma de transações comerciais.
  *
- * Observações de compatibilidade com o schema atual:
- * - `transacoes.valor` representa `valorTotal`;
- * - `itens_transacao.valor` representa `valorTotal` do item;
- * - quantidade, desconto e preço unitário ainda não são persistidos;
- * - histórico comercial ainda não possui tabela e está temporariamente em memória.
+ * Observações:
+ * - os campos parciais novos são a fonte principal de leitura e escrita;
+ * - histórico comercial ainda permanece em memória enquanto a tabela
+ *   definitiva não for criada.
  */
 export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
   return {
@@ -7245,11 +7427,23 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             ordem_servico_id: null,
             tipo: transacao.tipo,
             origem: "AVULSA",
-            valor: transacao.valorTotal,
+
+            valor_subtotal: transacao.valorSubtotal,
+            valor_desconto: transacao.valorDesconto,
+            valor_acrescimo: transacao.valorAcrescimo,
+            valor_total: transacao.valorTotal,
+
+            observacao: normalizarTextoOpcional(transacao.observacao),
             vencimento_em: transacao.criadoEm,
             status: mapStatusTransacaoParaDb(transacao.status),
+
             criado_em: transacao.criadoEm,
             atualizado_em: transacao.atualizadoEm,
+
+            cancelado_em: transacao.canceladoEm,
+            cancelado_por: transacao.canceladoPor,
+            cancelado_motivo: normalizarTextoOpcional(transacao.canceladoMotivo),
+
             excluido_em: transacao.excluidoEm,
             excluido_por: transacao.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(transacao.excluidoMotivo),
@@ -7297,7 +7491,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             locatario_id: params.locatarioId,
             excluido_em: null,
             ...(params.tipo ? { tipo: params.tipo } : {}),
-            ...(params.status ? { status: params.status } : {}),
+            ...(params.status ? { status: mapStatusTransacaoParaDb(params.status) } : {}),
           },
           orderBy: { transacao_id: "asc" },
           ...(params.cursor
@@ -7338,9 +7532,21 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             cliente_id: transacao.clienteId,
             fornecedor_id: transacao.fornecedorId,
             tipo: transacao.tipo,
-            valor: transacao.valorTotal,
+
+            valor_subtotal: transacao.valorSubtotal,
+            valor_desconto: transacao.valorDesconto,
+            valor_acrescimo: transacao.valorAcrescimo,
+            valor_total: transacao.valorTotal,
+
+            observacao: normalizarTextoOpcional(transacao.observacao),
             status: mapStatusTransacaoParaDb(transacao.status),
+
             atualizado_em: transacao.atualizadoEm,
+
+            cancelado_em: transacao.canceladoEm,
+            cancelado_por: transacao.canceladoPor,
+            cancelado_motivo: normalizarTextoOpcional(transacao.canceladoMotivo),
+
             excluido_em: transacao.excluidoEm,
             excluido_por: transacao.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(transacao.excluidoMotivo),
@@ -7349,6 +7555,8 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
         return wrapOk({
           ...transacao,
+          observacao: normalizarTextoOpcional(transacao.observacao),
+          canceladoMotivo: normalizarTextoOpcional(transacao.canceladoMotivo),
           excluidoMotivo: normalizarTextoOpcional(transacao.excluidoMotivo),
         });
       } catch (causa) {
@@ -7366,9 +7574,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
     async criarItem(item): Promise<Result<{ itemTransacaoId: ItemTransacaoId }, ErroApp>> {
       try {
-        if (!item.estoqueId) {
+        if (item.movimentaEstoque && !item.estoqueId) {
           return mapearErroInfra(
-            new Error("estoqueId é obrigatório para item de transação no schema atual."),
+            new Error("estoqueId é obrigatório para item que movimenta estoque."),
             {
               entidade: "itens_transacao",
               operacao: "vendas.adicionarItem",
@@ -7377,7 +7585,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
                 transacaoId: item.transacaoId,
                 itemTransacaoId: item.itemTransacaoId,
                 produtoId: item.produtoId,
-                motivo: "estoque_id_obrigatorio_no_schema_atual",
+                motivo: "estoque_id_obrigatorio_para_item_que_movimenta_estoque",
               },
             },
           );
@@ -7390,9 +7598,20 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
             transacao_id: item.transacaoId,
             produto_id: item.produtoId,
             estoque_id: item.estoqueId,
-            valor: item.valorTotal,
+
+            descricao: normalizarTextoOpcional(item.descricao),
+            tipo_produto: item.tipoProduto,
+            quantidade: item.quantidade,
+            valor_unitario: item.valorUnitario,
+            valor_subtotal: getValorSubtotalItem(item),
+            valor_desconto: item.valorDesconto,
+            valor_acrescimo: getValorAcrescimoItem(item),
+            valor_total: item.valorTotal,
+            movimenta_estoque: item.movimentaEstoque,
+
             criado_em: item.criadoEm,
             atualizado_em: item.atualizadoEm,
+
             excluido_em: item.excluidoEm,
             excluido_por: item.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(item.excluidoMotivo),
@@ -7459,9 +7678,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
     async atualizarItem(item): Promise<Result<ItemTransacaoComercial, ErroApp>> {
       try {
-        if (!item.estoqueId) {
+        if (item.movimentaEstoque && !item.estoqueId) {
           return mapearErroInfra(
-            new Error("estoqueId é obrigatório para atualizar item de transação no schema atual."),
+            new Error("estoqueId é obrigatório para atualizar item que movimenta estoque."),
             {
               entidade: "itens_transacao",
               operacao: "vendas.atualizarItem",
@@ -7470,7 +7689,7 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
                 transacaoId: item.transacaoId,
                 itemTransacaoId: item.itemTransacaoId,
                 produtoId: item.produtoId,
-                motivo: "estoque_id_obrigatorio_no_schema_atual",
+                motivo: "estoque_id_obrigatorio_para_item_que_movimenta_estoque",
               },
             },
           );
@@ -7487,8 +7706,19 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           data: {
             produto_id: item.produtoId,
             estoque_id: item.estoqueId,
-            valor: item.valorTotal,
+
+            descricao: normalizarTextoOpcional(item.descricao),
+            tipo_produto: item.tipoProduto,
+            quantidade: item.quantidade,
+            valor_unitario: item.valorUnitario,
+            valor_subtotal: getValorSubtotalItem(item),
+            valor_desconto: item.valorDesconto,
+            valor_acrescimo: getValorAcrescimoItem(item),
+            valor_total: item.valorTotal,
+            movimenta_estoque: item.movimentaEstoque,
+
             atualizado_em: item.atualizadoEm,
+
             excluido_em: item.excluidoEm,
             excluido_por: item.excluidoPor,
             excluido_motivo: normalizarTextoOpcional(item.excluidoMotivo),
@@ -7497,8 +7727,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
 
         return wrapOk({
           ...item,
+          descricao: normalizarTextoOpcional(item.descricao) ?? item.descricao,
           excluidoMotivo: normalizarTextoOpcional(item.excluidoMotivo),
-        });
+        } as ItemTransacaoComercial);
       } catch (causa) {
         return mapearErroInfra(causa, {
           entidade: "itens_transacao",
@@ -7515,12 +7746,15 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
     async criarHistorico(historico): Promise<Result<{ historicoId: string }, ErroApp>> {
       const key = historicoKey(historico.locatarioId, historico.transacaoId);
       const atual = historicoTransacoesEmMemoria.get(key) ?? [];
+
       historicoTransacoesEmMemoria.set(key, [...atual, historico]);
+
       return wrapOk({ historicoId: historico.historicoId });
     },
 
     async listarHistorico(params): Promise<Result<HistoricoTransacaoComercial[], ErroApp>> {
       const key = historicoKey(params.locatarioId, params.transacaoId);
+
       return wrapOk([...(historicoTransacoesEmMemoria.get(key) ?? [])]);
     },
 
@@ -7572,7 +7806,11 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           detalhes: params,
         });
       }
-    }
+    },
+
+    async registrarMovimentoEstoque(movimento: MovimentoEstoqueComercial) {
+      return createMovimentacaoEstoquePortaPrisma(db).registrarMovimento(movimento);
+    },
   };
 }
 
@@ -7614,14 +7852,22 @@ export function createEstoquePadraoConsultaPortaPrisma(db: PrismaDb): EstoquePad
  */
 export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): ProdutoComercialConsultaPorta {
   return {
-    async buscarProdutoParaTransacao(params): Promise<Result<{
-      produtoId: ProdutoId;
-      nome: string;
-      tipo: "PRODUTO" | "SERVICO";
-      status: "ATIVO" | "INATIVO" | "EXCLUIDO";
-      precoVenda: number;
-      custoReferencia: number | null;
-    }, ErroApp>> {
+    async buscarProdutoParaTransacao(params): Promise<
+      Result<
+        {
+          produtoId: ProdutoId;
+          nome: string;
+          tipo: "PRODUTO" | "SERVICO";
+          status: "ATIVO" | "INATIVO" | "EXCLUIDO";
+          precoVenda: number;
+          precoVarejo: number;
+          precoAtacado: number | null;
+          quantidadeMinimaAtacado: number | null;
+          custoReferencia: number | null;
+        },
+        ErroApp
+      >
+    > {
       try {
         const row: ProdutoConsultaRow | null = await db.produtos.findFirst({
           where: {
@@ -7638,22 +7884,24 @@ export function createProdutoComercialConsultaPortaPrisma(db: PrismaDb): Produto
             tipo: "PRODUTO",
             status: "EXCLUIDO",
             precoVenda: 0,
+            precoVarejo: 0,
+            precoAtacado: null,
+            quantidadeMinimaAtacado: null,
             custoReferencia: null,
           });
         }
 
-        const produto = row;
+        const precoVarejo = numberFromDecimal(row.preco_varejo);
 
         return wrapOk({
-          produtoId: produto.produto_id as ProdutoId,
-          nome: produto.nome,
-          tipo: mapTipoProduto(produto.tipo),
-          status: produto.excluido_em
-            ? "EXCLUIDO"
-            : produto.ativo
-              ? "ATIVO"
-              : "INATIVO",
-          precoVenda: numberFromDecimal(produto.preco),
+          produtoId: row.produto_id as ProdutoId,
+          nome: row.nome,
+          tipo: mapTipoProduto(row.tipo),
+          status: row.excluido_em ? "EXCLUIDO" : row.ativo ? "ATIVO" : "INATIVO",
+          precoVenda: precoVarejo,
+          precoVarejo,
+          precoAtacado: row.preco_atacado === null ? null : numberFromDecimal(row.preco_atacado),
+          quantidadeMinimaAtacado: row.quantidade_minima_atacado === null ? null : numberFromDecimal(row.quantidade_minima_atacado),
           custoReferencia: null,
         });
       } catch (causa) {
@@ -7674,7 +7922,10 @@ export function createMovimentacaoEstoquePortaPrisma(db: PrismaDb): Movimentacao
   return {
     async registrarMovimento(movimento): Promise<Result<void, ErroApp>> {
       try {
-        const delta = movimento.tipo === "SAIDA" ? -Math.abs(movimento.quantidade) : Math.abs(movimento.quantidade);
+        const delta =
+          movimento.tipo === "SAIDA"
+            ? -Math.abs(movimento.quantidade)
+            : Math.abs(movimento.quantidade);
 
         await db.movimentacoes_estoque.create({
           data: {
@@ -7687,9 +7938,21 @@ export function createMovimentacaoEstoquePortaPrisma(db: PrismaDb): Movimentacao
             delta,
             quantidade: Math.abs(movimento.quantidade),
             ocorrencia_em: movimento.ocorridoEm,
-            detalhes: {},
-            referencia: movimento.transacaoId,
-            observacao: null,
+            detalhes: {
+              origem: "TRANSACAO_COMERCIAL",
+              transacaoId: movimento.transacaoId,
+              itemTransacaoId: movimento.itemTransacaoId,
+              produtoId: movimento.produtoId,
+              estoqueId: movimento.estoqueId,
+              tipoMovimento: movimento.tipo,
+              quantidade: Math.abs(movimento.quantidade),
+              delta,
+            },
+            referencia: `${movimento.transacaoId}:${movimento.itemTransacaoId}`,
+            observacao:
+              movimento.tipo === "ENTRADA"
+                ? "Entrada gerada por confirmação de compra."
+                : "Saída gerada por confirmação de venda.",
             criado_em: movimento.ocorridoEm,
             criado_por: null,
           },
@@ -7721,8 +7984,8 @@ export function createMovimentacaoEstoquePortaPrisma(db: PrismaDb): Movimentacao
 // apps/api/src/middlewares/authGuard.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { getAuthBootstrap } from "../bootstrap/authBootstrap";
-import { sendHttpError } from "../http/serializarErroApp";
+import { getAuthBootstrap } from "../bootstrap/authBootstrap.js";
+import { sendHttpError } from "../http/serializarErroApp.js";
 
 /**
  * Dependências necessárias para criar o middleware de autenticação.
@@ -7828,7 +8091,7 @@ export const requestIdPlugin: FastifyPluginAsync = async (app) => {
 // apps/api/src/middlewares/superAdminGuard.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { autorizarHttp } from "../http/autorizarHttp";
+import { autorizarHttp } from "../http/autorizarHttp.js";
 
 /**
  * Middleware HTTP de autorização para operações de superadmin.
@@ -7864,19 +8127,19 @@ export async function superAdminGuard(request: FastifyRequest, reply: FastifyRep
 
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createErroApp, createFnDesvincularModuloDaAssinatura, createFnListarModulosHabilitados, createFnVincularModuloNaAssinatura, metaAcao, Permissoes } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { createModulosHabilitadosRepositorio } from "../../infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma";
-import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma";
-import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma";
-import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma";
-import { parseModuloIdParams, parseVincularModuloAssinaturaBody } from "./assinaturaModulos.dto";
-import type { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "./assinaturaModulos.dto";
-import { toModuloHabilitadoDto, toVinculoModuloDto } from "./assinaturaModulos.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { createModulosHabilitadosRepositorio } from "../../infra/prisma/auth/assinatura/modulosHabilitadosRepositorioPrisma.js";
+import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma.js";
+import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.js";
+import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma.js";
+import { parseModuloIdParams, parseVincularModuloAssinaturaBody } from "./assinaturaModulos.dto.js";
+import type { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "./assinaturaModulos.dto.js";
+import { toModuloHabilitadoDto, toVinculoModuloDto } from "./assinaturaModulos.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsAssinaturaModulos() {
   return {
@@ -8142,12 +8405,12 @@ export function toVinculoModuloDto(vinculo: ModuloHabilitadoAssinatura) {
 // apps/api/src/modules/auditoria/auditarControllerPlataforma.ts
 
 import type { FastifyRequest } from "fastify";
-import { auditar } from "./auditoria.dispatcher";
-import { criarContextoAuditoriaPlataforma } from "./auditoria.helpers";
-import type { ContextoPlataformaAutorizado } from "../../http/autorizarPlataformaHttp";
+import { auditar } from "./auditoria.dispatcher.js";
+import { criarContextoAuditoriaPlataforma } from "./auditoria.helpers.js";
+import type { ContextoPlataformaAutorizado } from "../../http/autorizarPlataformaHttp.js";
 import { createFnRegistrarEventoAuditoriaPlataforma, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
-import { clientePrisma } from "@core-kit/api/infra/prisma/client";
-import { createAuditoriaPlataformaRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaInternaRepositorioPrisma";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuditoriaPlataformaRepositorio } from "../../infra/prisma/auditoria/auditoriaInternaRepositorioPrisma.js";
 
 export type EventoAuditoriaPlataformaControllerInput = {
   evento: string;
@@ -8206,8 +8469,8 @@ export async function auditarControllerPlataforma(
 
 import type { FastifyRequest } from "fastify";
 import type { ContextoExecucao, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
-import { auditar } from "./auditoria.dispatcher";
-import { criarContextoAuditoria } from "./auditoria.helpers";
+import { auditar } from "./auditoria.dispatcher.js";
+import { criarContextoAuditoria } from "./auditoria.helpers.js";
 
 type EventoControllerInput = Omit<
   RegistrarEventoAuditoriaPlataformaInput,
@@ -8233,15 +8496,15 @@ export async function auditarController(
 
 // // apps/api/src/modules/auditoria/auditoria.controller.ts
 
-import { sendHttpError } from "@core-kit/api/http/serializarErroApp";
-import { toListarAuditoriaResponseDto } from "./auditoria.presenter";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { toListarAuditoriaResponseDto } from "./auditoria.presenter.js";
 import { createFnListarAuditoriaLocatario, createFnListarAuditoriaPlataforma, Permissoes } from "@core-kit/core";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { createAuditoriaLocatarioRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaAtivaLocatarioRepositorioPrisma";
-import { clientePrisma } from "@core-kit/api/infra/prisma/client";
-import { ListarAuditoriaQueryDto, parseListarAuditoriaQuery } from "./auditoria.dto";
-import { autorizarHttp } from "@core-kit/api/http/autorizarHttp";
-import { createAuditoriaPlataformaRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaInternaRepositorioPrisma";
+import { createAuditoriaLocatarioRepositorio } from "../../infra/prisma/auditoria/auditoriaAtivaLocatarioRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { ListarAuditoriaQueryDto, parseListarAuditoriaQuery } from "./auditoria.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { createAuditoriaPlataformaRepositorio } from "../../infra/prisma/auditoria/auditoriaInternaRepositorioPrisma.js";
 
 function responderErroValidacao(reply: FastifyReply, parseResult: {
     error: {
@@ -8341,9 +8604,9 @@ export async function listarAuditoriaPlataformaController(request: FastifyReques
 // apps/api/src/modules/auditoria/auditoria.dispatcher.ts
 
 import { createFnRegistrarEventoAuditoriaPlataforma, RegistrarEventoAuditoriaPlataformaInput, resolverEventoAuditoria } from "@core-kit/core";
-import { ContextoAuditoriaHttp, montarEventoAuditoria } from "./auditoria.helpers";
-import { clientePrisma } from "@core-kit/api/infra/prisma/client";
-import { createAuditoriaPlataformaRepositorio } from "@core-kit/api/infra/prisma/auditoria/auditoriaInternaRepositorioPrisma";
+import { ContextoAuditoriaHttp, montarEventoAuditoria } from "./auditoria.helpers.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuditoriaPlataformaRepositorio } from "../../infra/prisma/auditoria/auditoriaInternaRepositorioPrisma.js";
 
 const registrarEventoAuditoriaPlataforma = createFnRegistrarEventoAuditoriaPlataforma({
   auditoriaPlataformaRepositorio: createAuditoriaPlataformaRepositorio(clientePrisma),
@@ -8425,7 +8688,7 @@ export function parseListarAuditoriaQuery(input: unknown) {
 
 // apps/api/src/modules/auditoria/auditoria.helpers.ts
 
-import { ContextoPlataformaAutorizado } from "@core-kit/api/http/autorizarPlataformaHttp";
+import { ContextoPlataformaAutorizado } from "../../http/autorizarPlataformaHttp.js";
 import { ContextoExecucao, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
 import { FastifyRequest } from "fastify";
 
@@ -8522,11 +8785,11 @@ export function montarEventoAuditoria(
 
 // import type { FastifyReply, FastifyRequest } from "fastify";
 
-// import { sendHttpError } from "../../http/serializarErroApp";
-// import { clientePrisma } from "../../infra/prisma/client";
-// import { auditar } from "./auditoria.dispatcher.instance";
-// import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto";
-// import { criarContextoAuditoria } from "./auditoria.helpers";
+// import { sendHttpError } from "../../http/serializarErroApp.js";
+// import { clientePrisma } from "../../infra/prisma/client.js";
+// import { auditar } from "./auditoria.dispatcher.instance.js";
+// import type { ListarAuditoriaPlataformaQuery } from "./auditoria.dto.js";
+// import { criarContextoAuditoria } from "./auditoria.helpers.js";
 
 /**
  * Controller HTTP para listagem da auditoria da plataforma.
@@ -8635,15 +8898,15 @@ export function toListarAuditoriaResponseDto(itens: Array<EventoAuditoriaLocatar
 // apps/api/src/modules/auth/auth.controller.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshResponse, SessionUserDto } from "./auth.dto";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { LoginBody, LoginResponse, LogoutBody, MeResponse, RefreshBody, RefreshResponse, SessionUserDto } from "./auth.dto.js";
 import { ContextoExecucao, LocatarioId, metaAcao, UsuarioId } from "@core-kit/core";
-import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { auditar } from "../auditoria/auditoria.dispatcher";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { getAuthorizationBootstrap } from "../../bootstrap/authorizationBootstrap.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditar } from "../auditoria/auditoria.dispatcher.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 /**
  * Serializa o contexto autorizado para o shape de usuário esperado pelo frontend.
@@ -8960,9 +9223,10 @@ export type MeResponse = {
 ===== apps/api/src/modules/auth/auth.plataforma.controller.ts =====
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
-import { type LoginPlataformaBodyDto, parseLoginPlataformaBody } from "./auth.plataforma.dto";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { LoginPlataformaBodyDto, RefreshPlataformaBodyDto, LogoutPlataformaBodyDto } from "./auth.plataforma.dto.js";
+import { parseLoginPlataformaBody, parseRefreshPlataformaBody, parseLogoutPlataformaBody } from "./auth.plataforma.dto.js";
 
 function responderErroValidacao(reply: FastifyReply) {
   return sendHttpError(reply, {
@@ -8988,12 +9252,56 @@ export async function loginPlataformaController(request: FastifyRequest<{ Body: 
   return reply.status(200).send({
     accessToken: resultado.value.accessToken,
     accessExpiraEm: resultado.value.accessExpiraEm,
+    refreshToken: resultado.value.refreshToken,
+    refreshExpiraEm: resultado.value.refreshExpiraEm,
     usuario: {
       usuarioId: resultado.value.usuarioId,
       locatarioId: null,
       perfil: "PLATAFORMA",
     },
   });
+}
+
+export async function refreshPlataformaController(
+  request: FastifyRequest<{ Body: RefreshPlataformaBodyDto }>,
+  reply: FastifyReply,
+) {
+  const body = parseRefreshPlataformaBody(request.body);
+  if (!body.success) return responderErroValidacao(reply);
+
+  const resultado = await getAuthBootstrap().runtime.rotacionarRefreshPlataforma({
+    refreshToken: body.data.refreshToken,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    accessToken: resultado.value.sessao.accessToken,
+    refreshToken: resultado.value.sessao.refreshToken,
+    accessExpiraEm: resultado.value.sessao.accessExpiraEm,
+    refreshExpiraEm: resultado.value.sessao.refreshExpiraEm,
+    usuario: {
+      usuarioId: resultado.value.usuarioId,
+      locatarioId: null,
+      perfil: "PLATAFORMA",
+    },
+  });
+}
+
+export async function logoutPlataformaController(
+  request: FastifyRequest<{ Body: LogoutPlataformaBodyDto }>,
+  reply: FastifyReply,
+) {
+  const body = parseLogoutPlataformaBody(request.body);
+  if (!body.success) return responderErroValidacao(reply);
+
+  const resultado = await getAuthBootstrap().runtime.logoutPlataforma({
+    refreshToken: body.data.refreshToken,
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(204).send();
 }
 
 ===== apps/api/src/modules/auth/auth.plataforma.dto.ts =====
@@ -9012,6 +9320,26 @@ export type LoginPlataformaBodyDto = z.infer<typeof loginPlataformaBodySchema>;
 
 export function parseLoginPlataformaBody(input: unknown) {
   return loginPlataformaBodySchema.safeParse(input);
+}
+
+export const refreshPlataformaBodySchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type RefreshPlataformaBodyDto = z.infer<typeof refreshPlataformaBodySchema>;
+
+export function parseRefreshPlataformaBody(input: unknown) {
+  return refreshPlataformaBodySchema.safeParse(input);
+}
+
+export const logoutPlataformaBodySchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
+export type LogoutPlataformaBodyDto = z.infer<typeof logoutPlataformaBodySchema>;
+
+export function parseLogoutPlataformaBody(input: unknown) {
+  return logoutPlataformaBodySchema.safeParse(input);
 }
 
 /**
@@ -9039,22 +9367,18 @@ export type LoginPlataformaResponseDto = {
   accessToken: string;
   accessExpiraEm: Date | string;
   usuario: UsuarioSessaoPlataformaDto;
+  refreshToken: string;
+  refreshExpiraEm: Date | string;
 };
 
 ===== apps/api/src/modules/auth/auth.plataforma.presenter.ts =====
 
 // apps/api/src/modules/auth/auth.plataforma.presenter.ts
 
-import { UsuarioId } from "@core-kit/core";
-import type { LoginPlataformaResponseDto, UsuarioSessaoPlataformaDto } from "./auth.plataforma.dto";
+import type { LoginPlataformaResponseDto, UsuarioSessaoPlataformaDto } from "./auth.plataforma.dto.js";
+import type { UsuarioId } from "@core-kit/core";
 
-export type SessaoPlataformaPresenterInput = {
-  accessToken: string;
-  accessExpiraEm: Date | string;
-  usuarioId: UsuarioId;
-};
-
-export function serializarUsuarioSessaoPlataforma(usuarioId: UsuarioId): UsuarioSessaoPlataformaDto {
+export function toUsuarioSessaoPlataformaDto(usuarioId: UsuarioId): UsuarioSessaoPlataformaDto {
   return {
     usuarioId,
     locatarioId: null,
@@ -9062,23 +9386,36 @@ export function serializarUsuarioSessaoPlataforma(usuarioId: UsuarioId): Usuario
   };
 }
 
-/**
- * Serializa a sessão de plataforma para a borda HTTP.
- *
- * O presenter é intencionalmente restritivo para impedir vazamento futuro de:
- * - refresh token;
- * - permissões;
- * - papéis;
- * - módulos habilitados.
- */
-export function serializarSessaoPlataforma(input: SessaoPlataformaPresenterInput): LoginPlataformaResponseDto {
+export function toLoginPlataformaResponseDto(params: {
+  accessToken: string;
+  refreshToken: string;
+  accessExpiraEm: Date | string;
+  refreshExpiraEm: Date | string;
+  usuarioId: UsuarioId;
+}): LoginPlataformaResponseDto {
   return {
-    accessToken: input.accessToken,
-    accessExpiraEm: input.accessExpiraEm instanceof Date
-      ? input.accessExpiraEm.toISOString()
-      : input.accessExpiraEm,
-    usuario: serializarUsuarioSessaoPlataforma(input.usuarioId),
+    accessToken: params.accessToken,
+    refreshToken: params.refreshToken,
+    accessExpiraEm: params.accessExpiraEm instanceof Date ? params.accessExpiraEm.toISOString() : params.accessExpiraEm,
+    refreshExpiraEm: params.refreshExpiraEm instanceof Date ? params.refreshExpiraEm.toISOString() : params.refreshExpiraEm,
+    usuario: toUsuarioSessaoPlataformaDto(params.usuarioId),
   };
+}
+
+export function serializarSessaoPlataforma(params: {
+  accessToken: string;
+  refreshToken?: string;
+  accessExpiraEm: Date | string;
+  refreshExpiraEm?: Date | string;
+  usuarioId: UsuarioId;
+}): LoginPlataformaResponseDto {
+  return toLoginPlataformaResponseDto({
+    accessToken: params.accessToken,
+    refreshToken: params.refreshToken ?? "",
+    accessExpiraEm: params.accessExpiraEm,
+    refreshExpiraEm: params.refreshExpiraEm ?? "",
+    usuarioId: params.usuarioId,
+  });
 }
 
 
@@ -9087,16 +9424,16 @@ export function serializarSessaoPlataforma(input: SessaoPlataformaPresenterInput
 // apps/api/src/modules/clientes/clientes.controller.ts
 
 import { createFnAtualizarCliente, createFnCriarCliente, createFnExcluirCliente, createFnListarClientes, createFnObterCliente, metaAcao, metaAtualizacao, metaCriacao } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto, parseAtualizarClienteBody, parseClienteIdParams, parseCriarClienteBody } from "./clientes.dto";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto, parseAtualizarClienteBody, parseClienteIdParams, parseCriarClienteBody } from "./clientes.dto.js";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { toClienteResponseDto, toListarClientesResponseDto } from "./clientes.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { toClienteResponseDto, toListarClientesResponseDto } from "./clientes.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsClientes() {
   return {
@@ -9372,16 +9709,16 @@ export function toListarClientesResponseDto(itens: Cliente[]) {
 // apps/api/src/modules/fornecedores/fornecedores.controller.ts
 
 import { createFnAtualizarFornecedor, createFnCriarFornecedor, createFnExcluirFornecedor, createFnListarFornecedores, createFnObterFornecedor, metaAcao } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto, parseAtualizarFornecedorBody, parseCriarFornecedorBody, parseFornecedorIdParams } from "./fornecedores.dto";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto, parseAtualizarFornecedorBody, parseCriarFornecedorBody, parseFornecedorIdParams } from "./fornecedores.dto.js";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { toFornecedorResponseDto, toListarFornecedoresResponseDto } from "./fornecedores.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { toFornecedorResponseDto, toListarFornecedoresResponseDto } from "./fornecedores.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsFornecedores() {
   return {
@@ -9719,8 +10056,8 @@ export function toListarFornecedoresResponseDto(itens: Fornecedor[]) {
 
 import { ContextoExecucao, createContextoExecucao, ModuloCodigo, Permissao } from "@core-kit/core";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { autorizarHttp } from "../http/autorizarHttp";
-import { sendHttpError } from "../http/serializarErroApp";
+import { autorizarHttp } from "../http/autorizarHttp.js";
+import { sendHttpError } from "../http/serializarErroApp.js";
 
 /**
  * Contexto parcial aceito pelo helper de auditoria.
@@ -9826,7 +10163,7 @@ type ContextoAuditoriaInput =
 // apps/api/src/modules/helpersValidacao.ts
 
 import type { FastifyReply } from "fastify";
-import { sendHttpError } from "../http/serializarErroApp";
+import { sendHttpError } from "../http/serializarErroApp.js";
 
 export function responderErroValidacaoZod(
   reply: FastifyReply,
@@ -9858,24 +10195,30 @@ export function responderErroValidacaoZod(
 // apps/api/src/modules/locatarios/locatarios.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { clientePrisma } from "../../infra/prisma/client";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
 import { createFnAtivarConfiguracaoLocatario, createFnAtualizarConfiguracaoLocatario, createFnAtualizarLocatario, createFnCriarConfiguracaoLocatario, 
-  createFnCriarLocatario, createFnEncerrarLocatario, createFnListarLocatarios, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, 
+  createFnCriarLocatario, createFnDesvincularModuloDaAssinatura, createFnEncerrarLocatario, createFnListarLocatarios, createFnListarModulosHabilitadosLocatario, createFnObterLocatario, createFnReativarLocatario, createFnSuspenderLocatario, 
+  createFnVincularModuloNaAssinatura, 
   metaAcao } from "@core-kit/core";
-import { exigirMesmoLocatarioHttp } from "../../http/routeGuards";
-//import { auditar } from "../auditoria/auditoria.dispatcher.instance";
-import { criarContextoAuditoria } from "../auditoria/auditoria.helpers";
-import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma";
+import { exigirMesmoLocatarioHttp } from "../../http/routeGuards.js";
+//import { auditar } from "../auditoria/auditoria.dispatcher.instance.js";
+import { criarContextoAuditoria } from "../auditoria/auditoria.helpers.js";
+import { createLocatariosRepositorio } from "../../infra/prisma/locatarios/locatariosRepositorioPrisma.js";
 import { AtualizarConfiguracaoBodyDto, AtualizarLocatarioBodyDto, ConfiguracaoIdOnlyParamsDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, CriarLocatarioBodyDto, EncerrarLocatarioBodyDto, 
-  LocatarioIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
-  parseEncerrarLocatarioBody, parseLocatarioIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, ReativarLocatarioBodyDto, 
-  SuspenderLocatarioBodyDto } from "./locatarios.dto";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
-import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp";
-import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma";
+  LocatarioIdParamsDto, ModuloIdParamsDto, parseAtualizarConfiguracaoBody, parseAtualizarLocatarioBody, parseConfiguracaoIdOnlyParams, parseConfiguracaoIdParams, parseCriarConfiguracaoBody, parseCriarLocatarioBody, 
+  parseEncerrarLocatarioBody, parseLocatarioIdParams, parseModuloIdParams, parseReativarLocatarioBody, parseSuspenderLocatarioBody, parseVincularModuloAssinaturaBody, ReativarLocatarioBodyDto, 
+  SuspenderLocatarioBodyDto, 
+  VincularModuloAssinaturaBodyDto} from "./locatarios.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp.js";
+import { auditarControllerPlataforma } from "../auditoria/auditarControllerPlataforma.js";
+import { createAssinaturasRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasRepositorioPrisma.js";
+import { createAssinaturasModulosRepositorioPrisma } from "../../infra/prisma/assinaturas/assinaturasModulosRepositorioPrisma.js";
+import { createModulosConsultaRepositorioPrisma } from "../../infra/prisma/assinaturas/modulosConsultaRepositorioPrisma.js";
+import { responderErroValidacaoZod } from "../helpersValidacao.js";
 
 function criarDepsLocatarios() {
   const locatariosRepositorio = createLocatariosRepositorio(clientePrisma);
@@ -9885,6 +10228,17 @@ function criarDepsLocatarios() {
     transacao: getAuthBootstrap().runtime.transacao,
     relogio: getAuthBootstrap().runtime.emitirSessaoDeps.relogio,
     idPorta: getAuthBootstrap().runtime.emitirSessaoDeps.idPorta,
+  };
+}
+
+function criarDepsAssinaturas() {
+  return {
+    assinaturasRepositorio: createAssinaturasRepositorioPrisma(clientePrisma),
+    assinaturasModulosRepositorio: createAssinaturasModulosRepositorioPrisma(clientePrisma),
+    modulosConsultaRepositorio: createModulosConsultaRepositorioPrisma(clientePrisma),
+    relogio: {
+      agora: () => new Date(),
+    },
   };
 }
 
@@ -10434,6 +10788,127 @@ export async function ativarConfiguracaoLocatarioController(request: FastifyRequ
   return reply.status(200).send({ item: resultado.value.configuracao });
 }
 
+export async function listarModulosLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseLocatarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const listar = createFnListarModulosHabilitadosLocatario(criarDepsAssinaturas());
+
+  const resultado = await listar({
+    locatarioId: paramsParse.data.id,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: resultado.value,
+  });
+}
+
+export async function vincularModuloLocatarioPlataformaController(request: FastifyRequest<{ Params: LocatarioIdParamsDto; Body: VincularModuloAssinaturaBodyDto; }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseLocatarioIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const bodyParse = parseVincularModuloAssinaturaBody(request.body);
+  if (!bodyParse.success) {
+    return responderErroValidacaoZod(reply, bodyParse, "http.plataforma.locatarios.modulos.body");
+  }
+
+  const deps = criarDepsAssinaturas();
+
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
+    paramsParse.data.id,
+  );
+
+  if (!assinaturaAtiva.ok) {
+    return sendHttpError(reply, assinaturaAtiva.error);
+  }
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Locatário não possui assinatura ativa.",
+      detalhes: {
+        locatarioId: paramsParse.data.id,
+        operacao: "http.plataforma.locatarios.modulos.vincular.assinaturaAtiva",
+      },
+    });
+  }
+
+  const vincular = createFnVincularModuloNaAssinatura(deps);
+
+  const resultado = await vincular({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: bodyParse.data.moduloId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(201).send({
+    item: resultado.value,
+  });
+}
+
+export async function desvincularModuloLocatarioPlataformaController(request: FastifyRequest<{ Params: ModuloIdParamsDto }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const paramsParse = parseModuloIdParams(request.params);
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(reply, paramsParse, "http.plataforma.locatarios.modulos.params");
+  }
+
+  const deps = criarDepsAssinaturas();
+
+  const assinaturaAtiva = await deps.assinaturasRepositorio.buscarAssinaturaAtivaPorLocatario(
+    paramsParse.data.id,
+  );
+
+  if (!assinaturaAtiva.ok) {
+    return sendHttpError(reply, assinaturaAtiva.error);
+  }
+
+  if (!assinaturaAtiva.value) {
+    return sendHttpError(reply, {
+      codigo: "ASSINATURA_NAO_ENCONTRADA",
+      mensagem: "Locatário não possui assinatura ativa.",
+      detalhes: {
+        locatarioId: paramsParse.data.id,
+        operacao: "http.plataforma.locatarios.modulos.desvincular.assinaturaAtiva",
+      },
+    });
+  }
+
+  const desvincular = createFnDesvincularModuloDaAssinatura(deps);
+
+  const resultado = await desvincular({
+    assinaturaId: assinaturaAtiva.value.assinaturaId,
+    moduloId: paramsParse.data.moduloId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: resultado.value,
+  });
+}
+
 
 ===== apps/api/src/modules/locatarios/locatarios.dto.ts =====
 
@@ -10525,6 +11000,15 @@ export const atualizarConfiguracaoBodySchema = z.object({
   { message: "Informe ao menos um campo para atualização da configuração." },
 );
 
+export const moduloIdParamsSchema = z.object({
+  id: z.string().trim().min(1, "O parâmetro 'id' é obrigatório."),
+  moduloId: z.string().trim().min(1, "O parâmetro 'moduloId' é obrigatório."),
+});
+
+export const vincularModuloAssinaturaBodySchema = z.object({
+  moduloId: z.string().trim().min(1, "O campo 'moduloId' é obrigatório."),
+});
+
 export type LocatarioIdParamsDto = z.infer<typeof locatarioIdParamsSchema>;
 export type ConfiguracaoIdParamsDto = z.infer<typeof configuracaoIdParamsSchema>;
 export type ConfiguracaoIdOnlyParamsDto = z.infer<typeof configuracaoIdOnlyParamsSchema>;
@@ -10535,6 +11019,8 @@ export type ReativarLocatarioBodyDto = z.infer<typeof reativarLocatarioBodySchem
 export type EncerrarLocatarioBodyDto = z.infer<typeof encerrarLocatarioBodySchema>;
 export type CriarConfiguracaoBodyDto = z.infer<typeof criarConfiguracaoBodySchema>;
 export type AtualizarConfiguracaoBodyDto = z.infer<typeof atualizarConfiguracaoBodySchema>;
+export type ModuloIdParamsDto = z.infer<typeof moduloIdParamsSchema>;
+export type VincularModuloAssinaturaBodyDto = z.infer<typeof vincularModuloAssinaturaBodySchema>;
 
 export type ConfiguracaoLocatarioResponseDto = {
   locatarioId: string;
@@ -10617,13 +11103,21 @@ export function parseAtualizarConfiguracaoBody(input: unknown) {
   return atualizarConfiguracaoBodySchema.safeParse(input);
 }
 
+export function parseModuloIdParams(input: unknown) {
+  return moduloIdParamsSchema.safeParse(input);
+}
+
+export function parseVincularModuloAssinaturaBody(input: unknown) {
+  return vincularModuloAssinaturaBodySchema.safeParse(input);
+}
+
 
 ===== apps/api/src/modules/locatarios/locatarios.presenter.ts =====
 
 // apps/api/src/modules/locatarios/locatarios.presenter.ts
 
 import type { ConfiguracaoLocatario, Locatario } from "@core-kit/core";
-import type { ConfiguracaoLocatarioResponseDto, LocatarioResponseDto } from "./locatarios.dto";
+import type { ConfiguracaoLocatarioResponseDto, LocatarioResponseDto } from "./locatarios.dto.js";
 
 function serializarData(valor: Date | null): string | null {
   return valor ? valor.toISOString() : null;
@@ -10672,16 +11166,16 @@ export function serializarLocatario(locatario: Locatario): LocatarioResponseDto 
 // apps/api/src/modules/produtos/produtos.controller.ts
 
 import { createFnAtualizarProduto, createFnCriarProduto, createFnExcluirProduto, createFnListarProdutos, createFnObterProduto, metaAcao } from "@core-kit/core";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createAuthHttpRuntime } from "../../infra/prisma/auth";
-import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, parseAtualizarProdutoBody, parseCriarProdutoBody, parseProdutoIdParams, ProdutoIdParamsDto } from "./produtos.dto";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuthHttpRuntime } from "../../infra/prisma/auth/index.js";
+import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, parseAtualizarProdutoBody, parseCriarProdutoBody, parseProdutoIdParams, ProdutoIdParamsDto } from "./produtos.dto.js";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { toListarProdutosResponseDto, toProdutoResponseDto } from "./produtos.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { toListarProdutosResponseDto, toProdutoResponseDto } from "./produtos.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 
 function criarDepsProdutos() {
   return {
@@ -11292,17 +11786,18 @@ export function parseAtualizarPapeisUsuarioBody(input: unknown) {
 // apps/api/src/modules/usuarios/usuarios.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma.js";
 import { createFnAtualizarUsuario, createFnCriarUsuario, createFnDesativarUsuario, createFnListarUsuariosPorLocatario, createFnObterUsuario, 
   createFnReativarUsuario, metaAcao, metaAtualizacao, metaCriacao, Permissoes } from "@core-kit/core";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
-import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
-import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { parseAtualizarUsuarioBody, parseCriarUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto.js";
+import type { AtualizarUsuarioBodyDto, CriarUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto.js";
+import { toListarUsuariosResponseDto, toUsuarioResponseDto } from "./usuarios.presenter.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { autorizarPlataformaHttp } from "../../http/autorizarPlataformaHttp.js";
 
 /**
  * Monta as dependências operacionais do módulo de usuários na API.
@@ -11778,6 +12273,29 @@ export async function reativarUsuarioController(request: FastifyRequest<{ Params
   });
 }
 
+export async function listarUsuariosLocatarioPlataformaController(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+  const plataforma = await autorizarPlataformaHttp(request, reply);
+  if (!plataforma) return;
+
+  const locatarioId = request.params.id;
+
+  const listarUsuarios = createFnListarUsuariosPorLocatario({
+    usuariosRepositorio: createUsuariosRepositorio(clientePrisma),
+  });
+
+  const resultado = await listarUsuarios({
+    locatarioId,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    itens: toListarUsuariosResponseDto(resultado.value.itens),
+  });
+}
+
 
 ===== apps/api/src/modules/usuarios/usuarios.dto.ts =====
 
@@ -12008,7 +12526,7 @@ export function parseRedefinirSenhaUsuarioBody(input: unknown) {
 // apps/api/src/modules/usuarios/usuarios.presenter.ts
 
 import type { Usuario } from "@core-kit/core";
-import type { ListarUsuariosResponseDto, UsuarioResponseDto } from "./usuarios.dto";
+import type { ListarUsuariosResponseDto, UsuarioResponseDto } from "./usuarios.dto.js";
 
 /**
  * 
@@ -12044,14 +12562,14 @@ export function toListarUsuariosResponseDto(itens: Usuario[]): ListarUsuariosRes
 
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createFnAlterarSenhaUsuario, createFnRedefinirSenhaUsuario, Permissoes } from "@core-kit/core";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
-import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto";
-import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto";
-import { autorizarHttp } from "../../http/autorizarHttp";
-import { createHashPortaAdapter } from "@core-kit/api/infra/hash/hashPortaAdapter";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createUsuariosRepositorio } from "../../infra/prisma/usuarios/usuariosRepositorioPrisma.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "./usuarios.dto.js";
+import { parseAlterarSenhaUsuarioBody, parseRedefinirSenhaUsuarioBody, parseUsuarioIdParams } from "./usuarios.dto.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { createHashPortaAdapter } from "../../infra/hash/hashPortaAdapter.js";
 
 function criarDepsUsuariosSenha() {
   return {
@@ -12179,23 +12697,23 @@ export async function redefinirSenhaUsuarioController(
 // apps/api/src/modules/vendas/vendas.controller.ts
 
 import { FastifyReply, FastifyRequest } from "fastify";
-import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConfirmarTransacao, createFnCriarCompra,
-  createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, 
-  metaAcao} from "@core-kit/core";
-import { clientePrisma } from "../../infra/prisma/client";
-import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma";
-import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma";
-import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma";
-import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma";
-import { sendHttpError } from "../../http/serializarErroApp";
-import { autorizarHttp } from "../../http/autorizarHttp";
+import { createFnAdicionarItemTransacao, createFnAtualizarItemTransacao, createFnCancelarTransacao, createFnConcluirTransacao, createFnConfirmarTransacao, createFnCriarCompra,
+  createFnCriarVenda, createFnListarTransacoes, createFnObterTransacao, createFnRemoverItemTransacao, metaAcao, Permissao } from "@core-kit/core";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createEstoquePadraoConsultaPortaPrisma, createProdutoComercialConsultaPortaPrisma, createVendasRepositorio } from "../../infra/prisma/vendas/vendasRepositorioPrisma.js";
+import { createProdutosRepositorio } from "../../infra/prisma/produtos/produtosRepositorioPrisma.js";
+import { createClientesRepositorio } from "../../infra/prisma/clientes/clientesRepositorioPrisma.js";
+import { createFornecedoresRepositorio } from "../../infra/prisma/fornecedores/fornecedoresRepositorioPrisma.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
 import { parseAdicionarItemTransacaoBody, parseAtualizarItemTransacaoBody, parseCancelarTransacaoBody, parseCriarCompraBody, parseCriarVendaBody, 
-  parseItemTransacaoIdParams, parseTransacaoIdParams } from "./vendas.dto";
+  parseItemTransacaoIdParams, parseTransacaoIdParams } from "./vendas.dto.js";
 import type { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto,
-  TransacaoIdParamsDto } from "./vendas.dto";
-import { toListarTransacoesResponseDto, toTransacaoDetalhadaResponseDto, toTransacaoResponseDto } from "./vendas.presenter";
-import { auditarController } from "../auditoria/auditarController";
-import { getAuthBootstrap } from "../../bootstrap/authBootstrap";
+  TransacaoIdParamsDto } from "./vendas.dto.js";
+import { toListarTransacoesResponseDto, toTransacaoDetalhadaResponseDto, toTransacaoResponseDto } from "./vendas.presenter.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { responderErroValidacaoZod } from "../helpersValidacao.js";
 
 function criarDepsVendasBase() {
   return {
@@ -12644,6 +13162,37 @@ export async function cancelarTransacaoController(request: FastifyRequest<{ Para
   });
 }
 
+export async function concluirTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const paramsParse = parseTransacaoIdParams(request.params);
+
+  if (!paramsParse.success) {
+    return responderErroValidacaoZod(
+      reply,
+      paramsParse,
+      "http.vendas.params",
+    );
+  }
+
+  const concluirTransacao = createFnConcluirTransacao(criarDepsVendasBase());
+
+  const resultado = await concluirTransacao({
+    locatarioId: ctx.locatarioId,
+    transacaoId: paramsParse.data.id,
+    usuarioId: ctx.usuarioId ?? null,
+  });
+
+  if (!resultado.ok) {
+    return sendHttpError(reply, resultado.error);
+  }
+
+  return reply.status(200).send({
+    item: toTransacaoResponseDto(resultado.value.transacao),
+  });
+}
+
 
 ===== apps/api/src/modules/vendas/vendas.dto.ts =====
 
@@ -12685,19 +13234,23 @@ export const atualizarItemTransacaoBodySchema = z
     quantidade: z.coerce.number().positive().optional(),
     valorUnitario: z.coerce.number().nonnegative().optional(),
     valorDesconto: z.coerce.number().nonnegative().optional(),
+    valorAcrescimo: z.coerce.number().nonnegative().optional(),
   })
   .refine(
     (data) =>
       data.descricao !== undefined ||
       data.quantidade !== undefined ||
       data.valorUnitario !== undefined ||
-      data.valorDesconto !== undefined,
+      data.valorDesconto !== undefined ||
+      data.valorAcrescimo !== undefined,
     { message: "Informe ao menos um campo para atualização do item." },
   );
 
 export const cancelarTransacaoBodySchema = z.object({
   motivo: z.string().trim().optional().nullable(),
 });
+
+
 
 export type TransacaoIdParamsDto = z.infer<typeof transacaoIdParamsSchema>;
 export type ItemTransacaoIdParamsDto = z.infer<typeof itemTransacaoIdParamsSchema>;
@@ -12771,7 +13324,9 @@ export function toItemTransacaoResponseDto(item: ItemTransacaoComercial) {
     tipoProduto: item.tipoProduto,
     quantidade: item.quantidade,
     valorUnitario: item.valorUnitario,
+    valorSubtotal: item.valorSubtotal,
     valorDesconto: item.valorDesconto,
+    valorAcrescimo: item.valorAcrescimo,
     valorTotal: item.valorTotal,
     movimentaEstoque: item.movimentaEstoque,
     criadoEm: item.criadoEm,
@@ -12799,7 +13354,7 @@ export function toTransacaoDetalhadaResponseDto(input: {
 
 import fp from "fastify-plugin";
 import jwt from "@fastify/jwt";
-import { env } from "../env";
+import { env } from "../env.js";
 
 /**
  * 
@@ -12823,9 +13378,9 @@ export const authPlugin = fp(async (app) => {
 // apps/api/src/routes/assinaturaModulos.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { desvincularModuloDaMinhaAssinaturaController, listarMeusModulosAssinaturaController, vincularModuloNaMinhaAssinaturaController } from "../modules/assinaturas/assinaturaModulos.controller";
-import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "../modules/assinaturas/assinaturaModulos.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { desvincularModuloDaMinhaAssinaturaController, listarMeusModulosAssinaturaController, vincularModuloNaMinhaAssinaturaController } from "../modules/assinaturas/assinaturaModulos.controller.js";
+import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "../modules/assinaturas/assinaturaModulos.dto.js";
 
 /**
  * 
@@ -12866,9 +13421,9 @@ export const assinaturaModulosRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/auditoria.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { listarAuditoriaPlataformaController, listarMinhaAuditoriaController } from "../modules/auditoria/auditoria.controller";
-import type { ListarAuditoriaQueryDto } from "../modules/auditoria/auditoria.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { listarAuditoriaPlataformaController, listarMinhaAuditoriaController } from "../modules/auditoria/auditoria.controller.js";
+import type { ListarAuditoriaQueryDto } from "../modules/auditoria/auditoria.dto.js";
 
 export const auditoriaRoutes: FastifyPluginAsync = async (app) => {
   app.get<{ Querystring: ListarAuditoriaQueryDto }>(
@@ -12890,10 +13445,10 @@ export const auditoriaRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/auth.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { loginController, logoutController, meController, refreshController } from "../modules/auth/auth.controller";
-import { authGuard } from "../middlewares/authGuard";
-import { LoginPlataformaBodyDto } from "../modules/auth/auth.plataforma.dto";
-import { loginPlataformaController } from "../modules/auth/auth.plataforma.controller";
+import { loginController, logoutController, meController, refreshController } from "../modules/auth/auth.controller.js";
+import { authGuard } from "../middlewares/authGuard.js";
+import { LoginPlataformaBodyDto, LogoutPlataformaBodyDto, RefreshPlataformaBodyDto } from "../modules/auth/auth.plataforma.dto.js";
+import { loginPlataformaController, logoutPlataformaController, refreshPlataformaController } from "../modules/auth/auth.plataforma.controller.js";
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.post(
@@ -12907,14 +13462,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     meController
   );
   
-  app.post(
-    "/auth/refresh", 
-    refreshController
+  app.post<{ Body: RefreshPlataformaBodyDto }>(
+    "/auth/plataforma/refresh",
+    refreshPlataformaController,
   );
-  
-  app.post(
-    "/auth/logout", 
-    logoutController
+
+  app.post<{ Body: LogoutPlataformaBodyDto }>(
+    "/auth/plataforma/logout",
+    logoutPlataformaController,
   );
 
   app.post<{ Body: LoginPlataformaBodyDto }>(
@@ -12928,9 +13483,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/clientes.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { atualizarClienteController, criarClienteController, excluirClienteController, listarClientesController, obterClienteController } from "../modules/clientes/clientes.controller";
-import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto } from "../modules/clientes/clientes.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarClienteController, criarClienteController, excluirClienteController, listarClientesController, obterClienteController } from "../modules/clientes/clientes.controller.js";
+import { AtualizarClienteBodyDto, ClienteIdParamsDto, CriarClienteBodyDto } from "../modules/clientes/clientes.dto.js";
 
 export const clientesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -12969,9 +13524,9 @@ export const clientesRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/fornecedores.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { atualizarFornecedorController, criarFornecedorController, excluirFornecedorController, listarFornecedoresController, obterFornecedorController } from "../modules/fornecedores/fornecedores.controller";
-import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto } from "../modules/fornecedores/fornecedores.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarFornecedorController, criarFornecedorController, excluirFornecedorController, listarFornecedoresController, obterFornecedorController } from "../modules/fornecedores/fornecedores.controller.js";
+import { AtualizarFornecedorBodyDto, CriarFornecedorBodyDto, FornecedorIdParamsDto } from "../modules/fornecedores/fornecedores.dto.js";
 
 export const fornecedoresRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -13023,10 +13578,10 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/locatarios.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
+import { authGuard } from "../middlewares/authGuard.js";
 import { ativarConfiguracaoLocatarioController, atualizarConfiguracaoLocatarioController, criarConfiguracaoLocatarioController, listarConfiguracoesLocatarioController, obterConfiguracaoAtivaLocatarioController, 
-  obterMeuLocatarioController } from "../modules/locatarios/locatarios.controller";
-import { AtualizarConfiguracaoBodyDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, LocatarioIdParamsDto } from "../modules/locatarios/locatarios.dto";
+  obterMeuLocatarioController } from "../modules/locatarios/locatarios.controller.js";
+import { AtualizarConfiguracaoBodyDto, ConfiguracaoIdParamsDto, CriarConfiguracaoBodyDto, LocatarioIdParamsDto } from "../modules/locatarios/locatarios.dto.js";
 
 /**
  * 
@@ -13095,12 +13650,19 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/plataforma/plataforma.routes.ts
 
 import type { FastifyInstance } from "fastify";
-import { authGuard } from "../../middlewares/authGuard";
+import { authGuard } from "../../middlewares/authGuard.js";
 import { listarLocatariosPlataformaController, obterLocatarioPlataformaController, criarLocatarioPlataformaController, atualizarLocatarioPlataformaController,
-  suspenderLocatarioPlataformaController, reativarLocatarioPlataformaController, encerrarLocatarioPlataformaController
-} from "../../modules/locatarios/locatarios.controller";
-import type { LocatarioIdParamsDto, CriarLocatarioBodyDto, AtualizarLocatarioBodyDto, SuspenderLocatarioBodyDto, ReativarLocatarioBodyDto, EncerrarLocatarioBodyDto,
-} from "../../modules/locatarios/locatarios.dto";
+  suspenderLocatarioPlataformaController, reativarLocatarioPlataformaController, encerrarLocatarioPlataformaController,
+  ativarConfiguracaoLocatarioController, atualizarConfiguracaoLocatarioController, criarConfiguracaoLocatarioController, obterConfiguracaoAtivaLocatarioController,
+  listarConfiguracoesLocatarioController,
+  listarModulosLocatarioPlataformaController,
+  vincularModuloLocatarioPlataformaController,
+  desvincularModuloLocatarioPlataformaController
+} from "../../modules/locatarios/locatarios.controller.js";
+import type { LocatarioIdParamsDto, CriarLocatarioBodyDto, AtualizarLocatarioBodyDto, SuspenderLocatarioBodyDto, ReativarLocatarioBodyDto, EncerrarLocatarioBodyDto, AtualizarConfiguracaoBodyDto, ConfiguracaoIdOnlyParamsDto, CriarConfiguracaoBodyDto, ConfiguracaoIdParamsDto,
+} from "../../modules/locatarios/locatarios.dto.js";
+import { listarUsuariosLocatarioPlataformaController } from "../../modules/usuarios/usuarios.controller.js";
+import { ModuloIdParamsDto, VincularModuloAssinaturaBodyDto } from "../../modules/assinaturas/assinaturaModulos.dto.js";
 
 export async function plataformaRoutes(app: FastifyInstance) {
   app.get(
@@ -13108,6 +13670,7 @@ export async function plataformaRoutes(app: FastifyInstance) {
     { preHandler: [authGuard] },
     listarLocatariosPlataformaController,
   );
+
 
   app.get<{ Params: LocatarioIdParamsDto }>(
     "/locatarios/:id",
@@ -13156,6 +13719,60 @@ export async function plataformaRoutes(app: FastifyInstance) {
     { preHandler: [authGuard] },
     encerrarLocatarioPlataformaController,
   );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/usuarios",
+    { preHandler: [authGuard] },
+    listarUsuariosLocatarioPlataformaController,
+  );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/configuracoes",
+    { preHandler: [authGuard] },
+    listarConfiguracoesLocatarioController,
+  );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/configuracoes/ativa",
+    { preHandler: [authGuard] },
+    obterConfiguracaoAtivaLocatarioController,
+  );
+
+  app.post<{ Params: LocatarioIdParamsDto; Body: CriarConfiguracaoBodyDto;}>(
+    "/locatarios/:id/configuracoes",
+    { preHandler: [authGuard] },
+    criarConfiguracaoLocatarioController,
+  );
+
+  app.patch<{ Params: ConfiguracaoIdParamsDto; Body: AtualizarConfiguracaoBodyDto; }>(
+    "/locatarios/:id/configuracoes/:configuracaoId",
+    { preHandler: [authGuard] },
+    atualizarConfiguracaoLocatarioController,
+  );
+
+  app.post<{ Params: ConfiguracaoIdParamsDto }>(
+    "/locatarios/:id/configuracoes/:configuracaoId/ativar",
+    { preHandler: [authGuard] },
+    ativarConfiguracaoLocatarioController,
+  );
+
+  app.get<{ Params: LocatarioIdParamsDto }>(
+    "/locatarios/:id/modulos",
+    { preHandler: [authGuard] },
+    listarModulosLocatarioPlataformaController,
+  );
+
+  app.post<{ Params: LocatarioIdParamsDto; Body: VincularModuloAssinaturaBodyDto;}>(
+    "/locatarios/:id/modulos",
+    { preHandler: [authGuard] },
+    vincularModuloLocatarioPlataformaController,
+  );
+
+  app.delete<{ Params: LocatarioIdParamsDto & ModuloIdParamsDto;}>(
+    "/locatarios/:id/modulos/:moduloId",
+    { preHandler: [authGuard] },
+    desvincularModuloLocatarioPlataformaController,
+  );
 }
 
 ===== apps/api/src/routes/produtos.routes.ts =====
@@ -13163,9 +13780,9 @@ export async function plataformaRoutes(app: FastifyInstance) {
 // apps/api/src/routes/produtos.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { atualizarProdutoController, criarProdutoController, excluirProdutoController, listarProdutosController, obterProdutoController } from "../modules/produtos/produtos.controller";
-import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, ProdutoIdParamsDto } from "../modules/produtos/produtos.dto";
+import { authGuard } from "../middlewares/authGuard.js";
+import { atualizarProdutoController, criarProdutoController, excluirProdutoController, listarProdutosController, obterProdutoController } from "../modules/produtos/produtos.controller.js";
+import { AtualizarProdutoBodyDto, CriarProdutoBodyDto, ProdutoIdParamsDto } from "../modules/produtos/produtos.dto.js";
 
 export const produtosRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -13204,7 +13821,7 @@ export const produtosRoutes: FastifyPluginAsync = async (app) => {
 // // apps/api/src/routes/rbac.routes.ts
 
 // import type { FastifyPluginAsync } from "fastify";
-// import { authGuard } from "../middlewares/authGuard";
+// import { authGuard } from "../middlewares/authGuard.js";
 
 
 // /**
@@ -13258,7 +13875,7 @@ export const produtosRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/usuarios.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
+import { authGuard } from "../middlewares/authGuard.js";
 import {
   atualizarUsuarioController,
   criarUsuarioController,
@@ -13266,9 +13883,9 @@ import {
   listarUsuariosController,
   obterUsuarioController,
   reativarUsuarioController,
-} from "../modules/usuarios/usuarios.controller";
-import { alterarMinhaSenhaUsuarioController, redefinirSenhaUsuarioController } from "../modules/usuarios/usuarios.senha.controller";
-import { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "../modules/usuarios/usuarios.dto";
+} from "../modules/usuarios/usuarios.controller.js";
+import { alterarMinhaSenhaUsuarioController, redefinirSenhaUsuarioController } from "../modules/usuarios/usuarios.senha.controller.js";
+import { AlterarSenhaUsuarioBodyDto, RedefinirSenhaUsuarioBodyDto, UsuarioIdParamsDto } from "../modules/usuarios/usuarios.dto.js";
 
 /**
  * Registra as rotas HTTP do módulo operacional de usuários.
@@ -13369,10 +13986,10 @@ export const usuariosRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/routes/vendas.routes.ts
 
 import type { FastifyPluginAsync } from "fastify";
-import { authGuard } from "../middlewares/authGuard";
-import { adicionarItemTransacaoController, atualizarItemTransacaoController, cancelarTransacaoController, confirmarTransacaoController, criarCompraController, criarVendaController, listarTransacoesController, obterTransacaoController, removerItemTransacaoController } from "../modules/vendas/vendas.controller";
+import { authGuard } from "../middlewares/authGuard.js";
+import { adicionarItemTransacaoController, atualizarItemTransacaoController, cancelarTransacaoController, concluirTransacaoController, confirmarTransacaoController, criarCompraController, criarVendaController, listarTransacoesController, obterTransacaoController, removerItemTransacaoController } from "../modules/vendas/vendas.controller.js";
 import { AdicionarItemTransacaoBodyDto, AtualizarItemTransacaoBodyDto, CancelarTransacaoBodyDto, CriarCompraBodyDto, CriarVendaBodyDto, ItemTransacaoIdParamsDto, 
-  TransacaoIdParamsDto } from "../modules/vendas/vendas.dto";
+  TransacaoIdParamsDto } from "../modules/vendas/vendas.dto.js";
 
 export const vendasRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -13428,6 +14045,12 @@ export const vendasRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: [authGuard] },
     cancelarTransacaoController,
   );
+
+  app.post<{ Params: TransacaoIdParamsDto }>(
+    "/transacoes/:id/concluir",
+    { preHandler: [authGuard] },
+    concluirTransacaoController,
+  );
 };
 
 ===== apps/api/src/server.ts =====
@@ -13435,8 +14058,8 @@ export const vendasRoutes: FastifyPluginAsync = async (app) => {
 // apps/api/src/server.ts
 
 import "dotenv/config";
-import { env } from "./env";
-import { criarApp } from "./app";
+import { env } from "./env.js";
+import { criarApp } from "./app.js";
 
 async function main(): Promise<void>{
   const app = await criarApp();
