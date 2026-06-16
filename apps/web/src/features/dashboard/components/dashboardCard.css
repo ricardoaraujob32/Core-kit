@@ -1,0 +1,92 @@
+/* apps/web/src/features/dashboard/components/dashboardCard.css */
+
+.ck-dashboard-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.45rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 1rem;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
+}
+
+.ck-dashboard-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.33rem;
+  background: var(--dashboard-card-color, var(--ck-primary, #2563eb));
+}
+
+.ck-dashboard-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ck-dashboard-card-title {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ck-dashboard-card-value {
+  margin-top: 0.35rem;
+  color: var(--ck-text, #020617);
+  font-size: 1.65rem;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: -0.05em;
+}
+
+.ck-dashboard-card-description {
+  margin-top: 0.45rem;
+  color: #94a3b8;
+  font-size: 0.76rem;
+}
+
+.ck-dashboard-card-icon {
+  display: grid;
+  width: 2.55rem;
+  height: 2.55rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: color-mix(
+    in srgb,
+    var(--dashboard-card-color, var(--ck-primary, #2563eb)) 12%,
+    white
+  );
+  color: var(--dashboard-card-color, var(--ck-primary, #2563eb));
+  font-size: 1.15rem;
+  flex: 0 0 2.55rem;
+}
+
+.ck-dashboard-card-footer {
+  margin-top: 0.85rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.75rem;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.ck-dashboard-card-loading {
+  min-height: 7rem;
+}
+
+.ck-dashboard-card-skeleton {
+  min-height: 5rem;
+  border-radius: 1rem;
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 200% 100%;
+  animation: ck-dashboard-card-shimmer 1.2s infinite linear;
+}
+
+@keyframes ck-dashboard-card-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
