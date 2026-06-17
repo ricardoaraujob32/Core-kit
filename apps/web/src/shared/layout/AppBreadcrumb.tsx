@@ -20,6 +20,7 @@ const LABELS: Record<string, string> = {
   fornecedores: "Fornecedores",
   produtos: "Produtos",
   transacoes: "Transações",
+  financeiro: "Financeiro",
   vendas: "Vendas",
   compras: "Compras",
   nova: "Nova",

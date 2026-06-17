@@ -1,13 +1,7 @@
 // apps/api/src/modules/financeiro/financeiro.controller.ts
 
 import type { FastifyReply, FastifyRequest } from "fastify";
-import {
-  createFnListarContasPagar,
-  createFnListarContasReceber,
-  createFnObterResumoFinanceiro,
-  metaAcao,
-  type Permissao,
-} from "@core-kit/core";
+import { createFnListarContasPagar, createFnListarContasReceber, createFnObterResumoFinanceiro, metaAcao, type Permissao } from "@core-kit/core";
 import { autorizarHttp } from "../../http/autorizarHttp.js";
 import { sendHttpError } from "../../http/serializarErroApp.js";
 import { clientePrisma } from "../../infra/prisma/client.js";
@@ -26,6 +20,12 @@ function criarDepsFinanceiro() {
   };
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function obterResumoFinanceiroController(request: FastifyRequest, reply: FastifyReply) {
   const ctx = await autorizarHttp(request, reply, {
     permissao: PERMISSAO_FINANCEIRO_LER,
@@ -56,6 +56,12 @@ export async function obterResumoFinanceiroController(request: FastifyRequest, r
   });
 }
 
+/**
+ * 
+ * @param ctxLocatarioId 
+ * @param query 
+ * @returns 
+ */
 function montarInputListagem(ctxLocatarioId: string, query: FinanceiroQueryDto) {
   return {
     locatarioId: ctxLocatarioId,
@@ -68,6 +74,12 @@ function montarInputListagem(ctxLocatarioId: string, query: FinanceiroQueryDto) 
   };
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function listarContasReceberController(request: FastifyRequest<{ Querystring: FinanceiroQueryDto }>, reply: FastifyReply) {
   const queryParse = parseFinanceiroQuery(request.query);
   if (!queryParse.success) return responderErroValidacaoZod(reply, queryParse, "http.financeiro.listarContasReceber.validacao");
@@ -88,6 +100,12 @@ export async function listarContasReceberController(request: FastifyRequest<{ Qu
   });
 }
 
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
 export async function listarContasPagarController(request: FastifyRequest<{ Querystring: FinanceiroQueryDto }>, reply: FastifyReply) {
   const queryParse = parseFinanceiroQuery(request.query);
   if (!queryParse.success) return responderErroValidacaoZod(reply, queryParse, "http.financeiro.listarContasPagar.validacao");

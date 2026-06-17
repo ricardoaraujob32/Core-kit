@@ -28,6 +28,7 @@ import { NovaCompraPage } from "../features/tenant-admin/compras";
 import { EditarLocatarioPage, LocatarioDetailsPage, LocatariosListPage, NovoLocatarioPage, NovoUsuarioLocatarioPage } from "../features/superadmin/locatarios";
 import PlataformaLoginPage from "../features/auth/pages/PlataformaLoginPage";
 import UsuariosLocatarioListPage from "../features/superadmin/locatarios/pages/UsuariosLocatarioListPage";
+import { FinanceiroPage } from "../features/tenant-admin/financeiro";
 
 /**
  * 
@@ -205,6 +206,10 @@ export const router = createBrowserRouter([
             path: "compras/nova",
             element: <NovaCompraPage />,
           },
+          {
+            path: "financeiro",
+            element: <FinanceiroPage />,
+          }
         ],
       },
     ],

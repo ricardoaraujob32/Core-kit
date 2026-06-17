@@ -10,6 +10,7 @@ const TENANT_NAV_ITEMS: AppNavItem[] = [
   { label: "Fornecedores", to: "/app/fornecedores", icon: "🏢" },
   { label: "Produtos", to: "/app/produtos", icon: "📦" },
   { label: "Transações", to: "/app/transacoes", icon: "📄" },
+  { label: "Financeiro", to: "/app/financeiro", icon: "💳" },
   { label: "Nova venda", to: "/app/vendas/nova", icon: "💰" },
   { label: "Nova compra", to: "/app/compras/nova", icon: "🛒" },
   { label: "Usuários", to: "/app/usuarios", icon: "🔐" },
