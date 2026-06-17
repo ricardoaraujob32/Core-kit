@@ -1370,6 +1370,74 @@ export function toListarClientesResponseDto(itens: Cliente[]) {
 }
 
 ==================================================
+FILE: apps/api/src/modules/dashboard/dashboard.controller.ts
+==================================================
+// apps/api/src/modules/dashboard/dashboard.controller.ts
+
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createDashboardResumoRepositorioPrisma } from "../../infra/prisma/dashboard/dashboardResumoRepositorioPrisma.js";
+import { serializarDashboardResumo } from "./dashboard.presenter.js";
+
+function createDashboardDeps() {
+  return {
+    dashboardResumoRepositorio: createDashboardResumoRepositorioPrisma(clientePrisma),
+  };
+}
+
+export async function obterDashboardResumoController(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const deps = createDashboardDeps();
+
+  const resumo = await deps.dashboardResumoRepositorio.obterResumo({
+    locatarioId: ctx.locatarioId,
+  });
+
+  return reply.status(200).send(serializarDashboardResumo(resumo));
+}
+
+
+==================================================
+FILE: apps/api/src/modules/dashboard/dashboard.dto.ts
+==================================================
+// apps/api/src/modules/dashboard/dashboard.dto.ts
+
+export type DashboardResumoDto = {
+  clientes: number;
+  fornecedores: number;
+  produtos: number;
+  estoques: number;
+  ordensServicoAbertas: number;
+  vendasMes: {
+    quantidade: number;
+    valor: number;
+  };
+  comprasMes: {
+    quantidade: number;
+    valor: number;
+  };
+};
+
+
+==================================================
+FILE: apps/api/src/modules/dashboard/dashboard.presenter.ts
+==================================================
+// apps/api/src/modules/dashboard/dashboard.presenter.ts
+
+import type { DashboardResumoDto } from "./dashboard.dto.js";
+
+export function serializarDashboardResumo(dto: DashboardResumoDto): DashboardResumoDto {
+  return dto;
+}
+
+
+==================================================
 FILE: apps/api/src/modules/fornecedores/fornecedores.controller.ts
 ==================================================
 // apps/api/src/modules/fornecedores/fornecedores.controller.ts
@@ -4923,6 +4991,19 @@ export const clientesRoutes: FastifyPluginAsync = async (app) => {
 };
 
 ==================================================
+FILE: apps/api/src/routes/dashboard.routes.ts
+==================================================
+// apps/api/src/routes/dashboard.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { obterDashboardResumoController } from "../modules/dashboard/dashboard.controller.js";
+
+export const dashboardRoutes: FastifyPluginAsync = async (app) => {
+  app.get("/dashboard/resumo", obterDashboardResumoController);
+};
+
+
+==================================================
 FILE: apps/api/src/routes/fornecedores.routes.ts
 ==================================================
 // apps/api/src/routes/fornecedores.routes.ts
@@ -4967,7 +5048,19 @@ export const fornecedoresRoutes: FastifyPluginAsync = async (app) => {
 ==================================================
 FILE: apps/api/src/routes/health.routes.ts
 ==================================================
+// apps/api/src/routes/health.routes.ts
+
 import type { FastifyPluginAsync } from "fastify";
+import { clientePrisma } from "../infra/prisma/client.js";
+
+function versionInfo() {
+  return {
+    service: "core-kit-api",
+    version: process.env.npm_package_version ?? "0.1.0",
+    commit: process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? "local",
+    env: process.env.NODE_ENV ?? "development",
+  };
+}
 
 export const healthRoutes: FastifyPluginAsync = async (app) => {
   app.get("/health", async () => {
@@ -4975,6 +5068,28 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
       status: "ok",
       service: "core-kit-api",
     };
+  });
+
+  app.get("/version", async () => {
+    return versionInfo();
+  });
+
+  app.get("/ready", async (_request, reply) => {
+    try {
+      await clientePrisma.$queryRaw`SELECT 1`;
+
+      return {
+        status: "ready",
+        database: "ok",
+        ...versionInfo(),
+      };
+    } catch {
+      return reply.status(503).send({
+        status: "not_ready",
+        database: "error",
+        ...versionInfo(),
+      });
+    }
   });
 };
 

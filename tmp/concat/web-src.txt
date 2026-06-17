@@ -817,19 +817,44 @@ describe("AuthContext", () => {
 
 // apps/web/src/core/auth/authContext.tsx
 
-import { createContext, useCallback, useEffect, useMemo, useState, type PropsWithChildren, type JSX } from "react";
-import { registerAccessTokenGetter, registerRefreshSessionHandler, registerUnauthorizedHandler } from "../api/httpClient";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type PropsWithChildren,
+  type JSX,
+} from "react";
+import {
+  registerAccessTokenGetter,
+  registerRefreshSessionHandler,
+  registerUnauthorizedHandler,
+} from "../api/httpClient";
 import { authStorage } from "./authStorage";
-import { login as loginRequest, loginPlataforma as loginPlataformaRequest, logout as logoutRequest, me as meRequest, 
-  refresh as refreshRequest } from "../../features/auth/api/authApi";
-import type { AuthContextValue, LoginInput, LoginPlataformaInput, SessionUser } from "./tipos";
+import {
+  login as loginRequest,
+  loginPlataforma as loginPlataformaRequest,
+  logout as logoutRequest,
+  logoutPlataforma as logoutPlataformaRequest,
+  me as meRequest,
+  refresh as refreshRequest,
+  refreshPlataforma as refreshPlataformaRequest,
+} from "../../features/auth/api/authApi";
+import type {
+  AuthContextValue,
+  LoginInput,
+  LoginPlataformaInput,
+  SessionUser,
+} from "./tipos";
+import { setupInactivityWatcher } from "./sessionManager";
 
-export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined,
+);
 
 function normalizeUser(user: SessionUser): SessionUser {
-  const perfil =
-    user.perfil ??
-    (user.locatarioId ? "TENANT" : "PLATAFORMA");
+  const perfil = user.perfil ?? (user.locatarioId ? "TENANT" : "PLATAFORMA");
 
   return {
     ...user,
@@ -853,57 +878,84 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
     setStatus("unauthenticated");
   }, []);
 
-  const applySession = useCallback((params: {
-    accessToken: string;
-    refreshToken?: string;
-    usuario: SessionUser;
-  }): SessionUser => {
-    const normalizedUser = normalizeUser(params.usuario);
+  const applySession = useCallback(
+    (params: {
+      accessToken: string;
+      refreshToken?: string;
+      usuario: SessionUser;
+    }): SessionUser => {
+      const normalizedUser = normalizeUser(params.usuario);
 
-    authStorage.setAccessToken(params.accessToken);
-    authStorage.setUser(normalizedUser);
-    authStorage.setLocatarioId(normalizedUser.locatarioId);
+      authStorage.setAccessToken(params.accessToken);
+      authStorage.setUser(normalizedUser);
+      authStorage.setLocatarioId(normalizedUser.locatarioId);
 
-    if (params.refreshToken) {
-      authStorage.setRefreshToken(params.refreshToken);
-    } else {
-      authStorage.removeRefreshToken();
-    }
+      if (params.refreshToken) {
+        authStorage.setRefreshToken(params.refreshToken);
+      } else {
+        authStorage.removeRefreshToken();
+      }
 
-    setAccessToken(params.accessToken);
-    setUser(normalizedUser);
-    setStatus("authenticated");
+      setAccessToken(params.accessToken);
+      setUser(normalizedUser);
+      setStatus("authenticated");
 
-    return normalizedUser;
-  }, []);
+      return normalizedUser;
+    },
+    [],
+  );
 
-  const carregarUsuarioAutenticado = useCallback(async (): Promise<SessionUser> => {
-    const meResponse = await meRequest();
-    const normalizedUser = normalizeUser(meResponse.usuario);
+  const carregarUsuarioAutenticado =
+    useCallback(async (): Promise<SessionUser> => {
+      const currentUser = authStorage.getUser();
 
-    authStorage.setUser(normalizedUser);
-    authStorage.setLocatarioId(normalizedUser.locatarioId);
-    setUser(normalizedUser);
+      if (currentUser?.perfil === "PLATAFORMA") {
+        const normalizedUser = normalizeUser(currentUser);
 
-    return normalizedUser;
-  }, []);
+        authStorage.setUser(normalizedUser);
+        authStorage.setLocatarioId(null);
+        setUser(normalizedUser);
+
+        return normalizedUser;
+      }
+
+      const meResponse = await meRequest();
+      const normalizedUser = normalizeUser(meResponse.usuario);
+
+      authStorage.setUser(normalizedUser);
+      authStorage.setLocatarioId(normalizedUser.locatarioId);
+      setUser(normalizedUser);
+
+      return normalizedUser;
+    }, []);
 
   const refreshTokens = useCallback(async (): Promise<boolean> => {
     const currentUser = authStorage.getUser();
-
-    if (currentUser?.perfil === "PLATAFORMA") {
-      return false;
-    }
-
     const refreshToken = authStorage.getRefreshToken();
-    const locatarioId =
-      authStorage.getLocatarioId() ?? currentUser?.locatarioId ?? null;
 
-    if (!refreshToken) {
+    if (!currentUser || !refreshToken) {
       return false;
     }
 
     try {
+      if (currentUser.perfil === "PLATAFORMA") {
+        const response = await refreshPlataformaRequest({ refreshToken });
+
+        authStorage.setAccessToken(response.accessToken);
+        setAccessToken(response.accessToken);
+
+        if (response.refreshToken) {
+          authStorage.setRefreshToken(response.refreshToken);
+        }
+
+        return true;
+      }
+
+      const locatarioId =
+        authStorage.getLocatarioId() ?? currentUser.locatarioId ?? null;
+
+      if (!locatarioId) return false;
+
       const response = await refreshRequest({
         refreshToken,
         locatarioId,
@@ -930,8 +982,6 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       try {
         const response = await loginRequest(input);
 
-        // O login tenant retorna tokens. O usuário da sessão vem de /auth/me.
-        // Por isso, persistimos temporariamente o access token antes de chamar meRequest().
         authStorage.setAccessToken(response.accessToken);
         setAccessToken(response.accessToken);
 
@@ -967,6 +1017,7 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
 
         return applySession({
           accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
           usuario: response.usuario,
         });
       } catch (error) {
@@ -980,9 +1031,15 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
   const logout = useCallback(async (): Promise<void> => {
     const refreshToken = authStorage.getRefreshToken();
     const locatarioId = authStorage.getLocatarioId();
+    const currentUser = authStorage.getUser() ?? user;
 
     try {
-      if (refreshToken && user?.perfil === "TENANT") {
+      if (refreshToken && currentUser?.perfil === "PLATAFORMA") {
+        await logoutPlataformaRequest({ refreshToken });
+        return;
+      }
+
+      if (refreshToken && currentUser?.perfil === "TENANT") {
         await logoutRequest({
           refreshToken,
           locatarioId,
@@ -1012,9 +1069,7 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       const token = authStorage.getAccessToken();
 
       if (!token) {
-        if (ativo) {
-          setStatus("unauthenticated");
-        }
+        if (ativo) setStatus("unauthenticated");
         return;
       }
 
@@ -1023,13 +1078,9 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       try {
         await carregarUsuarioAutenticado();
 
-        if (ativo) {
-          setStatus("authenticated");
-        }
+        if (ativo) setStatus("authenticated");
       } catch {
-        if (ativo) {
-          clearSession();
-        }
+        if (ativo) clearSession();
       }
     }
 
@@ -1039,6 +1090,15 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       ativo = false;
     };
   }, [carregarUsuarioAutenticado, clearSession]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !user) return;
+
+    return setupInactivityWatcher({
+      user,
+      onExpired: logout,
+    });
+  }, [logout, status, user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -1052,11 +1112,20 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
       logout,
       refreshTokens,
     }),
-    [status, user, accessToken, login, loginPlataforma, logout, refreshTokens],
+    [
+      status,
+      user,
+      accessToken,
+      login,
+      loginPlataforma,
+      logout,
+      refreshTokens,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
 
 ===== apps/web/src/core/auth/authStorage.ts =====
 
@@ -1158,6 +1227,99 @@ export const authStorage = {
     safeRemove(USER_KEY);
   },
 };
+
+===== apps/web/src/core/auth/sessionManager.ts =====
+
+// apps/web/src/core/auth/sessionManager.ts
+
+import type { SessionUser } from "./tipos";
+
+export const DEFAULT_TENANT_IDLE_TIMEOUT_MS = 60 * 60 * 1000;
+export const DEFAULT_PLATAFORMA_IDLE_TIMEOUT_MS = 20 * 60 * 1000;
+
+const ACTIVITY_EVENTS: Array<keyof WindowEventMap> = [
+  "click",
+  "keydown",
+  "mousemove",
+  "mousedown",
+  "scroll",
+  "touchstart",
+];
+
+function readTimeoutEnv(
+  key: "VITE_TENANT_IDLE_TIMEOUT_MS" | "VITE_PLATAFORMA_IDLE_TIMEOUT_MS",
+  fallback: number,
+): number {
+  const raw = import.meta.env[key];
+  if (!raw) return fallback;
+
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+export function getIdleTimeoutMs(user: SessionUser | null): number {
+  if (user?.perfil === "PLATAFORMA") {
+    return readTimeoutEnv(
+      "VITE_PLATAFORMA_IDLE_TIMEOUT_MS",
+      DEFAULT_PLATAFORMA_IDLE_TIMEOUT_MS,
+    );
+  }
+
+  return readTimeoutEnv(
+    "VITE_TENANT_IDLE_TIMEOUT_MS",
+    DEFAULT_TENANT_IDLE_TIMEOUT_MS,
+  );
+}
+
+export type InactivityWatcherParams = {
+  user: SessionUser;
+  onExpired: () => void | Promise<void>;
+};
+
+export function setupInactivityWatcher({
+  user,
+  onExpired,
+}: InactivityWatcherParams): () => void {
+  const timeoutMs = getIdleTimeoutMs(user);
+
+  let timeoutId: number | undefined;
+  let expired = false;
+
+  async function expireSession() {
+    if (expired) return;
+    expired = true;
+    await onExpired();
+  }
+
+  function resetTimer() {
+    if (expired) return;
+
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+
+    timeoutId = window.setTimeout(() => {
+      void expireSession();
+    }, timeoutMs);
+  }
+
+  for (const eventName of ACTIVITY_EVENTS) {
+    window.addEventListener(eventName, resetTimer, { passive: true });
+  }
+
+  resetTimer();
+
+  return () => {
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+    }
+
+    for (const eventName of ACTIVITY_EVENTS) {
+      window.removeEventListener(eventName, resetTimer);
+    }
+  };
+}
+
 
 ===== apps/web/src/core/auth/tipos.ts =====
 
@@ -1700,33 +1862,36 @@ export default TenantRoute;
 
 ===== apps/web/src/core/tenant/tenantApi.ts =====
 
-// frontend/src/core/tenant/tenantApi.ts
+// apps/web/src/core/tenant/tenantApi.ts
 
 import { httpClient } from "../api/httpClient";
-import type { TenantBranding } from "./tipos";
+import type { ObterConfiguracaoAtivaLocatarioResponse } from "./tipos";
 
-export type GetTenantBrandingResponse = {
-  branding: TenantBranding;
-};
-
-export async function getTenantBranding(
-  locatarioId: string,
-): Promise<GetTenantBrandingResponse> {
-  return httpClient.get<GetTenantBrandingResponse>(
-    `/locatarios/${locatarioId}/branding`,
+export async function getTenantConfiguracaoAtiva(): Promise<ObterConfiguracaoAtivaLocatarioResponse> {
+  return httpClient.get<ObterConfiguracaoAtivaLocatarioResponse>(
+    "/me/locatario/configuracoes/ativa",
   );
 }
 
+
 ===== apps/web/src/core/tenant/tenantBranding.ts =====
 
-// frontend/src/core/tenant/tenantBranding.ts
+// apps/web/src/core/tenant/tenantBranding.ts
 
-import type { TenantBranding } from "./tipos";
+import type {
+  ConfiguracaoAtivaLocatarioDto,
+  TenantBranding,
+} from "./tipos";
 
 const DEFAULT_PRIMARY = "#2563eb";
 const DEFAULT_SECONDARY = "#1d4ed8";
 const DEFAULT_BACKGROUND = "#f8fafc";
 const DEFAULT_TEXT = "#111827";
+
+function limparOpcional(value?: string | null): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
 
 export function buildFallbackTenantBranding(
   locatarioId: string,
@@ -1734,10 +1899,28 @@ export function buildFallbackTenantBranding(
   return {
     locatarioId,
     nomeFantasia: `Locatário ${locatarioId.slice(0, 8)}`,
+    logoUrl: undefined,
     corPrimaria: DEFAULT_PRIMARY,
     corSecundaria: DEFAULT_SECONDARY,
     corFundo: DEFAULT_BACKGROUND,
     corTexto: DEFAULT_TEXT,
+    modoTema: "CLARO",
+  };
+}
+
+export function mapConfiguracaoAtivaToTenantBranding(
+  configuracao: ConfiguracaoAtivaLocatarioDto,
+): TenantBranding {
+  return {
+    locatarioId: configuracao.locatarioId,
+    configuracaoId: configuracao.configuracaoId,
+    nomeFantasia: limparOpcional(configuracao.identidadeVisual) || `Locatário ${configuracao.locatarioId.slice(0, 8)}`,
+    logoUrl: limparOpcional(configuracao.urlLogo),
+    corPrimaria: limparOpcional(configuracao.corPrimaria) || DEFAULT_PRIMARY,
+    corSecundaria: limparOpcional(configuracao.corSecundaria) || DEFAULT_SECONDARY,
+    corFundo: DEFAULT_BACKGROUND,
+    corTexto: limparOpcional(configuracao.corTerciaria) || DEFAULT_TEXT,
+    modoTema: "CLARO",
   };
 }
 
@@ -1746,20 +1929,23 @@ export function normalizeTenantBranding(
 ): TenantBranding {
   return {
     locatarioId: branding.locatarioId,
+    configuracaoId: branding.configuracaoId,
     nomeFantasia:
-      branding.nomeFantasia?.trim() ||
+      limparOpcional(branding.nomeFantasia) ||
       `Locatário ${branding.locatarioId.slice(0, 8)}`,
-    logoUrl: branding.logoUrl,
-    corPrimaria: branding.corPrimaria || DEFAULT_PRIMARY,
-    corSecundaria: branding.corSecundaria || DEFAULT_SECONDARY,
-    corFundo: branding.corFundo || DEFAULT_BACKGROUND,
-    corTexto: branding.corTexto || DEFAULT_TEXT,
+    logoUrl: limparOpcional(branding.logoUrl),
+    corPrimaria: limparOpcional(branding.corPrimaria) || DEFAULT_PRIMARY,
+    corSecundaria: limparOpcional(branding.corSecundaria) || DEFAULT_SECONDARY,
+    corFundo: DEFAULT_BACKGROUND,
+    corTexto: limparOpcional(branding.corTexto) || DEFAULT_TEXT,
+    modoTema: "CLARO",
   };
 }
 
+
 ===== apps/web/src/core/tenant/tenantContext.tsx =====
 
-// frontend/src/core/tenant/TenantContext.tsx
+// apps/web/src/core/tenant/tenantContext.tsx
 
 import {
   createContext,
@@ -1774,18 +1960,17 @@ import {
 import { HttpError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { isSuperAdmin } from "../auth/tipos";
-import { getTenantBranding } from "./tenantApi";
+import { getTenantConfiguracaoAtiva } from "./tenantApi";
 import {
   buildFallbackTenantBranding,
+  mapConfiguracaoAtivaToTenantBranding,
   normalizeTenantBranding,
 } from "./tenantBranding";
 import type { TenantBranding, TenantContextValue } from "./tipos";
 
 const TenantContext = createContext<TenantContextValue | undefined>(undefined);
 
-export function TenantProvider({
-  children,
-}: PropsWithChildren) {
+export function TenantProvider({ children }: PropsWithChildren) {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [branding, setBranding] = useState<TenantBranding | null>(null);
@@ -1805,12 +1990,16 @@ export function TenantProvider({
     setIsLoading(true);
 
     try {
-      const response = await getTenantBranding(user.locatarioId);
-      setBranding(normalizeTenantBranding(response.branding));
+      const response = await getTenantConfiguracaoAtiva();
+
+      setBranding(
+        normalizeTenantBranding(
+          mapConfiguracaoAtivaToTenantBranding(response.item),
+        ),
+      );
     } catch (error) {
       if (error instanceof HttpError) {
         setBranding(buildFallbackTenantBranding(user.locatarioId));
-        setIsLoading(false);
         return;
       }
 
@@ -1821,9 +2010,7 @@ export function TenantProvider({
   }, [isAuthenticated, user]);
 
   useEffect(() => {
-    if (isAuthLoading) {
-      return;
-    }
+    if (isAuthLoading) return;
 
     void refreshBranding();
   }, [isAuthLoading, refreshBranding]);
@@ -1857,11 +2044,10 @@ export function useTenant(): TenantContextValue {
 
 ===== apps/web/src/core/tenant/tenantThemeProvider.tsx =====
 
-// frontend/src/core/tenant/TenantThemeProvider.tsx
+// apps/web/src/core/tenant/tenantThemeProvider.tsx
 
 import { useEffect, type PropsWithChildren } from "react";
 import { useTenant } from "./tenantContext";
-
 
 const DEFAULT_THEME = {
   primary: "#2563eb",
@@ -1870,9 +2056,7 @@ const DEFAULT_THEME = {
   text: "#111827",
 };
 
-export function TenantThemeProvider({
-  children,
-}: PropsWithChildren) {
+export function TenantThemeProvider({ children }: PropsWithChildren) {
   const { branding } = useTenant();
 
   useEffect(() => {
@@ -1888,11 +2072,21 @@ export function TenantThemeProvider({
     root.style.setProperty("--tenant-color-background", background);
     root.style.setProperty("--tenant-color-text", text);
 
+    root.style.setProperty("--ck-primary", primary);
+    root.style.setProperty("--ck-secondary", secondary);
+    root.style.setProperty("--ck-background", background);
+    root.style.setProperty("--ck-text", text);
+
     return () => {
       root.style.setProperty("--tenant-color-primary", DEFAULT_THEME.primary);
       root.style.setProperty("--tenant-color-secondary", DEFAULT_THEME.secondary);
       root.style.setProperty("--tenant-color-background", DEFAULT_THEME.background);
       root.style.setProperty("--tenant-color-text", DEFAULT_THEME.text);
+
+      root.style.setProperty("--ck-primary", DEFAULT_THEME.primary);
+      root.style.setProperty("--ck-secondary", DEFAULT_THEME.secondary);
+      root.style.setProperty("--ck-background", DEFAULT_THEME.background);
+      root.style.setProperty("--ck-text", DEFAULT_THEME.text);
     };
   }, [branding]);
 
@@ -1902,16 +2096,36 @@ export function TenantThemeProvider({
 
 ===== apps/web/src/core/tenant/tipos.ts =====
 
-// frontend/src/core/tenant/types.ts
+// apps/web/src/core/tenant/tipos.ts
+
+export type ConfiguracaoAtivaLocatarioDto = {
+  locatarioId: string;
+  configuracaoId: string;
+  modoTema?: "SISTEMA" | "CLARO" | "ESCURO" | string | null;
+  identidadeVisual?: string | null;
+  corPrimaria?: string | null;
+  corSecundaria?: string | null;
+  corTerciaria?: string | null;
+  urlLogo?: string | null;
+  ativa?: boolean;
+  criadoEm?: string | null;
+  atualizadoEm?: string | null;
+};
+
+export type ObterConfiguracaoAtivaLocatarioResponse = {
+  item: ConfiguracaoAtivaLocatarioDto;
+};
 
 export type TenantBranding = {
   locatarioId: string;
+  configuracaoId?: string;
   nomeFantasia?: string;
   logoUrl?: string;
   corPrimaria?: string;
   corSecundaria?: string;
   corFundo?: string;
   corTexto?: string;
+  modoTema?: "CLARO";
 };
 
 export type TenantContextValue = {
@@ -1919,6 +2133,7 @@ export type TenantContextValue = {
   isLoading: boolean;
   refreshBranding: () => Promise<void>;
 };
+
 
 ===== apps/web/src/core/tenant/useTenant.ts =====
 
@@ -1928,29 +2143,36 @@ export { useTenant } from "./tenantContext";
 
 ===== apps/web/src/features/auth/api/authApi.ts =====
 
-// web/src/features/auth/api/authApi.ts
+// apps/web/src/features/auth/api/authApi.ts
 
 import { httpClient } from "../../../core/api/httpClient";
-import { LoginInput, LoginPlataformaInput, LoginPlataformaResponse, LoginResponse, LogoutInput, MeResponse, RefreshInput, RefreshResponse } from "../../../core/auth/tipos";
+import {
+  LoginInput,
+  LoginPlataformaInput,
+  LoginPlataformaResponse,
+  LoginResponse,
+  LogoutInput,
+  MeResponse,
+  RefreshInput,
+  RefreshResponse,
+} from "../../../core/auth/tipos";
 
 export async function login(input: LoginInput): Promise<LoginResponse> {
   return httpClient.post<LoginResponse, LoginInput>("/auth/login", input);
 }
 
-export async function loginPlataforma(input: LoginPlataformaInput): Promise<LoginPlataformaResponse> {
+export async function loginPlataforma(
+  input: LoginPlataformaInput,
+): Promise<LoginPlataformaResponse> {
   return httpClient.post<LoginPlataformaResponse, LoginPlataformaInput>(
     "/auth/plataforma/login",
     input,
-    {
-      skipAuthRetry: true,
-    },
+    { skipAuthRetry: true },
   );
 }
 
 export async function me(): Promise<MeResponse> {
-  return httpClient.get<MeResponse>("/auth/me", {
-    skipAuthRetry: true,
-  });
+  return httpClient.get<MeResponse>("/auth/me", { skipAuthRetry: true });
 }
 
 export async function refresh(input: RefreshInput): Promise<RefreshResponse> {
@@ -1958,9 +2180,20 @@ export async function refresh(input: RefreshInput): Promise<RefreshResponse> {
     "/auth/refresh",
     input,
     {
-      headers: {
-        Authorization: "",
-      },
+      headers: { Authorization: "" },
+      skipAuthRetry: true,
+    },
+  );
+}
+
+export async function refreshPlataforma(input: {
+  refreshToken: string;
+}): Promise<RefreshResponse> {
+  return httpClient.post<RefreshResponse, { refreshToken: string }>(
+    "/auth/plataforma/refresh",
+    input,
+    {
+      headers: { Authorization: "" },
       skipAuthRetry: true,
     },
   );
@@ -1968,12 +2201,24 @@ export async function refresh(input: RefreshInput): Promise<RefreshResponse> {
 
 export async function logout(input: LogoutInput): Promise<void> {
   return httpClient.post<void, LogoutInput>("/auth/logout", input, {
-    headers: {
-      Authorization: "",
-    },
+    headers: { Authorization: "" },
     skipAuthRetry: true,
   });
 }
+
+export async function logoutPlataforma(input: {
+  refreshToken: string;
+}): Promise<void> {
+  return httpClient.post<void, { refreshToken: string }>(
+    "/auth/plataforma/logout",
+    input,
+    {
+      headers: { Authorization: "" },
+      skipAuthRetry: true,
+    },
+  );
+}
+
 
 ===== apps/web/src/features/auth/hooks/useLogin.ts =====
 
@@ -2170,6 +2415,156 @@ export default function PlataformaLoginPage(): JSX.Element {
 ===== apps/web/src/features/auth/tipos.ts =====
 
 
+
+===== apps/web/src/features/dashboard/api/dashboardApi.ts =====
+
+// apps/web/src/features/dashboard/api/dashboardApi.ts
+
+import { httpClient } from "../../../core/api/httpClient";
+import type { DashboardResumoResponse } from "../tipos";
+
+export async function obterDashboardResumo() {
+  return httpClient.get<DashboardResumoResponse>(
+    "/dashboard/resumo",
+  );
+}
+
+===== apps/web/src/features/dashboard/components/DashboardCard.tsx =====
+
+// apps/web/src/features/dashboard/components/DashboardCard.tsx
+
+import type { JSX, ReactNode } from "react";
+import "./dashboardCard.css";
+
+type DashboardCardVariant =
+  | "default"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "purple";
+
+type DashboardCardProps = {
+  title: string;
+  value: ReactNode;
+  icon?: ReactNode;
+  description?: ReactNode;
+  footer?: ReactNode;
+  variant?: DashboardCardVariant;
+  isLoading?: boolean;
+};
+
+function variantColor(variant: DashboardCardVariant): string {
+  switch (variant) {
+    case "success":
+      return "#16a34a";
+    case "warning":
+      return "#f59e0b";
+    case "danger":
+      return "#dc2626";
+    case "info":
+      return "#2563eb";
+    case "purple":
+      return "#7c3aed";
+    case "default":
+    default:
+      return "var(--ck-primary, #2563eb)";
+  }
+}
+
+export function DashboardCard({
+  title,
+  value,
+  icon,
+  description,
+  footer,
+  variant = "default",
+  isLoading = false,
+}: DashboardCardProps): JSX.Element {
+  const color = variantColor(variant);
+
+  if (isLoading) {
+    return (
+      <article className="ck-dashboard-card ck-dashboard-card-loading">
+        <div className="ck-dashboard-card-skeleton" />
+      </article>
+    );
+  }
+
+  return (
+    <article
+      className="ck-dashboard-card"
+      style={{ "--dashboard-card-color": color } as React.CSSProperties}
+    >
+      <div className="ck-dashboard-card-top">
+        <div>
+          <div className="ck-dashboard-card-title">{title}</div>
+          <div className="ck-dashboard-card-value">{value}</div>
+
+          {description ? (
+            <div className="ck-dashboard-card-description">{description}</div>
+          ) : null}
+        </div>
+
+        {icon ? <div className="ck-dashboard-card-icon">{icon}</div> : null}
+      </div>
+
+      {footer ? <div className="ck-dashboard-card-footer">{footer}</div> : null}
+    </article>
+  );
+}
+
+
+===== apps/web/src/features/dashboard/components/index.ts =====
+
+// apps/web/src/features/dashboard/components/index.ts
+
+export { DashboardCard } from "./DashboardCard";
+
+
+===== apps/web/src/features/dashboard/hooks/useDashboardResumo.ts =====
+
+// apps/web/src/features/dashboard/hooks/useDashboardResumo.ts
+
+import { useEffect, useState } from "react";
+import { DashboardResumo } from "../tipos";
+import { obterDashboardResumo } from "../api/dashboardApi";
+
+export function useDashboardResumo() {
+  const [item, setItem] = useState<DashboardResumo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    obterDashboardResumo()
+      .then((response) => setItem(response.item))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return {
+    item,
+    loading,
+  };
+}
+
+===== apps/web/src/features/dashboard/tipos.ts =====
+
+// apps/web/src/features/dashboard/tipos.ts
+
+export type DashboardResumo = {
+  totalClientes: number;
+  totalFornecedores: number;
+  totalProdutos: number;
+  totalItensEstoque: number;
+
+  vendasMes: number;
+  comprasMes: number;
+
+  ordensServicoAbertas: number;
+};
+
+export type DashboardResumoResponse = {
+  item: DashboardResumo;
+};
 
 ===== apps/web/src/features/superadmin/locatarios/api/locatarioConfiguracoesApi.ts =====
 

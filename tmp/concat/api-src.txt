@@ -1441,6 +1441,7 @@ import { produtosRoutes } from "./routes/produtos.routes.js";
 import { vendasRoutes } from "./routes/vendas.routes.js";
 import { auditoriaRoutes } from "./routes/auditoria.routes.js";
 import { plataformaRoutes } from "./routes/plataforma/plataforma.routes.js";
+import { dashboardRoutes } from "./routes/dashboard.routes.js";
 
 export const routes: FastifyPluginAsync = async (app) => {
   await app.register(healthRoutes, { prefix: "/api" });
@@ -1454,6 +1455,7 @@ export const routes: FastifyPluginAsync = async (app) => {
   await app.register(vendasRoutes, { prefix: "/api" });
   await app.register(auditoriaRoutes, { prefix: "/api" });
   await app.register(plataformaRoutes, { prefix: "/api/plataforma" });
+  await app.register(dashboardRoutes, { prefix: "/api" });
 };
 
 ===== apps/api/src/infra/hash/hashPortaAdapter.ts =====
@@ -5368,6 +5370,119 @@ export const clientePrisma =
 
 if (process.env.NODE_ENV !== "production") {
   global.__clientePrisma__ = clientePrisma;
+}
+
+
+===== apps/api/src/infra/prisma/dashboard/dashboardResumoRepositorioPrisma.ts =====
+
+// apps/api/src/infra/prisma/dashboard/dashboardResumoRepositorioPrisma.ts
+
+import type { PrismaClient } from "@prisma/client";
+import type { DashboardResumoDto } from "../../../modules/dashboard/dashboard.dto.js";
+
+function inicioDoMesAtual(): Date {
+  const agora = new Date();
+  return new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), 1, 0, 0, 0, 0));
+}
+
+function decimalParaNumero(valor: unknown): number {
+  if (valor === null || valor === undefined) return 0;
+  if (typeof valor === "number") return valor;
+  if (typeof valor === "string") {
+    const convertido = Number(valor);
+    return Number.isFinite(convertido) ? convertido : 0;
+  }
+  if (
+    typeof valor === "object" &&
+    "toNumber" in valor &&
+    typeof valor.toNumber === "function"
+  ) {
+    return valor.toNumber();
+  }
+  const convertido = Number(valor);
+  return Number.isFinite(convertido) ? convertido : 0;
+}
+
+export function createDashboardResumoRepositorioPrisma(db: PrismaClient) {
+  return {
+    async obterResumo(params: { locatarioId: string }): Promise<DashboardResumoDto> {
+      const inicioMes = inicioDoMesAtual();
+
+      const [
+        clientes,
+        fornecedores,
+        produtos,
+        estoques,
+        ordensServicoAbertas,
+        vendasMesQuantidade,
+        comprasMesQuantidade,
+        vendasMesAgregado,
+        comprasMesAgregado,
+      ] = await Promise.all([
+        db.clientes.count({ where: { locatario_id: params.locatarioId, excluido_em: null } }),
+        db.fornecedores.count({ where: { locatario_id: params.locatarioId, excluido_em: null } }),
+        db.produtos.count({ where: { locatario_id: params.locatarioId, excluido_em: null, ativo: true } }),
+        db.estoques.count({ where: { locatario_id: params.locatarioId, excluido_em: null } }),
+        db.ordens_servico.count({
+          where: {
+            locatario_id: params.locatarioId,
+            excluido_em: null,
+            status: { in: ["ABERTA", "EM_ANDAMENTO", "AGUARDANDO"] },
+          },
+        }),
+        db.transacoes.count({
+          where: {
+            locatario_id: params.locatarioId,
+            excluido_em: null,
+            tipo: "VENDA",
+            criado_em: { gte: inicioMes },
+          },
+        }),
+        db.transacoes.count({
+          where: {
+            locatario_id: params.locatarioId,
+            excluido_em: null,
+            tipo: "COMPRA",
+            criado_em: { gte: inicioMes },
+          },
+        }),
+        db.transacoes.aggregate({
+          where: {
+            locatario_id: params.locatarioId,
+            excluido_em: null,
+            tipo: "VENDA",
+            criado_em: { gte: inicioMes },
+          },
+          _sum: { valor_total: true },
+        }),
+        db.transacoes.aggregate({
+          where: {
+            locatario_id: params.locatarioId,
+            excluido_em: null,
+            tipo: "COMPRA",
+            criado_em: { gte: inicioMes },
+          },
+          _sum: { valor_total: true },
+        }),
+      ]);
+
+      return {
+        clientes,
+        fornecedores,
+        produtos,
+        estoques,
+        ordensServicoAbertas,
+        vendasMes: {
+          quantidade: vendasMesQuantidade,
+          valor: decimalParaNumero(vendasMesAgregado._sum.valor_total),
+        },
+        comprasMes: {
+          quantidade: comprasMesQuantidade,
+          valor: decimalParaNumero(comprasMesAgregado._sum.valor_total),
+        },
+      };
+    },
+  };
 }
 
 
@@ -9704,6 +9819,71 @@ export function toListarClientesResponseDto(itens: Cliente[]) {
   return itens.map(toClienteResponseDto);
 }
 
+===== apps/api/src/modules/dashboard/dashboard.controller.ts =====
+
+// apps/api/src/modules/dashboard/dashboard.controller.ts
+
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createDashboardResumoRepositorioPrisma } from "../../infra/prisma/dashboard/dashboardResumoRepositorioPrisma.js";
+import { serializarDashboardResumo } from "./dashboard.presenter.js";
+
+function createDashboardDeps() {
+  return {
+    dashboardResumoRepositorio: createDashboardResumoRepositorioPrisma(clientePrisma),
+  };
+}
+
+export async function obterDashboardResumoController(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const ctx = await autorizarHttp(request, reply);
+  if (!ctx) return;
+
+  const deps = createDashboardDeps();
+
+  const resumo = await deps.dashboardResumoRepositorio.obterResumo({
+    locatarioId: ctx.locatarioId,
+  });
+
+  return reply.status(200).send(serializarDashboardResumo(resumo));
+}
+
+
+===== apps/api/src/modules/dashboard/dashboard.dto.ts =====
+
+// apps/api/src/modules/dashboard/dashboard.dto.ts
+
+export type DashboardResumoDto = {
+  clientes: number;
+  fornecedores: number;
+  produtos: number;
+  estoques: number;
+  ordensServicoAbertas: number;
+  vendasMes: {
+    quantidade: number;
+    valor: number;
+  };
+  comprasMes: {
+    quantidade: number;
+    valor: number;
+  };
+};
+
+
+===== apps/api/src/modules/dashboard/dashboard.presenter.ts =====
+
+// apps/api/src/modules/dashboard/dashboard.presenter.ts
+
+import type { DashboardResumoDto } from "./dashboard.dto.js";
+
+export function serializarDashboardResumo(dto: DashboardResumoDto): DashboardResumoDto {
+  return dto;
+}
+
+
 ===== apps/api/src/modules/fornecedores/fornecedores.controller.ts =====
 
 // apps/api/src/modules/fornecedores/fornecedores.controller.ts
@@ -13519,6 +13699,18 @@ export const clientesRoutes: FastifyPluginAsync = async (app) => {
   );
 };
 
+===== apps/api/src/routes/dashboard.routes.ts =====
+
+// apps/api/src/routes/dashboard.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { obterDashboardResumoController } from "../modules/dashboard/dashboard.controller.js";
+
+export const dashboardRoutes: FastifyPluginAsync = async (app) => {
+  app.get("/dashboard/resumo", obterDashboardResumoController);
+};
+
+
 ===== apps/api/src/routes/fornecedores.routes.ts =====
 
 // apps/api/src/routes/fornecedores.routes.ts
@@ -13562,7 +13754,19 @@ export const fornecedoresRoutes: FastifyPluginAsync = async (app) => {
 
 ===== apps/api/src/routes/health.routes.ts =====
 
+// apps/api/src/routes/health.routes.ts
+
 import type { FastifyPluginAsync } from "fastify";
+import { clientePrisma } from "../infra/prisma/client.js";
+
+function versionInfo() {
+  return {
+    service: "core-kit-api",
+    version: process.env.npm_package_version ?? "0.1.0",
+    commit: process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? "local",
+    env: process.env.NODE_ENV ?? "development",
+  };
+}
 
 export const healthRoutes: FastifyPluginAsync = async (app) => {
   app.get("/health", async () => {
@@ -13570,6 +13774,28 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
       status: "ok",
       service: "core-kit-api",
     };
+  });
+
+  app.get("/version", async () => {
+    return versionInfo();
+  });
+
+  app.get("/ready", async (_request, reply) => {
+    try {
+      await clientePrisma.$queryRaw`SELECT 1`;
+
+      return {
+        status: "ready",
+        database: "ok",
+        ...versionInfo(),
+      };
+    } catch {
+      return reply.status(503).send({
+        status: "not_ready",
+        database: "error",
+        ...versionInfo(),
+      });
+    }
   });
 };
 

@@ -29,6 +29,7 @@ import { EditarLocatarioPage, LocatarioDetailsPage, LocatariosListPage, NovoLoca
 import PlataformaLoginPage from "../features/auth/pages/PlataformaLoginPage";
 import UsuariosLocatarioListPage from "../features/superadmin/locatarios/pages/UsuariosLocatarioListPage";
 import { FinanceiroPage } from "../features/tenant-admin/financeiro";
+import { NovaOrdemServicoPage, OrdemServicoDetailsPage, OrdensServicoListPage } from "../features/tenant-admin/ordens-servico";
 
 /**
  * 
@@ -209,7 +210,19 @@ export const router = createBrowserRouter([
           {
             path: "financeiro",
             element: <FinanceiroPage />,
-          }
+          },
+          {
+            path: "ordens-servico",
+            element: <OrdensServicoListPage />,
+          },
+          {
+            path: "ordens-servico/nova",
+            element: <NovaOrdemServicoPage />,
+          },
+          {
+            path: "ordens-servico/:ordemServicoId",
+            element: <OrdemServicoDetailsPage />,
+          },
         ],
       },
     ],

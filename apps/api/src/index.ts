@@ -14,6 +14,7 @@ import { auditoriaRoutes } from "./routes/auditoria.routes.js";
 import { plataformaRoutes } from "./routes/plataforma/plataforma.routes.js";
 import { dashboardRoutes } from "./routes/dashboard.routes.js";
 import { financeiroRoutes } from "./routes/financeiro.routes.js";
+import { ordensServicoRoutes } from "./routes/ordensServico.routes.js";
 
 export const routes: FastifyPluginAsync = async (app) => {
   await app.register(healthRoutes, { prefix: "/api" });
@@ -29,4 +30,5 @@ export const routes: FastifyPluginAsync = async (app) => {
   await app.register(plataformaRoutes, { prefix: "/api/plataforma" });
   await app.register(dashboardRoutes, { prefix: "/api" });
   await app.register(financeiroRoutes, { prefix: "/api" });
+  await app.register(ordensServicoRoutes, { prefix: "/api" });
 };

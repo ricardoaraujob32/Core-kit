@@ -23,3 +23,4 @@ export * from "./fornecedores/index.js";
 export * from "./produtos/index.js";
 export * from "./vendas/index.js";
 export * from "./financeiro/index.js";
+export * from "./ordensServico/index.js";
