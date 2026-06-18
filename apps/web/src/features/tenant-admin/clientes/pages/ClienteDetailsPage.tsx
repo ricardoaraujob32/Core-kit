@@ -1,7 +1,9 @@
+
 // apps/web/src/features/tenant-admin/clientes/pages/ClienteDetailsPage.tsx
 
 import { Link, useParams } from "react-router-dom";
 import { useClienteDetails } from "../hooks/useClienteDetails";
+import { toClienteViewModel } from "../cliente.viewModel";
 
 export default function ClienteDetailsPage() {
   const params = useParams<{ clienteId: string }>();
@@ -29,14 +31,15 @@ export default function ClienteDetailsPage() {
     );
   }
 
+  const vm = toClienteViewModel(cliente);
+
   return (
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{cliente.nome}</h1>
-          <p className="text-sm text-slate-600">
-            {cliente.documento ?? "Sem documento"}
-          </p>
+          <p className="text-sm text-slate-600">Cliente</p>
+          <h1 className="text-2xl font-semibold">{vm.titulo}</h1>
+          <p className="text-sm text-slate-600">{vm.subtitulo}</p>
         </div>
 
         <Link
@@ -48,7 +51,6 @@ export default function ClienteDetailsPage() {
       </div>
 
       <div className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>ID:</strong> {cliente.clienteId}</div>
         <div><strong>Nome:</strong> {cliente.nome}</div>
         <div><strong>Documento:</strong> {cliente.documento ?? "—"}</div>
         <div><strong>E-mail:</strong> {cliente.email ?? "—"}</div>
@@ -59,3 +61,4 @@ export default function ClienteDetailsPage() {
     </div>
   );
 }
+

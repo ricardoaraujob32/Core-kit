@@ -2,6 +2,7 @@
 
 import { Link } from "react-router-dom";
 import type { Produto } from "../tipos";
+import { toProdutoViewModel } from "../produto.viewModel";
 
 type Props = {
   itens: Produto[];

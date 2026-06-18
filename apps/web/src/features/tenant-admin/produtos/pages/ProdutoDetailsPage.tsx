@@ -1,7 +1,9 @@
+
 // apps/web/src/features/tenant-admin/produtos/pages/ProdutoDetailsPage.tsx
 
 import { Link, useParams } from "react-router-dom";
 import { useProdutoDetails } from "../hooks/useProdutoDetails";
+import { toProdutoViewModel } from "../produto.viewModel";
 
 export default function ProdutoDetailsPage() {
   const params = useParams<{ produtoId: string }>();
@@ -33,13 +35,19 @@ export default function ProdutoDetailsPage() {
     );
   }
 
+  const vm = toProdutoViewModel({
+    ...produto,
+    status: produto.ativo === false ? "INATIVO" : "ATIVO",
+  });
+
   return (
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{produto.nome}</h1>
+          <p className="text-sm text-slate-600">Produto</p>
+          <h1 className="text-2xl font-semibold">{vm.titulo}</h1>
           <p className="text-sm text-slate-600">
-            {produto.tipo} — {produto.precoVenda}
+            {[vm.subtitulo, vm.contexto].filter(Boolean).join(" — ")}
           </p>
         </div>
 
@@ -52,7 +60,6 @@ export default function ProdutoDetailsPage() {
       </div>
 
       <div className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>ID:</strong> {produto.produtoId}</div>
         <div><strong>Nome:</strong> {produto.nome}</div>
         <div><strong>Tipo:</strong> {produto.tipo}</div>
         <div><strong>Preço de venda:</strong> {produto.precoVenda}</div>
@@ -64,3 +71,4 @@ export default function ProdutoDetailsPage() {
     </div>
   );
 }
+

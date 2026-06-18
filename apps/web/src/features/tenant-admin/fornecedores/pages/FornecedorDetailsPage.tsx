@@ -1,7 +1,9 @@
+
 // apps/web/src/features/tenant-admin/fornecedores/pages/FornecedorDetailsPage.tsx
 
 import { Link, useParams } from "react-router-dom";
 import { useFornecedorDetails } from "../hooks/useFornecedorDetails";
+import { toFornecedorViewModel } from "../fornecedor.viewModel";
 
 export default function FornecedorDetailsPage() {
   const params = useParams<{ fornecedorId: string }>();
@@ -21,14 +23,15 @@ export default function FornecedorDetailsPage() {
     return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Fornecedor não encontrado.</div>;
   }
 
+  const vm = toFornecedorViewModel(fornecedor);
+
   return (
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">{fornecedor.nome}</h1>
-          <p className="text-sm text-slate-600">
-            {fornecedor.documento ?? "Sem documento"}
-          </p>
+          <p className="text-sm text-slate-600">Fornecedor</p>
+          <h1 className="text-2xl font-semibold">{vm.titulo}</h1>
+          <p className="text-sm text-slate-600">{vm.subtitulo}</p>
         </div>
 
         <Link
@@ -40,7 +43,6 @@ export default function FornecedorDetailsPage() {
       </div>
 
       <div className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>ID:</strong> {fornecedor.fornecedorId}</div>
         <div><strong>Nome:</strong> {fornecedor.nome}</div>
         <div><strong>Documento:</strong> {fornecedor.documento ?? "—"}</div>
         <div><strong>E-mail:</strong> {fornecedor.email ?? "—"}</div>
@@ -51,3 +53,4 @@ export default function FornecedorDetailsPage() {
     </div>
   );
 }
+

@@ -59,6 +59,8 @@ import { NovaCompraPage } from "../features/tenant-admin/compras";
 import { EditarLocatarioPage, LocatarioDetailsPage, LocatariosListPage, NovoLocatarioPage, NovoUsuarioLocatarioPage } from "../features/superadmin/locatarios";
 import PlataformaLoginPage from "../features/auth/pages/PlataformaLoginPage";
 import UsuariosLocatarioListPage from "../features/superadmin/locatarios/pages/UsuariosLocatarioListPage";
+import { FinanceiroPage } from "../features/tenant-admin/financeiro";
+import { NovaOrdemServicoPage, OrdemServicoDetailsPage, OrdensServicoListPage } from "../features/tenant-admin/ordens-servico";
 
 /**
  * 
@@ -235,6 +237,22 @@ export const router = createBrowserRouter([
           {
             path: "compras/nova",
             element: <NovaCompraPage />,
+          },
+          {
+            path: "financeiro",
+            element: <FinanceiroPage />,
+          },
+          {
+            path: "ordens-servico",
+            element: <OrdensServicoListPage />,
+          },
+          {
+            path: "ordens-servico/nova",
+            element: <NovaOrdemServicoPage />,
+          },
+          {
+            path: "ordens-servico/:ordemServicoId",
+            element: <OrdemServicoDetailsPage />,
           },
         ],
       },
@@ -5610,16 +5628,14 @@ export { default as NovaCompraPage } from "./pages/NovaCompraPage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
+import { FornecedorSelect } from "../../../../shared/domain-selects";
+import { formatFornecedorLabel } from "../../../../shared/formatters";
+import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import { comprasApi } from "../api/comprasApi";
+import "../../cadastros/cadastros.css";
 import "../../transacoes/pages/transacoes.css";
-
-function labelFornecedor(fornecedor: Fornecedor): string {
-  return fornecedor.documento
-    ? `${fornecedor.nome} — ${fornecedor.documento}`
-    : fornecedor.nome;
-}
 
 function textoBuscaFornecedor(fornecedor: Fornecedor): string {
   return [
@@ -5705,98 +5721,84 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <form className="ck-page" onSubmit={handleSubmit}>
-      <section className="ck-page-hero">
-        <div className="ck-page-hero-inner">
-          <div>
-            <div className="ck-page-kicker">Compras</div>
-            <h1 className="ck-page-title">Nova compra</h1>
-            <p className="ck-page-description">
-              Crie a compra e depois adicione os produtos na tela de detalhes.
-            </p>
-          </div>
+    <form className="ck-register-page" onSubmit={handleSubmit}>
+      <PageSectionHeader
+        kicker="Compras"
+        title="Nova compra"
+        description="Selecione o fornecedor por dados de domínio. A compra será criada e os itens serão adicionados na tela de detalhes."
+        actions={
+          <Link className="ck-register-action-secondary" to="/app/transacoes">
+            Voltar
+          </Link>
+        }
+      />
 
-          <div className="ck-page-actions">
-            <Link className="ck-action-secondary" to="/app/transacoes">
-              Voltar
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {erro ? <div className="ck-alert">{erro}</div> : null}
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
       {erroFornecedores ? (
-        <div className="ck-alert ck-alert-warning">
+        <div className="ck-register-alert">
           Não foi possível carregar fornecedores: {erroFornecedores}
         </div>
       ) : null}
 
-      <section className="ck-form-card">
-        <div className="ck-form-card-header">
-          <div className="ck-form-card-title">Fornecedor</div>
-          <p className="ck-form-card-desc">
-            Busque por nome, documento, e-mail ou telefone.
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Fornecedor da compra</div>
+          <p className="ck-register-form-desc">
+            O ID fica oculto; o usuário escolhe pelo nome, documento ou contato.
           </p>
         </div>
 
-        <div className="ck-form-card-body">
-          <label className="ck-field">
+        <div className="ck-register-form-body">
+          <label className="ck-register-field">
             <span>Buscar fornecedor</span>
             <input
-              className="ck-input"
-              placeholder="Ex.: Distribuidora, CNPJ, e-mail..."
+              className="ck-register-input"
+              placeholder="Ex.: Distribuidora, CNPJ, e-mail ou telefone"
               value={buscaFornecedor}
               onChange={(event) => setBuscaFornecedor(event.target.value)}
             />
           </label>
 
-          <label className="ck-field">
+          <label className="ck-register-field">
             <span>Fornecedor selecionado</span>
-            <select
-              className="ck-select"
+            <FornecedorSelect
               value={fornecedorId}
-              onChange={(event) => setFornecedorId(event.target.value)}
+              fornecedores={fornecedoresFiltrados}
               disabled={isLoadingFornecedores}
-            >
-              <option value="">
-                {isLoadingFornecedores
-                  ? "Carregando fornecedores..."
-                  : "Compra sem fornecedor"}
-              </option>
-
-              {fornecedoresFiltrados.map((fornecedor) => (
-                <option
-                  key={fornecedor.fornecedorId}
-                  value={fornecedor.fornecedorId}
-                >
-                  {labelFornecedor(fornecedor)}
-                </option>
-              ))}
-            </select>
+              onChange={setFornecedorId}
+            />
           </label>
 
           {fornecedorSelecionado ? (
             <div className="ck-selected-box">
               <div className="ck-selected-grid">
                 <div>
-                  <div className="ck-selected-label">Nome</div>
-                  <div className="ck-selected-value">{fornecedorSelecionado.nome}</div>
-                </div>
-
-                <div>
-                  <div className="ck-selected-label">Documento</div>
-                  <div className="ck-selected-value">{fornecedorSelecionado.documento ?? "—"}</div>
-                </div>
-
-                <div>
-                  <div className="ck-selected-label">E-mail</div>
-                  <div className="ck-selected-value">{fornecedorSelecionado.email ?? "—"}</div>
+                  <div className="ck-selected-label">Fornecedor</div>
+                  <div className="ck-selected-value">
+                    {formatFornecedorLabel(fornecedorSelecionado)}
+                  </div>
                 </div>
 
                 <div>
                   <div className="ck-selected-label">Telefone</div>
-                  <div className="ck-selected-value">{fornecedorSelecionado.telefone ?? "—"}</div>
+                  <div className="ck-selected-value">
+                    {fornecedorSelecionado.telefone ?? "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">E-mail</div>
+                  <div className="ck-selected-value">
+                    {fornecedorSelecionado.email ?? "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">Documento</div>
+                  <div className="ck-selected-value">
+                    {fornecedorSelecionado.documento ?? "—"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -5804,19 +5806,19 @@ export default function NovaCompraPage() {
         </div>
       </section>
 
-      <section className="ck-form-card">
-        <div className="ck-form-card-header">
-          <div className="ck-form-card-title">Observação</div>
-          <p className="ck-form-card-desc">
-            Informação opcional para facilitar o histórico.
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Observação</div>
+          <p className="ck-register-form-desc">
+            Use para registrar contexto da compra ou reposição.
           </p>
         </div>
 
-        <div className="ck-form-card-body">
-          <label className="ck-field">
+        <div className="ck-register-form-body">
+          <label className="ck-register-field">
             <span>Observação da compra</span>
             <textarea
-              className="ck-input ck-textarea"
+              className="ck-register-textarea"
               value={observacao}
               onChange={(event) => setObservacao(event.target.value)}
               placeholder="Ex.: reposição de estoque, compra de fornecedor, lote especial..."
@@ -5826,13 +5828,389 @@ export default function NovaCompraPage() {
       </section>
 
       <div className="flex justify-end">
-        <button className="ck-action-primary" disabled={isSaving} type="submit">
+        <button
+          className="ck-register-action-primary"
+          disabled={isSaving}
+          type="submit"
+        >
           {isSaving ? "Criando..." : "Criar compra e adicionar itens"}
         </button>
       </div>
     </form>
   );
 }
+
+
+===== apps/web/src/features/tenant-admin/financeiro/api/financeiroApi.ts =====
+
+// apps/web/src/features/tenant-admin/financeiro/api/financeiroApi.ts
+
+import { httpClient } from "../../../../core/api/httpClient";
+import type { ListarContasFinanceirasParams, ListarContasFinanceirasResponse, ObterResumoFinanceiroResponse } from "../tipos";
+
+function buildQuery(params: ListarContasFinanceirasParams = {}): string {
+  const query = new URLSearchParams();
+
+  if (params.status) query.set("status", params.status);
+  if (params.vencidas !== undefined) query.set("vencidas", String(params.vencidas));
+  if (params.dataInicial) query.set("dataInicial", params.dataInicial);
+  if (params.dataFinal) query.set("dataFinal", params.dataFinal);
+  if (params.cursor) query.set("cursor", params.cursor);
+  if (params.limite) query.set("limite", String(params.limite));
+
+  const value = query.toString();
+  return value ? `?${value}` : "";
+}
+
+export const financeiroApi = {
+  obterResumo(): Promise<ObterResumoFinanceiroResponse> {
+    return httpClient.get<ObterResumoFinanceiroResponse>("/financeiro/resumo");
+  },
+
+  listarContasReceber(params?: ListarContasFinanceirasParams): Promise<ListarContasFinanceirasResponse> {
+    return httpClient.get<ListarContasFinanceirasResponse>(`/financeiro/contas-receber${buildQuery(params)}`);
+  },
+
+  listarContasPagar(params?: ListarContasFinanceirasParams): Promise<ListarContasFinanceirasResponse> {
+    return httpClient.get<ListarContasFinanceirasResponse>(`/financeiro/contas-pagar${buildQuery(params)}`);
+  },
+};
+
+
+===== apps/web/src/features/tenant-admin/financeiro/components/ContasFinanceirasTable.tsx =====
+
+// apps/web/src/features/tenant-admin/financeiro/components/ContasFinanceirasTable.tsx
+
+import { Link } from "react-router-dom";
+import {
+  formatDate,
+  formatMoney,
+  shortCode,
+} from "../../../../shared/formatters";
+import type { ContaFinanceira } from "../tipos";
+
+type Props = {
+  titulo: string;
+  itens: ContaFinanceira[];
+  vazioTexto: string;
+};
+
+function statusClass(status: string): string {
+  return status === "LIQUIDADO"
+    ? "ck-status ck-status-success"
+    : "ck-status ck-status-warning";
+}
+
+function descricaoPadrao(conta: ContaFinanceira): string {
+  return conta.descricao || (conta.tipo === "RECEBER" ? "Conta a receber" : "Conta a pagar");
+}
+
+export function ContasFinanceirasTable({ titulo, itens, vazioTexto }: Props) {
+  return (
+    <section className="ck-section">
+      <div className="ck-section-header">
+        <div>
+          <h2 className="ck-section-title">{titulo}</h2>
+          <p className="ck-section-subtitle">
+            Visão derivada das transações confirmadas.
+          </p>
+        </div>
+      </div>
+
+      {itens.length === 0 ? (
+        <div className="ck-empty-state">{vazioTexto}</div>
+      ) : (
+        <div className="ck-table-panel">
+          <table className="ck-table">
+            <thead>
+              <tr>
+                <th>Origem</th>
+                <th>Descrição</th>
+                <th>Status</th>
+                <th>Vencimento</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {itens.map((conta) => (
+                <tr key={conta.transacaoId}>
+                  <td>
+                    <div className="ck-register-main">
+                      {conta.tipo === "RECEBER" ? "Venda" : "Compra"}
+                    </div>
+                    <div className="ck-register-sub">
+                      Ref. {shortCode(conta.transacaoId)}
+                    </div>
+                  </td>
+
+                  <td>{descricaoPadrao(conta)}</td>
+
+                  <td>
+                    <span className={statusClass(conta.status)}>
+                      {conta.status}
+                    </span>
+                  </td>
+
+                  <td>{formatDate(conta.vencimentoEm)}</td>
+
+                  <td>
+                    <strong>{formatMoney(conta.valor)}</strong>
+                  </td>
+
+                  <td>
+                    <Link
+                      className="ck-row-link"
+                      to={`/app/transacoes/${conta.transacaoId}`}
+                    >
+                      Ver transação
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/financeiro/components/FinanceiroResumoCards.tsx =====
+
+// apps/web/src/features/tenant-admin/financeiro/components/FinanceiroResumoCards.tsx
+
+import type { ResumoFinanceiro } from "../tipos";
+
+function formatarMoeda(valor?: number | null): string {
+  return Number(valor ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+type Props = {
+  resumo: ResumoFinanceiro | null;
+};
+
+export function FinanceiroResumoCards({ resumo }: Props) {
+  const totalVencido = Number(resumo?.totalVencidoReceber ?? 0) + Number(resumo?.totalVencidoPagar ?? 0);
+  const quantidadeVencidos = Number(resumo?.quantidadeVencidosReceber ?? 0) + Number(resumo?.quantidadeVencidosPagar ?? 0);
+
+  return (
+    <div className="ck-stats-grid">
+      <article className="ck-stat-card">
+        <div className="ck-stat-label">A receber</div>
+        <div className="ck-stat-value">{formatarMoeda(resumo?.totalAReceber)}</div>
+        <div className="ck-stat-hint">Vendas confirmadas ainda não concluídas</div>
+      </article>
+
+      <article className="ck-stat-card">
+        <div className="ck-stat-label">A pagar</div>
+        <div className="ck-stat-value">{formatarMoeda(resumo?.totalAPagar)}</div>
+        <div className="ck-stat-hint">Compras confirmadas ainda não concluídas</div>
+      </article>
+
+      <article className="ck-stat-card">
+        <div className="ck-stat-label">Saldo previsto</div>
+        <div className="ck-stat-value">{formatarMoeda(resumo?.saldoPrevisto)}</div>
+        <div className="ck-stat-hint">A receber menos a pagar</div>
+      </article>
+
+      <article className="ck-stat-card">
+        <div className="ck-stat-label">Vencidos</div>
+        <div className="ck-stat-value">{formatarMoeda(totalVencido)}</div>
+        <div className="ck-stat-hint">{quantidadeVencidos} conta(s) vencida(s)</div>
+      </article>
+    </div>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/financeiro/hooks/useFinanceiro.ts =====
+
+// apps/web/src/features/tenant-admin/financeiro/hooks/useFinanceiro.ts
+
+import { useCallback, useEffect, useState } from "react";
+import { mapError } from "../../../../core/errors/mapError";
+import { financeiroApi } from "../api/financeiroApi";
+import type { ContaFinanceira, ResumoFinanceiro } from "../tipos";
+
+export function useFinanceiro() {
+  const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null);
+  const [contasReceber, setContasReceber] = useState<ContaFinanceira[]>([]);
+  const [contasPagar, setContasPagar] = useState<ContaFinanceira[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const carregar = useCallback(async () => {
+    setIsLoading(true);
+    setErro(null);
+
+    try {
+      const [resumoResponse, receberResponse, pagarResponse] = await Promise.all([
+        financeiroApi.obterResumo(),
+        financeiroApi.listarContasReceber({ status: "ABERTO", limite: 20 }),
+        financeiroApi.listarContasPagar({ status: "ABERTO", limite: 20 }),
+      ]);
+
+      setResumo(resumoResponse.item);
+      setContasReceber(receberResponse.itens);
+      setContasPagar(pagarResponse.itens);
+    } catch (error) {
+      setErro(mapError(error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
+  return {
+    resumo,
+    contasReceber,
+    contasPagar,
+    isLoading,
+    erro,
+    recarregar: carregar,
+  };
+}
+
+
+===== apps/web/src/features/tenant-admin/financeiro/index.ts =====
+
+// apps/web/src/features/tenant-admin/financeiro/index.ts
+
+export * from "./tipos";
+export * from "./api/financeiroApi";
+
+export { default as FinanceiroPage } from "./pages/FinanceiroPage";
+
+
+===== apps/web/src/features/tenant-admin/financeiro/pages/FinanceiroPage.tsx =====
+
+// apps/web/src/features/tenant-admin/financeiro/pages/FinanceiroPage.tsx
+
+import { Link } from "react-router-dom";
+import { ContasFinanceirasTable } from "../components/ContasFinanceirasTable";
+import { FinanceiroResumoCards } from "../components/FinanceiroResumoCards";
+import { useFinanceiro } from "../hooks/useFinanceiro";
+
+export default function FinanceiroPage() {
+  const { resumo, contasReceber, contasPagar, isLoading, erro, recarregar } = useFinanceiro();
+
+  if (isLoading) {
+    return (
+      <main className="ck-page">
+        <div className="ck-page-header">
+          <div>
+            <div className="ck-page-kicker">Financeiro</div>
+            <h1 className="ck-page-title">Carregando financeiro...</h1>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="ck-page">
+      <div className="ck-page-header">
+        <div>
+          <div className="ck-page-kicker">Financeiro</div>
+          <h1 className="ck-page-title">Resumo financeiro</h1>
+          <p className="ck-page-subtitle">
+            Visão simples baseada em vendas e compras confirmadas, sem tabela financeira própria.
+          </p>
+        </div>
+
+        <div className="ck-page-actions">
+          <button className="ck-action-secondary" type="button" onClick={() => void recarregar()}>
+            Atualizar
+          </button>
+          <Link className="ck-action-primary" to="/app/transacoes">
+            Ver transações
+          </Link>
+        </div>
+      </div>
+
+      {erro ? <div className="ck-alert ck-alert-danger">{erro}</div> : null}
+
+      <FinanceiroResumoCards resumo={resumo} />
+
+      <div className="ck-grid-2">
+        <ContasFinanceirasTable
+          titulo="Contas a receber"
+          itens={contasReceber}
+          vazioTexto="Nenhuma conta a receber em aberto."
+        />
+
+        <ContasFinanceirasTable
+          titulo="Contas a pagar"
+          itens={contasPagar}
+          vazioTexto="Nenhuma conta a pagar em aberto."
+        />
+      </div>
+    </main>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/financeiro/tipos.ts =====
+
+// apps/web/src/features/tenant-admin/financeiro/tipos.ts
+
+export type TipoContaFinanceira = "RECEBER" | "PAGAR";
+export type StatusContaFinanceira = "ABERTO" | "LIQUIDADO";
+export type FiltroStatusContaFinanceira = StatusContaFinanceira | "TODOS";
+
+export type ResumoFinanceiro = {
+  locatarioId: string;
+  totalAReceber: number;
+  totalAPagar: number;
+  saldoPrevisto: number;
+  totalRecebidoPeriodo: number;
+  totalPagoPeriodo: number;
+  totalVencidoReceber: number;
+  totalVencidoPagar: number;
+  quantidadeVencidosReceber: number;
+  quantidadeVencidosPagar: number;
+  geradoEm: string | null;
+};
+
+export type ContaFinanceira = {
+  transacaoId: string;
+  locatarioId: string;
+  tipo: TipoContaFinanceira;
+  status: StatusContaFinanceira;
+  clienteId: string | null;
+  fornecedorId: string | null;
+  descricao: string | null;
+  valor: number;
+  vencimentoEm: string | null;
+  criadoEm: string | null;
+  atualizadoEm: string | null;
+};
+
+export type ObterResumoFinanceiroResponse = {
+  item: ResumoFinanceiro;
+};
+
+export type ListarContasFinanceirasResponse = {
+  itens: ContaFinanceira[];
+};
+
+export type ListarContasFinanceirasParams = {
+  status?: FiltroStatusContaFinanceira;
+  vencidas?: boolean;
+  dataInicial?: string;
+  dataFinal?: string;
+  cursor?: string;
+  limite?: number;
+};
 
 
 ===== apps/web/src/features/tenant-admin/fornecedores/api/fornecedoresApi.ts =====
@@ -7415,6 +7793,1091 @@ export type AtivarConfiguracaoLocatarioResponse = {
   item: ConfiguracaoLocatario;
 };
 
+===== apps/web/src/features/tenant-admin/ordens-servico/api/ordensServicoApi.ts =====
+
+// apps/web/src/features/tenant-admin/ordens-servico/api/ordensServicoApi.ts
+
+import { httpClient } from "../../../../core/api/httpClient";
+import type { AtualizarOrdemServicoInput, CriarOrdemServicoInput, GerarVendaOrdemServicoInput, OrdemServico, StatusOrdemServico } from "../tipos";
+
+type ListaResponse = {
+  itens: OrdemServico[];
+};
+
+type ItemResponse = {
+  item: OrdemServico;
+};
+
+type GerarVendaResponse = {
+  item: OrdemServico;
+  transacaoId: string;
+};
+
+export type ListarOrdensServicoParams = {
+  status?: StatusOrdemServico;
+  clienteId?: string;
+};
+
+function buildQuery(params?: ListarOrdensServicoParams): string {
+  const searchParams = new URLSearchParams();
+
+  if (params?.status) {
+    searchParams.set("status", params.status);
+  }
+
+  if (params?.clienteId) {
+    searchParams.set("clienteId", params.clienteId);
+  }
+
+  const query = searchParams.toString();
+
+  return query ? `?${query}` : "";
+}
+
+export const ordensServicoApi = {
+  listar(params?: ListarOrdensServicoParams): Promise<ListaResponse> {
+    return httpClient.get<ListaResponse>(`/ordens-servico${buildQuery(params)}`);
+  },
+
+  obter(ordemServicoId: string): Promise<ItemResponse> {
+    return httpClient.get<ItemResponse>(`/ordens-servico/${ordemServicoId}`);
+  },
+
+  criar(input: CriarOrdemServicoInput): Promise<ItemResponse> {
+    return httpClient.post<ItemResponse, CriarOrdemServicoInput>("/ordens-servico", input);
+  },
+
+  atualizar(ordemServicoId: string, input: AtualizarOrdemServicoInput): Promise<ItemResponse> {
+    return httpClient.patch<ItemResponse, AtualizarOrdemServicoInput>(`/ordens-servico/${ordemServicoId}`, input);
+  },
+
+  iniciar(ordemServicoId: string): Promise<ItemResponse> {
+    return httpClient.post<ItemResponse>(`/ordens-servico/${ordemServicoId}/iniciar`);
+  },
+
+  aguardar(ordemServicoId: string): Promise<ItemResponse> {
+    return httpClient.post<ItemResponse>(`/ordens-servico/${ordemServicoId}/aguardar`);
+  },
+
+  concluir(ordemServicoId: string): Promise<ItemResponse> {
+    return httpClient.post<ItemResponse>(`/ordens-servico/${ordemServicoId}/concluir`);
+  },
+
+  cancelar(ordemServicoId: string): Promise<ItemResponse> {
+    return httpClient.post<ItemResponse>(`/ordens-servico/${ordemServicoId}/cancelar`);
+  },
+
+  gerarVenda(ordemServicoId: string, input: GerarVendaOrdemServicoInput): Promise<GerarVendaResponse> {
+    return httpClient.post<GerarVendaResponse, GerarVendaOrdemServicoInput>(`/ordens-servico/${ordemServicoId}/gerar-venda`, input);
+  },
+};
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/components/OrdemServicoDisplayTitle.tsx =====
+
+// apps/web/src/features/tenant-admin/ordens-servico/components/OrdemServicoDisplayTitle.tsx
+
+import type { JSX } from "react";
+import {
+  formatOrdemServicoTitulo,
+  shortCode,
+} from "../../../../shared/formatters";
+import type { OrdemServico } from "../tipos";
+
+type Props = {
+  ordemServico: Pick<OrdemServico, "ordemServicoId" | "criadoEm" | "abertaEm">;
+  showReference?: boolean;
+};
+
+export function OrdemServicoDisplayTitle({
+  ordemServico,
+  showReference = false,
+}: Props): JSX.Element {
+  const dataReferencia = ordemServico.abertaEm ?? ordemServico.criadoEm;
+
+  return (
+    <div>
+      <div className="ck-register-main">
+        {formatOrdemServicoTitulo({
+          criadoEm: dataReferencia,
+          fallbackId: ordemServico.ordemServicoId,
+        })}
+      </div>
+
+      {showReference ? (
+        <div className="ck-register-sub">
+          Ref. {shortCode(ordemServico.ordemServicoId)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/components/OrdemServicoForm.tsx =====
+
+// apps/web/src/features/tenant-admin/ordens-servico/components/OrdemServicoForm.tsx
+
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { mapError } from "../../../../core/errors/mapError";
+import { ClienteSelect } from "../../../../shared/domain-selects";
+import { formatClienteLabel } from "../../../../shared/formatters";
+import { clientesApi } from "../../clientes/api/clientesApi";
+import type { Cliente } from "../../clientes/tipos";
+import type { CriarOrdemServicoInput } from "../tipos";
+
+type Props = {
+  onSubmit: (input: CriarOrdemServicoInput) => Promise<void>;
+  initialValues?: Partial<CriarOrdemServicoInput>;
+};
+
+function textoBuscaCliente(cliente: Cliente): string {
+  return [cliente.nome, cliente.documento, cliente.email, cliente.telefone]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
+  const [titulo, setTitulo] = useState(initialValues?.titulo ?? "");
+  const [clienteId, setClienteId] = useState(initialValues?.clienteId ?? "");
+  const [descricao, setDescricao] = useState(initialValues?.descricao ?? "");
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [erroClientes, setErroClientes] = useState<string | null>(null);
+  const [carregandoClientes, setCarregandoClientes] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarClientes() {
+      setCarregandoClientes(true);
+      setErroClientes(null);
+
+      try {
+        const response = await clientesApi.listar();
+
+        if (ativo) setClientes(response.itens);
+      } catch (error) {
+        if (ativo) setErroClientes(mapError(error).message);
+      } finally {
+        if (ativo) setCarregandoClientes(false);
+      }
+    }
+
+    void carregarClientes();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const clientesFiltrados = useMemo(() => {
+    const termo = buscaCliente.trim().toLowerCase();
+
+    if (!termo) return clientes;
+
+    return clientes.filter((cliente) =>
+      textoBuscaCliente(cliente).includes(termo),
+    );
+  }, [clientes, buscaCliente]);
+
+  const clienteSelecionado = clientes.find(
+    (cliente) => cliente.clienteId === clienteId,
+  );
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setSalvando(true);
+
+    try {
+      await onSubmit({
+        titulo: titulo.trim(),
+        clienteId: clienteId || null,
+        descricao: descricao.trim() || null,
+      });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form className="ck-register-form-card" onSubmit={handleSubmit}>
+      <div className="ck-register-form-header">
+        <div className="ck-register-form-title">Dados da OS</div>
+        <p className="ck-register-form-desc">
+          O cliente é escolhido por nome, documento ou contato. O ID fica oculto.
+        </p>
+      </div>
+
+      <div className="ck-register-form-body">
+        {erroClientes ? (
+          <div className="ck-register-alert">
+            Não foi possível carregar clientes: {erroClientes}
+          </div>
+        ) : null}
+
+        <label className="ck-register-field">
+          <span>Buscar cliente</span>
+          <input
+            className="ck-register-input"
+            placeholder="Ex.: Maria, CPF/CNPJ, e-mail ou telefone"
+            value={buscaCliente}
+            onChange={(event) => setBuscaCliente(event.target.value)}
+          />
+        </label>
+
+        <label className="ck-register-field">
+          <span>Cliente selecionado</span>
+          <ClienteSelect
+            value={clienteId}
+            clientes={clientesFiltrados}
+            disabled={carregandoClientes}
+            emptyLabel={
+              carregandoClientes ? "Carregando clientes..." : "OS sem cliente"
+            }
+            onChange={setClienteId}
+          />
+        </label>
+
+        {clienteSelecionado ? (
+          <div className="ck-selected-box">
+            <div className="ck-selected-grid">
+              <div>
+                <div className="ck-selected-label">Cliente</div>
+                <div className="ck-selected-value">
+                  {formatClienteLabel(clienteSelecionado)}
+                </div>
+              </div>
+
+              <div>
+                <div className="ck-selected-label">Telefone</div>
+                <div className="ck-selected-value">
+                  {clienteSelecionado.telefone ?? "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <label className="ck-register-field">
+          <span>Título da OS</span>
+          <input
+            className="ck-register-input"
+            value={titulo}
+            onChange={(event) => setTitulo(event.target.value)}
+            placeholder="Ex.: Formatação de notebook"
+            required
+            minLength={3}
+          />
+        </label>
+
+        <label className="ck-register-field">
+          <span>Descrição</span>
+          <textarea
+            className="ck-register-textarea"
+            value={descricao}
+            onChange={(event) => setDescricao(event.target.value)}
+            placeholder="Descreva o problema, serviço combinado ou observações..."
+          />
+        </label>
+
+        <div className="flex justify-end">
+          <button
+            className="ck-register-action-primary"
+            type="submit"
+            disabled={salvando}
+          >
+            {salvando ? "Salvando..." : "Salvar ordem de serviço"}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/components/OrdensServicoTable.tsx =====
+
+// apps/web/src/features/tenant-admin/ordens-servico/components/OrdensServicoTable.tsx
+
+import { Link } from "react-router-dom";
+import type { Cliente } from "../../clientes/tipos";
+import {
+  formatClienteLabel,
+  formatDateTime,
+  shortCode,
+} from "../../../../shared/formatters";
+import type { OrdemServico, StatusOrdemServico } from "../tipos";
+import { OrdemServicoDisplayTitle } from "./OrdemServicoDisplayTitle";
+
+type Props = {
+  itens: OrdemServico[];
+  clientes?: Cliente[];
+};
+
+function statusClass(status: StatusOrdemServico): string {
+  switch (status) {
+    case "CONCLUIDA":
+      return "ck-status ck-status-success";
+    case "CANCELADA":
+      return "ck-status ck-status-danger";
+    case "AGUARDANDO":
+      return "ck-status ck-status-warning";
+    case "EM_ANDAMENTO":
+      return "ck-status";
+    case "ABERTA":
+    default:
+      return "ck-status ck-status-warning";
+  }
+}
+
+function clienteInfo(
+  ordem: OrdemServico,
+  clientesPorId: Map<string, Cliente>,
+): { principal: string; secundario: string } {
+  if (!ordem.clienteId) {
+    return {
+      principal: "Cliente não vinculado",
+      secundario: "OS sem cliente",
+    };
+  }
+
+  const cliente = clientesPorId.get(ordem.clienteId);
+
+  if (!cliente) {
+    return {
+      principal: "Cliente não carregado",
+      secundario: `Ref. ${shortCode(ordem.clienteId)}`,
+    };
+  }
+
+  return {
+    principal: formatClienteLabel(cliente),
+    secundario: cliente.telefone ?? cliente.email ?? "Cliente",
+  };
+}
+
+export function OrdensServicoTable({ itens, clientes = [] }: Props) {
+  const clientesPorId = new Map(
+    clientes.map((cliente) => [cliente.clienteId, cliente]),
+  );
+
+  if (itens.length === 0) {
+    return (
+      <div className="ck-register-empty">
+        <div className="ck-register-empty-title">
+          Nenhuma ordem de serviço encontrada
+        </div>
+        <p className="ck-register-empty-desc">
+          Crie uma OS para acompanhar atendimento, execução e geração de venda.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="hidden overflow-x-auto md:block">
+        <div className="ck-table-panel">
+          <table className="ck-table">
+            <thead>
+              <tr>
+                <th>Ordem de serviço</th>
+                <th>Cliente</th>
+                <th>Título</th>
+                <th>Status</th>
+                <th>Aberta em</th>
+                <th>Referência</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {itens.map((ordem) => {
+                const cliente = clienteInfo(ordem, clientesPorId);
+
+                return (
+                  <tr key={ordem.ordemServicoId}>
+                    <td>
+                      <OrdemServicoDisplayTitle ordemServico={ordem} />
+                      <div className="ck-register-sub">
+                        Identificada por data e horário
+                      </div>
+                    </td>
+
+                    <td>
+                      <div className="ck-register-main">{cliente.principal}</div>
+                      <div className="ck-register-sub">{cliente.secundario}</div>
+                    </td>
+
+                    <td>
+                      <div className="ck-register-main">{ordem.titulo}</div>
+                      <div className="ck-register-sub">
+                        {ordem.descricao ?? "Sem descrição"}
+                      </div>
+                    </td>
+
+                    <td>
+                      <span className={statusClass(ordem.status)}>
+                        {ordem.status}
+                      </span>
+                    </td>
+
+                    <td>{formatDateTime(ordem.abertaEm ?? ordem.criadoEm)}</td>
+
+                    <td>
+                      <span className="ck-code-pill">
+                        Ref. {shortCode(ordem.ordemServicoId)}
+                      </span>
+                    </td>
+
+                    <td>
+                      <Link
+                        className="ck-row-link"
+                        to={`/app/ordens-servico/${ordem.ordemServicoId}`}
+                      >
+                        Ver detalhes
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="ck-mobile-list md:hidden">
+        {itens.map((ordem) => {
+          const cliente = clienteInfo(ordem, clientesPorId);
+
+          return (
+            <article className="ck-transaction-card" key={ordem.ordemServicoId}>
+              <div className="ck-transaction-card-top">
+                <div>
+                  <div className="ck-transaction-title">
+                    <OrdemServicoDisplayTitle ordemServico={ordem} />
+                  </div>
+
+                  <div className="ck-transaction-desc">{cliente.principal}</div>
+                </div>
+
+                <span className={statusClass(ordem.status)}>
+                  {ordem.status}
+                </span>
+              </div>
+
+              <div className="ck-card-grid">
+                <div>
+                  <div className="ck-card-label">Título</div>
+                  <div className="ck-card-value">{ordem.titulo}</div>
+                </div>
+
+                <div>
+                  <div className="ck-card-label">Referência</div>
+                  <div className="ck-card-value">
+                    {shortCode(ordem.ordemServicoId)}
+                  </div>
+                </div>
+              </div>
+
+              <Link
+                className="ck-action-secondary"
+                to={`/app/ordens-servico/${ordem.ordemServicoId}`}
+              >
+                Ver detalhes
+              </Link>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/hooks/useOrdensServico.ts =====
+
+import { useCallback, useEffect, useState } from "react";
+import { ordensServicoApi, type ListarOrdensServicoParams } from "../api/ordensServicoApi";
+import type { OrdemServico } from "../tipos";
+
+export function useOrdensServico(params?: ListarOrdensServicoParams) {
+  const [itens, setItens] = useState<OrdemServico[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const carregar = useCallback(async () => {
+    setLoading(true);
+    setErro(null);
+    try {
+      const response = await ordensServicoApi.listar(params);
+      setItens(response.itens);
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Erro ao carregar ordens de serviço.");
+    } finally {
+      setLoading(false);
+    }
+  }, [params?.status, params?.clienteId]);
+
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
+  return { itens, loading, erro, recarregar: carregar };
+}
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/index.ts =====
+
+export { default as OrdensServicoListPage } from "./pages/OrdensServicoListPage";
+export { default as NovaOrdemServicoPage } from "./pages/NovaOrdemServicoPage";
+export { default as OrdemServicoDetailsPage } from "./pages/OrdemServicoDetailsPage";
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/pages/NovaOrdemServicoPage.tsx =====
+
+// apps/web/src/features/tenant-admin/ordens-servico/pages/NovaOrdemServicoPage.tsx
+
+import { Link, useNavigate } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
+import { ordensServicoApi } from "../api/ordensServicoApi";
+import { OrdemServicoForm } from "../components/OrdemServicoForm";
+import type { CriarOrdemServicoInput } from "../tipos";
+import "../../cadastros/cadastros.css";
+import "../../transacoes/pages/transacoes.css";
+import { useState } from "react";
+
+export default function NovaOrdemServicoPage() {
+  const navigate = useNavigate();
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function criar(input: CriarOrdemServicoInput) {
+    setErro(null);
+
+    try {
+      const response = await ordensServicoApi.criar(input);
+      navigate(`/app/ordens-servico/${response.item.ordemServicoId}`);
+    } catch (error) {
+      setErro(mapError(error).message);
+    }
+  }
+
+  return (
+    <main className="ck-register-page">
+      <PageSectionHeader
+        kicker="Ordens de serviço"
+        title="Nova OS"
+        description="Registre uma ordem de serviço usando cliente, título e descrição. A data e o horário serão usados como referência principal."
+        actions={
+          <Link
+            className="ck-register-action-secondary"
+            to="/app/ordens-servico"
+          >
+            Voltar
+          </Link>
+        }
+      />
+
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
+
+      <OrdemServicoForm onSubmit={criar} />
+    </main>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/pages/OrdemServicoDetailsPage.tsx =====
+
+// apps/web/src/features/tenant-admin/ordens-servico/pages/OrdemServicoDetailsPage.tsx
+
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import {
+  formatClienteLabel,
+  formatDateTime,
+  formatMoney,
+  shortCode,
+} from "../../../../shared/formatters";
+import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
+import { clientesApi } from "../../clientes/api/clientesApi";
+import type { Cliente } from "../../clientes/tipos";
+import { ordensServicoApi } from "../api/ordensServicoApi";
+import { OrdemServicoDisplayTitle } from "../components/OrdemServicoDisplayTitle";
+import type { OrdemServico } from "../tipos";
+import "../../cadastros/cadastros.css";
+import "../../transacoes/pages/transacoes.css";
+
+type AcaoOs = "iniciar" | "aguardar" | "concluir" | "cancelar";
+
+function statusClass(status: OrdemServico["status"]): string {
+  if (status === "CONCLUIDA") return "ck-status ck-status-success";
+  if (status === "CANCELADA") return "ck-status ck-status-danger";
+  if (status === "AGUARDANDO" || status === "ABERTA") {
+    return "ck-status ck-status-warning";
+  }
+
+  return "ck-status";
+}
+
+export default function OrdemServicoDetailsPage() {
+  const { ordemServicoId } = useParams();
+  const navigate = useNavigate();
+
+  const [item, setItem] = useState<OrdemServico | null>(null);
+  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [valorTotal, setValorTotal] = useState("0");
+  const [isRunning, setIsRunning] = useState<AcaoOs | "gerar-venda" | null>(
+    null,
+  );
+
+  async function carregar() {
+    if (!ordemServicoId) return;
+
+    setErro(null);
+
+    try {
+      const response = await ordensServicoApi.obter(ordemServicoId);
+      setItem(response.item);
+
+      if (response.item.clienteId) {
+        const clienteResponse = await clientesApi.obter(response.item.clienteId);
+        setCliente(clienteResponse.item);
+      } else {
+        setCliente(null);
+      }
+    } catch (error) {
+      setErro(mapError(error).message);
+    }
+  }
+
+  useEffect(() => {
+    void carregar();
+  }, [ordemServicoId]);
+
+  async function executar(acao: AcaoOs) {
+    if (!ordemServicoId) return;
+
+    setErroAcao(null);
+    setIsRunning(acao);
+
+    try {
+      const response = await ordensServicoApi[acao](ordemServicoId);
+      setItem(response.item);
+    } catch (error) {
+      setErroAcao(mapError(error).message);
+    } finally {
+      setIsRunning(null);
+    }
+  }
+
+  async function gerarVenda() {
+    if (!ordemServicoId) return;
+
+    setErroAcao(null);
+    setIsRunning("gerar-venda");
+
+    try {
+      const response = await ordensServicoApi.gerarVenda(ordemServicoId, {
+        valorTotal: Number(valorTotal),
+        vencimentoEm: new Date().toISOString(),
+      });
+
+      setItem(response.item);
+      navigate(`/app/transacoes/${response.transacaoId}`);
+    } catch (error) {
+      setErroAcao(mapError(error).message);
+    } finally {
+      setIsRunning(null);
+    }
+  }
+
+  if (erro) {
+    return <main className="ck-register-alert">{erro}</main>;
+  }
+
+  if (!item) {
+    return (
+      <main className="ck-register-filter">Carregando ordem de serviço...</main>
+    );
+  }
+
+  const podeIniciar = item.status === "ABERTA" || item.status === "AGUARDANDO";
+  const podeAguardar = item.status === "ABERTA" || item.status === "EM_ANDAMENTO";
+  const podeFinalizar = item.status !== "CONCLUIDA" && item.status !== "CANCELADA";
+  const podeGerarVenda = item.status === "CONCLUIDA" && !item.transacaoId;
+
+  return (
+    <main className="ck-register-page">
+      <PageSectionHeader
+        kicker="Ordem de serviço"
+        title={<OrdemServicoDisplayTitle ordemServico={item} />}
+        description={item.titulo}
+        actions={
+          <>
+            <Link
+              className="ck-register-action-secondary"
+              to="/app/ordens-servico"
+            >
+              Voltar
+            </Link>
+
+            {item.transacaoId ? (
+              <Link
+                className="ck-register-action-primary"
+                to={`/app/transacoes/${item.transacaoId}`}
+              >
+                Abrir venda gerada
+              </Link>
+            ) : null}
+          </>
+        }
+      />
+
+      {erroAcao ? <div className="ck-register-alert">{erroAcao}</div> : null}
+
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Resumo da OS</div>
+          <p className="ck-register-form-desc">
+            Identificação principal por data e horário; referência técnica curta
+            somente como apoio.
+          </p>
+        </div>
+
+        <div className="ck-register-form-body">
+          <div className="ck-selected-grid">
+            <div>
+              <div className="ck-selected-label">Status</div>
+              <div className="ck-selected-value">
+                <span className={statusClass(item.status)}>{item.status}</span>
+              </div>
+            </div>
+
+            <div>
+              <div className="ck-selected-label">Cliente</div>
+              <div className="ck-selected-value">
+                {cliente ? formatClienteLabel(cliente) : "Cliente não vinculado"}
+              </div>
+            </div>
+
+            <div>
+              <div className="ck-selected-label">Aberta em</div>
+              <div className="ck-selected-value">
+                {formatDateTime(item.abertaEm ?? item.criadoEm)}
+              </div>
+            </div>
+
+            <div>
+              <div className="ck-selected-label">Atualizada em</div>
+              <div className="ck-selected-value">
+                {formatDateTime(item.atualizadoEm)}
+              </div>
+            </div>
+
+            <div>
+              <div className="ck-selected-label">Referência</div>
+              <div className="ck-selected-value">
+                Ref. {shortCode(item.ordemServicoId)}
+              </div>
+            </div>
+
+            <div>
+              <div className="ck-selected-label">Venda gerada</div>
+              <div className="ck-selected-value">
+                {item.transacaoId ? `Ref. ${shortCode(item.transacaoId)}` : "—"}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="ck-selected-label">Descrição</div>
+            <div className="ck-selected-value">
+              {item.descricao ?? "Sem descrição."}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Ações da OS</div>
+          <p className="ck-register-form-desc">
+            Atualize o ciclo de vida da ordem de serviço.
+          </p>
+        </div>
+
+        <div className="ck-register-form-body">
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="ck-register-action-secondary"
+              type="button"
+              disabled={!podeIniciar || isRunning !== null}
+              onClick={() => void executar("iniciar")}
+            >
+              Iniciar
+            </button>
+
+            <button
+              className="ck-register-action-secondary"
+              type="button"
+              disabled={!podeAguardar || isRunning !== null}
+              onClick={() => void executar("aguardar")}
+            >
+              Aguardar
+            </button>
+
+            <button
+              className="ck-register-action-primary"
+              type="button"
+              disabled={!podeFinalizar || isRunning !== null}
+              onClick={() => void executar("concluir")}
+            >
+              Concluir
+            </button>
+
+            <button
+              className="ck-register-action-secondary"
+              type="button"
+              disabled={!podeFinalizar || isRunning !== null}
+              onClick={() => void executar("cancelar")}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Gerar venda</div>
+          <p className="ck-register-form-desc">
+            Depois de concluir a OS, gere uma venda vinculada ao serviço.
+          </p>
+        </div>
+
+        <div className="ck-register-form-body">
+          {item.transacaoId ? (
+            <Link
+              className="ck-register-action-primary"
+              to={`/app/transacoes/${item.transacaoId}`}
+            >
+              Abrir venda gerada
+            </Link>
+          ) : (
+            <>
+              <label className="ck-register-field">
+                <span>Valor total</span>
+                <input
+                  className="ck-register-input"
+                  value={valorTotal}
+                  onChange={(event) => setValorTotal(event.target.value)}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder={formatMoney(0)}
+                />
+              </label>
+
+              <div>
+                <button
+                  className="ck-register-action-primary"
+                  type="button"
+                  disabled={!podeGerarVenda || isRunning !== null}
+                  onClick={() => void gerarVenda()}
+                >
+                  {isRunning === "gerar-venda"
+                    ? "Gerando..."
+                    : "Gerar venda"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/pages/OrdensServicoListPage.tsx =====
+
+// apps/web/src/features/tenant-admin/ordens-servico/pages/OrdensServicoListPage.tsx
+
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
+import { clientesApi } from "../../clientes/api/clientesApi";
+import type { Cliente } from "../../clientes/tipos";
+import { OrdensServicoTable } from "../components/OrdensServicoTable";
+import { useOrdensServico } from "../hooks/useOrdensServico";
+import type { OrdemServico } from "../tipos";
+import "../../cadastros/cadastros.css";
+import "../../transacoes/pages/transacoes.css";
+
+function contarStatus(itens: OrdemServico[], status: OrdemServico["status"]) {
+  return itens.filter((item) => item.status === status).length;
+}
+
+export default function OrdensServicoListPage() {
+  const { itens, loading, erro, recarregar } = useOrdensServico();
+
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [erroClientes, setErroClientes] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarClientes() {
+      setErroClientes(null);
+
+      try {
+        const response = await clientesApi.listar();
+
+        if (ativo) setClientes(response.itens);
+      } catch (error) {
+        if (ativo) setErroClientes(mapError(error).message);
+      }
+    }
+
+    void carregarClientes();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const resumo = useMemo(
+    () => ({
+      abertas: contarStatus(itens, "ABERTA"),
+      andamento: contarStatus(itens, "EM_ANDAMENTO"),
+      aguardando: contarStatus(itens, "AGUARDANDO"),
+      concluidas: contarStatus(itens, "CONCLUIDA"),
+    }),
+    [itens],
+  );
+
+  return (
+    <main className="ck-register-page">
+      <PageSectionHeader
+        kicker="Operação"
+        title="Ordens de Serviço"
+        description="Controle serviços prestados, acompanhe status e gere venda quando a OS for concluída."
+        actions={
+          <>
+            <button
+              className="ck-register-action-secondary"
+              type="button"
+              onClick={() => void recarregar()}
+            >
+              Atualizar
+            </button>
+
+            <Link
+              className="ck-register-action-primary"
+              to="/app/ordens-servico/nova"
+            >
+              Nova OS
+            </Link>
+          </>
+        }
+      />
+
+      <section className="ck-register-stats">
+        <article className="ck-register-stat">
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Abertas</div>
+              <div className="ck-register-stat-value">{resumo.abertas}</div>
+              <div className="ck-register-stat-hint">Aguardando início</div>
+            </div>
+            <div className="ck-register-stat-icon">📝</div>
+          </div>
+        </article>
+
+        <article className="ck-register-stat">
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Em andamento</div>
+              <div className="ck-register-stat-value">{resumo.andamento}</div>
+              <div className="ck-register-stat-hint">Execução em curso</div>
+            </div>
+            <div className="ck-register-stat-icon">🔧</div>
+          </div>
+        </article>
+
+        <article className="ck-register-stat">
+          <div className="ck-register-stat-row">
+            <div>
+              <div className="ck-register-stat-label">Concluídas</div>
+              <div className="ck-register-stat-value">{resumo.concluidas}</div>
+              <div className="ck-register-stat-hint">
+                Prontas para venda/finalização
+              </div>
+            </div>
+            <div className="ck-register-stat-icon">✅</div>
+          </div>
+        </article>
+      </section>
+
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
+
+      {erroClientes ? (
+        <div className="ck-alert ck-alert-warning">
+          Não foi possível carregar nomes dos clientes. Detalhe: {erroClientes}
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div className="ck-register-filter">Carregando ordens de serviço...</div>
+      ) : (
+        <OrdensServicoTable itens={itens} clientes={clientes} />
+      )}
+    </main>
+  );
+}
+
+
+===== apps/web/src/features/tenant-admin/ordens-servico/tipos.ts =====
+
+export type StatusOrdemServico = "ABERTA" | "EM_ANDAMENTO" | "AGUARDANDO" | "CONCLUIDA" | "CANCELADA";
+
+export type OrdemServico = {
+  ordemServicoId: string;
+  locatarioId: string;
+  clienteId: string | null;
+  transacaoId: string | null;
+  status: StatusOrdemServico;
+  titulo: string;
+  descricao: string | null;
+  abertaEm: string;
+  fechadaEm: string | null;
+  criadoEm: string;
+  atualizadoEm: string;
+};
+
+export type CriarOrdemServicoInput = {
+  clienteId?: string | null;
+  titulo: string;
+  descricao?: string | null;
+};
+
+export type AtualizarOrdemServicoInput = Partial<CriarOrdemServicoInput>;
+
+export type GerarVendaOrdemServicoInput = {
+  valorTotal: number;
+  vencimentoEm: string;
+  observacao?: string | null;
+};
+
+
 ===== apps/web/src/features/tenant-admin/pages/dashboard.tsx =====
 
 // apps/web/src/features/tenant-admin/pages/dashboard.tsx
@@ -8760,6 +10223,46 @@ export const transacoesApi = {
   }
 };
 
+===== apps/web/src/features/tenant-admin/transacoes/components/TransacaoDisplayTitle.tsx =====
+
+// apps/web/src/features/tenant-admin/transacoes/components/TransacaoDisplayTitle.tsx
+
+import type { JSX } from "react";
+import {
+  formatTransacaoTitulo,
+  shortCode,
+} from "../../../../shared/formatters";
+import type { Transacao } from "../tipos";
+
+type TransacaoDisplayTitleProps = {
+  transacao: Pick<Transacao, "tipo" | "criadoEm" | "transacaoId">;
+  showReference?: boolean;
+};
+
+export function TransacaoDisplayTitle({
+  transacao,
+  showReference = false,
+}: TransacaoDisplayTitleProps): JSX.Element {
+  return (
+    <div>
+      <div className="ck-register-main">
+        {formatTransacaoTitulo({
+          tipo: transacao.tipo,
+          criadoEm: transacao.criadoEm,
+          fallbackId: transacao.transacaoId,
+        })}
+      </div>
+
+      {showReference ? (
+        <div className="ck-register-sub">
+          Ref. {shortCode(transacao.transacaoId)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+
 ===== apps/web/src/features/tenant-admin/transacoes/components/TransacoesTable.tsx =====
 
 // apps/web/src/features/tenant-admin/transacoes/components/TransacoesTable.tsx
@@ -8767,6 +10270,13 @@ export const transacoesApi = {
 import { Link } from "react-router-dom";
 import type { Cliente } from "../../clientes/tipos";
 import type { Fornecedor } from "../../fornecedores/tipos";
+import {
+  formatClienteLabel,
+  formatFornecedorLabel,
+  formatMoney,
+  formatTransacaoTitulo,
+  shortCode,
+} from "../../../../shared/formatters";
 import type { Transacao } from "../tipos";
 
 type Props = {
@@ -8775,33 +10285,18 @@ type Props = {
   fornecedores?: Fornecedor[];
 };
 
-function formatarMoeda(valor?: number | null): string {
-  return Number(valor ?? 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatarData(value?: string | null): string {
-  if (!value) return "—";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString("pt-BR");
-}
-
-function codigoCurto(id: string): string {
-  return id.slice(0, 8).toUpperCase();
-}
-
 function statusClass(status: string): string {
   const normalized = status.trim().toUpperCase();
 
   if (normalized === "CONCLUIDA") return "ck-status ck-status-success";
   if (normalized === "CANCELADA") return "ck-status ck-status-danger";
 
-  if (normalized === "ABERTA" || normalized === "RASCUNHO") {
+  if (
+    normalized === "ABERTA" ||
+    normalized === "EM_PROCESSAMENTO" ||
+    normalized === "AGUARDANDO_PAGAMENTO" ||
+    normalized === "ENVIADA"
+  ) {
     return "ck-status ck-status-warning";
   }
 
@@ -8812,43 +10307,49 @@ function pessoaInfo(
   transacao: Transacao,
   clientesPorId: Map<string, Cliente>,
   fornecedoresPorId: Map<string, Fornecedor>,
-): { nome: string; detalhe: string } {
+): { principal: string; secundario: string } {
   if (transacao.tipo === "COMPRA") {
     if (!transacao.fornecedorId) {
-      return { nome: "Sem fornecedor", detalhe: "Compra avulsa" };
+      return {
+        principal: "Compra sem fornecedor",
+        secundario: "Fornecedor não vinculado",
+      };
     }
 
     const fornecedor = fornecedoresPorId.get(transacao.fornecedorId);
 
     if (!fornecedor) {
       return {
-        nome: `Fornecedor #${codigoCurto(transacao.fornecedorId)}`,
-        detalhe: "Cadastro não carregado",
+        principal: "Fornecedor não carregado",
+        secundario: `Ref. ${shortCode(transacao.fornecedorId)}`,
       };
     }
 
     return {
-      nome: fornecedor.nome,
-      detalhe: fornecedor.documento ?? fornecedor.email ?? "Fornecedor",
+      principal: formatFornecedorLabel(fornecedor),
+      secundario: fornecedor.telefone ?? fornecedor.email ?? "Fornecedor",
     };
   }
 
   if (!transacao.clienteId) {
-    return { nome: "Sem cliente", detalhe: "Venda balcão" };
+    return {
+      principal: "Venda balcão",
+      secundario: "Cliente não vinculado",
+    };
   }
 
   const cliente = clientesPorId.get(transacao.clienteId);
 
   if (!cliente) {
     return {
-      nome: `Cliente #${codigoCurto(transacao.clienteId)}`,
-      detalhe: "Cadastro não carregado",
+      principal: "Cliente não carregado",
+      secundario: `Ref. ${shortCode(transacao.clienteId)}`,
     };
   }
 
   return {
-    nome: cliente.nome,
-    detalhe: cliente.documento ?? cliente.email ?? "Cliente",
+    principal: formatClienteLabel(cliente),
+    secundario: cliente.telefone ?? cliente.email ?? "Cliente",
   };
 }
 
@@ -8865,6 +10366,17 @@ export function TransacoesTable({
     fornecedores.map((fornecedor) => [fornecedor.fornecedorId, fornecedor]),
   );
 
+  if (itens.length === 0) {
+    return (
+      <div className="ck-register-empty">
+        <div className="ck-register-empty-title">Nenhuma transação encontrada</div>
+        <p className="ck-register-empty-desc">
+          Crie uma venda ou compra para começar a movimentar o sistema.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="hidden overflow-x-auto md:block">
@@ -8872,12 +10384,12 @@ export function TransacoesTable({
           <table className="ck-table">
             <thead>
               <tr>
-                <th>Código</th>
-                <th>Tipo</th>
+                <th>Transação</th>
                 <th>Cliente/fornecedor</th>
                 <th>Status</th>
                 <th>Total</th>
-                <th>Criada em</th>
+                <th>Itens</th>
+                <th>Referência</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -8893,30 +10405,47 @@ export function TransacoesTable({
                 return (
                   <tr key={transacao.transacaoId}>
                     <td>
-                      <span className="ck-code-pill">
-                        #{codigoCurto(transacao.transacaoId)}
-                      </span>
+                      <div className="ck-register-main">
+                        {formatTransacaoTitulo({
+                          tipo: transacao.tipo,
+                          criadoEm: transacao.criadoEm,
+                          fallbackId: transacao.transacaoId,
+                        })}
+                      </div>
+                      <div className="ck-register-sub">
+                        Identificada por data e horário
+                      </div>
                     </td>
-                    <td>{transacao.tipo}</td>
+
                     <td>
-                      <div className="ck-person-main">{pessoa.nome}</div>
-                      <div className="ck-person-sub">{pessoa.detalhe}</div>
+                      <div className="ck-register-main">{pessoa.principal}</div>
+                      <div className="ck-register-sub">{pessoa.secundario}</div>
                     </td>
+
                     <td>
                       <span className={statusClass(transacao.status)}>
                         {transacao.status}
                       </span>
                     </td>
+
                     <td>
-                      <strong>{formatarMoeda(transacao.valorTotal)}</strong>
+                      <strong>{formatMoney(transacao.valorTotal)}</strong>
                     </td>
-                    <td>{formatarData(transacao.criadoEm)}</td>
+
+                    <td>{transacao.itens?.length ?? 0}</td>
+
+                    <td>
+                      <span className="ck-code-pill">
+                        Ref. {shortCode(transacao.transacaoId)}
+                      </span>
+                    </td>
+
                     <td>
                       <Link
                         className="ck-row-link"
                         to={`/app/transacoes/${transacao.transacaoId}`}
                       >
-                        Detalhes
+                        Ver detalhes
                       </Link>
                     </td>
                   </tr>
@@ -8936,9 +10465,14 @@ export function TransacoesTable({
               <div className="ck-transaction-card-top">
                 <div>
                   <div className="ck-transaction-title">
-                    {transacao.tipo} #{codigoCurto(transacao.transacaoId)}
+                    {formatTransacaoTitulo({
+                      tipo: transacao.tipo,
+                      criadoEm: transacao.criadoEm,
+                      fallbackId: transacao.transacaoId,
+                    })}
                   </div>
-                  <div className="ck-transaction-desc">{pessoa.nome}</div>
+
+                  <div className="ck-transaction-desc">{pessoa.principal}</div>
                 </div>
 
                 <span className={statusClass(transacao.status)}>
@@ -8950,14 +10484,14 @@ export function TransacoesTable({
                 <div>
                   <div className="ck-card-label">Total</div>
                   <div className="ck-card-value">
-                    {formatarMoeda(transacao.valorTotal)}
+                    {formatMoney(transacao.valorTotal)}
                   </div>
                 </div>
 
                 <div>
-                  <div className="ck-card-label">Criada em</div>
+                  <div className="ck-card-label">Referência</div>
                   <div className="ck-card-value">
-                    {formatarData(transacao.criadoEm)}
+                    {shortCode(transacao.transacaoId)}
                   </div>
                 </div>
               </div>
@@ -9103,26 +10637,48 @@ export function useTransacaoDetails(transacaoId?: string) {
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { mapError } from "../../../../core/errors/mapError";
+import {
+  formatTransacaoTitulo,
+  shortCode,
+} from "../../../../shared/formatters";
 import { transacoesApi } from "../api/transacoesApi";
 import type { TipoTransacao, Transacao } from "../tipos";
 
 type FiltroTipo = TipoTransacao | "TODOS";
+
+function normalizar(value?: string | null): string {
+  return (value ?? "").trim().toLowerCase();
+}
 
 function filtrarTransacoes(
   transacoes: Transacao[],
   busca: string,
   tipo: FiltroTipo,
 ): Transacao[] {
-  const termo = busca.trim().toLowerCase();
+  const termo = normalizar(busca);
 
   return transacoes.filter((transacao) => {
     const atendeTipo = tipo === "TODOS" || transacao.tipo === tipo;
-    const atendeBusca =
-      !termo ||
-      transacao.transacaoId.toLowerCase().includes(termo) ||
-      transacao.status.toLowerCase().includes(termo);
 
-    return atendeTipo && atendeBusca;
+    if (!termo) return atendeTipo;
+
+    const textoBusca = [
+      formatTransacaoTitulo({
+        tipo: transacao.tipo,
+        criadoEm: transacao.criadoEm,
+        fallbackId: transacao.transacaoId,
+      }),
+      transacao.tipo,
+      transacao.status,
+      transacao.clienteId,
+      transacao.fornecedorId,
+      shortCode(transacao.transacaoId),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return atendeTipo && textoBusca.includes(termo);
   });
 }
 
@@ -9168,6 +10724,7 @@ export function useTransacoes() {
     recarregar: carregar,
   };
 }
+
 
 ===== apps/web/src/features/tenant-admin/transacoes/index.ts =====
 
@@ -12179,14 +13736,14 @@ export { default as NovaVendaPage } from "./pages/NovaVendaPage";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
+import { ClienteSelect } from "../../../../shared/domain-selects";
+import { formatClienteLabel } from "../../../../shared/formatters";
+import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { vendasApi } from "../api/vendasApi";
+import "../../cadastros/cadastros.css";
 import "../../transacoes/pages/transacoes.css";
-
-function labelCliente(cliente: Cliente): string {
-  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
-}
 
 function textoBuscaCliente(cliente: Cliente): string {
   return [cliente.nome, cliente.documento, cliente.email, cliente.telefone]
@@ -12237,7 +13794,9 @@ export default function NovaVendaPage() {
 
     if (!termo) return clientes;
 
-    return clientes.filter((cliente) => textoBuscaCliente(cliente).includes(termo));
+    return clientes.filter((cliente) =>
+      textoBuscaCliente(cliente).includes(termo),
+    );
   }, [clientes, buscaCliente]);
 
   const clienteSelecionado = clientes.find(
@@ -12265,93 +13824,84 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <form className="ck-page" onSubmit={handleSubmit}>
-      <section className="ck-page-hero">
-        <div className="ck-page-hero-inner">
-          <div>
-            <div className="ck-page-kicker">Vendas</div>
-            <h1 className="ck-page-title">Nova venda</h1>
-            <p className="ck-page-description">
-              Crie a venda e depois adicione os produtos na tela de detalhes.
-            </p>
-          </div>
+    <form className="ck-register-page" onSubmit={handleSubmit}>
+      <PageSectionHeader
+        kicker="Vendas"
+        title="Nova venda"
+        description="Selecione o cliente por dados de domínio. A venda será criada e os itens serão adicionados na tela de detalhes."
+        actions={
+          <Link className="ck-register-action-secondary" to="/app/transacoes">
+            Voltar
+          </Link>
+        }
+      />
 
-          <div className="ck-page-actions">
-            <Link className="ck-action-secondary" to="/app/transacoes">
-              Voltar
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {erro ? <div className="ck-alert">{erro}</div> : null}
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
       {erroClientes ? (
-        <div className="ck-alert ck-alert-warning">
+        <div className="ck-register-alert">
           Não foi possível carregar clientes: {erroClientes}
         </div>
       ) : null}
 
-      <section className="ck-form-card">
-        <div className="ck-form-card-header">
-          <div className="ck-form-card-title">Cliente</div>
-          <p className="ck-form-card-desc">
-            Busque por nome, documento, e-mail ou telefone.
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Cliente da venda</div>
+          <p className="ck-register-form-desc">
+            O ID fica oculto; o usuário escolhe pelo nome, documento ou contato.
           </p>
         </div>
 
-        <div className="ck-form-card-body">
-          <label className="ck-field">
+        <div className="ck-register-form-body">
+          <label className="ck-register-field">
             <span>Buscar cliente</span>
             <input
-              className="ck-input"
-              placeholder="Ex.: Maria, CPF/CNPJ, e-mail..."
+              className="ck-register-input"
+              placeholder="Ex.: Maria, CPF/CNPJ, e-mail ou telefone"
               value={buscaCliente}
               onChange={(event) => setBuscaCliente(event.target.value)}
             />
           </label>
 
-          <label className="ck-field">
+          <label className="ck-register-field">
             <span>Cliente selecionado</span>
-            <select
-              className="ck-select"
+            <ClienteSelect
               value={clienteId}
-              onChange={(event) => setClienteId(event.target.value)}
+              clientes={clientesFiltrados}
               disabled={isLoadingClientes}
-            >
-              <option value="">
-                {isLoadingClientes ? "Carregando clientes..." : "Venda sem cliente"}
-              </option>
-
-              {clientesFiltrados.map((cliente) => (
-                <option key={cliente.clienteId} value={cliente.clienteId}>
-                  {labelCliente(cliente)}
-                </option>
-              ))}
-            </select>
+              onChange={setClienteId}
+            />
           </label>
 
           {clienteSelecionado ? (
             <div className="ck-selected-box">
               <div className="ck-selected-grid">
                 <div>
-                  <div className="ck-selected-label">Nome</div>
-                  <div className="ck-selected-value">{clienteSelecionado.nome}</div>
-                </div>
-
-                <div>
-                  <div className="ck-selected-label">Documento</div>
-                  <div className="ck-selected-value">{clienteSelecionado.documento ?? "—"}</div>
-                </div>
-
-                <div>
-                  <div className="ck-selected-label">E-mail</div>
-                  <div className="ck-selected-value">{clienteSelecionado.email ?? "—"}</div>
+                  <div className="ck-selected-label">Cliente</div>
+                  <div className="ck-selected-value">
+                    {formatClienteLabel(clienteSelecionado)}
+                  </div>
                 </div>
 
                 <div>
                   <div className="ck-selected-label">Telefone</div>
-                  <div className="ck-selected-value">{clienteSelecionado.telefone ?? "—"}</div>
+                  <div className="ck-selected-value">
+                    {clienteSelecionado.telefone ?? "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">E-mail</div>
+                  <div className="ck-selected-value">
+                    {clienteSelecionado.email ?? "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">Documento</div>
+                  <div className="ck-selected-value">
+                    {clienteSelecionado.documento ?? "—"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -12359,19 +13909,19 @@ export default function NovaVendaPage() {
         </div>
       </section>
 
-      <section className="ck-form-card">
-        <div className="ck-form-card-header">
-          <div className="ck-form-card-title">Observação</div>
-          <p className="ck-form-card-desc">
-            Informação opcional para facilitar o histórico.
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Observação</div>
+          <p className="ck-register-form-desc">
+            Use para registrar contexto comercial ou observações do pedido.
           </p>
         </div>
 
-        <div className="ck-form-card-body">
-          <label className="ck-field">
+        <div className="ck-register-form-body">
+          <label className="ck-register-field">
             <span>Observação da venda</span>
             <textarea
-              className="ck-input ck-textarea"
+              className="ck-register-textarea"
               value={observacao}
               onChange={(event) => setObservacao(event.target.value)}
               placeholder="Ex.: venda balcão, pedido especial, condições combinadas..."
@@ -12381,7 +13931,11 @@ export default function NovaVendaPage() {
       </section>
 
       <div className="flex justify-end">
-        <button className="ck-action-primary" disabled={isSaving} type="submit">
+        <button
+          className="ck-register-action-primary"
+          disabled={isSaving}
+          type="submit"
+        >
           {isSaving ? "Criando..." : "Criar venda e adicionar itens"}
         </button>
       </div>
@@ -12476,8 +14030,10 @@ const TENANT_NAV_ITEMS: AppNavItem[] = [
   { label: "Fornecedores", to: "/app/fornecedores", icon: "🏢" },
   { label: "Produtos", to: "/app/produtos", icon: "📦" },
   { label: "Transações", to: "/app/transacoes", icon: "📄" },
+  { label: "Financeiro", to: "/app/financeiro", icon: "💳" },
   { label: "Nova venda", to: "/app/vendas/nova", icon: "💰" },
   { label: "Nova compra", to: "/app/compras/nova", icon: "🛒" },
+  { label: "Ordens de Serviço", to: "/app/ordens-servico" },
   { label: "Usuários", to: "/app/usuarios", icon: "🔐" },
   { label: "Locatário", to: "/app/locatario", icon: "⚙️" },
   { label: "Módulos", to: "/app/assinatura/modulos", icon: "🧩" },
@@ -12550,6 +14106,334 @@ export default function NotFound() {
 }
 
 
+===== apps/web/src/shared/domain-selects/ClienteSelect.tsx =====
+
+// apps/web/src/shared/domain-selects/ClienteSelect.tsx
+
+import type { JSX } from "react";
+import type { Cliente } from "../../features/tenant-admin/clientes/tipos";
+import { formatClienteLabel } from "../formatters";
+
+type ClienteSelectProps = {
+  value: string;
+  clientes: Cliente[];
+  disabled?: boolean;
+  allowEmpty?: boolean;
+  emptyLabel?: string;
+  className?: string;
+  onChange: (clienteId: string) => void;
+};
+
+export function ClienteSelect({
+  value,
+  clientes,
+  disabled = false,
+  allowEmpty = true,
+  emptyLabel = "Venda sem cliente",
+  className = "ck-register-select",
+  onChange,
+}: ClienteSelectProps): JSX.Element {
+  return (
+    <select
+      className={className}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {allowEmpty ? <option value="">{emptyLabel}</option> : null}
+
+      {clientes.map((cliente) => (
+        <option key={cliente.clienteId} value={cliente.clienteId}>
+          {formatClienteLabel(cliente)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+
+===== apps/web/src/shared/domain-selects/FornecedorSelect.tsx =====
+
+// apps/web/src/shared/domain-selects/FornecedorSelect.tsx
+
+import type { JSX } from "react";
+import type { Fornecedor } from "../../features/tenant-admin/fornecedores/tipos";
+import { formatFornecedorLabel } from "../formatters";
+
+type FornecedorSelectProps = {
+  value: string;
+  fornecedores: Fornecedor[];
+  disabled?: boolean;
+  allowEmpty?: boolean;
+  emptyLabel?: string;
+  className?: string;
+  onChange: (fornecedorId: string) => void;
+};
+
+export function FornecedorSelect({
+  value,
+  fornecedores,
+  disabled = false,
+  allowEmpty = true,
+  emptyLabel = "Compra sem fornecedor",
+  className = "ck-register-select",
+  onChange,
+}: FornecedorSelectProps): JSX.Element {
+  return (
+    <select
+      className={className}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {allowEmpty ? <option value="">{emptyLabel}</option> : null}
+
+      {fornecedores.map((fornecedor) => (
+        <option key={fornecedor.fornecedorId} value={fornecedor.fornecedorId}>
+          {formatFornecedorLabel(fornecedor)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+
+===== apps/web/src/shared/domain-selects/index.ts =====
+
+// apps/web/src/shared/domain-selects/index.ts
+
+export { ClienteSelect } from "./ClienteSelect";
+export { FornecedorSelect } from "./FornecedorSelect";
+export { ProdutoSelect } from "./ProdutoSelect";
+
+
+===== apps/web/src/shared/domain-selects/ProdutoSelect.tsx =====
+
+// apps/web/src/shared/domain-selects/ProdutoSelect.tsx
+
+import type { JSX } from "react";
+import type { Produto } from "../../features/tenant-admin/produtos/tipos";
+import { formatProdutoLabel } from "../formatters";
+
+type ProdutoSelectProps = {
+  value: string;
+  produtos: Produto[];
+  disabled?: boolean;
+  allowEmpty?: boolean;
+  emptyLabel?: string;
+  className?: string;
+  onChange: (produtoId: string) => void;
+};
+
+export function ProdutoSelect({
+  value,
+  produtos,
+  disabled = false,
+  allowEmpty = true,
+  emptyLabel = "Selecione um produto",
+  className = "ck-register-select",
+  onChange,
+}: ProdutoSelectProps): JSX.Element {
+  return (
+    <select
+      className={className}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {allowEmpty ? <option value="">{emptyLabel}</option> : null}
+
+      {produtos.map((produto) => (
+        <option key={produto.produtoId} value={produto.produtoId}>
+          {formatProdutoLabel(produto)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+
+===== apps/web/src/shared/formatters/dateTime.ts =====
+
+// apps/web/src/shared/formatters/dateTime.ts
+
+export function formatDateTime(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function formatDate(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("pt-BR");
+}
+
+
+===== apps/web/src/shared/formatters/domainLabels.ts =====
+
+// apps/web/src/shared/formatters/domainLabels.ts
+
+type ClienteLike = { nome?: string | null; documento?: string | null; email?: string | null };
+type FornecedorLike = { nome?: string | null; documento?: string | null; email?: string | null };
+type ProdutoLike = { nome?: string | null; sku?: string | null; unidade?: string | null };
+type UsuarioLike = { nome?: string | null; email?: string | null };
+type LocatarioLike = { nome?: string | null; nomeFantasia?: string | null; slug?: string | null };
+
+function clean(value?: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+export function shortCode(id?: string | null, size = 8): string {
+  const value = clean(id);
+  return value ? value.slice(0, size).toUpperCase() : "—";
+}
+
+export function formatClienteLabel(cliente?: ClienteLike | null): string {
+  if (!cliente) return "Cliente não informado";
+
+  const nome = clean(cliente.nome) ?? "Cliente sem nome";
+  const documento = clean(cliente.documento);
+  const email = clean(cliente.email);
+
+  if (documento) return `${nome} — ${documento}`;
+  if (email) return `${nome} — ${email}`;
+
+  return nome;
+}
+
+export function formatFornecedorLabel(fornecedor?: FornecedorLike | null): string {
+  if (!fornecedor) return "Fornecedor não informado";
+
+  const nome = clean(fornecedor.nome) ?? "Fornecedor sem nome";
+  const documento = clean(fornecedor.documento);
+  const email = clean(fornecedor.email);
+
+  if (documento) return `${nome} — ${documento}`;
+  if (email) return `${nome} — ${email}`;
+
+  return nome;
+}
+
+export function formatProdutoLabel(produto?: ProdutoLike | null): string {
+  if (!produto) return "Produto não informado";
+
+  const nome = clean(produto.nome) ?? "Produto sem nome";
+  const sku = clean(produto.sku);
+  const unidade = clean(produto.unidade);
+
+  if (sku && unidade) return `${nome} — SKU ${sku} • ${unidade}`;
+  if (sku) return `${nome} — SKU ${sku}`;
+  if (unidade) return `${nome} — ${unidade}`;
+
+  return nome;
+}
+
+export function formatUsuarioLabel(usuario?: UsuarioLike | null): string {
+  if (!usuario) return "Usuário não informado";
+
+  const nome = clean(usuario.nome) ?? "Usuário sem nome";
+  const email = clean(usuario.email);
+
+  return email ? `${nome} — ${email}` : nome;
+}
+
+export function formatLocatarioLabel(locatario?: LocatarioLike | null): string {
+  if (!locatario) return "Locatário não informado";
+
+  const nome =
+    clean(locatario.nomeFantasia) ??
+    clean(locatario.nome) ??
+    "Locatário sem nome";
+  const slug = clean(locatario.slug);
+
+  return slug ? `${nome} — ${slug}` : nome;
+}
+
+export function formatTransacaoTitulo(params: {
+  tipo?: string | null;
+  criadoEm?: string | null;
+  fallbackId?: string | null;
+}): string {
+  const tipo = clean(params.tipo) ?? "Transação";
+
+  if (params.criadoEm) {
+    const date = new Date(params.criadoEm);
+
+    if (!Number.isNaN(date.getTime())) {
+      const dataHora = date.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return `${tipo} • ${dataHora}`;
+    }
+  }
+
+  return `${tipo} • Ref. ${shortCode(params.fallbackId)}`;
+}
+
+export function formatOrdemServicoTitulo(params: {
+  criadoEm?: string | null;
+  fallbackId?: string | null;
+}): string {
+  if (params.criadoEm) {
+    const date = new Date(params.criadoEm);
+
+    if (!Number.isNaN(date.getTime())) {
+      const dataHora = date.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      return `OS • ${dataHora}`;
+    }
+  }
+
+  return `OS • Ref. ${shortCode(params.fallbackId)}`;
+}
+
+
+===== apps/web/src/shared/formatters/index.ts =====
+
+// apps/web/src/shared/formatters/index.ts
+
+export * from "./dateTime";
+export * from "./domainLabels";
+export * from "./money";
+
+
+===== apps/web/src/shared/formatters/money.ts =====
+
+// apps/web/src/shared/formatters/money.ts
+
+export function formatMoney(value?: number | string | null): string {
+  return Number(value ?? 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+
 ===== apps/web/src/shared/layout/AppBreadcrumb.tsx =====
 
 // apps/web/src/shared/layout/AppBreadcrumb.tsx
@@ -12574,6 +14458,7 @@ const LABELS: Record<string, string> = {
   fornecedores: "Fornecedores",
   produtos: "Produtos",
   transacoes: "Transações",
+  financeiro: "Financeiro",
   vendas: "Vendas",
   compras: "Compras",
   nova: "Nova",
@@ -12936,6 +14821,44 @@ export { AppFooter } from "./AppFooter";
 export { AppBreadcrumb } from "./AppBreadcrumb";
 export { AppSidebar } from "./AppSidebar";
 export type { AppNavItem } from "./AppHeader";
+
+
+===== apps/web/src/shared/layout/PageSectionHeader.tsx =====
+
+// apps/web/src/shared/layout/PageSectionHeader.tsx
+
+import type { JSX, ReactNode } from "react";
+import "./pageSectionHeader.css";
+
+type PageSectionHeaderProps = {
+  kicker?: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+};
+
+export function PageSectionHeader({
+  kicker,
+  title,
+  description,
+  actions,
+}: PageSectionHeaderProps): JSX.Element {
+  return (
+    <section className="ck-page-section-header">
+      <div className="ck-page-section-header-inner">
+        <div>
+          {kicker ? <div className="ck-page-section-kicker">{kicker}</div> : null}
+          <h1 className="ck-page-section-title">{title}</h1>
+          {description ? (
+            <p className="ck-page-section-description">{description}</p>
+          ) : null}
+        </div>
+
+        {actions ? <div className="ck-page-section-actions">{actions}</div> : null}
+      </div>
+    </section>
+  );
+}
 
 
 ===== apps/web/src/shared/ui/Alert.tsx =====

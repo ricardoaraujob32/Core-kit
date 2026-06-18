@@ -5,6 +5,7 @@ import { ProdutosTable } from "../components/ProdutosTable";
 import { useProdutos } from "../hooks/useProdutos";
 import type { Produto } from "../tipos";
 import "../../cadastros/cadastros.css";
+import { toProdutoViewModel } from "../produto.viewModel";
 
 function contarSemPreco(itens: Produto[]): number {
   return itens.filter((item) => Number(item.precoVenda ?? 0) <= 0).length;

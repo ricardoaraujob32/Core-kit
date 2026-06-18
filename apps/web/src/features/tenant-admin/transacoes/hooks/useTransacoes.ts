@@ -2,26 +2,48 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { mapError } from "../../../../core/errors/mapError";
+import {
+  formatTransacaoTitulo,
+  shortCode,
+} from "../../../../shared/formatters";
 import { transacoesApi } from "../api/transacoesApi";
 import type { TipoTransacao, Transacao } from "../tipos";
 
 type FiltroTipo = TipoTransacao | "TODOS";
+
+function normalizar(value?: string | null): string {
+  return (value ?? "").trim().toLowerCase();
+}
 
 function filtrarTransacoes(
   transacoes: Transacao[],
   busca: string,
   tipo: FiltroTipo,
 ): Transacao[] {
-  const termo = busca.trim().toLowerCase();
+  const termo = normalizar(busca);
 
   return transacoes.filter((transacao) => {
     const atendeTipo = tipo === "TODOS" || transacao.tipo === tipo;
-    const atendeBusca =
-      !termo ||
-      transacao.transacaoId.toLowerCase().includes(termo) ||
-      transacao.status.toLowerCase().includes(termo);
 
-    return atendeTipo && atendeBusca;
+    if (!termo) return atendeTipo;
+
+    const textoBusca = [
+      formatTransacaoTitulo({
+        tipo: transacao.tipo,
+        criadoEm: transacao.criadoEm,
+        fallbackId: transacao.transacaoId,
+      }),
+      transacao.tipo,
+      transacao.status,
+      transacao.clienteId,
+      transacao.fornecedorId,
+      shortCode(transacao.transacaoId),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return atendeTipo && textoBusca.includes(termo);
   });
 }
 

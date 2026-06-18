@@ -3,6 +3,13 @@
 import { Link } from "react-router-dom";
 import type { Cliente } from "../../clientes/tipos";
 import type { Fornecedor } from "../../fornecedores/tipos";
+import {
+  formatClienteLabel,
+  formatFornecedorLabel,
+  formatMoney,
+  formatTransacaoTitulo,
+  shortCode,
+} from "../../../../shared/formatters";
 import type { Transacao } from "../tipos";
 
 type Props = {
@@ -11,33 +18,18 @@ type Props = {
   fornecedores?: Fornecedor[];
 };
 
-function formatarMoeda(valor?: number | null): string {
-  return Number(valor ?? 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatarData(value?: string | null): string {
-  if (!value) return "—";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString("pt-BR");
-}
-
-function codigoCurto(id: string): string {
-  return id.slice(0, 8).toUpperCase();
-}
-
 function statusClass(status: string): string {
   const normalized = status.trim().toUpperCase();
 
   if (normalized === "CONCLUIDA") return "ck-status ck-status-success";
   if (normalized === "CANCELADA") return "ck-status ck-status-danger";
 
-  if (normalized === "ABERTA" || normalized === "RASCUNHO") {
+  if (
+    normalized === "ABERTA" ||
+    normalized === "EM_PROCESSAMENTO" ||
+    normalized === "AGUARDANDO_PAGAMENTO" ||
+    normalized === "ENVIADA"
+  ) {
     return "ck-status ck-status-warning";
   }
 
@@ -48,43 +40,49 @@ function pessoaInfo(
   transacao: Transacao,
   clientesPorId: Map<string, Cliente>,
   fornecedoresPorId: Map<string, Fornecedor>,
-): { nome: string; detalhe: string } {
+): { principal: string; secundario: string } {
   if (transacao.tipo === "COMPRA") {
     if (!transacao.fornecedorId) {
-      return { nome: "Sem fornecedor", detalhe: "Compra avulsa" };
+      return {
+        principal: "Compra sem fornecedor",
+        secundario: "Fornecedor não vinculado",
+      };
     }
 
     const fornecedor = fornecedoresPorId.get(transacao.fornecedorId);
 
     if (!fornecedor) {
       return {
-        nome: `Fornecedor #${codigoCurto(transacao.fornecedorId)}`,
-        detalhe: "Cadastro não carregado",
+        principal: "Fornecedor não carregado",
+        secundario: `Ref. ${shortCode(transacao.fornecedorId)}`,
       };
     }
 
     return {
-      nome: fornecedor.nome,
-      detalhe: fornecedor.documento ?? fornecedor.email ?? "Fornecedor",
+      principal: formatFornecedorLabel(fornecedor),
+      secundario: fornecedor.telefone ?? fornecedor.email ?? "Fornecedor",
     };
   }
 
   if (!transacao.clienteId) {
-    return { nome: "Sem cliente", detalhe: "Venda balcão" };
+    return {
+      principal: "Venda balcão",
+      secundario: "Cliente não vinculado",
+    };
   }
 
   const cliente = clientesPorId.get(transacao.clienteId);
 
   if (!cliente) {
     return {
-      nome: `Cliente #${codigoCurto(transacao.clienteId)}`,
-      detalhe: "Cadastro não carregado",
+      principal: "Cliente não carregado",
+      secundario: `Ref. ${shortCode(transacao.clienteId)}`,
     };
   }
 
   return {
-    nome: cliente.nome,
-    detalhe: cliente.documento ?? cliente.email ?? "Cliente",
+    principal: formatClienteLabel(cliente),
+    secundario: cliente.telefone ?? cliente.email ?? "Cliente",
   };
 }
 
@@ -101,6 +99,17 @@ export function TransacoesTable({
     fornecedores.map((fornecedor) => [fornecedor.fornecedorId, fornecedor]),
   );
 
+  if (itens.length === 0) {
+    return (
+      <div className="ck-register-empty">
+        <div className="ck-register-empty-title">Nenhuma transação encontrada</div>
+        <p className="ck-register-empty-desc">
+          Crie uma venda ou compra para começar a movimentar o sistema.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="hidden overflow-x-auto md:block">
@@ -108,12 +117,12 @@ export function TransacoesTable({
           <table className="ck-table">
             <thead>
               <tr>
-                <th>Código</th>
-                <th>Tipo</th>
+                <th>Transação</th>
                 <th>Cliente/fornecedor</th>
                 <th>Status</th>
                 <th>Total</th>
-                <th>Criada em</th>
+                <th>Itens</th>
+                <th>Referência</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -129,30 +138,47 @@ export function TransacoesTable({
                 return (
                   <tr key={transacao.transacaoId}>
                     <td>
-                      <span className="ck-code-pill">
-                        #{codigoCurto(transacao.transacaoId)}
-                      </span>
+                      <div className="ck-register-main">
+                        {formatTransacaoTitulo({
+                          tipo: transacao.tipo,
+                          criadoEm: transacao.criadoEm,
+                          fallbackId: transacao.transacaoId,
+                        })}
+                      </div>
+                      <div className="ck-register-sub">
+                        Identificada por data e horário
+                      </div>
                     </td>
-                    <td>{transacao.tipo}</td>
+
                     <td>
-                      <div className="ck-person-main">{pessoa.nome}</div>
-                      <div className="ck-person-sub">{pessoa.detalhe}</div>
+                      <div className="ck-register-main">{pessoa.principal}</div>
+                      <div className="ck-register-sub">{pessoa.secundario}</div>
                     </td>
+
                     <td>
                       <span className={statusClass(transacao.status)}>
                         {transacao.status}
                       </span>
                     </td>
+
                     <td>
-                      <strong>{formatarMoeda(transacao.valorTotal)}</strong>
+                      <strong>{formatMoney(transacao.valorTotal)}</strong>
                     </td>
-                    <td>{formatarData(transacao.criadoEm)}</td>
+
+                    <td>{transacao.itens?.length ?? 0}</td>
+
+                    <td>
+                      <span className="ck-code-pill">
+                        Ref. {shortCode(transacao.transacaoId)}
+                      </span>
+                    </td>
+
                     <td>
                       <Link
                         className="ck-row-link"
                         to={`/app/transacoes/${transacao.transacaoId}`}
                       >
-                        Detalhes
+                        Ver detalhes
                       </Link>
                     </td>
                   </tr>
@@ -172,9 +198,14 @@ export function TransacoesTable({
               <div className="ck-transaction-card-top">
                 <div>
                   <div className="ck-transaction-title">
-                    {transacao.tipo} #{codigoCurto(transacao.transacaoId)}
+                    {formatTransacaoTitulo({
+                      tipo: transacao.tipo,
+                      criadoEm: transacao.criadoEm,
+                      fallbackId: transacao.transacaoId,
+                    })}
                   </div>
-                  <div className="ck-transaction-desc">{pessoa.nome}</div>
+
+                  <div className="ck-transaction-desc">{pessoa.principal}</div>
                 </div>
 
                 <span className={statusClass(transacao.status)}>
@@ -186,14 +217,14 @@ export function TransacoesTable({
                 <div>
                   <div className="ck-card-label">Total</div>
                   <div className="ck-card-value">
-                    {formatarMoeda(transacao.valorTotal)}
+                    {formatMoney(transacao.valorTotal)}
                   </div>
                 </div>
 
                 <div>
-                  <div className="ck-card-label">Criada em</div>
+                  <div className="ck-card-label">Referência</div>
                   <div className="ck-card-value">
-                    {formatarData(transacao.criadoEm)}
+                    {shortCode(transacao.transacaoId)}
                   </div>
                 </div>
               </div>

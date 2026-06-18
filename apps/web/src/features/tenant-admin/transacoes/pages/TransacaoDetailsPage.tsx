@@ -1,3 +1,4 @@
+
 // apps/web/src/features/tenant-admin/transacoes/pages/TransacaoDetailsPage.tsx
 
 import { useEffect, useMemo, useState } from "react";
@@ -11,6 +12,7 @@ import { produtosApi } from "../../produtos/api/produtosApi";
 import type { Produto } from "../../produtos/tipos";
 import { useTransacaoActions } from "../hooks/useTransacaoActions";
 import { useTransacaoDetails } from "../hooks/useTransacaoDetails";
+import { toTransacaoViewModel } from "../transacao.viewModel";
 
 function parseNumero(value: string): number {
   const normalized = value.trim().replace(",", ".");
@@ -42,10 +44,6 @@ function formatarData(value?: string | null): string {
 function valorTexto(valor: unknown): string {
   if (valor === null || valor === undefined || valor === "") return "—";
   return String(valor);
-}
-
-function codigoCurto(id: string): string {
-  return id.slice(0, 8).toUpperCase();
 }
 
 function labelProduto(produto: Produto): string {
@@ -232,7 +230,6 @@ export default function TransacaoDetailsPage() {
     transacao.status === "ABERTA" || transacao.status === "RASCUNHO";
 
   const itens = transacao.itens ?? [];
-  const codigoTransacao = codigoCurto(transacao.transacaoId);
 
   const cliente = transacao.clienteId
     ? clientesPorId.get(transacao.clienteId)
@@ -248,12 +245,12 @@ export default function TransacaoDetailsPage() {
       ? fornecedor
         ? labelFornecedor(fornecedor)
         : transacao.fornecedorId
-          ? `Fornecedor ${codigoCurto(transacao.fornecedorId)}`
+          ? "Fornecedor não carregado"
           : "—"
       : cliente
         ? labelCliente(cliente)
         : transacao.clienteId
-          ? `Cliente ${codigoCurto(transacao.clienteId)}`
+          ? "Cliente não carregado"
           : "—";
 
   const pessoaDocumento =
@@ -263,6 +260,11 @@ export default function TransacaoDetailsPage() {
   const pessoaTelefone =
     transacao.tipo === "COMPRA" ? fornecedor?.telefone : cliente?.telefone;
 
+  const vm = toTransacaoViewModel({
+    ...transacao,
+    pessoaNome,
+  });
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -271,12 +273,10 @@ export default function TransacaoDetailsPage() {
             Transações / {transacao.tipo === "COMPRA" ? "Compras" : "Vendas"}
           </p>
 
-          <h1 className="text-2xl font-semibold">
-            {transacao.tipo} #{codigoTransacao}
-          </h1>
+          <h1 className="text-2xl font-semibold">{vm.titulo}</h1>
 
           <p className="text-sm text-slate-600">
-            Status: <strong>{transacao.status}</strong>
+            {vm.subtitulo} · Status: <strong>{transacao.status}</strong>
           </p>
         </div>
 
@@ -337,11 +337,6 @@ export default function TransacaoDetailsPage() {
           <h2 className="text-lg font-semibold">Informações gerais</h2>
 
           <div>
-            <div className="text-xs text-slate-500">Código</div>
-            <div>{codigoTransacao}</div>
-          </div>
-
-          <div>
             <div className="text-xs text-slate-500">Tipo</div>
             <div>{transacao.tipo}</div>
           </div>
@@ -361,13 +356,6 @@ export default function TransacaoDetailsPage() {
             <div>{formatarData(transacao.atualizadoEm)}</div>
           </div>
 
-          <details className="text-slate-500">
-            <summary className="cursor-pointer">Ver identificadores internos</summary>
-            <div className="mt-2 grid gap-1">
-              <div>Transação ID: {transacao.transacaoId}</div>
-              <div>Locatário ID: {transacao.locatarioId}</div>
-            </div>
-          </details>
         </section>
 
         <section className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
@@ -702,3 +690,5 @@ export default function TransacaoDetailsPage() {
     </div>
   );
 }
+
+

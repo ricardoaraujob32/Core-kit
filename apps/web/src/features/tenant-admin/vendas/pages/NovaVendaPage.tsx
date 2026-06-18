@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
+import { ClienteSelect } from "../../../../shared/domain-selects";
+import { formatClienteLabel } from "../../../../shared/formatters";
+import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { vendasApi } from "../api/vendasApi";
+import "../../cadastros/cadastros.css";
 import "../../transacoes/pages/transacoes.css";
-
-function labelCliente(cliente: Cliente): string {
-  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
-}
 
 function textoBuscaCliente(cliente: Cliente): string {
   return [cliente.nome, cliente.documento, cliente.email, cliente.telefone]
@@ -61,7 +61,9 @@ export default function NovaVendaPage() {
 
     if (!termo) return clientes;
 
-    return clientes.filter((cliente) => textoBuscaCliente(cliente).includes(termo));
+    return clientes.filter((cliente) =>
+      textoBuscaCliente(cliente).includes(termo),
+    );
   }, [clientes, buscaCliente]);
 
   const clienteSelecionado = clientes.find(
@@ -89,93 +91,84 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <form className="ck-page" onSubmit={handleSubmit}>
-      <section className="ck-page-hero">
-        <div className="ck-page-hero-inner">
-          <div>
-            <div className="ck-page-kicker">Vendas</div>
-            <h1 className="ck-page-title">Nova venda</h1>
-            <p className="ck-page-description">
-              Crie a venda e depois adicione os produtos na tela de detalhes.
-            </p>
-          </div>
+    <form className="ck-register-page" onSubmit={handleSubmit}>
+      <PageSectionHeader
+        kicker="Vendas"
+        title="Nova venda"
+        description="Selecione o cliente por dados de domínio. A venda será criada e os itens serão adicionados na tela de detalhes."
+        actions={
+          <Link className="ck-register-action-secondary" to="/app/transacoes">
+            Voltar
+          </Link>
+        }
+      />
 
-          <div className="ck-page-actions">
-            <Link className="ck-action-secondary" to="/app/transacoes">
-              Voltar
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {erro ? <div className="ck-alert">{erro}</div> : null}
+      {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
       {erroClientes ? (
-        <div className="ck-alert ck-alert-warning">
+        <div className="ck-register-alert">
           Não foi possível carregar clientes: {erroClientes}
         </div>
       ) : null}
 
-      <section className="ck-form-card">
-        <div className="ck-form-card-header">
-          <div className="ck-form-card-title">Cliente</div>
-          <p className="ck-form-card-desc">
-            Busque por nome, documento, e-mail ou telefone.
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Cliente da venda</div>
+          <p className="ck-register-form-desc">
+            O ID fica oculto; o usuário escolhe pelo nome, documento ou contato.
           </p>
         </div>
 
-        <div className="ck-form-card-body">
-          <label className="ck-field">
+        <div className="ck-register-form-body">
+          <label className="ck-register-field">
             <span>Buscar cliente</span>
             <input
-              className="ck-input"
-              placeholder="Ex.: Maria, CPF/CNPJ, e-mail..."
+              className="ck-register-input"
+              placeholder="Ex.: Maria, CPF/CNPJ, e-mail ou telefone"
               value={buscaCliente}
               onChange={(event) => setBuscaCliente(event.target.value)}
             />
           </label>
 
-          <label className="ck-field">
+          <label className="ck-register-field">
             <span>Cliente selecionado</span>
-            <select
-              className="ck-select"
+            <ClienteSelect
               value={clienteId}
-              onChange={(event) => setClienteId(event.target.value)}
+              clientes={clientesFiltrados}
               disabled={isLoadingClientes}
-            >
-              <option value="">
-                {isLoadingClientes ? "Carregando clientes..." : "Venda sem cliente"}
-              </option>
-
-              {clientesFiltrados.map((cliente) => (
-                <option key={cliente.clienteId} value={cliente.clienteId}>
-                  {labelCliente(cliente)}
-                </option>
-              ))}
-            </select>
+              onChange={setClienteId}
+            />
           </label>
 
           {clienteSelecionado ? (
             <div className="ck-selected-box">
               <div className="ck-selected-grid">
                 <div>
-                  <div className="ck-selected-label">Nome</div>
-                  <div className="ck-selected-value">{clienteSelecionado.nome}</div>
-                </div>
-
-                <div>
-                  <div className="ck-selected-label">Documento</div>
-                  <div className="ck-selected-value">{clienteSelecionado.documento ?? "—"}</div>
-                </div>
-
-                <div>
-                  <div className="ck-selected-label">E-mail</div>
-                  <div className="ck-selected-value">{clienteSelecionado.email ?? "—"}</div>
+                  <div className="ck-selected-label">Cliente</div>
+                  <div className="ck-selected-value">
+                    {formatClienteLabel(clienteSelecionado)}
+                  </div>
                 </div>
 
                 <div>
                   <div className="ck-selected-label">Telefone</div>
-                  <div className="ck-selected-value">{clienteSelecionado.telefone ?? "—"}</div>
+                  <div className="ck-selected-value">
+                    {clienteSelecionado.telefone ?? "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">E-mail</div>
+                  <div className="ck-selected-value">
+                    {clienteSelecionado.email ?? "—"}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="ck-selected-label">Documento</div>
+                  <div className="ck-selected-value">
+                    {clienteSelecionado.documento ?? "—"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -183,19 +176,19 @@ export default function NovaVendaPage() {
         </div>
       </section>
 
-      <section className="ck-form-card">
-        <div className="ck-form-card-header">
-          <div className="ck-form-card-title">Observação</div>
-          <p className="ck-form-card-desc">
-            Informação opcional para facilitar o histórico.
+      <section className="ck-register-form-card">
+        <div className="ck-register-form-header">
+          <div className="ck-register-form-title">Observação</div>
+          <p className="ck-register-form-desc">
+            Use para registrar contexto comercial ou observações do pedido.
           </p>
         </div>
 
-        <div className="ck-form-card-body">
-          <label className="ck-field">
+        <div className="ck-register-form-body">
+          <label className="ck-register-field">
             <span>Observação da venda</span>
             <textarea
-              className="ck-input ck-textarea"
+              className="ck-register-textarea"
               value={observacao}
               onChange={(event) => setObservacao(event.target.value)}
               placeholder="Ex.: venda balcão, pedido especial, condições combinadas..."
@@ -205,7 +198,11 @@ export default function NovaVendaPage() {
       </section>
 
       <div className="flex justify-end">
-        <button className="ck-action-primary" disabled={isSaving} type="submit">
+        <button
+          className="ck-register-action-primary"
+          disabled={isSaving}
+          type="submit"
+        >
           {isSaving ? "Criando..." : "Criar venda e adicionar itens"}
         </button>
       </div>
