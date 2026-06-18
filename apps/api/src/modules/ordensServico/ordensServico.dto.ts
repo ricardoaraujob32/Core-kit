@@ -7,7 +7,7 @@ export const listarOrdensServicoQuerySchema = z.object({
   limite: z.coerce.number().int().min(1).max(100).optional(),
 });
 
-export const ordemServicoParamsSchema = z.object({
+export const ordemServicoIdParamsSchema = z.object({
   ordemServicoId: z.string().uuid(),
 });
 
@@ -30,13 +30,13 @@ export const gerarVendaOrdemServicoBodySchema = z.object({
 });
 
 export type ListarOrdensServicoQueryDto = z.infer<typeof listarOrdensServicoQuerySchema>;
-export type OrdemServicoParamsDto = z.infer<typeof ordemServicoParamsSchema>;
+export type OrdemServicoIdParamsDto = z.infer<typeof ordemServicoIdParamsSchema>;
 export type CriarOrdemServicoBodyDto = z.infer<typeof criarOrdemServicoBodySchema>;
 export type AtualizarOrdemServicoBodyDto = z.infer<typeof atualizarOrdemServicoBodySchema>;
 export type GerarVendaOrdemServicoBodyDto = z.infer<typeof gerarVendaOrdemServicoBodySchema>;
 
 export const parseListarOrdensServicoQuery = (input: unknown) => listarOrdensServicoQuerySchema.safeParse(input);
-export const parseOrdemServicoParams = (input: unknown) => ordemServicoParamsSchema.safeParse(input);
+export const parseOrdemServicoIdParams = (input: unknown) => ordemServicoIdParamsSchema.safeParse(input);
 export const parseCriarOrdemServicoBody = (input: unknown) => criarOrdemServicoBodySchema.safeParse(input);
 export const parseAtualizarOrdemServicoBody = (input: unknown) => atualizarOrdemServicoBodySchema.safeParse(input);
 export const parseGerarVendaOrdemServicoBody = (input: unknown) => gerarVendaOrdemServicoBodySchema.safeParse(input);

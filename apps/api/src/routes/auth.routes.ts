@@ -17,6 +17,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: [authGuard] }, 
     meController
   );
+
+  app.post(
+    "/auth/refresh",
+    refreshController,
+  );
+
+  app.post(
+    "/auth/logout",
+    logoutController,
+  );
   
   app.post<{ Body: RefreshPlataformaBodyDto }>(
     "/auth/plataforma/refresh",

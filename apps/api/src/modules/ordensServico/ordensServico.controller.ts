@@ -21,12 +21,12 @@ import {
   parseCriarOrdemServicoBody,
   parseGerarVendaOrdemServicoBody,
   parseListarOrdensServicoQuery,
-  parseOrdemServicoParams,
+  parseOrdemServicoIdParams,
   type AtualizarOrdemServicoBodyDto,
   type CriarOrdemServicoBodyDto,
   type GerarVendaOrdemServicoBodyDto,
   type ListarOrdensServicoQueryDto,
-  type OrdemServicoParamsDto,
+  type OrdemServicoIdParamsDto,
 } from "./ordensServico.dto.js";
 import { toOrdemServicoDto } from "./ordensServico.presenter.js";
 
@@ -96,11 +96,11 @@ export async function criarOrdemServicoController(request: FastifyRequest<{ Body
   return reply.status(201).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
 }
 
-export async function obterOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoParamsDto }>, reply: FastifyReply) {
+export async function obterOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
   const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.ler, modulo: "ORDENS_SERVICO" });
   if (!ctx) return;
 
-  const params = parseOrdemServicoParams(request.params);
+  const params = parseOrdemServicoIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params);
 
   const obter = createFnObterOrdemServico(deps());
@@ -110,11 +110,11 @@ export async function obterOrdemServicoController(request: FastifyRequest<{ Para
   return reply.status(200).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
 }
 
-export async function atualizarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoParamsDto; Body: AtualizarOrdemServicoBodyDto }>, reply: FastifyReply) {
+export async function atualizarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto; Body: AtualizarOrdemServicoBodyDto }>, reply: FastifyReply) {
   const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.atualizar, modulo: "ORDENS_SERVICO" });
   if (!ctx) return;
 
-  const params = parseOrdemServicoParams(request.params);
+  const params = parseOrdemServicoIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params);
   const body = parseAtualizarOrdemServicoBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body);
@@ -133,10 +133,10 @@ export async function atualizarOrdemServicoController(request: FastifyRequest<{ 
   return reply.status(200).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
 }
 
-async function mudarStatus(request: FastifyRequest<{ Params: OrdemServicoParamsDto }>, reply: FastifyReply, permissao: Permissao, factory: ReturnType<typeof createFnIniciarOrdemServico> | ReturnType<typeof createFnAguardarOrdemServico> | ReturnType<typeof createFnConcluirOrdemServico> | ReturnType<typeof createFnCancelarOrdemServico>) {
+async function mudarStatus(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply, permissao: Permissao, factory: ReturnType<typeof createFnIniciarOrdemServico> | ReturnType<typeof createFnAguardarOrdemServico> | ReturnType<typeof createFnConcluirOrdemServico> | ReturnType<typeof createFnCancelarOrdemServico>) {
   const ctx = await autorizarHttp(request, reply, { permissao, modulo: "ORDENS_SERVICO" });
   if (!ctx) return;
-  const params = parseOrdemServicoParams(request.params);
+  const params = parseOrdemServicoIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params);
 
   const resultado = await factory({ locatarioId: ctx.locatarioId, ordemServicoId: params.data.ordemServicoId, usuarioId: ctx.usuarioId });
@@ -144,27 +144,27 @@ async function mudarStatus(request: FastifyRequest<{ Params: OrdemServicoParamsD
   return reply.status(200).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
 }
 
-export async function iniciarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoParamsDto }>, reply: FastifyReply) {
+export async function iniciarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
   return mudarStatus(request, reply, PERMISSOES.atualizar, createFnIniciarOrdemServico(deps()));
 }
 
-export async function aguardarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoParamsDto }>, reply: FastifyReply) {
+export async function aguardarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
   return mudarStatus(request, reply, PERMISSOES.atualizar, createFnAguardarOrdemServico(deps()));
 }
 
-export async function concluirOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoParamsDto }>, reply: FastifyReply) {
+export async function concluirOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
   return mudarStatus(request, reply, PERMISSOES.concluir, createFnConcluirOrdemServico(deps()));
 }
 
-export async function cancelarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoParamsDto }>, reply: FastifyReply) {
+export async function cancelarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
   return mudarStatus(request, reply, PERMISSOES.cancelar, createFnCancelarOrdemServico(deps()));
 }
 
-export async function gerarVendaDaOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoParamsDto; Body: GerarVendaOrdemServicoBodyDto }>, reply: FastifyReply) {
+export async function gerarVendaDaOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto; Body: GerarVendaOrdemServicoBodyDto }>, reply: FastifyReply) {
   const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.gerarVenda, modulo: "ORDENS_SERVICO" });
   if (!ctx) return;
 
-  const params = parseOrdemServicoParams(request.params);
+  const params = parseOrdemServicoIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params);
   const body = parseGerarVendaOrdemServicoBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body);
