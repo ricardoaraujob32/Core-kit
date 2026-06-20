@@ -1,0 +1,231 @@
+/* apps/web/src/features/tenant-admin/shared/entityPages.css */
+
+.ck-entity-page {
+  display: grid;
+  gap: 1rem;
+  color: #000000;
+}
+
+.ck-entity-page *,
+.ck-entity-page *::before,
+.ck-entity-page *::after {
+  box-sizing: border-box;
+}
+
+.ck-entity-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.ck-entity-kicker {
+  margin: 0 0 0.25rem;
+  color: #000000;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ck-entity-form,
+.ck-entity-hero,
+.ck-entity-card {
+  border: 1px solid #d7dce3;
+  border-radius: 1rem;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.ck-entity-form {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.ck-entity-form__header,
+.ck-entity-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.ck-entity-form__header h1,
+.ck-entity-hero h1 {
+  margin: 0;
+  color: #000000;
+  font-size: 1.65rem;
+  line-height: 1.2;
+}
+
+.ck-entity-form__header p,
+.ck-entity-hero p,
+.ck-entity-card__title p {
+  margin: 0.25rem 0 0;
+  color: #000000;
+}
+
+.ck-entity-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.ck-entity-card__title h2 {
+  margin: 0;
+  color: #000000;
+  font-size: 1rem;
+}
+
+.ck-entity-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.ck-entity-field {
+  display: grid;
+  gap: 0.35rem;
+  color: #000000;
+  font-weight: 700;
+}
+
+.ck-entity-field--wide {
+  grid-column: 1 / -1;
+}
+
+.ck-entity-field input,
+.ck-entity-field select,
+.ck-entity-field textarea {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.7rem;
+  background: #ffffff;
+  color: #000000;
+  font: inherit;
+  font-weight: 500;
+}
+
+.ck-entity-field textarea {
+  resize: vertical;
+}
+
+.ck-entity-field input:focus,
+.ck-entity-field select:focus,
+.ck-entity-field textarea:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.ck-entity-form__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ck-entity-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.7rem;
+  background: #ffffff;
+  color: #000000;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ck-entity-button:hover {
+  background: #f1f5f9;
+  text-decoration: none;
+}
+
+.ck-entity-button--primary {
+  border-color: #1d4ed8;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.ck-entity-button--primary:hover {
+  background: #1d4ed8;
+}
+
+.ck-entity-alert {
+  border: 1px solid #fecaca;
+  border-radius: 0.85rem;
+  background: #fef2f2;
+  color: #991b1b;
+  padding: 0.75rem 0.9rem;
+  font-weight: 700;
+}
+
+.ck-entity-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ck-entity-detail-grid--three {
+  grid-template-columns: 1.25fr 1fr 1fr;
+}
+
+.ck-entity-detail-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.ck-entity-detail-list div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ck-entity-detail-list dt {
+  color: #000000;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ck-entity-detail-list dd {
+  margin: 0;
+  color: #000000;
+  font-weight: 600;
+}
+
+.ck-entity-description {
+  margin: 0;
+  color: #000000;
+  line-height: 1.55;
+}
+
+.ck-entity-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .ck-entity-form-grid,
+  .ck-entity-detail-grid,
+  .ck-entity-detail-grid--three {
+    grid-template-columns: 1fr;
+  }
+
+  .ck-entity-form__header,
+  .ck-entity-hero {
+    flex-direction: column;
+  }
+
+  .ck-entity-page__actions {
+    justify-content: flex-start;
+  }
+}

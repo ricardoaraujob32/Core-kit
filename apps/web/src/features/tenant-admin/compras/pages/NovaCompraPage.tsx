@@ -1,16 +1,13 @@
 // apps/web/src/features/tenant-admin/compras/pages/NovaCompraPage.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
-import { FornecedorSelect } from "../../../../shared/domain-selects";
 import { formatFornecedorLabel } from "../../../../shared/formatters";
-import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import { comprasApi } from "../api/comprasApi";
-import "../../cadastros/cadastros.css";
-import "../../transacoes/pages/transacoes.css";
+import "../../shared/entityPages.css";
 
 function textoBuscaFornecedor(fornecedor: Fornecedor): string {
   return [
@@ -22,6 +19,11 @@ function textoBuscaFornecedor(fornecedor: Fornecedor): string {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+}
+
+function normalizeOptionalText(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 export default function NovaCompraPage() {
@@ -46,11 +48,17 @@ export default function NovaCompraPage() {
       try {
         const response = await fornecedoresApi.listar();
 
-        if (ativo) setFornecedores(response.itens);
+        if (ativo) {
+          setFornecedores(response.itens);
+        }
       } catch (error) {
-        if (ativo) setErroFornecedores(mapError(error).message);
+        if (ativo) {
+          setErroFornecedores(mapError(error).message);
+        }
       } finally {
-        if (ativo) setIsLoadingFornecedores(false);
+        if (ativo) {
+          setIsLoadingFornecedores(false);
+        }
       }
     }
 
@@ -64,7 +72,9 @@ export default function NovaCompraPage() {
   const fornecedoresFiltrados = useMemo(() => {
     const termo = buscaFornecedor.trim().toLowerCase();
 
-    if (!termo) return fornecedores;
+    if (!termo) {
+      return fornecedores;
+    }
 
     return fornecedores.filter((fornecedor) =>
       textoBuscaFornecedor(fornecedor).includes(termo),
@@ -75,7 +85,7 @@ export default function NovaCompraPage() {
     (fornecedor) => fornecedor.fornecedorId === fornecedorId,
   );
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setErro(null);
@@ -83,8 +93,8 @@ export default function NovaCompraPage() {
 
     try {
       const response = await comprasApi.criar({
-        fornecedorId: fornecedorId.trim() || null,
-        observacao: observacao.trim() || null,
+        fornecedorId: fornecedorId || null,
+        observacao: normalizeOptionalText(observacao),
       });
 
       navigate(`/app/transacoes/${response.item.transacaoId}`);
@@ -96,121 +106,109 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <form className="ck-register-page" onSubmit={handleSubmit}>
-      <PageSectionHeader
-        kicker="Compras"
-        title="Nova compra"
-        description="Selecione o fornecedor por dados de domínio. A compra será criada e os itens serão adicionados na tela de detalhes."
-        actions={
-          <Link className="ck-register-action-secondary" to="/app/transacoes">
-            Voltar
-          </Link>
-        }
-      />
+    <div className="ck-entity-page">
+      <div className="ck-entity-page__actions">
+        <Link className="ck-entity-button" to="/app/transacoes">
+          Voltar para transações
+        </Link>
+      </div>
 
-      {erro ? <div className="ck-register-alert">{erro}</div> : null}
+      <form className="ck-entity-form" onSubmit={handleSubmit}>
+        <header className="ck-entity-form__header">
+          <div>
+            <p className="ck-entity-kicker">Compras</p>
+            <h1>Nova compra</h1>
+            <p>
+              Crie uma transação de compra e depois adicione os itens na tela de
+              detalhes.
+            </p>
+          </div>
+        </header>
 
-      {erroFornecedores ? (
-        <div className="ck-register-alert">
-          Não foi possível carregar fornecedores: {erroFornecedores}
-        </div>
-      ) : null}
+        {erro ? <div className="ck-entity-alert">{erro}</div> : null}
 
-      <section className="ck-register-form-card">
-        <div className="ck-register-form-header">
-          <div className="ck-register-form-title">Fornecedor da compra</div>
-          <p className="ck-register-form-desc">
-            O ID fica oculto; o usuário escolhe pelo nome, documento ou contato.
-          </p>
-        </div>
+        {erroFornecedores ? (
+          <div className="ck-entity-alert">{erroFornecedores}</div>
+        ) : null}
 
-        <div className="ck-register-form-body">
-          <label className="ck-register-field">
-            <span>Buscar fornecedor</span>
-            <input
-              className="ck-register-input"
-              placeholder="Ex.: Distribuidora, CNPJ, e-mail ou telefone"
-              value={buscaFornecedor}
-              onChange={(event) => setBuscaFornecedor(event.target.value)}
-            />
-          </label>
+        <section className="ck-entity-card">
+          <div className="ck-entity-card__title">
+            <h2>Fornecedor</h2>
+            <p>Selecione o fornecedor vinculado à compra.</p>
+          </div>
 
-          <label className="ck-register-field">
-            <span>Fornecedor selecionado</span>
-            <FornecedorSelect
-              value={fornecedorId}
-              fornecedores={fornecedoresFiltrados}
-              disabled={isLoadingFornecedores}
-              onChange={setFornecedorId}
-            />
-          </label>
+          <div className="ck-entity-form-grid">
+            <label className="ck-entity-field ck-entity-field--wide">
+              <span>Buscar fornecedor</span>
+              <input
+                value={buscaFornecedor}
+                onChange={(event) => setBuscaFornecedor(event.target.value)}
+                placeholder="Nome, documento, e-mail ou telefone"
+              />
+            </label>
 
-          {fornecedorSelecionado ? (
-            <div className="ck-selected-box">
-              <div className="ck-selected-grid">
-                <div>
-                  <div className="ck-selected-label">Fornecedor</div>
-                  <div className="ck-selected-value">
-                    {formatFornecedorLabel(fornecedorSelecionado)}
-                  </div>
-                </div>
+            <label className="ck-entity-field ck-entity-field--wide">
+              <span>Fornecedor</span>
+              <select
+                value={fornecedorId}
+                onChange={(event) => setFornecedorId(event.target.value)}
+                disabled={isLoadingFornecedores}
+              >
+                <option value="">
+                  {isLoadingFornecedores
+                    ? "Carregando fornecedores..."
+                    : "Compra sem fornecedor vinculado"}
+                </option>
 
-                <div>
-                  <div className="ck-selected-label">Telefone</div>
-                  <div className="ck-selected-value">
-                    {fornecedorSelecionado.telefone ?? "—"}
-                  </div>
-                </div>
+                {fornecedoresFiltrados.map((fornecedor) => (
+                  <option
+                    key={fornecedor.fornecedorId}
+                    value={fornecedor.fornecedorId}
+                  >
+                    {formatFornecedorLabel(fornecedor)}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-                <div>
-                  <div className="ck-selected-label">E-mail</div>
-                  <div className="ck-selected-value">
-                    {fornecedorSelecionado.email ?? "—"}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="ck-selected-label">Documento</div>
-                  <div className="ck-selected-value">
-                    {fornecedorSelecionado.documento ?? "—"}
-                  </div>
+            {fornecedorSelecionado ? (
+              <div className="ck-entity-card ck-entity-field--wide">
+                <div className="ck-entity-card__title">
+                  <h2>Fornecedor selecionado</h2>
+                  <p>{formatFornecedorLabel(fornecedorSelecionado)}</p>
                 </div>
               </div>
-            </div>
-          ) : null}
-        </div>
-      </section>
+            ) : null}
+          </div>
+        </section>
 
-      <section className="ck-register-form-card">
-        <div className="ck-register-form-header">
-          <div className="ck-register-form-title">Observação</div>
-          <p className="ck-register-form-desc">
-            Use para registrar contexto da compra ou reposição.
-          </p>
-        </div>
+        <section className="ck-entity-card">
+          <div className="ck-entity-card__title">
+            <h2>Observação</h2>
+            <p>Registre condições comerciais ou contexto da compra.</p>
+          </div>
 
-        <div className="ck-register-form-body">
-          <label className="ck-register-field">
+          <label className="ck-entity-field">
             <span>Observação da compra</span>
             <textarea
-              className="ck-register-textarea"
               value={observacao}
               onChange={(event) => setObservacao(event.target.value)}
-              placeholder="Ex.: reposição de estoque, compra de fornecedor, lote especial..."
+              placeholder="Ex.: reposição de estoque, compra direta, fornecedor preferencial..."
+              rows={5}
             />
           </label>
-        </div>
-      </section>
+        </section>
 
-      <div className="flex justify-end">
-        <button
-          className="ck-register-action-primary"
-          disabled={isSaving}
-          type="submit"
-        >
-          {isSaving ? "Criando..." : "Criar compra e adicionar itens"}
-        </button>
-      </div>
-    </form>
+        <footer className="ck-entity-form__footer">
+          <button
+            className="ck-entity-button ck-entity-button--primary"
+            disabled={isSaving}
+            type="submit"
+          >
+            {isSaving ? "Criando..." : "Criar compra"}
+          </button>
+        </footer>
+      </form>
+    </div>
   );
 }

@@ -1,10 +1,11 @@
 // apps/web/src/features/tenant-admin/fornecedores/pages/EditarFornecedorPage.tsx
 
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { FornecedorForm } from "../components/FornecedorForm";
 import { useFornecedorDetails } from "../hooks/useFornecedorDetails";
 import { useSalvarFornecedor } from "../hooks/useSalvarFornecedor";
 import type { AtualizarFornecedorInput, CriarFornecedorInput } from "../tipos";
+import "../../shared/entityPages.css";
 
 export default function EditarFornecedorPage() {
   const navigate = useNavigate();
@@ -35,24 +36,39 @@ export default function EditarFornecedorPage() {
   }
 
   if (isLoading) {
-    return <div className="rounded-2xl border bg-white p-6">Carregando fornecedor...</div>;
+    return (
+      <div className="ck-entity-page">
+        <div className="ck-entity-card">Carregando fornecedor...</div>
+      </div>
+    );
   }
 
   if (erroCarga) {
-    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroCarga}</div>;
+    return (
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">{erroCarga}</div>
+      </div>
+    );
   }
 
   if (!fornecedor) {
-    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Fornecedor não encontrado.</div>;
+    return (
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">Fornecedor não encontrado.</div>
+      </div>
+    );
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Editar fornecedor</h1>
-        <p className="text-sm text-slate-600">
-          Atualize os dados do fornecedor.
-        </p>
+    <div className="ck-entity-page">
+      <div className="ck-entity-page__actions">
+        <Link className="ck-entity-button" to={`/app/fornecedores/${fornecedor.fornecedorId}`}>
+          Voltar para detalhes
+        </Link>
+
+        <Link className="ck-entity-button" to="/app/fornecedores">
+          Lista de fornecedores
+        </Link>
       </div>
 
       <FornecedorForm

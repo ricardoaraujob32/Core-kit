@@ -1,62 +1,39 @@
 // apps/web/src/features/tenant-admin/produtos/pages/NovoProdutoPage.tsx
 
-import { useState } from "react";
-import { produtosApi } from "../api/produtosApi";
-import type { TipoProduto } from "../tipos";
+import { Link, useNavigate } from "react-router-dom";
+import { ProdutoForm } from "../components/ProdutoForm";
+import { useSalvarProduto } from "../hooks/useSalvarProduto";
+import type { AtualizarProdutoInput, CriarProdutoInput } from "../tipos";
+import "./produtoPages.css";
 
 export default function NovoProdutoPage() {
-  const [nome, setNome] = useState("");
-  const [tipo, setTipo] = useState<TipoProduto>("PRODUTO");
-  const [precoVenda, setPrecoVenda] = useState("0");
-  const [erro, setErro] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setErro(null);
-    setSucesso(null);
+  const { salvar, isSaving, erro } = useSalvarProduto({
+    mode: "create",
+    onSuccess: (produto) => navigate(`/app/produtos/${produto.produtoId}`),
+  });
 
-    try {
-      await produtosApi.criar({
-        nome,
-        tipo,
-        precoVenda: Number(precoVenda),
-      });
-
-      setSucesso("Produto/serviço criado com sucesso.");
-      setNome("");
-      setTipo("PRODUTO");
-      setPrecoVenda("0");
-    } catch (error) {
-      setErro(error instanceof Error ? error.message : "Erro ao criar produto.");
-    }
+  async function handleSubmit(
+    input: CriarProdutoInput | AtualizarProdutoInput,
+  ) {
+    await salvar(input);
   }
 
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit}>
-      <h1>Novo produto/serviço</h1>
+    <div className="ck-product-page">
+      <div className="ck-product-page__actions">
+        <Link className="ck-product-button" to="/app/produtos">
+          Voltar para produtos
+        </Link>
+      </div>
 
-      {erro ? <div>{erro}</div> : null}
-      {sucesso ? <div>{sucesso}</div> : null}
-
-      <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" required />
-
-      <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoProduto)}>
-        <option value="PRODUTO">Produto</option>
-        <option value="SERVICO">Serviço</option>
-      </select>
-
-      <input
-        value={precoVenda}
-        onChange={(e) => setPrecoVenda(e.target.value)}
-        placeholder="Preço de venda"
-        type="number"
-        min="0"
-        step="0.01"
-        required
+      <ProdutoForm
+        mode="create"
+        isSaving={isSaving}
+        erro={erro}
+        onSubmit={handleSubmit}
       />
-
-      <button type="submit">Salvar</button>
-    </form>
+    </div>
   );
 }

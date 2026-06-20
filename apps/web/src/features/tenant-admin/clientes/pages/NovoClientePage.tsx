@@ -1,52 +1,37 @@
 // apps/web/src/features/tenant-admin/clientes/pages/NovoClientePage.tsx
 
-import { useState } from "react";
-import { clientesApi } from "../api/clientesApi";
+import { Link, useNavigate } from "react-router-dom";
+import { ClienteForm } from "../components/ClienteForm";
+import { useSalvarCliente } from "../hooks/useSalvarCliente";
+import type { AtualizarClienteInput, CriarClienteInput } from "../tipos";
+import "../../shared/entityPages.css";
 
 export default function NovoClientePage() {
-  const [nome, setNome] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setErro(null);
-    setSucesso(null);
+  const { salvar, isSaving, erro } = useSalvarCliente({
+    mode: "create",
+    onSuccess: () => navigate("/app/clientes"),
+  });
 
-    try {
-      await clientesApi.criar({
-        nome,
-        documento: documento || null,
-        email: email || null,
-        telefone: telefone || null,
-      });
-
-      setSucesso("Cliente criado com sucesso.");
-      setNome("");
-      setDocumento("");
-      setEmail("");
-      setTelefone("");
-    } catch (error) {
-      setErro(error instanceof Error ? error.message : "Erro ao criar cliente.");
-    }
+  async function handleSubmit(input: CriarClienteInput | AtualizarClienteInput) {
+    await salvar(input);
   }
 
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit}>
-      <h1>Novo cliente</h1>
+    <div className="ck-entity-page">
+      <div className="ck-entity-page__actions">
+        <Link className="ck-entity-button" to="/app/clientes">
+          Voltar para clientes
+        </Link>
+      </div>
 
-      {erro ? <div>{erro}</div> : null}
-      {sucesso ? <div>{sucesso}</div> : null}
-
-      <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" required />
-      <input value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder="Documento" />
-      <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail" type="email" />
-      <input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="Telefone" />
-
-      <button type="submit">Salvar</button>
-    </form>
+      <ClienteForm
+        mode="create"
+        isSaving={isSaving}
+        erro={erro}
+        onSubmit={handleSubmit}
+      />
+    </div>
   );
 }

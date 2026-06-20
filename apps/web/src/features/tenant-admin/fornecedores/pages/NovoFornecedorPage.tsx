@@ -1,44 +1,39 @@
 // apps/web/src/features/tenant-admin/fornecedores/pages/NovoFornecedorPage.tsx
 
-import { useState } from "react";
-import { fornecedoresApi } from "../api/fornecedoresApi";
+import { Link, useNavigate } from "react-router-dom";
+import { FornecedorForm } from "../components/FornecedorForm";
+import { useSalvarFornecedor } from "../hooks/useSalvarFornecedor";
+import type { AtualizarFornecedorInput, CriarFornecedorInput } from "../tipos";
+import "../../shared/entityPages.css";
 
 export default function NovoFornecedorPage() {
-  const [nome, setNome] = useState("");
-  const [documento, setDocumento] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setErro(null);
-    setSucesso(null);
+  const { salvar, isSaving, erro } = useSalvarFornecedor({
+    mode: "create",
+    onSuccess: () => navigate("/app/fornecedores"),
+  });
 
-    try {
-      await fornecedoresApi.criar({
-        nome,
-        documento: documento || null,
-      });
-
-      setSucesso("Fornecedor criado com sucesso.");
-      setNome("");
-      setDocumento("");
-    } catch (error) {
-      setErro(error instanceof Error ? error.message : "Erro ao criar fornecedor.");
-    }
+  async function handleSubmit(
+    input: CriarFornecedorInput | AtualizarFornecedorInput,
+  ) {
+    await salvar(input);
   }
 
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit}>
-      <h1>Novo fornecedor</h1>
+    <div className="ck-entity-page">
+      <div className="ck-entity-page__actions">
+        <Link className="ck-entity-button" to="/app/fornecedores">
+          Voltar para fornecedores
+        </Link>
+      </div>
 
-      {erro ? <div>{erro}</div> : null}
-      {sucesso ? <div>{sucesso}</div> : null}
-
-      <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" required />
-      <input value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder="Documento" />
-
-      <button type="submit">Salvar</button>
-    </form>
+      <FornecedorForm
+        mode="create"
+        isSaving={isSaving}
+        erro={erro}
+        onSubmit={handleSubmit}
+      />
+    </div>
   );
 }

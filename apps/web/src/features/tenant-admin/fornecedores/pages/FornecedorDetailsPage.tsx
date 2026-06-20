@@ -1,9 +1,9 @@
-
 // apps/web/src/features/tenant-admin/fornecedores/pages/FornecedorDetailsPage.tsx
 
 import { Link, useParams } from "react-router-dom";
+import { formatDateTime } from "../../../../shared/formatters";
 import { useFornecedorDetails } from "../hooks/useFornecedorDetails";
-import { toFornecedorViewModel } from "../fornecedor.viewModel";
+import "../../shared/entityPages.css";
 
 export default function FornecedorDetailsPage() {
   const params = useParams<{ fornecedorId: string }>();
@@ -12,45 +12,109 @@ export default function FornecedorDetailsPage() {
   const { fornecedor, isLoading, erro } = useFornecedorDetails(fornecedorId);
 
   if (isLoading) {
-    return <div className="rounded-2xl border bg-white p-6">Carregando fornecedor...</div>;
+    return (
+      <div className="ck-entity-page">
+        <div className="ck-entity-card">Carregando fornecedor...</div>
+      </div>
+    );
   }
 
   if (erro) {
-    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div>;
+    return (
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">{erro}</div>
+      </div>
+    );
   }
 
   if (!fornecedor) {
-    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Fornecedor não encontrado.</div>;
+    return (
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">Fornecedor não encontrado.</div>
+      </div>
+    );
   }
 
-  const vm = toFornecedorViewModel(fornecedor);
-
   return (
-    <div className="grid gap-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="ck-entity-page">
+      <section className="ck-entity-hero">
         <div>
-          <p className="text-sm text-slate-600">Fornecedor</p>
-          <h1 className="text-2xl font-semibold">{vm.titulo}</h1>
-          <p className="text-sm text-slate-600">{vm.subtitulo}</p>
+          <p className="ck-entity-kicker">Fornecedor</p>
+          <h1>{fornecedor.nome}</h1>
+          <p>{fornecedor.documento ?? "Documento não informado"}</p>
         </div>
 
-        <Link
-          className="rounded-xl border px-4 py-2"
-          to={`/app/fornecedores/${fornecedor.fornecedorId}/editar`}
-        >
-          Editar
-        </Link>
-      </div>
+        <div className="ck-entity-page__actions">
+          <Link
+            className="ck-entity-button ck-entity-button--primary"
+            to={`/app/fornecedores/${fornecedor.fornecedorId}/editar`}
+          >
+            Editar
+          </Link>
 
-      <div className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>Nome:</strong> {fornecedor.nome}</div>
-        <div><strong>Documento:</strong> {fornecedor.documento ?? "—"}</div>
-        <div><strong>E-mail:</strong> {fornecedor.email ?? "—"}</div>
-        <div><strong>Telefone:</strong> {fornecedor.telefone ?? "—"}</div>
-        <div><strong>Criado em:</strong> {fornecedor.criadoEm ?? "—"}</div>
-        <div><strong>Atualizado em:</strong> {fornecedor.atualizadoEm ?? "—"}</div>
-      </div>
+          <Link className="ck-entity-button" to="/app/fornecedores">
+            Lista de fornecedores
+          </Link>
+        </div>
+      </section>
+
+      <section className="ck-entity-detail-grid">
+        <article className="ck-entity-card">
+          <div className="ck-entity-card__title">
+            <h2>Identificação</h2>
+            <p>Dados principais do fornecedor.</p>
+          </div>
+
+          <dl className="ck-entity-detail-list">
+            <div>
+              <dt>Nome</dt>
+              <dd>{fornecedor.nome}</dd>
+            </div>
+
+            <div>
+              <dt>Documento</dt>
+              <dd>{fornecedor.documento ?? "—"}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article className="ck-entity-card">
+          <div className="ck-entity-card__title">
+            <h2>Contato</h2>
+            <p>Canais de comunicação.</p>
+          </div>
+
+          <dl className="ck-entity-detail-list">
+            <div>
+              <dt>E-mail</dt>
+              <dd>{fornecedor.email ?? "—"}</dd>
+            </div>
+
+            <div>
+              <dt>Telefone</dt>
+              <dd>{fornecedor.telefone ?? "—"}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section className="ck-entity-card">
+        <div className="ck-entity-card__title">
+          <h2>Registro</h2>
+        </div>
+
+        <dl className="ck-entity-detail-list">
+          <div>
+            <dt>Criado em</dt>
+            <dd>{formatDateTime(fornecedor.criadoEm)}</dd>
+          </div>
+
+          <div>
+            <dt>Atualizado em</dt>
+            <dd>{formatDateTime(fornecedor.atualizadoEm)}</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   );
 }
-

@@ -4,7 +4,6 @@ import type { JSX } from "react";
 import { Outlet } from "react-router-dom";
 import { TenantSidebar } from "../shared/layout";
 import { TenantBreadcrumbRail } from "../shared/navigation";
-import { AppNavItem } from "../shared/layout/AppHeader";
 
 export default function TenantLayout(): JSX.Element {
   return (

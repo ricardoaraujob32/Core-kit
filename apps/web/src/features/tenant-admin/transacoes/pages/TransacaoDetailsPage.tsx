@@ -1,694 +1,359 @@
-
 // apps/web/src/features/tenant-admin/transacoes/pages/TransacaoDetailsPage.tsx
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
+import {
+  formatClienteLabel,
+  formatDateTime,
+  formatFornecedorLabel,
+  formatMoney,
+  formatTransacaoLabel,
+  shortCode,
+} from "../../../../shared/formatters";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
-import { produtosApi } from "../../produtos/api/produtosApi";
-import type { Produto } from "../../produtos/tipos";
-import { useTransacaoActions } from "../hooks/useTransacaoActions";
-import { useTransacaoDetails } from "../hooks/useTransacaoDetails";
-import { toTransacaoViewModel } from "../transacao.viewModel";
+import { transacoesApi } from "../api/transacoesApi";
+import type { TransacaoDetalhada } from "../tipos";
+import "../../shared/entityPages.css";
 
-function parseNumero(value: string): number {
-  const normalized = value.trim().replace(",", ".");
-  const parsed = Number(normalized);
-
-  return Number.isFinite(parsed) ? parsed : 0;
+function statusClass(status?: string | null): string {
+  switch (status) {
+    case "CONCLUIDA":
+      return "ck-status ck-status-success";
+    case "CANCELADA":
+      return "ck-status ck-status-danger";
+    default:
+      return "ck-status ck-status-warning";
+  }
 }
 
-function formatarMoeda(valor?: number | string | null): string {
-  return Number(valor ?? 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatarNumero(valor?: number | string | null): string {
-  return Number(valor ?? 0).toLocaleString("pt-BR");
-}
-
-function formatarData(value?: string | null): string {
-  if (!value) return "—";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleString("pt-BR");
-}
-
-function valorTexto(valor: unknown): string {
-  if (valor === null || valor === undefined || valor === "") return "—";
-  return String(valor);
-}
-
-function labelProduto(produto: Produto): string {
-  return produto.sku ? `${produto.nome} — ${produto.sku}` : produto.nome;
-}
-
-function labelCliente(cliente: Cliente): string {
-  return cliente.documento ? `${cliente.nome} — ${cliente.documento}` : cliente.nome;
-}
-
-function labelFornecedor(fornecedor: Fornecedor): string {
-  return fornecedor.documento
-    ? `${fornecedor.nome} — ${fornecedor.documento}`
-    : fornecedor.nome;
+function tipoLabel(tipo: string): string {
+  return tipo === "COMPRA" ? "Compra" : "Venda";
 }
 
 export default function TransacaoDetailsPage() {
   const params = useParams<{ transacaoId: string }>();
   const transacaoId = params.transacaoId?.trim();
 
-  const { transacao, isLoading, erro, recarregar } =
-    useTransacaoDetails(transacaoId);
-
-  const {
-    adicionarItem,
-    atualizarItem,
-    removerItem,
-    confirmar,
-    cancelar,
-    erro: erroAcao,
-    isSubmitting,
-  } = useTransacaoActions({
-    transacaoId,
-    onSuccess: recarregar,
-  });
-
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [erroApoio, setErroApoio] = useState<string | null>(null);
-
-  const [produtoId, setProdutoId] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [quantidade, setQuantidade] = useState("1");
-  const [valorUnitario, setValorUnitario] = useState("0");
-  const [valorDesconto, setValorDesconto] = useState("0");
-
+  const [transacao, setTransacao] = useState<TransacaoDetalhada | null>(null);
+  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [fornecedor, setFornecedor] = useState<Fornecedor | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRunning, setIsRunning] = useState<"confirmar" | "cancelar" | null>(
+    null,
+  );
 
-  const [itemEditandoId, setItemEditandoId] = useState<string | null>(null);
-  const [descricaoEditando, setDescricaoEditando] = useState("");
-  const [quantidadeEditando, setQuantidadeEditando] = useState("");
-  const [valorUnitarioEditando, setValorUnitarioEditando] = useState("");
-  const [valorDescontoEditando, setValorDescontoEditando] = useState("");
+  async function carregar() {
+    if (!transacaoId) {
+      setErro("Transação inválida.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setErro(null);
+
+    try {
+      const response = await transacoesApi.obter(transacaoId);
+      const item = response.item;
+
+      setTransacao(item);
+
+      if (item.clienteId) {
+        const clienteResponse = await clientesApi.obter(item.clienteId);
+        setCliente(clienteResponse.item);
+      } else {
+        setCliente(null);
+      }
+
+      if (item.fornecedorId) {
+        const fornecedorResponse = await fornecedoresApi.obter(
+          item.fornecedorId,
+        );
+        setFornecedor(fornecedorResponse.item);
+      } else {
+        setFornecedor(null);
+      }
+    } catch (error) {
+      setErro(mapError(error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let ativo = true;
+    void carregar();
+  }, [transacaoId]);
 
-    async function carregarDadosDeApoio() {
-      setErroApoio(null);
+  async function confirmar() {
+    if (!transacaoId) return;
 
-      try {
-        const [clientesResponse, fornecedoresResponse, produtosResponse] =
-          await Promise.all([
-            clientesApi.listar(),
-            fornecedoresApi.listar(),
-            produtosApi.listar(),
-          ]);
+    setIsRunning("confirmar");
+    setErroAcao(null);
 
-        if (!ativo) return;
-
-        setClientes(clientesResponse.itens);
-        setFornecedores(fornecedoresResponse.itens);
-        setProdutos(produtosResponse.itens);
-      } catch (error) {
-        if (ativo) setErroApoio(mapError(error).message);
-      }
-    }
-
-    void carregarDadosDeApoio();
-
-    return () => {
-      ativo = false;
-    };
-  }, []);
-
-  const clientesPorId = useMemo(
-    () => new Map(clientes.map((cliente) => [cliente.clienteId, cliente])),
-    [clientes],
-  );
-
-  const fornecedoresPorId = useMemo(
-    () =>
-      new Map(
-        fornecedores.map((fornecedor) => [
-          fornecedor.fornecedorId,
-          fornecedor,
-        ]),
-      ),
-    [fornecedores],
-  );
-
-  const produtosPorId = useMemo(
-    () => new Map(produtos.map((produto) => [produto.produtoId, produto])),
-    [produtos],
-  );
-
-  async function handleAdicionarItem(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    await adicionarItem({
-      produtoId: produtoId.trim(),
-      estoqueId: null,
-      descricao: descricao.trim() || null,
-      quantidade: parseNumero(quantidade),
-      valorUnitario: parseNumero(valorUnitario),
-      valorDesconto: parseNumero(valorDesconto),
-    });
-
-    setProdutoId("");
-    setDescricao("");
-    setQuantidade("1");
-    setValorUnitario("0");
-    setValorDesconto("0");
-  }
-
-  async function handleAtualizarItem(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!itemEditandoId) return;
-
-    await atualizarItem(itemEditandoId, {
-      descricao: descricaoEditando.trim() || null,
-      quantidade: parseNumero(quantidadeEditando),
-      valorUnitario: parseNumero(valorUnitarioEditando),
-      valorDesconto: parseNumero(valorDescontoEditando),
-    });
-
-    setItemEditandoId(null);
-    setDescricaoEditando("");
-    setQuantidadeEditando("");
-    setValorUnitarioEditando("");
-    setValorDescontoEditando("");
-  }
-
-  function handleSelecionarProduto(value: string) {
-    setProdutoId(value);
-
-    const produto = produtosPorId.get(value);
-    if (!produto) return;
-
-    setValorUnitario(String(produto.precoVenda ?? 0));
-
-    if (!descricao.trim() && produto.descricao) {
-      setDescricao(produto.descricao);
+    try {
+      await transacoesApi.confirmar(transacaoId);
+      await carregar();
+    } catch (error) {
+      setErroAcao(mapError(error).message);
+    } finally {
+      setIsRunning(null);
     }
   }
+
+  async function cancelar() {
+    if (!transacaoId) return;
+
+    setIsRunning("cancelar");
+    setErroAcao(null);
+
+    try {
+      await transacoesApi.cancelar(transacaoId, {
+        motivo: motivoCancelamento.trim() || null,
+      });
+
+      await carregar();
+    } catch (error) {
+      setErroAcao(mapError(error).message);
+    } finally {
+      setIsRunning(null);
+    }
+  }
+
+  const pessoaLabel = useMemo(() => {
+    if (cliente) return formatClienteLabel(cliente);
+    if (fornecedor) return formatFornecedorLabel(fornecedor);
+
+    if (transacao?.clienteId) return "Cliente não carregado";
+    if (transacao?.fornecedorId) return "Fornecedor não carregado";
+
+    return "Pessoa não vinculada";
+  }, [cliente, fornecedor, transacao]);
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border bg-white p-6">
-        Carregando transação...
+      <div className="ck-entity-page">
+        <div className="ck-entity-card">Carregando transação...</div>
       </div>
     );
   }
 
   if (erro) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {erro}
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">{erro}</div>
       </div>
     );
   }
 
   if (!transacao) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        Transação não encontrada.
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">Transação não encontrada.</div>
       </div>
     );
   }
 
-  const podeEditar =
-    transacao.status === "ABERTA" || transacao.status === "RASCUNHO";
-
-  const itens = transacao.itens ?? [];
-
-  const cliente = transacao.clienteId
-    ? clientesPorId.get(transacao.clienteId)
-    : undefined;
-
-  const fornecedor = transacao.fornecedorId
-    ? fornecedoresPorId.get(transacao.fornecedorId)
-    : undefined;
-
-  const pessoaTitulo = transacao.tipo === "COMPRA" ? "Fornecedor" : "Cliente";
-  const pessoaNome =
-    transacao.tipo === "COMPRA"
-      ? fornecedor
-        ? labelFornecedor(fornecedor)
-        : transacao.fornecedorId
-          ? "Fornecedor não carregado"
-          : "—"
-      : cliente
-        ? labelCliente(cliente)
-        : transacao.clienteId
-          ? "Cliente não carregado"
-          : "—";
-
-  const pessoaDocumento =
-    transacao.tipo === "COMPRA" ? fornecedor?.documento : cliente?.documento;
-  const pessoaEmail =
-    transacao.tipo === "COMPRA" ? fornecedor?.email : cliente?.email;
-  const pessoaTelefone =
-    transacao.tipo === "COMPRA" ? fornecedor?.telefone : cliente?.telefone;
-
-  const vm = toTransacaoViewModel({
-    ...transacao,
-    pessoaNome,
-  });
-
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="ck-entity-page">
+      <section className="ck-entity-hero">
         <div>
-          <p className="text-sm text-slate-600">
-            Transações / {transacao.tipo === "COMPRA" ? "Compras" : "Vendas"}
-          </p>
-
-          <h1 className="text-2xl font-semibold">{vm.titulo}</h1>
-
-          <p className="text-sm text-slate-600">
-            {vm.subtitulo} · Status: <strong>{transacao.status}</strong>
+          <p className="ck-entity-kicker">Transação</p>
+          <h1>{formatTransacaoLabel(transacao)}</h1>
+          <p>
+            {tipoLabel(transacao.tipo)} — Ref. {shortCode(transacao.transacaoId)}
           </p>
         </div>
 
-        <div className="grid gap-2">
-          <label className="grid gap-1">
-            <span className="text-xs text-slate-500">
-              Motivo do cancelamento
-            </span>
-            <input
-              className="rounded-xl border px-3 py-2"
-              placeholder="Informe apenas se for cancelar"
+        <div className="ck-entity-page__actions">
+          <Link className="ck-entity-button" to="/app/transacoes">
+            Lista de transações
+          </Link>
+        </div>
+      </section>
+
+      {erroAcao ? <div className="ck-entity-alert">{erroAcao}</div> : null}
+
+      <section className="ck-entity-detail-grid ck-entity-detail-grid--three">
+        <article className="ck-entity-card">
+          <div className="ck-entity-card__title">
+            <h2>Resumo</h2>
+            <p>Identificação principal da transação.</p>
+          </div>
+
+          <dl className="ck-entity-detail-list">
+            <div>
+              <dt>Tipo</dt>
+              <dd>{tipoLabel(transacao.tipo)}</dd>
+            </div>
+
+            <div>
+              <dt>Pessoa</dt>
+              <dd>{pessoaLabel}</dd>
+            </div>
+
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span className={statusClass(transacao.status)}>
+                  {transacao.status}
+                </span>
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <article className="ck-entity-card">
+          <div className="ck-entity-card__title">
+            <h2>Valores</h2>
+            <p>Composição financeira da transação.</p>
+          </div>
+
+          <dl className="ck-entity-detail-list">
+            <div>
+              <dt>Subtotal</dt>
+              <dd>{formatMoney(transacao.valorSubtotal)}</dd>
+            </div>
+
+            <div>
+              <dt>Desconto</dt>
+              <dd>{formatMoney(transacao.valorDesconto)}</dd>
+            </div>
+
+            <div>
+              <dt>Acréscimo</dt>
+              <dd>{formatMoney(transacao.valorAcrescimo)}</dd>
+            </div>
+
+            <div>
+              <dt>Total</dt>
+              <dd>{formatMoney(transacao.valorTotal)}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article className="ck-entity-card">
+          <div className="ck-entity-card__title">
+            <h2>Datas</h2>
+            <p>Registro e atualização.</p>
+          </div>
+
+          <dl className="ck-entity-detail-list">
+            <div>
+              <dt>Criada em</dt>
+              <dd>{formatDateTime(transacao.criadoEm)}</dd>
+            </div>
+
+            <div>
+              <dt>Atualizada em</dt>
+              <dd>{formatDateTime(transacao.atualizadoEm)}</dd>
+            </div>
+
+            <div>
+              <dt>Cancelada em</dt>
+              <dd>{formatDateTime(transacao.canceladoEm)}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section className="ck-entity-card">
+        <div className="ck-entity-card__title">
+          <h2>Itens</h2>
+          <p>Produtos e serviços vinculados à transação.</p>
+        </div>
+
+        {transacao.itens.length === 0 ? (
+          <p className="ck-entity-description">
+            Nenhum item foi adicionado a esta transação.
+          </p>
+        ) : (
+          <div className="ck-register-table-panel">
+            <table className="ck-register-table">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Tipo</th>
+                  <th>Quantidade</th>
+                  <th>Valor unitário</th>
+                  <th>Desconto</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {transacao.itens.map((item) => (
+                  <tr key={item.itemTransacaoId}>
+                    <td>{item.descricao ?? "Item sem descrição"}</td>
+                    <td>{item.tipoProduto}</td>
+                    <td>{item.quantidade}</td>
+                    <td>{formatMoney(item.valorUnitario)}</td>
+                    <td>{formatMoney(item.valorDesconto)}</td>
+                    <td>{formatMoney(item.valorTotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="ck-entity-card">
+        <div className="ck-entity-card__title">
+          <h2>Observação</h2>
+        </div>
+
+        <p className="ck-entity-description">
+          {transacao.observacao ?? "Nenhuma observação cadastrada."}
+        </p>
+      </section>
+
+      <section className="ck-entity-card">
+        <div className="ck-entity-card__title">
+          <h2>Ações</h2>
+          <p>Confirme ou cancele a transação conforme o fluxo operacional.</p>
+        </div>
+
+        <div className="ck-entity-actions-row">
+          <button
+            className="ck-entity-button ck-entity-button--primary"
+            type="button"
+            disabled={Boolean(isRunning)}
+            onClick={confirmar}
+          >
+            {isRunning === "confirmar" ? "Confirmando..." : "Confirmar"}
+          </button>
+        </div>
+
+        <div className="ck-entity-form-grid">
+          <label className="ck-entity-field ck-entity-field--wide">
+            <span>Motivo do cancelamento</span>
+            <textarea
               value={motivoCancelamento}
               onChange={(event) => setMotivoCancelamento(event.target.value)}
+              placeholder="Opcional"
+              rows={4}
             />
           </label>
-
-          <div className="flex justify-end gap-2">
-            <button
-              className="rounded-xl border px-4 py-2"
-              type="button"
-              disabled={isSubmitting || !podeEditar}
-              onClick={() => void confirmar()}
-            >
-              Confirmar
-            </button>
-
-            <button
-              className="rounded-xl border px-4 py-2"
-              type="button"
-              disabled={isSubmitting || transacao.status === "CANCELADA"}
-              onClick={() =>
-                void cancelar({
-                  motivo: motivoCancelamento.trim() || null,
-                })
-              }
-            >
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {erroAcao ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {erroAcao}
-        </div>
-      ) : null}
-
-      {erroApoio ? (
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-          Não foi possível carregar alguns dados auxiliares. A tela usará dados
-          internos como fallback. Detalhe: {erroApoio}
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-          <h2 className="text-lg font-semibold">Informações gerais</h2>
-
-          <div>
-            <div className="text-xs text-slate-500">Tipo</div>
-            <div>{transacao.tipo}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Status</div>
-            <div>{transacao.status}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Criada em</div>
-            <div>{formatarData(transacao.criadoEm)}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Atualizada em</div>
-            <div>{formatarData(transacao.atualizadoEm)}</div>
-          </div>
-
-        </section>
-
-        <section className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-          <h2 className="text-lg font-semibold">Dados de {pessoaTitulo.toLowerCase()}</h2>
-
-          <div>
-            <div className="text-xs text-slate-500">{pessoaTitulo}</div>
-            <div>{pessoaNome}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Documento</div>
-            <div>{valorTexto(pessoaDocumento)}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">E-mail</div>
-            <div>{valorTexto(pessoaEmail)}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Telefone</div>
-            <div>{valorTexto(pessoaTelefone)}</div>
-          </div>
-        </section>
-
-        <section className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-          <h2 className="text-lg font-semibold">Resumo financeiro</h2>
-
-          <div>
-            <div className="text-xs text-slate-500">Subtotal</div>
-            <div>{formatarMoeda(transacao.valorSubtotal)}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Desconto</div>
-            <div>{formatarMoeda(transacao.valorDesconto)}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Acréscimo</div>
-            <div>{formatarMoeda(transacao.valorAcrescimo)}</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-500">Total</div>
-            <div className="text-lg font-semibold">
-              {formatarMoeda(transacao.valorTotal)}
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {transacao.observacao ? (
-        <section className="rounded-2xl border bg-white p-6 text-sm">
-          <h2 className="mb-2 text-lg font-semibold">Observação</h2>
-          <p className="text-slate-700">{transacao.observacao}</p>
-        </section>
-      ) : null}
-
-      {podeEditar ? (
-        <form
-          className="grid gap-4 rounded-2xl border bg-white p-6"
-          onSubmit={handleAdicionarItem}
-        >
-          <div>
-            <h2 className="text-lg font-semibold">Adicionar item</h2>
-            <p className="text-sm text-slate-600">
-              Selecione produto/serviço e informe quantidade e valores. O
-              estoque será decidido pela movimentação automática.
-            </p>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-6">
-            <label className="grid gap-1 md:col-span-2">
-              <span className="text-xs text-slate-500">Produto/serviço</span>
-              <select
-                className="rounded-xl border px-3 py-2"
-                value={produtoId}
-                onChange={(event) => handleSelecionarProduto(event.target.value)}
-                required
-              >
-                <option value="">Selecione...</option>
-
-                {produtos.map((produto) => (
-                  <option key={produto.produtoId} value={produto.produtoId}>
-                    {labelProduto(produto)}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="grid gap-1 md:col-span-2">
-              <span className="text-xs text-slate-500">Descrição</span>
-              <input
-                className="rounded-xl border px-3 py-2"
-                placeholder="Descrição opcional"
-                value={descricao}
-                onChange={(event) => setDescricao(event.target.value)}
-              />
-            </label>
-
-            <label className="grid gap-1">
-              <span className="text-xs text-slate-500">Quantidade</span>
-              <input
-                className="rounded-xl border px-3 py-2"
-                type="text"
-                inputMode="decimal"
-                placeholder="Quantidade"
-                value={quantidade}
-                onChange={(event) => setQuantidade(event.target.value)}
-                required
-              />
-            </label>
-
-            <label className="grid gap-1">
-              <span className="text-xs text-slate-500">Valor unitário</span>
-              <input
-                className="rounded-xl border px-3 py-2"
-                type="text"
-                inputMode="decimal"
-                placeholder="Valor unitário"
-                value={valorUnitario}
-                onChange={(event) => setValorUnitario(event.target.value)}
-                required
-              />
-            </label>
-
-            <label className="grid gap-1">
-              <span className="text-xs text-slate-500">Desconto</span>
-              <input
-                className="rounded-xl border px-3 py-2"
-                type="text"
-                inputMode="decimal"
-                placeholder="Desconto"
-                value={valorDesconto}
-                onChange={(event) => setValorDesconto(event.target.value)}
-              />
-            </label>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              className="rounded-xl border px-4 py-2"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              Adicionar item
-            </button>
-          </div>
-        </form>
-      ) : null}
-
-      {itemEditandoId ? (
-        <form
-          className="grid gap-4 rounded-2xl border bg-white p-6"
-          onSubmit={handleAtualizarItem}
-        >
-          <h2 className="text-lg font-semibold">Editar item</h2>
-
-          <label className="grid gap-1">
-            <span className="text-xs text-slate-500">Descrição</span>
-            <input
-              className="rounded-xl border px-3 py-2"
-              placeholder="Descrição opcional"
-              value={descricaoEditando}
-              onChange={(event) => setDescricaoEditando(event.target.value)}
-            />
-          </label>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <label className="grid gap-1">
-              <span className="text-xs text-slate-500">Quantidade</span>
-              <input
-                className="rounded-xl border px-3 py-2"
-                type="text"
-                inputMode="decimal"
-                value={quantidadeEditando}
-                onChange={(event) => setQuantidadeEditando(event.target.value)}
-                required
-              />
-            </label>
-
-            <label className="grid gap-1">
-              <span className="text-xs text-slate-500">Valor unitário</span>
-              <input
-                className="rounded-xl border px-3 py-2"
-                type="text"
-                inputMode="decimal"
-                value={valorUnitarioEditando}
-                onChange={(event) =>
-                  setValorUnitarioEditando(event.target.value)
-                }
-                required
-              />
-            </label>
-
-            <label className="grid gap-1">
-              <span className="text-xs text-slate-500">Desconto</span>
-              <input
-                className="rounded-xl border px-3 py-2"
-                type="text"
-                inputMode="decimal"
-                value={valorDescontoEditando}
-                onChange={(event) =>
-                  setValorDescontoEditando(event.target.value)
-                }
-              />
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <button
-              className="rounded-xl border px-4 py-2"
-              type="button"
-              onClick={() => setItemEditandoId(null)}
-            >
-              Cancelar edição
-            </button>
-
-            <button
-              className="rounded-xl border px-4 py-2"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              Salvar item
-            </button>
-          </div>
-        </form>
-      ) : null}
-
-      <section className="overflow-x-auto rounded-2xl border bg-white">
-        <div className="border-b bg-slate-50 px-4 py-3">
-          <h2 className="text-lg font-semibold">
-            {transacao.tipo === "COMPRA" ? "Itens da compra" : "Itens da venda"}
-          </h2>
-          <p className="text-sm text-slate-600">
-            Produtos e serviços adicionados à transação.
-          </p>
         </div>
 
-        <table className="min-w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b bg-slate-50 text-left">
-              <th className="px-4 py-3">Produto/serviço</th>
-              <th className="px-4 py-3">SKU</th>
-              <th className="px-4 py-3">Unidade</th>
-              <th className="px-4 py-3">Tipo</th>
-              <th className="px-4 py-3">Descrição</th>
-              <th className="px-4 py-3">Qtd.</th>
-              <th className="px-4 py-3">Valor unit.</th>
-              <th className="px-4 py-3">Desconto</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Estoque</th>
-              <th className="px-4 py-3">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {itens.map((item) => {
-              const produto = produtosPorId.get(item.produtoId);
-
-              return (
-                <tr
-                  key={item.itemTransacaoId}
-                  className="border-b last:border-b-0"
-                >
-                  <td className="px-4 py-3">{produto?.nome ?? item.produtoId}</td>
-                  <td className="px-4 py-3">{produto?.sku ?? "—"}</td>
-                  <td className="px-4 py-3">{produto?.unidade ?? "—"}</td>
-                  <td className="px-4 py-3">{produto?.tipo ?? item.tipoProduto}</td>
-                  <td className="px-4 py-3">{item.descricao ?? produto?.descricao ?? "—"}</td>
-                  <td className="px-4 py-3">{formatarNumero(item.quantidade)}</td>
-                  <td className="px-4 py-3">{formatarMoeda(item.valorUnitario)}</td>
-                  <td className="px-4 py-3">{formatarMoeda(item.valorDesconto)}</td>
-                  <td className="px-4 py-3 font-medium">{formatarMoeda(item.valorTotal)}</td>
-                  <td className="px-4 py-3">
-                    {item.movimentaEstoque ? "Movimenta" : "Não movimenta"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {podeEditar ? (
-                      <div className="flex gap-3">
-                        <button
-                          className="text-blue-600 underline"
-                          type="button"
-                          disabled={isSubmitting}
-                          onClick={() => {
-                            setItemEditandoId(item.itemTransacaoId);
-                            setDescricaoEditando(item.descricao ?? "");
-                            setQuantidadeEditando(String(item.quantidade));
-                            setValorUnitarioEditando(
-                              String(item.valorUnitario),
-                            );
-                            setValorDescontoEditando(
-                              String(item.valorDesconto),
-                            );
-                          }}
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          className="text-red-600 underline"
-                          type="button"
-                          disabled={isSubmitting}
-                          onClick={() => void removerItem(item.itemTransacaoId)}
-                        >
-                          Remover
-                        </button>
-                      </div>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-
-            {itens.length === 0 ? (
-              <tr>
-                <td
-                  className="px-4 py-8 text-center text-slate-500"
-                  colSpan={11}
-                >
-                  Nenhum item adicionado.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+        <div className="ck-entity-actions-row">
+          <button
+            className="ck-entity-button"
+            type="button"
+            disabled={Boolean(isRunning)}
+            onClick={cancelar}
+          >
+            {isRunning === "cancelar" ? "Cancelando..." : "Cancelar"}
+          </button>
+        </div>
       </section>
     </div>
   );
 }
-
-

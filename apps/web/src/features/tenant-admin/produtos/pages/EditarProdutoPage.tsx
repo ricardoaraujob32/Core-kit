@@ -1,10 +1,11 @@
 // apps/web/src/features/tenant-admin/produtos/pages/EditarProdutoPage.tsx
 
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ProdutoForm } from "../components/ProdutoForm";
 import { useProdutoDetails } from "../hooks/useProdutoDetails";
 import { useSalvarProduto } from "../hooks/useSalvarProduto";
 import type { AtualizarProdutoInput, CriarProdutoInput } from "../tipos";
+import "./produtoPages.css";
 
 export default function EditarProdutoPage() {
   const navigate = useNavigate();
@@ -20,8 +21,8 @@ export default function EditarProdutoPage() {
   const { salvar, isSaving, erro } = useSalvarProduto({
     mode: "edit",
     produtoId,
-    onSuccess: () =>
-      navigate(produtoId ? `/app/produtos/${produtoId}` : "/app/produtos"),
+    onSuccess: (produtoSalvo) =>
+      navigate(`/app/produtos/${produtoSalvo.produtoId}`),
   });
 
   async function handleSubmit(
@@ -32,35 +33,38 @@ export default function EditarProdutoPage() {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border bg-white p-6">
-        Carregando produto...
+      <div className="ck-product-page">
+        <div className="ck-product-card">Carregando produto...</div>
       </div>
     );
   }
 
   if (erroCarga) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {erroCarga}
+      <div className="ck-product-page">
+        <div className="ck-product-alert">{erroCarga}</div>
       </div>
     );
   }
 
   if (!produto) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        Produto não encontrado.
+      <div className="ck-product-page">
+        <div className="ck-product-alert">Produto não encontrado.</div>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Editar produto/serviço</h1>
-        <p className="text-sm text-slate-600">
-          Atualize os dados do produto ou serviço.
-        </p>
+    <div className="ck-product-page">
+      <div className="ck-product-page__actions">
+        <Link className="ck-product-button" to={`/app/produtos/${produto.produtoId}`}>
+          Voltar para detalhes
+        </Link>
+
+        <Link className="ck-product-button" to="/app/produtos">
+          Lista de produtos
+        </Link>
       </div>
 
       <ProdutoForm

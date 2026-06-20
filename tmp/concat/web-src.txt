@@ -5847,220 +5847,6 @@ export default function NovaCompraPage() {
 }
 
 
-===== apps/web/src/features/tenant-admin/examples/ClienteDetailsHeaderExample.tsx =====
-
-// apps/web/src/features/tenant-admin/examples/ClienteDetailsHeaderExample.tsx
-
-import type { JSX } from "react";
-import { Link } from "react-router-dom";
-import { DomainPageHeader } from "../../../shared/navigation";
-import { toClienteViewModel } from "../clientes/cliente.viewModel";
-
-type Cliente = Parameters<typeof toClienteViewModel>[0];
-
-type Props = {
-  cliente: Cliente;
-};
-
-export function ClienteDetailsHeaderExample({ cliente }: Props): JSX.Element {
-  const vm = toClienteViewModel(cliente);
-
-  return (
-    <DomainPageHeader
-      title={vm.titulo}
-      subtitle={vm.subtitulo}
-      status={vm.status}
-      breadcrumbs={[
-        { label: "Início", to: "/app" },
-        { label: "Clientes", to: "/app/clientes" },
-        { label: vm.titulo },
-      ]}
-      actions={
-        <Link to={`/app/clientes/${vm.key}/editar`}>
-          Editar cliente
-        </Link>
-      }
-    />
-  );
-}
-
-
-===== apps/web/src/features/tenant-admin/examples/ClienteTechnicalInfo.tsx =====
-
-
-import type { JSX } from "react";
-import {
-  TechnicalId,
-  TechnicalSection,
-} from "../../../shared/technical";
-
-type Props = {
-  clienteId: string;
-};
-
-export default function ClienteTechnicalInfo({
-  clienteId,
-}: Props): JSX.Element {
-  return (
-    <TechnicalSection>
-      <TechnicalId
-        label="Cliente ID"
-        value={clienteId}
-      />
-    </TechnicalSection>
-  );
-}
-
-
-===== apps/web/src/features/tenant-admin/examples/FornecedorDetailsHeaderExample.tsx =====
-
-// apps/web/src/features/tenant-admin/examples/FornecedorDetailsHeaderExample.tsx
-
-import type { JSX } from "react";
-import { Link } from "react-router-dom";
-import { DomainPageHeader } from "../../../shared/navigation";
-import { toFornecedorViewModel } from "../fornecedores/fornecedor.viewModel";
-
-type Fornecedor = Parameters<typeof toFornecedorViewModel>[0];
-
-type Props = {
-  fornecedor: Fornecedor;
-};
-
-export function FornecedorDetailsHeaderExample({
-  fornecedor,
-}: Props): JSX.Element {
-  const vm = toFornecedorViewModel(fornecedor);
-
-  return (
-    <DomainPageHeader
-      title={vm.titulo}
-      subtitle={vm.subtitulo}
-      status={vm.status}
-      breadcrumbs={[
-        { label: "Início", to: "/app" },
-        { label: "Fornecedores", to: "/app/fornecedores" },
-        { label: vm.titulo },
-      ]}
-      actions={
-        <Link to={`/app/fornecedores/${vm.key}/editar`}>
-          Editar fornecedor
-        </Link>
-      }
-    />
-  );
-}
-
-
-===== apps/web/src/features/tenant-admin/examples/OrdemServicoDetailsHeaderExample.tsx =====
-
-// apps/web/src/features/tenant-admin/examples/OrdemServicoDetailsHeaderExample.tsx
-
-import type { JSX } from "react";
-import { DomainPageHeader } from "../../../shared/navigation";
-import { toOrdemServicoViewModel } from "../ordens-servico/ordemServico.viewModel";
-
-type OrdemServico = Parameters<typeof toOrdemServicoViewModel>[0];
-
-type Props = {
-  ordemServico: OrdemServico;
-};
-
-export function OrdemServicoDetailsHeaderExample({
-  ordemServico,
-}: Props): JSX.Element {
-  const vm = toOrdemServicoViewModel(ordemServico);
-
-  return (
-    <DomainPageHeader
-      title={vm.titulo}
-      subtitle={vm.subtitulo}
-      meta={vm.contexto}
-      status={vm.status}
-      breadcrumbs={[
-        { label: "Início", to: "/app" },
-        { label: "Ordens de serviço", to: "/app/ordens-servico" },
-        { label: vm.titulo },
-      ]}
-    />
-  );
-}
-
-
-===== apps/web/src/features/tenant-admin/examples/ProdutoDetailsHeaderExample.tsx =====
-
-// apps/web/src/features/tenant-admin/examples/ProdutoDetailsHeaderExample.tsx
-
-import type { JSX } from "react";
-import { Link } from "react-router-dom";
-import { DomainPageHeader } from "../../../shared/navigation";
-import { toProdutoViewModel } from "../produtos/produto.viewModel";
-
-type Produto = Parameters<typeof toProdutoViewModel>[0];
-
-type Props = {
-  produto: Produto;
-};
-
-export function ProdutoDetailsHeaderExample({ produto }: Props): JSX.Element {
-  const vm = toProdutoViewModel(produto);
-
-  return (
-    <DomainPageHeader
-      title={vm.titulo}
-      subtitle={vm.subtitulo}
-      meta={vm.contexto}
-      status={vm.status}
-      breadcrumbs={[
-        { label: "Início", to: "/app" },
-        { label: "Produtos", to: "/app/produtos" },
-        { label: vm.titulo },
-      ]}
-      actions={
-        <Link to={`/app/produtos/${vm.key}/editar`}>
-          Editar produto
-        </Link>
-      }
-    />
-  );
-}
-
-
-===== apps/web/src/features/tenant-admin/examples/TransacaoDetailsHeaderExample.tsx =====
-
-// apps/web/src/features/tenant-admin/examples/TransacaoDetailsHeaderExample.tsx
-
-import type { JSX } from "react";
-import { DomainPageHeader } from "../../../shared/navigation";
-import { toTransacaoViewModel } from "../transacoes/transacao.viewModel";
-
-type Transacao = Parameters<typeof toTransacaoViewModel>[0];
-
-type Props = {
-  transacao: Transacao;
-};
-
-export function TransacaoDetailsHeaderExample({
-  transacao,
-}: Props): JSX.Element {
-  const vm = toTransacaoViewModel(transacao);
-
-  return (
-    <DomainPageHeader
-      title={vm.titulo}
-      subtitle={vm.subtitulo}
-      meta={vm.contexto}
-      status={vm.status}
-      breadcrumbs={[
-        { label: "Início", to: "/app" },
-        { label: "Transações", to: "/app/transacoes" },
-        { label: vm.titulo },
-      ]}
-    />
-  );
-}
-
-
 ===== apps/web/src/features/tenant-admin/financeiro/api/financeiroApi.ts =====
 
 // apps/web/src/features/tenant-admin/financeiro/api/financeiroApi.ts
@@ -7430,9 +7216,7 @@ type TenantAdminLayoutProps = {
  * Se o projeto já tiver um layout com header/sidebar, mantenha essa estrutura
  * e adicione apenas o <TenantBreadcrumbRail /> antes do conteúdo principal.
  */
-export function TenantAdminLayout({
-  children,
-}: TenantAdminLayoutProps): JSX.Element {
+export function TenantAdminLayout({ children }: TenantAdminLayoutProps): JSX.Element {
   return (
     <div className="ck-tenant-layout">
       <main className="ck-tenant-layout__main">
@@ -9858,7 +9642,7 @@ export function ProdutosTable({ itens }: Props) {
     itens,
     { produto: "", tipo: "", criadoEm: createDateRangeFilter() },
     (produto, filters) =>
-      matchesFilter(`${produto.nome ?? ""} ${produto.sku ?? ""} ${produto.codigo ?? ""}`, filters.produto) &&
+      matchesFilter(`${produto.nome ?? ""} ${produto.sku ?? ""} ${produto.sku ?? ""}`, filters.produto) &&
       matchesFilter(produto.tipo, filters.tipo) &&
       matchesDateRange(produto.criadoEm, filters.criadoEm as { from: string; to: string }),
   );
@@ -9880,7 +9664,7 @@ export function ProdutosTable({ itens }: Props) {
         <tbody>
           {table.filteredItems.map((produto) => (
             <tr key={produto.produtoId}>
-              <ExpandableTableCell summary={produto.nome ?? "Produto sem nome"} detail={<div><strong>{formatProdutoLabel(produto)}</strong><p>Código/SKU: {produto.sku ?? produto.codigo ?? "Sem código"}</p><p>Unidade: {produto.unidade ?? "—"}</p><p>Tipo: {produto.tipo ?? "—"}</p><p>Preço de venda: {formatMoney(produto.precoVenda)}</p></div>} />
+              <ExpandableTableCell summary={produto.nome ?? "Produto sem nome"} detail={<div><strong>{formatProdutoLabel(produto)}</strong><p>Código/SKU: {produto.sku ?? produto.sku ?? "Sem código"}</p><p>Unidade: {produto.unidade ?? "—"}</p><p>Tipo: {produto.tipo ?? "—"}</p><p>Preço de venda: {formatMoney(produto.precoVenda)}</p></div>} />
               <td>{produto.tipo ?? "—"}</td>
               <td>{formatMoney(produto.precoVenda)}</td>
               <td>{formatDate(produto.criadoEm)}</td>
@@ -10648,19 +10432,19 @@ export function TransacaoDisplayTitle({
 // apps/web/src/features/tenant-admin/transacoes/components/TransacoesTable.tsx
 
 import { Link } from "react-router-dom";
-import {
-  ExpandableTableCell,
-  TableHeaderDateRangeFilter,
-  TableHeaderFilter,
-  createDateRangeFilter,
-  matchesDateRange,
-  matchesFilter,
-  useTableFilters,
-} from "../../../../shared/table";
+import { ExpandableTableCell, TableHeaderDateRangeFilter, TableHeaderFilter, createDateRangeFilter, matchesDateRange, matchesFilter, useTableFilters } 
+from "../../../../shared/table";
 import { formatDateTime, formatMoney, formatTransacaoLabel } from "../../../../shared/formatters";
+import type { Cliente } from "../../clientes/tipos";
+import type { Fornecedor } from "../../fornecedores/tipos";
 import type { Transacao } from "../tipos";
 
-type Props = { itens: Transacao[] };
+type Props = {
+  itens: Transacao[];
+  clientes?: Cliente[];
+  fornecedores?: Fornecedor[];
+};
+
 type TransacaoFilterKey = "transacao" | "pessoa" | "status" | "data";
 
 function statusClass(status?: string | null): string {
@@ -10675,43 +10459,147 @@ function statusClass(status?: string | null): string {
   }
 }
 
-export function TransacoesTable({ itens }: Props) {
-  const table = useTableFilters<Transacao, TransacaoFilterKey>(
-    itens,
-    { transacao: "", pessoa: "", status: "", data: createDateRangeFilter() },
-    (transacao, filters) =>
-      matchesFilter(transacao.tipo, filters.transacao) &&
-      matchesFilter(`${transacao.pessoaNome ?? ""} ${transacao.clienteNome ?? ""} ${transacao.fornecedorNome ?? ""}`, filters.pessoa) &&
-      matchesFilter(transacao.status, filters.status) &&
-      matchesDateRange(transacao.criadoEm ?? transacao.data, filters.data as { from: string; to: string }),
+function pessoaNome(transacao: Transacao, clientesPorId: Map<string, Cliente>, fornecedoresPorId: Map<string, Fornecedor>): string {
+  if (transacao.clienteId) {
+    return clientesPorId.get(transacao.clienteId)?.nome ?? "Cliente não carregado";
+  }
+
+  if (transacao.fornecedorId) {
+    return fornecedoresPorId.get(transacao.fornecedorId)?.nome ?? "Fornecedor não carregado";
+  }
+
+  return "Pessoa não informada";
+}
+
+export function TransacoesTable({ itens, clientes = [], fornecedores = [] }: Props) {
+  const clientesPorId = new Map(
+    clientes.map((cliente) => [cliente.clienteId, cliente]),
   );
 
-  if (itens.length === 0) return <div className="ck-register-empty">Nenhuma transação encontrada</div>;
+  const fornecedoresPorId = new Map(
+    fornecedores.map((fornecedor) => [fornecedor.fornecedorId, fornecedor]),
+  );
+
+  const table = useTableFilters<Transacao, TransacaoFilterKey>(
+    itens,
+    {
+      transacao: "",
+      pessoa: "",
+      status: "",
+      data: createDateRangeFilter(),
+    },
+    (transacao, filters) =>
+      matchesFilter(transacao.tipo, filters.transacao) &&
+      matchesFilter(
+        pessoaNome(transacao, clientesPorId, fornecedoresPorId),
+        filters.pessoa,
+      ) &&
+      matchesFilter(transacao.status, filters.status) &&
+      matchesDateRange(transacao.criadoEm, filters.data),
+  );
+
+  if (itens.length === 0) {
+    return (
+      <div className="ck-register-empty">
+        Nenhuma transação encontrada
+      </div>
+    );
+  }
 
   return (
     <div className="ck-register-table-panel">
       <table className="ck-register-table">
         <thead>
           <tr>
-            <th><TableHeaderFilter label="Transação" value={table.filters.transacao as string} placeholder="Tipo" onChange={(value) => table.setFilter("transacao", value)} /></th>
-            <th><TableHeaderFilter label="Pessoa" value={table.filters.pessoa as string} placeholder="Cliente ou fornecedor" onChange={(value) => table.setFilter("pessoa", value)} /></th>
+            <th>
+              <TableHeaderFilter
+                label="Transação"
+                value={table.filters.transacao as string}
+                placeholder="Tipo"
+                onChange={(value) => table.setFilter("transacao", value)}
+              />
+            </th>
+
+            <th>
+              <TableHeaderFilter
+                label="Pessoa"
+                value={table.filters.pessoa as string}
+                placeholder="Cliente ou fornecedor"
+                onChange={(value) => table.setFilter("pessoa", value)}
+              />
+            </th>
+
             <th>Valor</th>
-            <th><TableHeaderFilter label="Status" value={table.filters.status as string} placeholder="Status" onChange={(value) => table.setFilter("status", value)} /></th>
-            <th><TableHeaderDateRangeFilter label="Data" value={table.filters.data as { from: string; to: string }} onChange={(value) => table.setFilter("data", value)} /></th>
+
+            <th>
+              <TableHeaderFilter
+                label="Status"
+                value={table.filters.status as string}
+                placeholder="Status"
+                onChange={(value) => table.setFilter("status", value)}
+              />
+            </th>
+
+            <th>
+              <TableHeaderDateRangeFilter
+                label="Data"
+                value={table.filters.data as { from: string; to: string }}
+                onChange={(value) => table.setFilter("data", value)}
+              />
+            </th>
+
             <th>Ações</th>
           </tr>
         </thead>
+
         <tbody>
-          {table.filteredItems.map((transacao) => (
-            <tr key={transacao.transacaoId}>
-              <ExpandableTableCell summary={`${transacao.tipo ?? "Transação"} — ${formatDateTime(transacao.criadoEm ?? transacao.data)}`} detail={<div><strong>{formatTransacaoLabel(transacao)}</strong><p>Pessoa: {transacao.pessoaNome ?? transacao.clienteNome ?? transacao.fornecedorNome ?? "Não informada"}</p><p>Valor: {formatMoney(transacao.valorTotal)}</p><p>Status: {transacao.status ?? "—"}</p></div>} />
-              <td>{transacao.pessoaNome ?? transacao.clienteNome ?? transacao.fornecedorNome ?? "—"}</td>
-              <td>{formatMoney(transacao.valorTotal)}</td>
-              <td><span className={statusClass(transacao.status)}>{transacao.status ?? "—"}</span></td>
-              <td>{formatDateTime(transacao.criadoEm ?? transacao.data)}</td>
-              <td><div className="ck-register-row-actions"><Link className="ck-register-link" to={`/app/transacoes/${transacao.transacaoId}`}>Ver</Link></div></td>
-            </tr>
-          ))}
+          {table.filteredItems.map((transacao) => {
+            const pessoa = pessoaNome(
+              transacao,
+              clientesPorId,
+              fornecedoresPorId,
+            );
+
+            return (
+              <tr key={transacao.transacaoId}>
+                <ExpandableTableCell
+                  summary={`${transacao.tipo ?? "Transação"} — ${formatDateTime(
+                    transacao.criadoEm,
+                  )}`}
+                  detail={
+                    <div>
+                      <strong>{formatTransacaoLabel(transacao)}</strong>
+                      <p>Pessoa: {pessoa}</p>
+                      <p>Valor: {formatMoney(transacao.valorTotal)}</p>
+                      <p>Status: {transacao.status ?? "—"}</p>
+                    </div>
+                  }
+                />
+
+                <td>{pessoa}</td>
+                <td>{formatMoney(transacao.valorTotal)}</td>
+
+                <td>
+                  <span className={statusClass(transacao.status)}>
+                    {transacao.status ?? "—"}
+                  </span>
+                </td>
+
+                <td>{formatDateTime(transacao.criadoEm)}</td>
+
+                <td>
+                  <div className="ck-register-row-actions">
+                    <Link
+                      className="ck-register-link"
+                      to={`/app/transacoes/${transacao.transacaoId}`}
+                    >
+                      Ver
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -14261,18 +14149,14 @@ export default function AuthLayout(): JSX.Element {
 
 import type { JSX } from "react";
 import { Outlet } from "react-router-dom";
-import { AppShell, type AppNavItem } from "../shared/layout";
-
-const PLATAFORMA_NAV_ITEMS: AppNavItem[] = [
-  { label: "Dashboard", to: "/plataforma", end: true, icon: "📊" },
-  { label: "Locatários", to: "/plataforma/locatarios", icon: "🏬" },
-];
 
 export default function SuperAdminLayout(): JSX.Element {
   return (
-    <AppShell navItems={PLATAFORMA_NAV_ITEMS} variant="plataforma">
-      <Outlet />
-    </AppShell>
+    <div className="ck-superadmin-layout">
+      <main className="ck-superadmin-layout__main">
+        <Outlet />
+      </main>
+    </div>
   );
 }
 
@@ -14283,30 +14167,23 @@ export default function SuperAdminLayout(): JSX.Element {
 
 import type { JSX } from "react";
 import { Outlet } from "react-router-dom";
-import { AppShell } from "../shared/layout";
+import { TenantSidebar } from "../shared/layout";
 import { TenantBreadcrumbRail } from "../shared/navigation";
-
-const TENANT_NAV_ITEMS: AppNavItem[] = [
-  { label: "Dashboard", to: "/app", end: true, icon: "📊" },
-  { label: "Clientes", to: "/app/clientes", icon: "👥" },
-  { label: "Fornecedores", to: "/app/fornecedores", icon: "🏢" },
-  { label: "Produtos", to: "/app/produtos", icon: "📦" },
-  { label: "Transações", to: "/app/transacoes", icon: "📄" },
-  { label: "Financeiro", to: "/app/financeiro", icon: "💳" },
-  { label: "Nova venda", to: "/app/vendas/nova", icon: "💰" },
-  { label: "Nova compra", to: "/app/compras/nova", icon: "🛒" },
-  { label: "Ordens de Serviço", to: "/app/ordens-servico" },
-  { label: "Usuários", to: "/app/usuarios", icon: "🔐" },
-  { label: "Locatário", to: "/app/locatario", icon: "⚙️" },
-  { label: "Módulos", to: "/app/assinatura/modulos", icon: "🧩" },
-];
+import { AppNavItem } from "../shared/layout/AppHeader";
 
 export default function TenantLayout(): JSX.Element {
   return (
-    <AppShell>
-      <TenantBreadcrumbRail />
-      <Outlet />
-    </AppShell>
+    <div className="ck-tenant-layout">
+      <TenantSidebar />
+
+      <div className="ck-tenant-layout__content">
+        <TenantBreadcrumbRail />
+
+        <main className="ck-tenant-layout__main">
+          <Outlet />
+        </main>
+      </div>
+    </div>
   );
 }
 
@@ -15514,16 +15391,20 @@ const MENU_ITEMS: TenantMenuItem[] = [
   { label: "Produtos", to: "/app/produtos", iconKey: "produtos" },
   { label: "Transações", to: "/app/transacoes", iconKey: "transacoes" },
   { label: "Financeiro", to: "/app/financeiro", iconKey: "financeiro" },
-  { label: "Ordens de serviço", to: "/app/ordens-servico", iconKey: "ordensServico" },
+  { label: "Ordens de serviço", to: "/app/ordens-servico", iconKey: "ordensServico", },
 ];
 
 export function TenantSidebar(): JSX.Element {
   const { collapsed, toggleCollapsed } = useTenantMenuCollapsed();
 
   return (
-    <aside className={`ck-tenant-sidebar ${collapsed ? "ck-tenant-sidebar--collapsed" : ""}`}>
+    <aside
+      className={`ck-tenant-sidebar ${
+        collapsed ? "ck-tenant-sidebar--collapsed" : ""
+      }`}
+    >
       <div className="ck-tenant-sidebar__header">
-        {!collapsed ? <strong>Módulos</strong> : null}
+        <strong className="ck-tenant-sidebar__title">Módulos</strong>
 
         <button
           type="button"
@@ -15551,16 +15432,13 @@ export function TenantSidebar(): JSX.Element {
               {getTenantNavigationIcon(item.iconKey)}
             </span>
 
-            {!collapsed ? (
-              <span className="ck-tenant-sidebar__label">{item.label}</span>
-            ) : null}
+            <span className="ck-tenant-sidebar__label">{item.label}</span>
           </NavLink>
         ))}
       </nav>
     </aside>
   );
 }
-
 
 ===== apps/web/src/shared/layout/useTenantMenuCollapsed.ts =====
 
@@ -15570,12 +15448,17 @@ import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "tenant-menu-collapsed";
 
-export function useTenantMenuCollapsed(defaultValue = false) {
+export function useTenantMenuCollapsed(defaultValue = true) {
   const [collapsed, setCollapsed] = useState(defaultValue);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === null) return;
+
+    if (stored === null) {
+      setCollapsed(true);
+      return;
+    }
+
     setCollapsed(stored === "true");
   }, []);
 
@@ -15593,7 +15476,6 @@ export function useTenantMenuCollapsed(defaultValue = false) {
     toggleCollapsed,
   };
 }
-
 
 ===== apps/web/src/shared/navigation/CollapsibleBreadcrumbs.tsx =====
 

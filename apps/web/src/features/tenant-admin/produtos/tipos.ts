@@ -22,9 +22,18 @@ export type ListarProdutosResponse = {
   itens: Produto[];
 };
 
-export type ObterProdutoResponse = Produto;
-export type CriarProdutoResponse = Produto;
-export type AtualizarProdutoResponse = Produto;
+export type ObterProdutoResponse = {
+  item: Produto;
+};
+
+export type CriarProdutoResponse = {
+  item: Produto;
+};
+
+export type AtualizarProdutoResponse = {
+  item: Produto;
+};
+
 export type ExcluirProdutoResponse = void;
 
 export type CriarProdutoInput = {

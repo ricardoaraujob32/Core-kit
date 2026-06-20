@@ -1,14 +1,12 @@
 // apps/web/src/features/tenant-admin/ordens-servico/pages/NovaOrdemServicoPage.tsx
 
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
-import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
 import { ordensServicoApi } from "../api/ordensServicoApi";
 import { OrdemServicoForm } from "../components/OrdemServicoForm";
 import type { CriarOrdemServicoInput } from "../tipos";
-import "../../cadastros/cadastros.css";
-import "../../transacoes/pages/transacoes.css";
-import { useState } from "react";
+import "../../shared/entityPages.css";
 
 export default function NovaOrdemServicoPage() {
   const navigate = useNavigate();
@@ -26,24 +24,33 @@ export default function NovaOrdemServicoPage() {
   }
 
   return (
-    <main className="ck-register-page">
-      <PageSectionHeader
-        kicker="Ordens de serviço"
-        title="Nova OS"
-        description="Registre uma ordem de serviço usando cliente, título e descrição. A data e o horário serão usados como referência principal."
-        actions={
-          <Link
-            className="ck-register-action-secondary"
-            to="/app/ordens-servico"
-          >
-            Voltar
-          </Link>
-        }
-      />
+    <div className="ck-entity-page">
+      <div className="ck-entity-page__actions">
+        <Link className="ck-entity-button" to="/app/ordens-servico">
+          Voltar para ordens
+        </Link>
+      </div>
 
-      {erro ? <div className="ck-register-alert">{erro}</div> : null}
+      <section className="ck-entity-hero">
+        <div>
+          <p className="ck-entity-kicker">Ordens de serviço</p>
+          <h1>Nova OS</h1>
+          <p>
+            Registre uma ordem de serviço usando cliente, título e descrição.
+          </p>
+        </div>
+      </section>
 
-      <OrdemServicoForm onSubmit={criar} />
-    </main>
+      {erro ? <div className="ck-entity-alert">{erro}</div> : null}
+
+      <section className="ck-entity-card">
+        <div className="ck-entity-card__title">
+          <h2>Dados da ordem</h2>
+          <p>Informe o contexto inicial para acompanhar a execução.</p>
+        </div>
+
+        <OrdemServicoForm onSubmit={criar} />
+      </section>
+    </div>
   );
 }

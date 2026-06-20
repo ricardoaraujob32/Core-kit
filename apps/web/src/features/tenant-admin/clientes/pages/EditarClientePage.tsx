@@ -1,10 +1,11 @@
 // apps/web/src/features/tenant-admin/clientes/pages/EditarClientePage.tsx
 
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ClienteForm } from "../components/ClienteForm";
 import { useClienteDetails } from "../hooks/useClienteDetails";
 import { useSalvarCliente } from "../hooks/useSalvarCliente";
 import type { AtualizarClienteInput, CriarClienteInput } from "../tipos";
+import "../../shared/entityPages.css";
 
 export default function EditarClientePage() {
   const navigate = useNavigate();
@@ -16,7 +17,8 @@ export default function EditarClientePage() {
   const { salvar, isSaving, erro } = useSalvarCliente({
     mode: "edit",
     clienteId,
-    onSuccess: () => navigate(clienteId ? `/app/clientes/${clienteId}` : "/app/clientes"),
+    onSuccess: () =>
+      navigate(clienteId ? `/app/clientes/${clienteId}` : "/app/clientes"),
   });
 
   async function handleSubmit(input: CriarClienteInput | AtualizarClienteInput) {
@@ -24,32 +26,39 @@ export default function EditarClientePage() {
   }
 
   if (isLoading) {
-    return <div className="rounded-2xl border bg-white p-6">Carregando cliente...</div>;
+    return (
+      <div className="ck-entity-page">
+        <div className="ck-entity-card">Carregando cliente...</div>
+      </div>
+    );
   }
 
   if (erroCarga) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {erroCarga}
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">{erroCarga}</div>
       </div>
     );
   }
 
   if (!cliente) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        Cliente não encontrado.
+      <div className="ck-entity-page">
+        <div className="ck-entity-alert">Cliente não encontrado.</div>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Editar cliente</h1>
-        <p className="text-sm text-slate-600">
-          Atualize os dados do cliente.
-        </p>
+    <div className="ck-entity-page">
+      <div className="ck-entity-page__actions">
+        <Link className="ck-entity-button" to={`/app/clientes/${cliente.clienteId}`}>
+          Voltar para detalhes
+        </Link>
+
+        <Link className="ck-entity-button" to="/app/clientes">
+          Lista de clientes
+        </Link>
       </div>
 
       <ClienteForm

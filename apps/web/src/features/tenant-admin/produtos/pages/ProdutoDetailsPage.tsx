@@ -1,9 +1,18 @@
-
 // apps/web/src/features/tenant-admin/produtos/pages/ProdutoDetailsPage.tsx
 
 import { Link, useParams } from "react-router-dom";
+import { formatDateTime, formatMoney } from "../../../../shared/formatters";
 import { useProdutoDetails } from "../hooks/useProdutoDetails";
 import { toProdutoViewModel } from "../produto.viewModel";
+import "./produtoPages.css";
+
+function statusLabel(ativo?: boolean): string {
+  return ativo === false ? "Inativo" : "Ativo";
+}
+
+function tipoLabel(tipo: string): string {
+  return tipo === "SERVICO" ? "Serviço" : "Produto";
+}
 
 export default function ProdutoDetailsPage() {
   const params = useParams<{ produtoId: string }>();
@@ -13,24 +22,24 @@ export default function ProdutoDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border bg-white p-6">
-        Carregando produto...
+      <div className="ck-product-page">
+        <div className="ck-product-card">Carregando produto...</div>
       </div>
     );
   }
 
   if (erro) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {erro}
+      <div className="ck-product-page">
+        <div className="ck-product-alert">{erro}</div>
       </div>
     );
   }
 
   if (!produto) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        Produto não encontrado.
+      <div className="ck-product-page">
+        <div className="ck-product-alert">Produto não encontrado.</div>
       </div>
     );
   }
@@ -41,34 +50,111 @@ export default function ProdutoDetailsPage() {
   });
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="ck-product-page">
+      <section className="ck-product-detail-hero">
         <div>
-          <p className="text-sm text-slate-600">Produto</p>
-          <h1 className="text-2xl font-semibold">{vm.titulo}</h1>
-          <p className="text-sm text-slate-600">
-            {[vm.subtitulo, vm.contexto].filter(Boolean).join(" — ")}
-          </p>
+          <p className="ck-product-kicker">Produto</p>
+          <h1>{vm.titulo}</h1>
+          <p>{[vm.subtitulo, vm.contexto].filter(Boolean).join(" — ")}</p>
         </div>
 
-        <Link
-          className="rounded-xl border px-4 py-2"
-          to={`/app/produtos/${produto.produtoId}/editar`}
-        >
-          Editar
-        </Link>
-      </div>
+        <div className="ck-product-page__actions">
+          <Link
+            className="ck-product-button ck-product-button--primary"
+            to={`/app/produtos/${produto.produtoId}/editar`}
+          >
+            Editar
+          </Link>
 
-      <div className="grid gap-3 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>Nome:</strong> {produto.nome}</div>
-        <div><strong>Tipo:</strong> {produto.tipo}</div>
-        <div><strong>Preço de venda:</strong> {produto.precoVenda}</div>
-        <div><strong>Descrição:</strong> {produto.descricao ?? "—"}</div>
-        <div><strong>Ativo:</strong> {produto.ativo === false ? "Não" : "Sim"}</div>
-        <div><strong>Criado em:</strong> {produto.criadoEm ?? "—"}</div>
-        <div><strong>Atualizado em:</strong> {produto.atualizadoEm ?? "—"}</div>
-      </div>
+          <Link className="ck-product-button" to="/app/produtos">
+            Lista de produtos
+          </Link>
+        </div>
+      </section>
+
+      <section className="ck-product-detail-grid">
+        <article className="ck-product-card">
+          <div className="ck-product-card__title">
+            <h2>Identificação</h2>
+            <p>Dados principais do catálogo.</p>
+          </div>
+
+          <dl className="ck-product-detail-list">
+            <div>
+              <dt>Nome</dt>
+              <dd>{produto.nome}</dd>
+            </div>
+
+            <div>
+              <dt>SKU</dt>
+              <dd>{produto.sku ?? "—"}</dd>
+            </div>
+
+            <div>
+              <dt>Tipo</dt>
+              <dd>{tipoLabel(produto.tipo)}</dd>
+            </div>
+
+            <div>
+              <dt>Unidade</dt>
+              <dd>{produto.unidade}</dd>
+            </div>
+
+            <div>
+              <dt>Status</dt>
+              <dd>{statusLabel(produto.ativo)}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article className="ck-product-card">
+          <div className="ck-product-card__title">
+            <h2>Valores</h2>
+            <p>Informações comerciais.</p>
+          </div>
+
+          <dl className="ck-product-detail-list">
+            <div>
+              <dt>Preço de venda</dt>
+              <dd>{formatMoney(produto.precoVenda)}</dd>
+            </div>
+
+            <div>
+              <dt>Custo de referência</dt>
+              <dd>{formatMoney(produto.custoReferencia)}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article className="ck-product-card">
+          <div className="ck-product-card__title">
+            <h2>Registro</h2>
+            <p>Datas de criação e atualização.</p>
+          </div>
+
+          <dl className="ck-product-detail-list">
+            <div>
+              <dt>Criado em</dt>
+              <dd>{formatDateTime(produto.criadoEm)}</dd>
+            </div>
+
+            <div>
+              <dt>Atualizado em</dt>
+              <dd>{formatDateTime(produto.atualizadoEm)}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section className="ck-product-card">
+        <div className="ck-product-card__title">
+          <h2>Descrição</h2>
+        </div>
+
+        <p className="ck-product-description">
+          {produto.descricao ?? "Nenhuma descrição cadastrada."}
+        </p>
+      </section>
     </div>
   );
 }
-

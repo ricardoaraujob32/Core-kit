@@ -3,12 +3,16 @@
 import { useState } from "react";
 import { mapError } from "../../../../core/errors/mapError";
 import { produtosApi } from "../api/produtosApi";
-import type { AtualizarProdutoInput, CriarProdutoInput } from "../tipos";
+import type {
+  AtualizarProdutoInput,
+  CriarProdutoInput,
+  Produto,
+} from "../tipos";
 
 type Params = {
   mode: "create" | "edit";
   produtoId?: string;
-  onSuccess?: () => void | Promise<void>;
+  onSuccess?: (produto: Produto) => void | Promise<void>;
 };
 
 export function useSalvarProduto({ mode, produtoId, onSuccess }: Params) {
@@ -20,20 +24,12 @@ export function useSalvarProduto({ mode, produtoId, onSuccess }: Params) {
     setErro(null);
 
     try {
-      if (mode === "create") {
-        await produtosApi.criar(input as CriarProdutoInput);
-      } else {
-        const id = produtoId?.trim();
+      const response =
+        mode === "create"
+          ? await produtosApi.criar(input as CriarProdutoInput)
+          : await atualizarProduto(input as AtualizarProdutoInput);
 
-        if (!id) {
-          setErro("ID do produto inválido.");
-          return false;
-        }
-
-        await produtosApi.atualizar(id, input as AtualizarProdutoInput);
-      }
-
-      await onSuccess?.();
+      await onSuccess?.(response.item);
       return true;
     } catch (error) {
       setErro(mapError(error).message);
@@ -41,6 +37,16 @@ export function useSalvarProduto({ mode, produtoId, onSuccess }: Params) {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function atualizarProduto(input: AtualizarProdutoInput) {
+    const id = produtoId?.trim();
+
+    if (!id) {
+      throw new Error("Produto inválido.");
+    }
+
+    return produtosApi.atualizar(id, input);
   }
 
   return {

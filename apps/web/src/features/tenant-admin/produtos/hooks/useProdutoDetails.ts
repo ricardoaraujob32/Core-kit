@@ -15,7 +15,7 @@ export function useProdutoDetails(produtoId?: string) {
 
     async function carregar() {
       if (!produtoId?.trim()) {
-        setErro("ID do produto inválido.");
+        setErro("Produto inválido.");
         setIsLoading(false);
         return;
       }
@@ -27,7 +27,7 @@ export function useProdutoDetails(produtoId?: string) {
         const response = await produtosApi.obter(produtoId);
 
         if (ativo) {
-          setProduto(response);
+          setProduto(response.item);
         }
       } catch (error) {
         if (ativo) {
