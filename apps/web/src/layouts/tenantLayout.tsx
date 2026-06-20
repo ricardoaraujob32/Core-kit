@@ -2,27 +2,22 @@
 
 import type { JSX } from "react";
 import { Outlet } from "react-router-dom";
-import { AppShell, type AppNavItem } from "../shared/layout";
-
-const TENANT_NAV_ITEMS: AppNavItem[] = [
-  { label: "Dashboard", to: "/app", end: true, icon: "📊" },
-  { label: "Clientes", to: "/app/clientes", icon: "👥" },
-  { label: "Fornecedores", to: "/app/fornecedores", icon: "🏢" },
-  { label: "Produtos", to: "/app/produtos", icon: "📦" },
-  { label: "Transações", to: "/app/transacoes", icon: "📄" },
-  { label: "Financeiro", to: "/app/financeiro", icon: "💳" },
-  { label: "Nova venda", to: "/app/vendas/nova", icon: "💰" },
-  { label: "Nova compra", to: "/app/compras/nova", icon: "🛒" },
-  { label: "Ordens de Serviço", to: "/app/ordens-servico" },
-  { label: "Usuários", to: "/app/usuarios", icon: "🔐" },
-  { label: "Locatário", to: "/app/locatario", icon: "⚙️" },
-  { label: "Módulos", to: "/app/assinatura/modulos", icon: "🧩" },
-];
+import { TenantSidebar } from "../shared/layout";
+import { TenantBreadcrumbRail } from "../shared/navigation";
+import { AppNavItem } from "../shared/layout/AppHeader";
 
 export default function TenantLayout(): JSX.Element {
   return (
-    <AppShell navItems={TENANT_NAV_ITEMS} variant="tenant">
-      <Outlet />
-    </AppShell>
+    <div className="ck-tenant-layout">
+      <TenantSidebar />
+
+      <div className="ck-tenant-layout__content">
+        <TenantBreadcrumbRail />
+
+        <main className="ck-tenant-layout__main">
+          <Outlet />
+        </main>
+      </div>
+    </div>
   );
 }

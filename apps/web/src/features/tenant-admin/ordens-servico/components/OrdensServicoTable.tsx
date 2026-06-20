@@ -1,19 +1,22 @@
 // apps/web/src/features/tenant-admin/ordens-servico/components/OrdensServicoTable.tsx
 
 import { Link } from "react-router-dom";
-import type { Cliente } from "../../clientes/tipos";
 import {
-  formatClienteLabel,
-  formatDateTime,
-  shortCode,
-} from "../../../../shared/formatters";
+  ExpandableTableCell,
+  TableHeaderDateRangeFilter,
+  TableHeaderFilter,
+  createDateRangeFilter,
+  matchesDateRange,
+  matchesFilter,
+  useTableFilters,
+} from "../../../../shared/table";
+import type { Cliente } from "../../clientes/tipos";
+import { formatClienteLabel, formatDateTime } from "../../../../shared/formatters";
 import type { OrdemServico, StatusOrdemServico } from "../tipos";
 import { OrdemServicoDisplayTitle } from "./OrdemServicoDisplayTitle";
 
-type Props = {
-  itens: OrdemServico[];
-  clientes?: Cliente[];
-};
+type Props = { itens: OrdemServico[]; clientes?: Cliente[] };
+type OrdemServicoFilterKey = "ordem" | "cliente" | "status" | "data";
 
 function statusClass(status: StatusOrdemServico): string {
   switch (status) {
@@ -21,176 +24,61 @@ function statusClass(status: StatusOrdemServico): string {
       return "ck-status ck-status-success";
     case "CANCELADA":
       return "ck-status ck-status-danger";
-    case "AGUARDANDO":
-      return "ck-status ck-status-warning";
     case "EM_ANDAMENTO":
       return "ck-status";
-    case "ABERTA":
     default:
       return "ck-status ck-status-warning";
   }
 }
 
-function clienteInfo(
-  ordem: OrdemServico,
-  clientesPorId: Map<string, Cliente>,
-): { principal: string; secundario: string } {
-  if (!ordem.clienteId) {
-    return {
-      principal: "Cliente não vinculado",
-      secundario: "OS sem cliente",
-    };
-  }
-
+function clienteInfo(ordem: OrdemServico, clientesPorId: Map<string, Cliente>): string {
+  if (!ordem.clienteId) return "Cliente não vinculado";
   const cliente = clientesPorId.get(ordem.clienteId);
-
-  if (!cliente) {
-    return {
-      principal: "Cliente não carregado",
-      secundario: `Ref. ${shortCode(ordem.clienteId)}`,
-    };
-  }
-
-  return {
-    principal: formatClienteLabel(cliente),
-    secundario: cliente.telefone ?? cliente.email ?? "Cliente",
-  };
+  return cliente ? formatClienteLabel(cliente) : "Cliente não carregado";
 }
 
 export function OrdensServicoTable({ itens, clientes = [] }: Props) {
-  const clientesPorId = new Map(
-    clientes.map((cliente) => [cliente.clienteId, cliente]),
+  const clientesPorId = new Map(clientes.map((cliente) => [cliente.clienteId, cliente]));
+
+  const table = useTableFilters<OrdemServico, OrdemServicoFilterKey>(
+    itens,
+    { ordem: "", cliente: "", status: "", data: createDateRangeFilter() },
+    (ordem, filters) =>
+      matchesFilter(`${ordem.titulo ?? ""} ${ordem.descricao ?? ""}`, filters.ordem) &&
+      matchesFilter(clienteInfo(ordem, clientesPorId), filters.cliente) &&
+      matchesFilter(ordem.status, filters.status) &&
+      matchesDateRange(ordem.criadoEm ?? ordem.abertaEm, filters.data as { from: string; to: string }),
   );
 
-  if (itens.length === 0) {
-    return (
-      <div className="ck-register-empty">
-        <div className="ck-register-empty-title">
-          Nenhuma ordem de serviço encontrada
-        </div>
-        <p className="ck-register-empty-desc">
-          Crie uma OS para acompanhar atendimento, execução e geração de venda.
-        </p>
-      </div>
-    );
-  }
+  if (itens.length === 0) return <div className="ck-register-empty">Nenhuma ordem de serviço encontrada</div>;
 
   return (
-    <div>
-      <div className="hidden overflow-x-auto md:block">
-        <div className="ck-table-panel">
-          <table className="ck-table">
-            <thead>
-              <tr>
-                <th>Ordem de serviço</th>
-                <th>Cliente</th>
-                <th>Título</th>
-                <th>Status</th>
-                <th>Aberta em</th>
-                <th>Referência</th>
-                <th>Ações</th>
+    <div className="ck-register-table-panel">
+      <table className="ck-register-table">
+        <thead>
+          <tr>
+            <th><TableHeaderFilter label="OS" value={table.filters.ordem as string} placeholder="Título ou descrição" onChange={(value) => table.setFilter("ordem", value)} /></th>
+            <th><TableHeaderFilter label="Cliente" value={table.filters.cliente as string} placeholder="Cliente" onChange={(value) => table.setFilter("cliente", value)} /></th>
+            <th><TableHeaderFilter label="Status" value={table.filters.status as string} placeholder="Status" onChange={(value) => table.setFilter("status", value)} /></th>
+            <th><TableHeaderDateRangeFilter label="Aberta em" value={table.filters.data as { from: string; to: string }} onChange={(value) => table.setFilter("data", value)} /></th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {table.filteredItems.map((ordem) => {
+            const cliente = clienteInfo(ordem, clientesPorId);
+            return (
+              <tr key={ordem.ordemServicoId}>
+                <ExpandableTableCell summary={<OrdemServicoDisplayTitle ordemServico={ordem} />} detail={<div><strong><OrdemServicoDisplayTitle ordemServico={ordem} /></strong><p>Título: {ordem.titulo ?? "Sem título"}</p><p>Descrição: {ordem.descricao ?? "Sem descrição"}</p><p>Cliente: {cliente}</p><p>Status: {ordem.status}</p></div>} />
+                <td>{cliente}</td>
+                <td><span className={statusClass(ordem.status)}>{ordem.status}</span></td>
+                <td>{formatDateTime(ordem.criadoEm ?? ordem.abertaEm)}</td>
+                <td><div className="ck-register-row-actions"><Link className="ck-register-link" to={`/app/ordens-servico/${ordem.ordemServicoId}`}>Ver</Link></div></td>
               </tr>
-            </thead>
-
-            <tbody>
-              {itens.map((ordem) => {
-                const cliente = clienteInfo(ordem, clientesPorId);
-
-                return (
-                  <tr key={ordem.ordemServicoId}>
-                    <td>
-                      <OrdemServicoDisplayTitle ordemServico={ordem} />
-                      <div className="ck-register-sub">
-                        Identificada por data e horário
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="ck-register-main">{cliente.principal}</div>
-                      <div className="ck-register-sub">{cliente.secundario}</div>
-                    </td>
-
-                    <td>
-                      <div className="ck-register-main">{ordem.titulo}</div>
-                      <div className="ck-register-sub">
-                        {ordem.descricao ?? "Sem descrição"}
-                      </div>
-                    </td>
-
-                    <td>
-                      <span className={statusClass(ordem.status)}>
-                        {ordem.status}
-                      </span>
-                    </td>
-
-                    <td>{formatDateTime(ordem.abertaEm ?? ordem.criadoEm)}</td>
-
-                    <td>
-                      <span className="ck-code-pill">
-                        Ref. {shortCode(ordem.ordemServicoId)}
-                      </span>
-                    </td>
-
-                    <td>
-                      <Link
-                        className="ck-row-link"
-                        to={`/app/ordens-servico/${ordem.ordemServicoId}`}
-                      >
-                        Ver detalhes
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="ck-mobile-list md:hidden">
-        {itens.map((ordem) => {
-          const cliente = clienteInfo(ordem, clientesPorId);
-
-          return (
-            <article className="ck-transaction-card" key={ordem.ordemServicoId}>
-              <div className="ck-transaction-card-top">
-                <div>
-                  <div className="ck-transaction-title">
-                    <OrdemServicoDisplayTitle ordemServico={ordem} />
-                  </div>
-
-                  <div className="ck-transaction-desc">{cliente.principal}</div>
-                </div>
-
-                <span className={statusClass(ordem.status)}>
-                  {ordem.status}
-                </span>
-              </div>
-
-              <div className="ck-card-grid">
-                <div>
-                  <div className="ck-card-label">Título</div>
-                  <div className="ck-card-value">{ordem.titulo}</div>
-                </div>
-
-                <div>
-                  <div className="ck-card-label">Referência</div>
-                  <div className="ck-card-value">
-                    {shortCode(ordem.ordemServicoId)}
-                  </div>
-                </div>
-              </div>
-
-              <Link
-                className="ck-action-secondary"
-                to={`/app/ordens-servico/${ordem.ordemServicoId}`}
-              >
-                Ver detalhes
-              </Link>
-            </article>
-          );
-        })}
-      </div>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

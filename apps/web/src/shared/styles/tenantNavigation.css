@@ -1,0 +1,342 @@
+/* apps/web/src/shared/styles/tenantNavigation.css */
+
+/* Breadcrumb */
+
+.ck-tenant-breadcrumb-rail {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  margin: 0 0 0.65rem;
+}
+
+.ck-tenant-breadcrumb-rail__toggle,
+.ck-tenant-sidebar__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+
+  border: 1px solid var(--ck-border, #d7dce3);
+  border-radius: 0.65rem;
+  background: var(--ck-surface, #ffffff);
+  color: var(--ck-text, #1f2937);
+
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.ck-tenant-breadcrumb-rail__collapsed,
+.ck-tenant-breadcrumb-rail__full {
+  border: 1px solid var(--ck-border, #d7dce3);
+  background: var(--ck-surface-muted, #f9fafb);
+}
+
+.ck-tenant-breadcrumb-rail__collapsed {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.45rem;
+  border-radius: 999px;
+}
+
+.ck-tenant-breadcrumb-rail__full {
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+}
+
+.ck-tenant-breadcrumb-rail__hover-full {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 30;
+
+  display: none;
+  min-width: max-content;
+  max-width: min(90vw, 56rem);
+
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--ck-border, #d7dce3);
+  border-radius: 999px;
+  background: var(--ck-surface, #ffffff);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+.ck-tenant-breadcrumb-rail--collapsed:hover .ck-tenant-breadcrumb-rail__hover-full,
+.ck-tenant-breadcrumb-rail--collapsed:focus-within .ck-tenant-breadcrumb-rail__hover-full {
+  display: block;
+}
+
+.ck-breadcrumbs ol {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  padding: 0;
+  margin: 0;
+
+  list-style: none;
+}
+
+.ck-breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ck-breadcrumbs li:not(:last-child)::after {
+  content: "›";
+  margin-left: 0.35rem;
+  color: var(--ck-text-muted, #6b7280);
+}
+
+.ck-breadcrumbs a,
+.ck-breadcrumbs span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 1.8rem;
+  border-radius: 999px;
+
+  color: var(--ck-text, #1f2937);
+  text-decoration: none;
+}
+
+.ck-breadcrumbs--icons a,
+.ck-breadcrumbs--icons span {
+  min-width: 1.8rem;
+}
+
+.ck-breadcrumbs--full a,
+.ck-breadcrumbs--full span {
+  padding-inline: 0.35rem;
+  font-size: 0.875rem;
+}
+
+.ck-breadcrumbs a:hover {
+  background: var(--ck-surface-hover, #f3f4f6);
+}
+
+/* Sidebar tenant */
+
+.ck-tenant-sidebar {
+  display: flex;
+  flex-direction: column;
+
+  width: 16rem;
+  min-width: 16rem;
+  height: 100vh;
+  min-height: 100vh;
+
+  align-self: stretch;
+
+  transition:
+    width 0.18s ease,
+    min-width 0.18s ease;
+}
+
+.ck-tenant-sidebar--collapsed {
+  width: 4.25rem;
+  min-width: 4.25rem;
+}
+
+.ck-tenant-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  min-height: 3rem;
+  margin-bottom: 1rem;
+}
+
+.ck-tenant-sidebar--collapsed .ck-tenant-sidebar__header {
+  justify-content: center;
+}
+
+.ck-tenant-sidebar--collapsed .ck-tenant-sidebar__label,
+.ck-tenant-sidebar--collapsed .ck-tenant-sidebar__header strong {
+  display: none;
+}
+
+.ck-tenant-sidebar__nav {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+
+.ck-tenant-sidebar__link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.65rem;
+
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+
+  border-radius: 0.8rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ck-tenant-sidebar--collapsed .ck-tenant-sidebar__link {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.ck-tenant-sidebar__link:hover,
+.ck-tenant-sidebar__link.is-active {
+  background: var(--ck-surface-hover, #f3f4f6);
+}
+
+.ck-tenant-sidebar__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 1.75rem;
+  font-size: 1.05rem;
+}
+
+.ck-tenant-sidebar__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   TEMPORÁRIO - FORÇAR TEXTO PRETO
+   ========================================================= */
+
+.ck-tenant-sidebar,
+.ck-tenant-sidebar *,
+
+.ck-tenant-breadcrumb-rail,
+.ck-tenant-breadcrumb-rail *,
+
+.ck-breadcrumbs,
+.ck-breadcrumbs * {
+  color: #000000 !important;
+}
+
+/* Links */
+
+.ck-tenant-sidebar__link,
+.ck-tenant-sidebar__link:visited,
+.ck-tenant-sidebar__link:hover,
+.ck-tenant-sidebar__link:focus,
+
+.ck-breadcrumbs a,
+.ck-breadcrumbs a:visited,
+.ck-breadcrumbs a:hover,
+.ck-breadcrumbs a:focus {
+  color: #000000 !important;
+}
+
+/* Separadores */
+
+.ck-breadcrumbs li:not(:last-child)::after {
+  color: #000000 !important;
+}
+
+/* Botão do menu */
+
+.ck-tenant-breadcrumb-rail__toggle,
+.ck-tenant-sidebar__toggle {
+  color: #000000 !important;
+}
+
+/* Labels do menu */
+
+.ck-tenant-sidebar__label {
+  color: #000000 !important;
+}
+
+/* Ícones */
+
+.ck-tenant-sidebar__icon,
+.ck-breadcrumb-icon {
+  color: #000000 !important;
+}
+
+/* estado aberto */
+
+.ck-tenant-sidebar {
+  width: 16rem;
+  min-width: 16rem;
+  transition:
+    width 180ms ease,
+    min-width 180ms ease;
+}
+
+/* estado fechado */
+
+.ck-tenant-sidebar--collapsed {
+  width: 4.25rem;
+  min-width: 4.25rem;
+}
+
+/* esconde textos */
+
+.ck-tenant-sidebar--collapsed .ck-tenant-sidebar__label,
+.ck-tenant-sidebar--collapsed .ck-tenant-sidebar__header strong {
+  display: none;
+}
+
+/* centraliza ícones */
+
+.ck-tenant-sidebar--collapsed .ck-tenant-sidebar__link {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+/* ========================= */
+/* hover abre temporariamente */
+/* ========================= */
+
+.ck-tenant-sidebar--collapsed:hover {
+  width: 16rem;
+  min-width: 16rem;
+}
+
+/* volta a exibir textos */
+
+.ck-tenant-sidebar--collapsed:hover .ck-tenant-sidebar__label,
+.ck-tenant-sidebar--collapsed:hover .ck-tenant-sidebar__header strong {
+  display: inline;
+}
+
+/* alinhamento normal */
+
+.ck-tenant-sidebar--collapsed:hover .ck-tenant-sidebar__link {
+  justify-content: flex-start;
+  padding-inline: 0.7rem;
+}
+
+/* Layout tenant principal */
+
+.ck-tenant-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.ck-tenant-layout__content {
+  flex: 1;
+  min-width: 0;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.ck-tenant-layout__main {
+  width: 100%;
+  min-width: 0;
+}

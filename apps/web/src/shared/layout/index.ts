@@ -1,8 +1,13 @@
 // apps/web/src/shared/layout/index.ts
 
+/**
+ * Barrel de layout compartilhado.
+ *
+ * Importante:
+ * não remover exports antigos, pois áreas como superadmin podem depender deles.
+ */
+
 export { AppShell } from "./AppShell";
-export { AppHeader } from "./AppHeader";
-export { AppFooter } from "./AppFooter";
-export { AppBreadcrumb } from "./AppBreadcrumb";
-export { AppSidebar } from "./AppSidebar";
-export type { AppNavItem } from "./AppHeader";
+
+export { TenantSidebar } from "./TenantSidebar";
+export { useTenantMenuCollapsed } from "./useTenantMenuCollapsed";

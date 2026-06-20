@@ -1,119 +1,57 @@
 // apps/web/src/features/tenant-admin/produtos/components/ProdutosTable.tsx
 
 import { Link } from "react-router-dom";
+import {
+  ExpandableTableCell,
+  TableHeaderDateRangeFilter,
+  TableHeaderFilter,
+  createDateRangeFilter,
+  matchesDateRange,
+  matchesFilter,
+  useTableFilters,
+} from "../../../../shared/table";
+import { formatDate, formatMoney, formatProdutoLabel } from "../../../../shared/formatters";
 import type { Produto } from "../tipos";
-import { toProdutoViewModel } from "../produto.viewModel";
 
-type Props = {
-  itens: Produto[];
-};
-
-function formatarMoeda(valor?: number | null): string {
-  return Number(valor ?? 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function codigoCurto(id: string): string {
-  return id.slice(0, 8).toUpperCase();
-}
+type Props = { itens: Produto[] };
+type ProdutoFilterKey = "produto" | "tipo" | "criadoEm";
 
 export function ProdutosTable({ itens }: Props) {
-  if (itens.length === 0) {
-    return (
-      <div className="ck-register-empty">
-        <div className="ck-register-empty-title">Nenhum produto encontrado</div>
-        <p className="ck-register-empty-desc">
-          Cadastre produtos e serviços para usar nas vendas e compras.
-        </p>
-      </div>
-    );
-  }
+  const table = useTableFilters<Produto, ProdutoFilterKey>(
+    itens,
+    { produto: "", tipo: "", criadoEm: createDateRangeFilter() },
+    (produto, filters) =>
+      matchesFilter(`${produto.nome ?? ""} ${produto.sku ?? ""} ${produto.sku ?? ""}`, filters.produto) &&
+      matchesFilter(produto.tipo, filters.tipo) &&
+      matchesDateRange(produto.criadoEm, filters.criadoEm as { from: string; to: string }),
+  );
+
+  if (itens.length === 0) return <div className="ck-register-empty">Nenhum produto encontrado</div>;
 
   return (
-    <div>
-      <div className="hidden overflow-x-auto md:block">
-        <div className="ck-register-table-panel">
-          <table className="ck-register-table">
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>SKU</th>
-                <th>Tipo</th>
-                <th>Unidade</th>
-                <th>Preço venda</th>
-                <th>Código</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {itens.map((produto) => (
-                <tr key={produto.produtoId}>
-                  <td>
-                    <div className="ck-register-main">{produto.nome}</div>
-                    <div className="ck-register-sub">{produto.descricao ?? "Sem descrição"}</div>
-                  </td>
-                  <td>{produto.sku ?? "—"}</td>
-                  <td>{produto.tipo}</td>
-                  <td>{produto.unidade ?? "—"}</td>
-                  <td><strong>{formatarMoeda(produto.precoVenda)}</strong></td>
-                  <td>
-                    <span className="ck-register-pill">
-                      #{codigoCurto(produto.produtoId)}
-                    </span>
-                  </td>
-                  <td>
-                    <Link
-                      className="ck-register-link"
-                      to={`/app/produtos/${produto.produtoId}`}
-                    >
-                      Detalhes
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="ck-register-card-list md:hidden">
-        {itens.map((produto) => (
-          <article className="ck-register-card" key={produto.produtoId}>
-            <div className="ck-register-card-top">
-              <div>
-                <div className="ck-register-card-title">{produto.nome}</div>
-                <div className="ck-register-card-desc">
-                  {produto.sku ?? "Sem SKU"} • {produto.tipo}
-                </div>
-              </div>
-
-              <span className="ck-register-pill">#{codigoCurto(produto.produtoId)}</span>
-            </div>
-
-            <div className="ck-register-card-grid">
-              <div>
-                <div className="ck-register-label">Unidade</div>
-                <div className="ck-register-value">{produto.unidade ?? "—"}</div>
-              </div>
-
-              <div>
-                <div className="ck-register-label">Preço venda</div>
-                <div className="ck-register-value">{formatarMoeda(produto.precoVenda)}</div>
-              </div>
-            </div>
-
-            <Link
-              className="ck-register-action-secondary"
-              to={`/app/produtos/${produto.produtoId}`}
-            >
-              Ver detalhes
-            </Link>
-          </article>
-        ))}
-      </div>
+    <div className="ck-register-table-panel">
+      <table className="ck-register-table">
+        <thead>
+          <tr>
+            <th><TableHeaderFilter label="Produto" value={table.filters.produto as string} placeholder="Nome, código ou SKU" onChange={(value) => table.setFilter("produto", value)} /></th>
+            <th><TableHeaderFilter label="Tipo" value={table.filters.tipo as string} placeholder="Tipo" onChange={(value) => table.setFilter("tipo", value)} /></th>
+            <th>Preço</th>
+            <th><TableHeaderDateRangeFilter label="Cadastrado em" value={table.filters.criadoEm as { from: string; to: string }} onChange={(value) => table.setFilter("criadoEm", value)} /></th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {table.filteredItems.map((produto) => (
+            <tr key={produto.produtoId}>
+              <ExpandableTableCell summary={produto.nome ?? "Produto sem nome"} detail={<div><strong>{formatProdutoLabel(produto)}</strong><p>Código/SKU: {produto.sku ?? produto.sku ?? "Sem código"}</p><p>Unidade: {produto.unidade ?? "—"}</p><p>Tipo: {produto.tipo ?? "—"}</p><p>Preço de venda: {formatMoney(produto.precoVenda)}</p></div>} />
+              <td>{produto.tipo ?? "—"}</td>
+              <td>{formatMoney(produto.precoVenda)}</td>
+              <td>{formatDate(produto.criadoEm)}</td>
+              <td><div className="ck-register-row-actions"><Link className="ck-register-link" to={`/app/produtos/${produto.produtoId}`}>Ver</Link><Link className="ck-register-link" to={`/app/produtos/${produto.produtoId}/editar`}>Editar</Link></div></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

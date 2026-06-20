@@ -1,0 +1,226 @@
+/* apps/web/src/shared/styles/tenantTables.css */
+
+.ck-list-page-header {
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.ck-list-page-header__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ck-list-page-header h1 {
+  margin: 0;
+}
+
+.ck-list-page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ck-list-page-header__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.ck-register-table-panel {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ck-register-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ck-register-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.65rem 0.75rem;
+  background: var(--ck-table-head, #e5e7eb);
+  color: var(--ck-text, #1f2937);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ck-register-table tbody tr:nth-child(odd) td {
+  background: var(--ck-row-odd, #ffffff);
+}
+
+.ck-register-table tbody tr:nth-child(even) td {
+  background: var(--ck-row-even, #f1f5f9);
+}
+
+.ck-register-table tbody tr:hover td {
+  background: var(--ck-row-hover, #dbeafe);
+}
+
+.ck-table-header-filter {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 8rem;
+}
+
+.ck-table-header-filter__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ck-table-header-filter__input {
+  width: 100%;
+  min-height: 1.85rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--ck-border, #cbd5e1);
+  border-radius: 0.45rem;
+  background: var(--ck-surface, #ffffff);
+  color: var(--ck-text, #1f2937);
+  font-size: 0.78rem;
+}
+
+.ck-table-header-filter__range {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) minmax(7rem, 1fr);
+  gap: 0.3rem;
+}
+
+.ck-expandable-table-cell {
+  min-width: 12rem;
+  padding: 0.35rem 0.45rem;
+  vertical-align: top;
+}
+
+.ck-expandable-native__summary {
+  display: block;
+  min-height: 2rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.ck-expandable-native__summary::-webkit-details-marker {
+  display: none;
+}
+
+.ck-expandable-native__summary::after {
+  content: "▾";
+  float: right;
+  margin-left: 0.75rem;
+  color: var(--ck-text-muted, #6b7280);
+  font-size: 0.75rem;
+}
+
+.ck-expandable-native[open] > .ck-expandable-native__summary::after {
+  content: "▴";
+}
+
+.ck-expandable-native__summary-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.ck-expandable-native[open] .ck-expandable-native__summary-text {
+  white-space: normal;
+}
+
+.ck-expandable-native__detail {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid var(--ck-primary, #2563eb);
+  border-radius: 0.5rem;
+  background: var(--ck-surface-muted, #f9fafb);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.ck-register-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ck-register-link,
+.ck-action-button,
+.ck-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--ck-border, #cbd5e1);
+  border-radius: 0.55rem;
+  background: var(--ck-action-bg, #ffffff);
+  color: var(--ck-link, #2563eb);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ck-register-link:hover,
+.ck-action-button:hover,
+.ck-action-secondary:hover {
+  background: var(--ck-action-hover, #e0f2fe);
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .ck-register-table {
+    min-width: 820px;
+  }
+
+  .ck-table-header-filter__range {
+    grid-template-columns: 1fr;
+  }
+
+  .ck-list-page-header__top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.ck-register-table thead th {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+.ck-register-table thead th,
+.ck-register-table thead th * {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+.ck-table-header-filter__label {
+  display: block !important;
+  color: #334155 !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
+
+/* =========================================================
+   TEMPORÁRIO - FORÇAR TEXTO PRETO NAS TABELAS
+   ========================================================= */
+
+.ck-register-table,
+.ck-register-table *,
+
+.ck-table-header-filter,
+.ck-table-header-filter *,
+
+.ck-list-page-header,
+.ck-list-page-header * {
+  color: #000000 !important;
+}

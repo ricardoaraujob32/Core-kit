@@ -1,0 +1,29 @@
+/* apps/web/src/shared/styles/appShell.css */
+
+.ck-app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--ck-app-bg, #f8fafc);
+  color: var(--ck-text, #1f2937);
+}
+
+.ck-app-shell__sidebar {
+  flex: 0 0 auto;
+}
+
+.ck-app-shell__body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.ck-app-shell__header {
+  flex: 0 0 auto;
+}
+
+.ck-app-shell__main {
+  flex: 1;
+  min-width: 0;
+  padding: 1rem;
+}

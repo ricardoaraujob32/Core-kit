@@ -1,0 +1,5 @@
+/* apps/web/src/shared/styles/index.css */
+
+@import "./appShell.css";
+@import "./tenantNavigation.css";
+@import "./tenantTables.css";
