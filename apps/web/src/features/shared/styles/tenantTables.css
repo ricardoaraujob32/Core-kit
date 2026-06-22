@@ -1,0 +1,167 @@
+/* apps/web/src/shared/styles/tenantTables.css */
+
+.ck-register-table-panel {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d7dce3;
+  border-radius: 1rem;
+  background: #ffffff;
+}
+
+.ck-register-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  color: #000000;
+}
+
+.ck-register-table th,
+.ck-register-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #000000;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ck-register-table thead th {
+  background: #f8fafc;
+  color: #000000 !important;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 1 !important;
+}
+
+.ck-register-table thead th *,
+.ck-register-table tbody td *,
+.ck-register-table tbody td {
+  color: #000000;
+}
+
+.ck-register-table tbody tr:nth-child(odd) td {
+  background: #ffffff;
+}
+
+.ck-register-table tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.ck-register-table tbody tr:hover td {
+  background: #eef2ff;
+}
+
+.ck-register-empty {
+  padding: 1rem;
+  border: 1px solid #d7dce3;
+  border-radius: 1rem;
+  background: #ffffff;
+  color: #000000;
+  font-weight: 700;
+}
+
+.ck-table-header-filter,
+.ck-table-header-filter * {
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+
+.ck-table-header-filter {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ck-table-header-filter__label {
+  display: block !important;
+  color: #000000 !important;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ck-table-header-filter input,
+.ck-table-header-filter select {
+  width: 100%;
+  min-width: 8rem;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.6rem;
+  background: #ffffff;
+  color: #000000;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.ck-table-header-filter__range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.ck-register-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ck-register-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ck-register-link:hover {
+  background: #f1f5f9;
+  text-decoration: none;
+}
+
+.ck-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.65rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #000000;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.ck-status-success {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #000000;
+}
+
+.ck-status-warning {
+  border-color: #fde68a;
+  background: #fef3c7;
+  color: #000000;
+}
+
+.ck-status-danger {
+  border-color: #fecaca;
+  background: #fee2e2;
+  color: #000000;
+}
+
+@media (max-width: 768px) {
+  .ck-register-table {
+    min-width: 820px;
+  }
+}

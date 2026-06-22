@@ -1,9 +1,17 @@
 // apps/web/src/features/tenant-admin/fornecedores/pages/FornecedorDetailsPage.tsx
 
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { formatDateTime } from "../../../../shared/formatters";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityDetailGrid,
+  EntityDetailList,
+  EntityHero,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { useFornecedorDetails } from "../hooks/useFornecedorDetails";
-import "../../shared/entityPages.css";
 
 export default function FornecedorDetailsPage() {
   const params = useParams<{ fornecedorId: string }>();
@@ -13,108 +21,84 @@ export default function FornecedorDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-card">Carregando fornecedor...</div>
-      </div>
+      <EntityPage>
+        <EntityCard>Carregando fornecedor...</EntityCard>
+      </EntityPage>
     );
   }
 
   if (erro) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">{erro}</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>{erro}</EntityAlert>
+      </EntityPage>
     );
   }
 
   if (!fornecedor) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">Fornecedor não encontrado.</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>Fornecedor não encontrado.</EntityAlert>
+      </EntityPage>
     );
   }
 
   return (
-    <div className="ck-entity-page">
-      <section className="ck-entity-hero">
-        <div>
-          <p className="ck-entity-kicker">Fornecedor</p>
-          <h1>{fornecedor.nome}</h1>
-          <p>{fornecedor.documento ?? "Documento não informado"}</p>
-        </div>
+    <EntityPage>
+      <EntityHero
+        kicker="Fornecedor"
+        title={fornecedor.nome}
+        description={fornecedor.documento ?? "Documento não informado"}
+        actions={
+          <>
+            <EntityButton
+              to={`/app/fornecedores/${fornecedor.fornecedorId}/editar`}
+              variant="primary"
+            >
+              Editar
+            </EntityButton>
 
-        <div className="ck-entity-page__actions">
-          <Link
-            className="ck-entity-button ck-entity-button--primary"
-            to={`/app/fornecedores/${fornecedor.fornecedorId}/editar`}
-          >
-            Editar
-          </Link>
+            <EntityButton to="/app/fornecedores">
+              Lista de fornecedores
+            </EntityButton>
+          </>
+        }
+      />
 
-          <Link className="ck-entity-button" to="/app/fornecedores">
-            Lista de fornecedores
-          </Link>
-        </div>
-      </section>
+      <EntityDetailGrid>
+        <EntityCard
+          title="Identificação"
+          description="Dados principais do fornecedor."
+        >
+          <EntityDetailList
+            items={[
+              { label: "Nome", value: fornecedor.nome },
+              { label: "Documento", value: fornecedor.documento },
+            ]}
+          />
+        </EntityCard>
 
-      <section className="ck-entity-detail-grid">
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Identificação</h2>
-            <p>Dados principais do fornecedor.</p>
-          </div>
+        <EntityCard title="Contato" description="Canais de comunicação.">
+          <EntityDetailList
+            items={[
+              { label: "E-mail", value: fornecedor.email },
+              { label: "Telefone", value: fornecedor.telefone },
+            ]}
+          />
+        </EntityCard>
+      </EntityDetailGrid>
 
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>Nome</dt>
-              <dd>{fornecedor.nome}</dd>
-            </div>
-
-            <div>
-              <dt>Documento</dt>
-              <dd>{fornecedor.documento ?? "—"}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Contato</h2>
-            <p>Canais de comunicação.</p>
-          </div>
-
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>E-mail</dt>
-              <dd>{fornecedor.email ?? "—"}</dd>
-            </div>
-
-            <div>
-              <dt>Telefone</dt>
-              <dd>{fornecedor.telefone ?? "—"}</dd>
-            </div>
-          </dl>
-        </article>
-      </section>
-
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Registro</h2>
-        </div>
-
-        <dl className="ck-entity-detail-list">
-          <div>
-            <dt>Criado em</dt>
-            <dd>{formatDateTime(fornecedor.criadoEm)}</dd>
-          </div>
-
-          <div>
-            <dt>Atualizado em</dt>
-            <dd>{formatDateTime(fornecedor.atualizadoEm)}</dd>
-          </div>
-        </dl>
-      </section>
-    </div>
+      <EntityCard title="Registro">
+        <EntityDetailList
+          items={[
+            { label: "Criado em", value: formatDateTime(fornecedor.criadoEm) },
+            {
+              label: "Atualizado em",
+              value: formatDateTime(fornecedor.atualizadoEm),
+            },
+          ]}
+        />
+      </EntityCard>
+    </EntityPage>
   );
 }

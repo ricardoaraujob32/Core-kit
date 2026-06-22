@@ -1,13 +1,21 @@
 // apps/web/src/features/tenant-admin/compras/pages/NovaCompraPage.tsx
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import { formatFornecedorLabel } from "../../../../shared/formatters";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityField,
+  EntityForm,
+  EntityFormGrid,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { comprasApi } from "../api/comprasApi";
-import "../../shared/entityPages.css";
 
 function textoBuscaFornecedor(fornecedor: Fornecedor): string {
   return [
@@ -106,49 +114,40 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <div className="ck-entity-page">
-      <div className="ck-entity-page__actions">
-        <Link className="ck-entity-button" to="/app/transacoes">
+    <EntityPage
+      actions={
+        <EntityButton to="/app/transacoes">
           Voltar para transações
-        </Link>
-      </div>
-
-      <form className="ck-entity-form" onSubmit={handleSubmit}>
-        <header className="ck-entity-form__header">
-          <div>
-            <p className="ck-entity-kicker">Compras</p>
-            <h1>Nova compra</h1>
-            <p>
-              Crie uma transação de compra e depois adicione os itens na tela de
-              detalhes.
-            </p>
-          </div>
-        </header>
-
-        {erro ? <div className="ck-entity-alert">{erro}</div> : null}
-
+        </EntityButton>
+      }
+    >
+      <EntityForm
+        kicker="Compras"
+        title="Nova compra"
+        description="Crie uma transação de compra e depois adicione os itens na tela de detalhes."
+        error={erro}
+        onSubmit={handleSubmit}
+        footer={
+          <EntityButton type="submit" variant="primary" disabled={isSaving}>
+            {isSaving ? "Criando..." : "Criar compra"}
+          </EntityButton>
+        }
+      >
         {erroFornecedores ? (
-          <div className="ck-entity-alert">{erroFornecedores}</div>
+          <EntityAlert>{erroFornecedores}</EntityAlert>
         ) : null}
 
-        <section className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Fornecedor</h2>
-            <p>Selecione o fornecedor vinculado à compra.</p>
-          </div>
-
-          <div className="ck-entity-form-grid">
-            <label className="ck-entity-field ck-entity-field--wide">
-              <span>Buscar fornecedor</span>
+        <EntityCard title="Fornecedor" description="Selecione o fornecedor vinculado à compra.">
+          <EntityFormGrid>
+            <EntityField label="Buscar fornecedor" wide>
               <input
                 value={buscaFornecedor}
                 onChange={(event) => setBuscaFornecedor(event.target.value)}
                 placeholder="Nome, documento, e-mail ou telefone"
               />
-            </label>
+            </EntityField>
 
-            <label className="ck-entity-field ck-entity-field--wide">
-              <span>Fornecedor</span>
+            <EntityField label="Fornecedor" wide>
               <select
                 value={fornecedorId}
                 onChange={(event) => setFornecedorId(event.target.value)}
@@ -169,46 +168,44 @@ export default function NovaCompraPage() {
                   </option>
                 ))}
               </select>
-            </label>
+            </EntityField>
 
             {fornecedorSelecionado ? (
-              <div className="ck-entity-card ck-entity-field--wide">
-                <div className="ck-entity-card__title">
-                  <h2>Fornecedor selecionado</h2>
-                  <p>{formatFornecedorLabel(fornecedorSelecionado)}</p>
-                </div>
-              </div>
+              <EntityCard
+                className="ck-entity-field--wide"
+                title="Fornecedor selecionado"
+                description={formatFornecedorLabel(fornecedorSelecionado)}
+              >
+                <dl className="ck-entity-detail-list">
+                  <div>
+                    <dt>Telefone</dt>
+                    <dd>{fornecedorSelecionado.telefone ?? "—"}</dd>
+                  </div>
+
+                  <div>
+                    <dt>E-mail</dt>
+                    <dd>{fornecedorSelecionado.email ?? "—"}</dd>
+                  </div>
+                </dl>
+              </EntityCard>
             ) : null}
-          </div>
-        </section>
+          </EntityFormGrid>
+        </EntityCard>
 
-        <section className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Observação</h2>
-            <p>Registre condições comerciais ou contexto da compra.</p>
-          </div>
-
-          <label className="ck-entity-field">
-            <span>Observação da compra</span>
+        <EntityCard
+          title="Observação"
+          description="Registre condições comerciais ou contexto da compra."
+        >
+          <EntityField label="Observação da compra">
             <textarea
               value={observacao}
               onChange={(event) => setObservacao(event.target.value)}
               placeholder="Ex.: reposição de estoque, compra direta, fornecedor preferencial..."
               rows={5}
             />
-          </label>
-        </section>
-
-        <footer className="ck-entity-form__footer">
-          <button
-            className="ck-entity-button ck-entity-button--primary"
-            disabled={isSaving}
-            type="submit"
-          >
-            {isSaving ? "Criando..." : "Criar compra"}
-          </button>
-        </footer>
-      </form>
-    </div>
+          </EntityField>
+        </EntityCard>
+      </EntityForm>
+    </EntityPage>
   );
 }

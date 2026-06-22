@@ -1,7 +1,7 @@
 // apps/web/src/features/tenant-admin/ordens-servico/pages/OrdemServicoDetailsPage.tsx
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import {
   formatClienteLabel,
@@ -10,9 +10,21 @@ import {
 } from "../../../../shared/formatters";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
+import {
+  EntityActions,
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityDetailGrid,
+  EntityDetailList,
+  EntityField,
+  EntityFormGrid,
+  EntityHero,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { ordensServicoApi } from "../api/ordensServicoApi";
+import { toOrdemServicoViewModel } from "../ordemServico.viewModel";
 import type { OrdemServico } from "../tipos";
-import "../../shared/entityPages.css";
 
 type AcaoOs = "iniciar" | "aguardar" | "concluir" | "cancelar";
 
@@ -95,7 +107,7 @@ export default function OrdemServicoDetailsPage() {
         vencimentoEm: new Date().toISOString(),
       });
 
-      navigate(`/app/transacoes/${response.item.transacaoId}`);
+      navigate(`/app/transacoes/${response.transacaoId}`);
     } catch (error) {
       setErroAcao(mapError(error).message);
     } finally {
@@ -105,17 +117,17 @@ export default function OrdemServicoDetailsPage() {
 
   if (erro) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">{erro}</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>{erro}</EntityAlert>
+      </EntityPage>
     );
   }
 
   if (!item) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-card">Carregando ordem de serviço...</div>
-      </div>
+      <EntityPage>
+        <EntityCard>Carregando ordem de serviço...</EntityCard>
+      </EntityPage>
     );
   }
 
@@ -123,132 +135,125 @@ export default function OrdemServicoDetailsPage() {
     ? formatClienteLabel(cliente)
     : "Cliente não vinculado";
 
+  const vm = toOrdemServicoViewModel({
+    ...item,
+    clienteNome: clienteLabel,
+  });
+
   return (
-    <div className="ck-entity-page">
-      <section className="ck-entity-hero">
-        <div>
-          <p className="ck-entity-kicker">Ordem de serviço</p>
-          <h1>{item.titulo ?? "Ordem de serviço"}</h1>
-          <p>{clienteLabel}</p>
-        </div>
-
-        <div className="ck-entity-page__actions">
-          <Link className="ck-entity-button" to="/app/ordens-servico">
+    <EntityPage>
+      <EntityHero
+        kicker="Ordem de serviço"
+        title={vm.titulo}
+        description={[vm.subtitulo, vm.contexto, vm.status]
+          .filter(Boolean)
+          .join(" — ")}
+        actions={
+          <EntityButton to="/app/ordens-servico">
             Lista de ordens
-          </Link>
-        </div>
-      </section>
+          </EntityButton>
+        }
+      />
 
-      {erroAcao ? <div className="ck-entity-alert">{erroAcao}</div> : null}
+      {erroAcao ? <EntityAlert>{erroAcao}</EntityAlert> : null}
 
-      <section className="ck-entity-detail-grid ck-entity-detail-grid--three">
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Resumo</h2>
-            <p>Informações principais da ordem.</p>
-          </div>
+      <EntityDetailGrid columns={3}>
+        <EntityCard title="Resumo" description="Informações principais da ordem.">
+          <EntityDetailList
+            items={[
+              { label: "Título", value: item.titulo },
+              { label: "Cliente", value: clienteLabel },
+              {
+                label: "Status",
+                value: <span className={statusClass(item.status)}>{item.status}</span>,
+              },
+            ]}
+          />
+        </EntityCard>
 
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>Título</dt>
-              <dd>{item.titulo ?? "—"}</dd>
-            </div>
+        <EntityCard title="Datas" description="Referências de abertura e registro.">
+          <EntityDetailList
+            items={[
+              { label: "Aberta em", value: formatDateTime(item.abertaEm) },
+              { label: "Fechada em", value: formatDateTime(item.fechadaEm) },
+              { label: "Criada em", value: formatDateTime(item.criadoEm) },
+              {
+                label: "Atualizada em",
+                value: formatDateTime(item.atualizadoEm),
+              },
+            ]}
+          />
+        </EntityCard>
 
-            <div>
-              <dt>Cliente</dt>
-              <dd>{clienteLabel}</dd>
-            </div>
-
-            <div>
-              <dt>Status</dt>
-              <dd>
-                <span className={statusClass(item.status)}>{item.status}</span>
-              </dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Datas</h2>
-            <p>Referências de abertura e registro.</p>
-          </div>
-
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>Aberta em</dt>
-              <dd>{formatDateTime(item.abertaEm ?? item.criadoEm)}</dd>
-            </div>
-
-            <div>
-              <dt>Criada em</dt>
-              <dd>{formatDateTime(item.criadoEm)}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Ações</h2>
-            <p>Atualize o andamento da ordem.</p>
-          </div>
-
-          <div className="ck-entity-actions-row">
-            <button className="ck-entity-button" type="button" disabled={Boolean(isRunning)} onClick={() => executarAcao("iniciar")}>
+        <EntityCard title="Ações" description="Atualize o andamento da ordem.">
+          <EntityActions>
+            <EntityButton
+              type="button"
+              disabled={Boolean(isRunning)}
+              onClick={() => executarAcao("iniciar")}
+            >
               Iniciar
-            </button>
-            <button className="ck-entity-button" type="button" disabled={Boolean(isRunning)} onClick={() => executarAcao("aguardar")}>
+            </EntityButton>
+
+            <EntityButton
+              type="button"
+              disabled={Boolean(isRunning)}
+              onClick={() => executarAcao("aguardar")}
+            >
               Aguardar
-            </button>
-            <button className="ck-entity-button" type="button" disabled={Boolean(isRunning)} onClick={() => executarAcao("concluir")}>
+            </EntityButton>
+
+            <EntityButton
+              type="button"
+              disabled={Boolean(isRunning)}
+              onClick={() => executarAcao("concluir")}
+            >
               Concluir
-            </button>
-            <button className="ck-entity-button" type="button" disabled={Boolean(isRunning)} onClick={() => executarAcao("cancelar")}>
+            </EntityButton>
+
+            <EntityButton
+              type="button"
+              disabled={Boolean(isRunning)}
+              onClick={() => executarAcao("cancelar")}
+            >
               Cancelar
-            </button>
-          </div>
-        </article>
-      </section>
+            </EntityButton>
+          </EntityActions>
+        </EntityCard>
+      </EntityDetailGrid>
 
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Descrição</h2>
-        </div>
-
+      <EntityCard title="Descrição">
         <p className="ck-entity-description">
           {item.descricao ?? "Nenhuma descrição cadastrada."}
         </p>
-      </section>
+      </EntityCard>
 
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Gerar venda</h2>
-          <p>Converta a ordem em transação financeira quando o serviço for cobrado.</p>
-        </div>
-
-        <div className="ck-entity-form-grid">
-          <label className="ck-entity-field">
-            <span>Valor total</span>
+      <EntityCard
+        title="Gerar venda"
+        description="Converta a ordem em transação financeira quando o serviço for cobrado."
+      >
+        <EntityFormGrid>
+          <EntityField label="Valor total">
             <input
               inputMode="decimal"
               value={valorTotal}
               onChange={(event) => setValorTotal(event.target.value)}
               placeholder={formatMoney(0)}
             />
-          </label>
-        </div>
+          </EntityField>
+        </EntityFormGrid>
 
-        <div className="ck-entity-actions-row">
-          <button
-            className="ck-entity-button ck-entity-button--primary"
+        <EntityActions>
+          <EntityButton
             type="button"
+            variant="primary"
             disabled={isRunning === "gerar-venda"}
             onClick={gerarVenda}
           >
             {isRunning === "gerar-venda" ? "Gerando..." : "Gerar venda"}
-          </button>
-        </div>
-      </section>
-    </div>
+          </EntityButton>
+        </EntityActions>
+      </EntityCard>
+    </EntityPage>
   );
 }

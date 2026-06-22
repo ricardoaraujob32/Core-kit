@@ -1,13 +1,19 @@
 // apps/web/src/features/tenant-admin/produtos/components/ProdutoForm.tsx
 
 import { useMemo, useState, type FormEvent } from "react";
+import {
+  EntityButton,
+  EntityCard,
+  EntityField,
+  EntityForm,
+  EntityFormGrid,
+} from "../../shared/entity-ui";
 import type {
   AtualizarProdutoInput,
   CriarProdutoInput,
   Produto,
   TipoProduto,
 } from "../tipos";
-import "../pages/produtoPages.css";
 
 type Props = {
   mode: "create" | "edit";
@@ -95,55 +101,50 @@ export function ProdutoForm({
   }
 
   return (
-    <form className="ck-product-form" onSubmit={handleSubmit}>
-      <header className="ck-product-form__header">
-        <div>
-          <p className="ck-product-kicker">Catálogo</p>
-          <h1>{titulo}</h1>
-          <p>{subtitulo}</p>
-        </div>
-      </header>
-
-      {erro ? <div className="ck-product-alert">{erro}</div> : null}
-
-      <section className="ck-product-card">
-        <div className="ck-product-card__title">
-          <h2>Identificação</h2>
-          <p>Informações usadas para localizar e diferenciar o produto.</p>
-        </div>
-
-        <div className="ck-product-form-grid">
-          <label className="ck-product-field ck-product-field--wide">
-            <span>Nome</span>
+    <EntityForm
+      kicker="Catálogo"
+      title={titulo}
+      description={subtitulo}
+      error={erro}
+      onSubmit={handleSubmit}
+      footer={
+        <EntityButton type="submit" variant="primary" disabled={Boolean(isSaving)}>
+          {isSaving ? "Salvando..." : "Salvar produto"}
+        </EntityButton>
+      }
+    >
+      <EntityCard
+        title="Identificação"
+        description="Informações usadas para localizar e diferenciar o produto."
+      >
+        <EntityFormGrid>
+          <EntityField label="Nome" wide>
             <input
               value={nome}
               onChange={(event) => setNome(event.target.value)}
               placeholder="Ex.: Camiseta básica"
               required
             />
-          </label>
+          </EntityField>
 
-          <label className="ck-product-field">
-            <span>SKU</span>
+          <EntityField label="SKU">
             <input
               value={sku}
               onChange={(event) => setSku(event.target.value)}
               placeholder="Ex.: CAM-BAS-001"
             />
-          </label>
+          </EntityField>
 
-          <label className="ck-product-field">
-            <span>Unidade</span>
+          <EntityField label="Unidade">
             <input
               value={unidade}
               onChange={(event) => setUnidade(event.target.value)}
               placeholder="UN"
               required
             />
-          </label>
+          </EntityField>
 
-          <label className="ck-product-field">
-            <span>Tipo</span>
+          <EntityField label="Tipo">
             <select
               value={tipo}
               onChange={(event) => setTipo(event.target.value as TipoProduto)}
@@ -151,9 +152,9 @@ export function ProdutoForm({
               <option value="PRODUTO">Produto</option>
               <option value="SERVICO">Serviço</option>
             </select>
-          </label>
+          </EntityField>
 
-          <label className="ck-product-field ck-product-field--checkbox">
+          <label className="ck-entity-field ck-entity-field--checkbox">
             <input
               type="checkbox"
               checked={ativo}
@@ -161,18 +162,15 @@ export function ProdutoForm({
             />
             <span>Ativo para uso operacional</span>
           </label>
-        </div>
-      </section>
+        </EntityFormGrid>
+      </EntityCard>
 
-      <section className="ck-product-card">
-        <div className="ck-product-card__title">
-          <h2>Valores</h2>
-          <p>Preço de venda e custo de referência para análise comercial.</p>
-        </div>
-
-        <div className="ck-product-form-grid">
-          <label className="ck-product-field">
-            <span>Preço de venda</span>
+      <EntityCard
+        title="Valores"
+        description="Preço de venda e custo de referência para análise comercial."
+      >
+        <EntityFormGrid>
+          <EntityField label="Preço de venda">
             <input
               type="text"
               inputMode="decimal"
@@ -181,10 +179,9 @@ export function ProdutoForm({
               placeholder="0,00"
               required
             />
-          </label>
+          </EntityField>
 
-          <label className="ck-product-field">
-            <span>Custo de referência</span>
+          <EntityField label="Custo de referência">
             <input
               type="text"
               inputMode="decimal"
@@ -192,36 +189,23 @@ export function ProdutoForm({
               onChange={(event) => setCustoReferencia(event.target.value)}
               placeholder="Opcional"
             />
-          </label>
-        </div>
-      </section>
+          </EntityField>
+        </EntityFormGrid>
+      </EntityCard>
 
-      <section className="ck-product-card">
-        <div className="ck-product-card__title">
-          <h2>Descrição</h2>
-          <p>Use este campo para observações úteis ao atendimento.</p>
-        </div>
-
-        <label className="ck-product-field">
-          <span>Descrição</span>
+      <EntityCard
+        title="Descrição"
+        description="Use este campo para observações úteis ao atendimento."
+      >
+        <EntityField label="Descrição">
           <textarea
             value={descricao}
             onChange={(event) => setDescricao(event.target.value)}
             placeholder="Detalhes do produto, variações, observações comerciais..."
             rows={5}
           />
-        </label>
-      </section>
-
-      <footer className="ck-product-form__footer">
-        <button
-          className="ck-product-button ck-product-button--primary"
-          type="submit"
-          disabled={Boolean(isSaving)}
-        >
-          {isSaving ? "Salvando..." : "Salvar produto"}
-        </button>
-      </footer>
-    </form>
+        </EntityField>
+      </EntityCard>
+    </EntityForm>
   );
 }

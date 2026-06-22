@@ -1,9 +1,17 @@
 // apps/web/src/features/tenant-admin/clientes/pages/ClienteDetailsPage.tsx
 
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { formatDateTime } from "../../../../shared/formatters";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityDetailGrid,
+  EntityDetailList,
+  EntityHero,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { useClienteDetails } from "../hooks/useClienteDetails";
-import "../../shared/entityPages.css";
 
 export default function ClienteDetailsPage() {
   const params = useParams<{ clienteId: string }>();
@@ -13,108 +21,81 @@ export default function ClienteDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-card">Carregando cliente...</div>
-      </div>
+      <EntityPage>
+        <EntityCard>Carregando cliente...</EntityCard>
+      </EntityPage>
     );
   }
 
   if (erro) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">{erro}</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>{erro}</EntityAlert>
+      </EntityPage>
     );
   }
 
   if (!cliente) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">Cliente não encontrado.</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>Cliente não encontrado.</EntityAlert>
+      </EntityPage>
     );
   }
 
   return (
-    <div className="ck-entity-page">
-      <section className="ck-entity-hero">
-        <div>
-          <p className="ck-entity-kicker">Cliente</p>
-          <h1>{cliente.nome}</h1>
-          <p>{cliente.documento ?? "Documento não informado"}</p>
-        </div>
+    <EntityPage>
+      <EntityHero
+        kicker="Cliente"
+        title={cliente.nome}
+        description={cliente.documento ?? "Documento não informado"}
+        actions={
+          <>
+            <EntityButton
+              to={`/app/clientes/${cliente.clienteId}/editar`}
+              variant="primary"
+            >
+              Editar
+            </EntityButton>
 
-        <div className="ck-entity-page__actions">
-          <Link
-            className="ck-entity-button ck-entity-button--primary"
-            to={`/app/clientes/${cliente.clienteId}/editar`}
-          >
-            Editar
-          </Link>
+            <EntityButton to="/app/clientes">
+              Lista de clientes
+            </EntityButton>
+          </>
+        }
+      />
 
-          <Link className="ck-entity-button" to="/app/clientes">
-            Lista de clientes
-          </Link>
-        </div>
-      </section>
+      <EntityDetailGrid>
+        <EntityCard title="Identificação" description="Dados principais do cliente.">
+          <EntityDetailList
+            items={[
+              { label: "Nome", value: cliente.nome },
+              { label: "Documento", value: cliente.documento },
+            ]}
+          />
+        </EntityCard>
 
-      <section className="ck-entity-detail-grid">
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Identificação</h2>
-            <p>Dados principais do cliente.</p>
-          </div>
+        <EntityCard title="Contato" description="Canais de comunicação.">
+          <EntityDetailList
+            items={[
+              { label: "E-mail", value: cliente.email },
+              { label: "Telefone", value: cliente.telefone },
+            ]}
+          />
+        </EntityCard>
+      </EntityDetailGrid>
 
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>Nome</dt>
-              <dd>{cliente.nome}</dd>
-            </div>
-
-            <div>
-              <dt>Documento</dt>
-              <dd>{cliente.documento ?? "—"}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Contato</h2>
-            <p>Canais de comunicação.</p>
-          </div>
-
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>E-mail</dt>
-              <dd>{cliente.email ?? "—"}</dd>
-            </div>
-
-            <div>
-              <dt>Telefone</dt>
-              <dd>{cliente.telefone ?? "—"}</dd>
-            </div>
-          </dl>
-        </article>
-      </section>
-
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Registro</h2>
-        </div>
-
-        <dl className="ck-entity-detail-list">
-          <div>
-            <dt>Criado em</dt>
-            <dd>{formatDateTime(cliente.criadoEm)}</dd>
-          </div>
-
-          <div>
-            <dt>Atualizado em</dt>
-            <dd>{formatDateTime(cliente.atualizadoEm)}</dd>
-          </div>
-        </dl>
-      </section>
-    </div>
+      <EntityCard title="Registro">
+        <EntityDetailList
+          items={[
+            { label: "Criado em", value: formatDateTime(cliente.criadoEm) },
+            {
+              label: "Atualizado em",
+              value: formatDateTime(cliente.atualizadoEm),
+            },
+          ]}
+        />
+      </EntityCard>
+    </EntityPage>
   );
 }

@@ -1,7 +1,7 @@
 // apps/web/src/features/tenant-admin/transacoes/pages/TransacaoDetailsPage.tsx
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import {
   formatClienteLabel,
@@ -15,9 +15,20 @@ import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
+import {
+  EntityActions,
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityDetailGrid,
+  EntityDetailList,
+  EntityField,
+  EntityFormGrid,
+  EntityHero,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { transacoesApi } from "../api/transacoesApi";
 import type { TransacaoDetalhada } from "../tipos";
-import "../../shared/entityPages.css";
 
 function statusClass(status?: string | null): string {
   switch (status) {
@@ -138,137 +149,101 @@ export default function TransacaoDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-card">Carregando transação...</div>
-      </div>
+      <EntityPage>
+        <EntityCard>Carregando transação...</EntityCard>
+      </EntityPage>
     );
   }
 
   if (erro) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">{erro}</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>{erro}</EntityAlert>
+      </EntityPage>
     );
   }
 
   if (!transacao) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">Transação não encontrada.</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>Transação não encontrada.</EntityAlert>
+      </EntityPage>
     );
   }
 
   return (
-    <div className="ck-entity-page">
-      <section className="ck-entity-hero">
-        <div>
-          <p className="ck-entity-kicker">Transação</p>
-          <h1>{formatTransacaoLabel(transacao)}</h1>
-          <p>
-            {tipoLabel(transacao.tipo)} — Ref. {shortCode(transacao.transacaoId)}
-          </p>
-        </div>
-
-        <div className="ck-entity-page__actions">
-          <Link className="ck-entity-button" to="/app/transacoes">
+    <EntityPage>
+      <EntityHero
+        kicker="Transação"
+        title={formatTransacaoLabel(transacao)}
+        description={`${tipoLabel(transacao.tipo)} — Ref. ${shortCode(
+          transacao.transacaoId,
+        )}`}
+        actions={
+          <EntityButton to="/app/transacoes">
             Lista de transações
-          </Link>
-        </div>
-      </section>
+          </EntityButton>
+        }
+      />
 
-      {erroAcao ? <div className="ck-entity-alert">{erroAcao}</div> : null}
+      {erroAcao ? <EntityAlert>{erroAcao}</EntityAlert> : null}
 
-      <section className="ck-entity-detail-grid ck-entity-detail-grid--three">
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Resumo</h2>
-            <p>Identificação principal da transação.</p>
-          </div>
+      <EntityDetailGrid columns={3}>
+        <EntityCard
+          title="Resumo"
+          description="Identificação principal da transação."
+        >
+          <EntityDetailList
+            items={[
+              { label: "Tipo", value: tipoLabel(transacao.tipo) },
+              { label: "Pessoa", value: pessoaLabel },
+              {
+                label: "Status",
+                value: (
+                  <span className={statusClass(transacao.status)}>
+                    {transacao.status}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        </EntityCard>
 
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>Tipo</dt>
-              <dd>{tipoLabel(transacao.tipo)}</dd>
-            </div>
+        <EntityCard
+          title="Valores"
+          description="Composição financeira da transação."
+        >
+          <EntityDetailList
+            items={[
+              { label: "Subtotal", value: formatMoney(transacao.valorSubtotal) },
+              { label: "Desconto", value: formatMoney(transacao.valorDesconto) },
+              {
+                label: "Acréscimo",
+                value: formatMoney(transacao.valorAcrescimo),
+              },
+              { label: "Total", value: formatMoney(transacao.valorTotal) },
+            ]}
+          />
+        </EntityCard>
 
-            <div>
-              <dt>Pessoa</dt>
-              <dd>{pessoaLabel}</dd>
-            </div>
+        <EntityCard title="Datas" description="Registro e atualização.">
+          <EntityDetailList
+            items={[
+              { label: "Criada em", value: formatDateTime(transacao.criadoEm) },
+              {
+                label: "Atualizada em",
+                value: formatDateTime(transacao.atualizadoEm),
+              },
+              {
+                label: "Cancelada em",
+                value: formatDateTime(transacao.canceladoEm),
+              },
+            ]}
+          />
+        </EntityCard>
+      </EntityDetailGrid>
 
-            <div>
-              <dt>Status</dt>
-              <dd>
-                <span className={statusClass(transacao.status)}>
-                  {transacao.status}
-                </span>
-              </dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Valores</h2>
-            <p>Composição financeira da transação.</p>
-          </div>
-
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>Subtotal</dt>
-              <dd>{formatMoney(transacao.valorSubtotal)}</dd>
-            </div>
-
-            <div>
-              <dt>Desconto</dt>
-              <dd>{formatMoney(transacao.valorDesconto)}</dd>
-            </div>
-
-            <div>
-              <dt>Acréscimo</dt>
-              <dd>{formatMoney(transacao.valorAcrescimo)}</dd>
-            </div>
-
-            <div>
-              <dt>Total</dt>
-              <dd>{formatMoney(transacao.valorTotal)}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Datas</h2>
-            <p>Registro e atualização.</p>
-          </div>
-
-          <dl className="ck-entity-detail-list">
-            <div>
-              <dt>Criada em</dt>
-              <dd>{formatDateTime(transacao.criadoEm)}</dd>
-            </div>
-
-            <div>
-              <dt>Atualizada em</dt>
-              <dd>{formatDateTime(transacao.atualizadoEm)}</dd>
-            </div>
-
-            <div>
-              <dt>Cancelada em</dt>
-              <dd>{formatDateTime(transacao.canceladoEm)}</dd>
-            </div>
-          </dl>
-        </article>
-      </section>
-
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Itens</h2>
-          <p>Produtos e serviços vinculados à transação.</p>
-        </div>
-
+      <EntityCard title="Itens" description="Produtos e serviços vinculados à transação.">
         {transacao.itens.length === 0 ? (
           <p className="ck-entity-description">
             Nenhum item foi adicionado a esta transação.
@@ -302,58 +277,50 @@ export default function TransacaoDetailsPage() {
             </table>
           </div>
         )}
-      </section>
+      </EntityCard>
 
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Observação</h2>
-        </div>
-
+      <EntityCard title="Observação">
         <p className="ck-entity-description">
           {transacao.observacao ?? "Nenhuma observação cadastrada."}
         </p>
-      </section>
+      </EntityCard>
 
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Ações</h2>
-          <p>Confirme ou cancele a transação conforme o fluxo operacional.</p>
-        </div>
-
-        <div className="ck-entity-actions-row">
-          <button
-            className="ck-entity-button ck-entity-button--primary"
+      <EntityCard
+        title="Ações"
+        description="Confirme ou cancele a transação conforme o fluxo operacional."
+      >
+        <EntityActions>
+          <EntityButton
             type="button"
+            variant="primary"
             disabled={Boolean(isRunning)}
             onClick={confirmar}
           >
             {isRunning === "confirmar" ? "Confirmando..." : "Confirmar"}
-          </button>
-        </div>
+          </EntityButton>
+        </EntityActions>
 
-        <div className="ck-entity-form-grid">
-          <label className="ck-entity-field ck-entity-field--wide">
-            <span>Motivo do cancelamento</span>
+        <EntityFormGrid>
+          <EntityField label="Motivo do cancelamento" wide>
             <textarea
               value={motivoCancelamento}
               onChange={(event) => setMotivoCancelamento(event.target.value)}
               placeholder="Opcional"
               rows={4}
             />
-          </label>
-        </div>
+          </EntityField>
+        </EntityFormGrid>
 
-        <div className="ck-entity-actions-row">
-          <button
-            className="ck-entity-button"
+        <EntityActions>
+          <EntityButton
             type="button"
             disabled={Boolean(isRunning)}
             onClick={cancelar}
           >
             {isRunning === "cancelar" ? "Cancelando..." : "Cancelar"}
-          </button>
-        </div>
-      </section>
-    </div>
+          </EntityButton>
+        </EntityActions>
+      </EntityCard>
+    </EntityPage>
   );
 }

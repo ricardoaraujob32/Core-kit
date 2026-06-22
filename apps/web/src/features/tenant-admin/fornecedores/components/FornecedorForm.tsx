@@ -1,12 +1,18 @@
 // apps/web/src/features/tenant-admin/fornecedores/components/FornecedorForm.tsx
 
 import { useMemo, useState, type FormEvent } from "react";
+import {
+  EntityButton,
+  EntityCard,
+  EntityField,
+  EntityForm,
+  EntityFormGrid,
+} from "../../shared/entity-ui";
 import type {
   AtualizarFornecedorInput,
   CriarFornecedorInput,
   Fornecedor,
 } from "../tipos";
-import "../../shared/entityPages.css";
 
 type Props = {
   mode: "create" | "edit";
@@ -60,82 +66,65 @@ export function FornecedorForm({
   }
 
   return (
-    <form className="ck-entity-form" onSubmit={handleSubmit}>
-      <header className="ck-entity-form__header">
-        <div>
-          <p className="ck-entity-kicker">Fornecedores</p>
-          <h1>{titulo}</h1>
-          <p>{subtitulo}</p>
-        </div>
-      </header>
-
-      {erro ? <div className="ck-entity-alert">{erro}</div> : null}
-
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Identificação</h2>
-          <p>Dados usados para reconhecer o fornecedor no sistema.</p>
-        </div>
-
-        <div className="ck-entity-form-grid">
-          <label className="ck-entity-field ck-entity-field--wide">
-            <span>Nome</span>
+    <EntityForm
+      kicker="Fornecedores"
+      title={titulo}
+      description={subtitulo}
+      error={erro}
+      onSubmit={handleSubmit}
+      footer={
+        <EntityButton type="submit" variant="primary" disabled={Boolean(isSaving)}>
+          {isSaving ? "Salvando..." : "Salvar fornecedor"}
+        </EntityButton>
+      }
+    >
+      <EntityCard
+        title="Identificação"
+        description="Dados usados para reconhecer o fornecedor no sistema."
+      >
+        <EntityFormGrid>
+          <EntityField label="Nome" wide>
             <input
               value={nome}
               onChange={(event) => setNome(event.target.value)}
               placeholder="Ex.: Distribuidora Modelo"
               required
             />
-          </label>
+          </EntityField>
 
-          <label className="ck-entity-field">
-            <span>Documento</span>
+          <EntityField label="Documento">
             <input
               value={documento}
               onChange={(event) => setDocumento(event.target.value)}
               placeholder="CNPJ, CPF ou outro identificador"
             />
-          </label>
-        </div>
-      </section>
+          </EntityField>
+        </EntityFormGrid>
+      </EntityCard>
 
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Contato</h2>
-          <p>Informações úteis para cotações, compras e suporte.</p>
-        </div>
-
-        <div className="ck-entity-form-grid">
-          <label className="ck-entity-field">
-            <span>E-mail</span>
+      <EntityCard
+        title="Contato"
+        description="Informações úteis para cotações, compras e suporte."
+      >
+        <EntityFormGrid>
+          <EntityField label="E-mail">
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="fornecedor@email.com"
             />
-          </label>
+          </EntityField>
 
-          <label className="ck-entity-field">
-            <span>Telefone</span>
+          <EntityField label="Telefone">
             <input
               value={telefone}
               onChange={(event) => setTelefone(event.target.value)}
               placeholder="(00) 00000-0000"
             />
-          </label>
-        </div>
-      </section>
-
-      <footer className="ck-entity-form__footer">
-        <button
-          className="ck-entity-button ck-entity-button--primary"
-          type="submit"
-          disabled={Boolean(isSaving)}
-        >
-          {isSaving ? "Salvando..." : "Salvar fornecedor"}
-        </button>
-      </footer>
-    </form>
+          </EntityField>
+        </EntityFormGrid>
+      </EntityCard>
+    </EntityForm>
   );
 }

@@ -1,12 +1,17 @@
 // apps/web/src/features/tenant-admin/ordens-servico/pages/NovaOrdemServicoPage.tsx
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityHero,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { ordensServicoApi } from "../api/ordensServicoApi";
 import { OrdemServicoForm } from "../components/OrdemServicoForm";
 import type { CriarOrdemServicoInput } from "../tipos";
-import "../../shared/entityPages.css";
 
 export default function NovaOrdemServicoPage() {
   const navigate = useNavigate();
@@ -24,33 +29,22 @@ export default function NovaOrdemServicoPage() {
   }
 
   return (
-    <div className="ck-entity-page">
-      <div className="ck-entity-page__actions">
-        <Link className="ck-entity-button" to="/app/ordens-servico">
+    <EntityPage
+      actions={
+        <EntityButton to="/app/ordens-servico">
           Voltar para ordens
-        </Link>
-      </div>
+        </EntityButton>
+      }
+    >
+      <EntityHero
+        kicker="Ordens de serviço"
+        title="Nova OS"
+        description="Registre uma ordem de serviço usando cliente, título e descrição. A data e o horário serão usados como referência principal."
+      />
 
-      <section className="ck-entity-hero">
-        <div>
-          <p className="ck-entity-kicker">Ordens de serviço</p>
-          <h1>Nova OS</h1>
-          <p>
-            Registre uma ordem de serviço usando cliente, título e descrição.
-          </p>
-        </div>
-      </section>
+      {erro ? <EntityAlert>{erro}</EntityAlert> : null}
 
-      {erro ? <div className="ck-entity-alert">{erro}</div> : null}
-
-      <section className="ck-entity-card">
-        <div className="ck-entity-card__title">
-          <h2>Dados da ordem</h2>
-          <p>Informe o contexto inicial para acompanhar a execução.</p>
-        </div>
-
-        <OrdemServicoForm onSubmit={criar} />
-      </section>
-    </div>
+      <OrdemServicoForm onSubmit={criar} />
+    </EntityPage>
   );
 }

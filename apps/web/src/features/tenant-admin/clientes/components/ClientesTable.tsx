@@ -1,56 +1,134 @@
 // apps/web/src/features/tenant-admin/clientes/components/ClientesTable.tsx
 
-import { Link } from "react-router-dom";
 import {
-  ExpandableTableCell,
-  TableHeaderDateRangeFilter,
   TableHeaderFilter,
-  createDateRangeFilter,
-  matchesDateRange,
   matchesFilter,
   useTableFilters,
 } from "../../../../shared/table";
-import { formatClienteLabel, formatDate } from "../../../../shared/formatters";
+import {
+  formatClienteLabel,
+  formatDateTime,
+} from "../../../../shared/formatters";
+import {
+  DataTable,
+  DataTableActions,
+  DataTableLinkButton,
+  type DataTableColumn,
+} from "../../shared/data-table";
 import type { Cliente } from "../tipos";
 
-type Props = { itens: Cliente[] };
-type ClienteFilterKey = "cliente" | "contato" | "criadoEm";
+type Props = {
+  itens: Cliente[];
+};
+
+type ClienteFilterKey = "cliente" | "documento" | "contato";
+
+function clienteResumo(cliente: Cliente): string {
+  return cliente.nome?.trim() || "Cliente sem nome";
+}
+
+function clienteDetalhe(cliente: Cliente) {
+  return (
+    <details className="ck-expandable-native">
+      <summary className="ck-expandable-native__summary">
+        <span className="ck-expandable-native__summary-text">
+          {clienteResumo(cliente)}
+        </span>
+      </summary>
+
+      <div className="ck-expandable-native__detail">
+        <strong>{formatClienteLabel(cliente)}</strong>
+        <p>Documento: {cliente.documento ?? "Não informado"}</p>
+        <p>E-mail: {cliente.email ?? "—"}</p>
+        <p>Telefone: {cliente.telefone ?? "—"}</p>
+        <p>Criado em: {formatDateTime(cliente.criadoEm)}</p>
+      </div>
+    </details>
+  );
+}
 
 export function ClientesTable({ itens }: Props) {
   const table = useTableFilters<Cliente, ClienteFilterKey>(
     itens,
-    { cliente: "", contato: "", criadoEm: createDateRangeFilter() },
+    {
+      cliente: "",
+      documento: "",
+      contato: "",
+    },
     (cliente, filters) =>
       matchesFilter(cliente.nome, filters.cliente) &&
-      matchesFilter(`${cliente.documento ?? ""} ${cliente.telefone ?? ""} ${cliente.email ?? ""}`, filters.contato) &&
-      matchesDateRange(cliente.criadoEm, filters.criadoEm as { from: string; to: string }),
+      matchesFilter(cliente.documento, filters.documento) &&
+      matchesFilter(
+        `${cliente.email ?? ""} ${cliente.telefone ?? ""}`,
+        filters.contato,
+      ),
   );
 
-  if (itens.length === 0) return <div className="ck-register-empty">Nenhum cliente encontrado</div>;
+  const columns: DataTableColumn<Cliente>[] = [
+    {
+      key: "cliente",
+      header: (
+        <TableHeaderFilter
+          label="Cliente"
+          value={table.filters.cliente as string}
+          placeholder="Nome"
+          onChange={(value) => table.setFilter("cliente", value)}
+        />
+      ),
+      render: clienteDetalhe,
+    },
+    {
+      key: "documento",
+      header: (
+        <TableHeaderFilter
+          label="Documento"
+          value={table.filters.documento as string}
+          placeholder="CPF/CNPJ"
+          onChange={(value) => table.setFilter("documento", value)}
+        />
+      ),
+      render: (cliente) => cliente.documento ?? "—",
+    },
+    {
+      key: "contato",
+      header: (
+        <TableHeaderFilter
+          label="Contato"
+          value={table.filters.contato as string}
+          placeholder="E-mail ou telefone"
+          onChange={(value) => table.setFilter("contato", value)}
+        />
+      ),
+      render: (cliente) => (
+        <div>
+          <div>{cliente.email ?? "—"}</div>
+          <div>{cliente.telefone ?? "—"}</div>
+        </div>
+      ),
+    },
+    {
+      key: "acoes",
+      header: "Ações",
+      render: (cliente) => (
+        <DataTableActions>
+          <DataTableLinkButton to={`/app/clientes/${cliente.clienteId}`}>
+            Ver
+          </DataTableLinkButton>
+
+          <DataTableLinkButton to={`/app/clientes/${cliente.clienteId}/editar`}>
+            Editar
+          </DataTableLinkButton>
+        </DataTableActions>
+      ),
+    },
+  ];
 
   return (
-    <div className="ck-register-table-panel">
-      <table className="ck-register-table">
-        <thead>
-          <tr>
-            <th><TableHeaderFilter label="Cliente" value={table.filters.cliente as string} placeholder="Nome" onChange={(value) => table.setFilter("cliente", value)} /></th>
-            <th><TableHeaderFilter label="Contato" value={table.filters.contato as string} placeholder="Documento, telefone ou e-mail" onChange={(value) => table.setFilter("contato", value)} /></th>
-            <th><TableHeaderDateRangeFilter label="Cadastrado em" value={table.filters.criadoEm as { from: string; to: string }} onChange={(value) => table.setFilter("criadoEm", value)} /></th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {table.filteredItems.map((cliente) => (
-            <tr key={cliente.clienteId}>
-              <ExpandableTableCell summary={cliente.nome ?? "Cliente sem nome"} detail={<div><strong>{formatClienteLabel(cliente)}</strong><p>Documento: {cliente.documento ?? "Sem documento"}</p><p>Telefone: {cliente.telefone ?? "Sem telefone"}</p><p>E-mail: {cliente.email ?? "Sem e-mail"}</p></div>} />
-              <td>{cliente.telefone ?? cliente.email ?? "—"}</td>
-              <td>{formatDate(cliente.criadoEm)}</td>
-              <td><div className="ck-register-row-actions"><Link className="ck-register-link" to={`/app/clientes/${cliente.clienteId}`}>Ver</Link><Link className="ck-register-link" to={`/app/clientes/${cliente.clienteId}/editar`}>Editar</Link></div></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      items={table.filteredItems}
+      columns={columns}
+      getRowKey={(cliente) => cliente.clienteId}
+      emptyMessage="Nenhum cliente encontrado"
+    />
   );
 }

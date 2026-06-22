@@ -1,10 +1,18 @@
 // apps/web/src/features/tenant-admin/produtos/pages/ProdutoDetailsPage.tsx
 
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { formatDateTime, formatMoney } from "../../../../shared/formatters";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityDetailGrid,
+  EntityDetailList,
+  EntityHero,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { useProdutoDetails } from "../hooks/useProdutoDetails";
 import { toProdutoViewModel } from "../produto.viewModel";
-import "./produtoPages.css";
 
 function statusLabel(ativo?: boolean): string {
   return ativo === false ? "Inativo" : "Ativo";
@@ -22,25 +30,25 @@ export default function ProdutoDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="ck-product-page">
-        <div className="ck-product-card">Carregando produto...</div>
-      </div>
+      <EntityPage>
+        <EntityCard>Carregando produto...</EntityCard>
+      </EntityPage>
     );
   }
 
   if (erro) {
     return (
-      <div className="ck-product-page">
-        <div className="ck-product-alert">{erro}</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>{erro}</EntityAlert>
+      </EntityPage>
     );
   }
 
   if (!produto) {
     return (
-      <div className="ck-product-page">
-        <div className="ck-product-alert">Produto não encontrado.</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>Produto não encontrado.</EntityAlert>
+      </EntityPage>
     );
   }
 
@@ -50,111 +58,70 @@ export default function ProdutoDetailsPage() {
   });
 
   return (
-    <div className="ck-product-page">
-      <section className="ck-product-detail-hero">
-        <div>
-          <p className="ck-product-kicker">Produto</p>
-          <h1>{vm.titulo}</h1>
-          <p>{[vm.subtitulo, vm.contexto].filter(Boolean).join(" — ")}</p>
-        </div>
+    <EntityPage>
+      <EntityHero
+        kicker="Produto"
+        title={vm.titulo}
+        description={[vm.subtitulo, vm.contexto].filter(Boolean).join(" — ")}
+        actions={
+          <>
+            <EntityButton
+              to={`/app/produtos/${produto.produtoId}/editar`}
+              variant="primary"
+            >
+              Editar
+            </EntityButton>
 
-        <div className="ck-product-page__actions">
-          <Link
-            className="ck-product-button ck-product-button--primary"
-            to={`/app/produtos/${produto.produtoId}/editar`}
-          >
-            Editar
-          </Link>
+            <EntityButton to="/app/produtos">
+              Lista de produtos
+            </EntityButton>
+          </>
+        }
+      />
 
-          <Link className="ck-product-button" to="/app/produtos">
-            Lista de produtos
-          </Link>
-        </div>
-      </section>
+      <EntityDetailGrid columns={3}>
+        <EntityCard title="Identificação" description="Dados principais do catálogo.">
+          <EntityDetailList
+            items={[
+              { label: "Nome", value: produto.nome },
+              { label: "SKU", value: produto.sku },
+              { label: "Tipo", value: tipoLabel(produto.tipo) },
+              { label: "Unidade", value: produto.unidade },
+              { label: "Status", value: statusLabel(produto.ativo) },
+            ]}
+          />
+        </EntityCard>
 
-      <section className="ck-product-detail-grid">
-        <article className="ck-product-card">
-          <div className="ck-product-card__title">
-            <h2>Identificação</h2>
-            <p>Dados principais do catálogo.</p>
-          </div>
+        <EntityCard title="Valores" description="Informações comerciais.">
+          <EntityDetailList
+            items={[
+              { label: "Preço de venda", value: formatMoney(produto.precoVenda) },
+              {
+                label: "Custo de referência",
+                value: formatMoney(produto.custoReferencia),
+              },
+            ]}
+          />
+        </EntityCard>
 
-          <dl className="ck-product-detail-list">
-            <div>
-              <dt>Nome</dt>
-              <dd>{produto.nome}</dd>
-            </div>
+        <EntityCard title="Registro" description="Datas de criação e atualização.">
+          <EntityDetailList
+            items={[
+              { label: "Criado em", value: formatDateTime(produto.criadoEm) },
+              {
+                label: "Atualizado em",
+                value: formatDateTime(produto.atualizadoEm),
+              },
+            ]}
+          />
+        </EntityCard>
+      </EntityDetailGrid>
 
-            <div>
-              <dt>SKU</dt>
-              <dd>{produto.sku ?? "—"}</dd>
-            </div>
-
-            <div>
-              <dt>Tipo</dt>
-              <dd>{tipoLabel(produto.tipo)}</dd>
-            </div>
-
-            <div>
-              <dt>Unidade</dt>
-              <dd>{produto.unidade}</dd>
-            </div>
-
-            <div>
-              <dt>Status</dt>
-              <dd>{statusLabel(produto.ativo)}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-product-card">
-          <div className="ck-product-card__title">
-            <h2>Valores</h2>
-            <p>Informações comerciais.</p>
-          </div>
-
-          <dl className="ck-product-detail-list">
-            <div>
-              <dt>Preço de venda</dt>
-              <dd>{formatMoney(produto.precoVenda)}</dd>
-            </div>
-
-            <div>
-              <dt>Custo de referência</dt>
-              <dd>{formatMoney(produto.custoReferencia)}</dd>
-            </div>
-          </dl>
-        </article>
-
-        <article className="ck-product-card">
-          <div className="ck-product-card__title">
-            <h2>Registro</h2>
-            <p>Datas de criação e atualização.</p>
-          </div>
-
-          <dl className="ck-product-detail-list">
-            <div>
-              <dt>Criado em</dt>
-              <dd>{formatDateTime(produto.criadoEm)}</dd>
-            </div>
-
-            <div>
-              <dt>Atualizado em</dt>
-              <dd>{formatDateTime(produto.atualizadoEm)}</dd>
-            </div>
-          </dl>
-        </article>
-      </section>
-
-      <section className="ck-product-card">
-        <div className="ck-product-card__title">
-          <h2>Descrição</h2>
-        </div>
-
-        <p className="ck-product-description">
+      <EntityCard title="Descrição">
+        <p className="ck-entity-description">
           {produto.descricao ?? "Nenhuma descrição cadastrada."}
         </p>
-      </section>
-    </div>
+      </EntityCard>
+    </EntityPage>
   );
 }

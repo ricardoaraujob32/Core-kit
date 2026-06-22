@@ -1,11 +1,16 @@
 // apps/web/src/features/tenant-admin/produtos/pages/EditarProdutoPage.tsx
 
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { ProdutoForm } from "../components/ProdutoForm";
 import { useProdutoDetails } from "../hooks/useProdutoDetails";
 import { useSalvarProduto } from "../hooks/useSalvarProduto";
 import type { AtualizarProdutoInput, CriarProdutoInput } from "../tipos";
-import "./produtoPages.css";
 
 export default function EditarProdutoPage() {
   const navigate = useNavigate();
@@ -33,40 +38,42 @@ export default function EditarProdutoPage() {
 
   if (isLoading) {
     return (
-      <div className="ck-product-page">
-        <div className="ck-product-card">Carregando produto...</div>
-      </div>
+      <EntityPage>
+        <EntityCard>Carregando produto...</EntityCard>
+      </EntityPage>
     );
   }
 
   if (erroCarga) {
     return (
-      <div className="ck-product-page">
-        <div className="ck-product-alert">{erroCarga}</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>{erroCarga}</EntityAlert>
+      </EntityPage>
     );
   }
 
   if (!produto) {
     return (
-      <div className="ck-product-page">
-        <div className="ck-product-alert">Produto não encontrado.</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>Produto não encontrado.</EntityAlert>
+      </EntityPage>
     );
   }
 
   return (
-    <div className="ck-product-page">
-      <div className="ck-product-page__actions">
-        <Link className="ck-product-button" to={`/app/produtos/${produto.produtoId}`}>
-          Voltar para detalhes
-        </Link>
+    <EntityPage
+      actions={
+        <>
+          <EntityButton to={`/app/produtos/${produto.produtoId}`}>
+            Voltar para detalhes
+          </EntityButton>
 
-        <Link className="ck-product-button" to="/app/produtos">
-          Lista de produtos
-        </Link>
-      </div>
-
+          <EntityButton to="/app/produtos">
+            Lista de produtos
+          </EntityButton>
+        </>
+      }
+    >
       <ProdutoForm
         mode="edit"
         initialData={produto}
@@ -74,6 +81,6 @@ export default function EditarProdutoPage() {
         erro={erro}
         onSubmit={handleSubmit}
       />
-    </div>
+    </EntityPage>
   );
 }

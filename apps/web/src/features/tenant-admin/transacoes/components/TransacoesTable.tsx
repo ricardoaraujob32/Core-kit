@@ -1,11 +1,27 @@
 // apps/web/src/features/tenant-admin/transacoes/components/TransacoesTable.tsx
 
-import { Link } from "react-router-dom";
-import { ExpandableTableCell, TableHeaderDateRangeFilter, TableHeaderFilter, createDateRangeFilter, matchesDateRange, matchesFilter, useTableFilters } 
-from "../../../../shared/table";
-import { formatDateTime, formatMoney, formatTransacaoLabel } from "../../../../shared/formatters";
+import {
+  TableHeaderDateRangeFilter,
+  TableHeaderFilter,
+  createDateRangeFilter,
+  matchesDateRange,
+  matchesFilter,
+  useTableFilters,
+} from "../../../../shared/table";
+import {
+  formatDateTime,
+  formatMoney,
+  formatTransacaoLabel,
+} from "../../../../shared/formatters";
 import type { Cliente } from "../../clientes/tipos";
 import type { Fornecedor } from "../../fornecedores/tipos";
+import {
+  DataTable,
+  DataTableActions,
+  DataTableLinkButton,
+  DataTableStatus,
+  type DataTableColumn,
+} from "../../shared/data-table";
 import type { Transacao } from "../tipos";
 
 type Props = {
@@ -16,19 +32,23 @@ type Props = {
 
 type TransacaoFilterKey = "transacao" | "pessoa" | "status" | "data";
 
-function statusClass(status?: string | null): string {
+function statusTone(status?: string | null): "success" | "warning" | "danger" {
   switch (status) {
     case "CONFIRMADA":
     case "CONCLUIDA":
-      return "ck-status ck-status-success";
+      return "success";
     case "CANCELADA":
-      return "ck-status ck-status-danger";
+      return "danger";
     default:
-      return "ck-status ck-status-warning";
+      return "warning";
   }
 }
 
-function pessoaNome(transacao: Transacao, clientesPorId: Map<string, Cliente>, fornecedoresPorId: Map<string, Fornecedor>): string {
+function pessoaNome(
+  transacao: Transacao,
+  clientesPorId: Map<string, Cliente>,
+  fornecedoresPorId: Map<string, Fornecedor>,
+): string {
   if (transacao.clienteId) {
     return clientesPorId.get(transacao.clienteId)?.nome ?? "Cliente não carregado";
   }
@@ -40,7 +60,34 @@ function pessoaNome(transacao: Transacao, clientesPorId: Map<string, Cliente>, f
   return "Pessoa não informada";
 }
 
-export function TransacoesTable({ itens, clientes = [], fornecedores = [] }: Props) {
+function transacaoDetalhe(
+  transacao: Transacao,
+  pessoa: string,
+) {
+  return (
+    <details className="ck-expandable-native">
+      <summary className="ck-expandable-native__summary">
+        <span className="ck-expandable-native__summary-text">
+          {transacao.tipo ?? "Transação"} — {formatDateTime(transacao.criadoEm)}
+        </span>
+      </summary>
+
+      <div className="ck-expandable-native__detail">
+        <strong>{formatTransacaoLabel(transacao)}</strong>
+        <p>Pessoa: {pessoa}</p>
+        <p>Valor: {formatMoney(transacao.valorTotal)}</p>
+        <p>Status: {transacao.status ?? "—"}</p>
+        <p>Criada em: {formatDateTime(transacao.criadoEm)}</p>
+      </div>
+    </details>
+  );
+}
+
+export function TransacoesTable({
+  itens,
+  clientes = [],
+  fornecedores = [],
+}: Props) {
   const clientesPorId = new Map(
     clientes.map((cliente) => [cliente.clienteId, cliente]),
   );
@@ -67,110 +114,87 @@ export function TransacoesTable({ itens, clientes = [], fornecedores = [] }: Pro
       matchesDateRange(transacao.criadoEm, filters.data),
   );
 
-  if (itens.length === 0) {
-    return (
-      <div className="ck-register-empty">
-        Nenhuma transação encontrada
-      </div>
-    );
-  }
+  const columns: DataTableColumn<Transacao>[] = [
+    {
+      key: "transacao",
+      header: (
+        <TableHeaderFilter
+          label="Transação"
+          value={table.filters.transacao as string}
+          placeholder="Tipo"
+          onChange={(value) => table.setFilter("transacao", value)}
+        />
+      ),
+      render: (transacao) =>
+        transacaoDetalhe(
+          transacao,
+          pessoaNome(transacao, clientesPorId, fornecedoresPorId),
+        ),
+    },
+    {
+      key: "pessoa",
+      header: (
+        <TableHeaderFilter
+          label="Pessoa"
+          value={table.filters.pessoa as string}
+          placeholder="Cliente ou fornecedor"
+          onChange={(value) => table.setFilter("pessoa", value)}
+        />
+      ),
+      render: (transacao) =>
+        pessoaNome(transacao, clientesPorId, fornecedoresPorId),
+    },
+    {
+      key: "valor",
+      header: "Valor",
+      render: (transacao) => formatMoney(transacao.valorTotal),
+    },
+    {
+      key: "status",
+      header: (
+        <TableHeaderFilter
+          label="Status"
+          value={table.filters.status as string}
+          placeholder="Status"
+          onChange={(value) => table.setFilter("status", value)}
+        />
+      ),
+      render: (transacao) => (
+        <DataTableStatus tone={statusTone(transacao.status)}>
+          {transacao.status ?? "—"}
+        </DataTableStatus>
+      ),
+    },
+    {
+      key: "data",
+      header: (
+        <TableHeaderDateRangeFilter
+          label="Data"
+          value={table.filters.data as { from: string; to: string }}
+          onChange={(value) => table.setFilter("data", value)}
+        />
+      ),
+      render: (transacao) => formatDateTime(transacao.criadoEm),
+    },
+    {
+      key: "acoes",
+      header: "Ações",
+      render: (transacao) => (
+        <DataTableActions>
+          <DataTableLinkButton to={`/app/transacoes/${transacao.transacaoId}`}>
+            Ver
+          </DataTableLinkButton>
+        </DataTableActions>
+      ),
+    },
+  ];
 
   return (
-    <div className="ck-register-table-panel">
-      <table className="ck-register-table">
-        <thead>
-          <tr>
-            <th>
-              <TableHeaderFilter
-                label="Transação"
-                value={table.filters.transacao as string}
-                placeholder="Tipo"
-                onChange={(value) => table.setFilter("transacao", value)}
-              />
-            </th>
-
-            <th>
-              <TableHeaderFilter
-                label="Pessoa"
-                value={table.filters.pessoa as string}
-                placeholder="Cliente ou fornecedor"
-                onChange={(value) => table.setFilter("pessoa", value)}
-              />
-            </th>
-
-            <th>Valor</th>
-
-            <th>
-              <TableHeaderFilter
-                label="Status"
-                value={table.filters.status as string}
-                placeholder="Status"
-                onChange={(value) => table.setFilter("status", value)}
-              />
-            </th>
-
-            <th>
-              <TableHeaderDateRangeFilter
-                label="Data"
-                value={table.filters.data as { from: string; to: string }}
-                onChange={(value) => table.setFilter("data", value)}
-              />
-            </th>
-
-            <th>Ações</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {table.filteredItems.map((transacao) => {
-            const pessoa = pessoaNome(
-              transacao,
-              clientesPorId,
-              fornecedoresPorId,
-            );
-
-            return (
-              <tr key={transacao.transacaoId}>
-                <ExpandableTableCell
-                  summary={`${transacao.tipo ?? "Transação"} — ${formatDateTime(
-                    transacao.criadoEm,
-                  )}`}
-                  detail={
-                    <div>
-                      <strong>{formatTransacaoLabel(transacao)}</strong>
-                      <p>Pessoa: {pessoa}</p>
-                      <p>Valor: {formatMoney(transacao.valorTotal)}</p>
-                      <p>Status: {transacao.status ?? "—"}</p>
-                    </div>
-                  }
-                />
-
-                <td>{pessoa}</td>
-                <td>{formatMoney(transacao.valorTotal)}</td>
-
-                <td>
-                  <span className={statusClass(transacao.status)}>
-                    {transacao.status ?? "—"}
-                  </span>
-                </td>
-
-                <td>{formatDateTime(transacao.criadoEm)}</td>
-
-                <td>
-                  <div className="ck-register-row-actions">
-                    <Link
-                      className="ck-register-link"
-                      to={`/app/transacoes/${transacao.transacaoId}`}
-                    >
-                      Ver
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      items={table.filteredItems}
+      columns={columns}
+      getRowKey={(transacao) => transacao.transacaoId}
+      emptyMessage="Nenhuma transação encontrada"
+    />
   );
 }

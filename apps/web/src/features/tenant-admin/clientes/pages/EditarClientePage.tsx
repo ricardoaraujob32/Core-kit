@@ -1,11 +1,16 @@
 // apps/web/src/features/tenant-admin/clientes/pages/EditarClientePage.tsx
 
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { ClienteForm } from "../components/ClienteForm";
 import { useClienteDetails } from "../hooks/useClienteDetails";
 import { useSalvarCliente } from "../hooks/useSalvarCliente";
 import type { AtualizarClienteInput, CriarClienteInput } from "../tipos";
-import "../../shared/entityPages.css";
 
 export default function EditarClientePage() {
   const navigate = useNavigate();
@@ -27,40 +32,42 @@ export default function EditarClientePage() {
 
   if (isLoading) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-card">Carregando cliente...</div>
-      </div>
+      <EntityPage>
+        <EntityCard>Carregando cliente...</EntityCard>
+      </EntityPage>
     );
   }
 
   if (erroCarga) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">{erroCarga}</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>{erroCarga}</EntityAlert>
+      </EntityPage>
     );
   }
 
   if (!cliente) {
     return (
-      <div className="ck-entity-page">
-        <div className="ck-entity-alert">Cliente não encontrado.</div>
-      </div>
+      <EntityPage>
+        <EntityAlert>Cliente não encontrado.</EntityAlert>
+      </EntityPage>
     );
   }
 
   return (
-    <div className="ck-entity-page">
-      <div className="ck-entity-page__actions">
-        <Link className="ck-entity-button" to={`/app/clientes/${cliente.clienteId}`}>
-          Voltar para detalhes
-        </Link>
+    <EntityPage
+      actions={
+        <>
+          <EntityButton to={`/app/clientes/${cliente.clienteId}`}>
+            Voltar para detalhes
+          </EntityButton>
 
-        <Link className="ck-entity-button" to="/app/clientes">
-          Lista de clientes
-        </Link>
-      </div>
-
+          <EntityButton to="/app/clientes">
+            Lista de clientes
+          </EntityButton>
+        </>
+      }
+    >
       <ClienteForm
         mode="edit"
         initialData={cliente}
@@ -68,6 +75,6 @@ export default function EditarClientePage() {
         erro={erro}
         onSubmit={handleSubmit}
       />
-    </div>
+    </EntityPage>
   );
 }

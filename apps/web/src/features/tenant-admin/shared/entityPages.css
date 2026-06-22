@@ -122,6 +122,19 @@
   outline-offset: 1px;
 }
 
+.ck-entity-field--checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  align-self: end;
+  min-height: 2.65rem;
+}
+
+.ck-entity-field--checkbox input {
+  width: 1rem;
+  min-height: 1rem;
+}
+
 .ck-entity-form__footer {
   display: flex;
   justify-content: flex-end;
@@ -150,7 +163,7 @@
 .ck-entity-button--primary {
   border-color: #1d4ed8;
   background: #2563eb;
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .ck-entity-button--primary:hover {

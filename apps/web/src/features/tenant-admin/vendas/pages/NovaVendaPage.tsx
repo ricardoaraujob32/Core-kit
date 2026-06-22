@@ -1,13 +1,21 @@
 // apps/web/src/features/tenant-admin/vendas/pages/NovaVendaPage.tsx
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { mapError } from "../../../../core/errors/mapError";
 import { formatClienteLabel } from "../../../../shared/formatters";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityField,
+  EntityForm,
+  EntityFormGrid,
+  EntityPage,
+} from "../../shared/entity-ui";
 import { vendasApi } from "../api/vendasApi";
-import "../../shared/entityPages.css";
 
 function textoBuscaCliente(cliente: Cliente): string {
   return [cliente.nome, cliente.documento, cliente.email, cliente.telefone]
@@ -101,49 +109,38 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <div className="ck-entity-page">
-      <div className="ck-entity-page__actions">
-        <Link className="ck-entity-button" to="/app/transacoes">
+    <EntityPage
+      actions={
+        <EntityButton to="/app/transacoes">
           Voltar para transações
-        </Link>
-      </div>
+        </EntityButton>
+      }
+    >
+      <EntityForm
+        kicker="Vendas"
+        title="Nova venda"
+        description="Crie uma transação de venda e depois adicione os itens na tela de detalhes."
+        error={erro}
+        onSubmit={handleSubmit}
+        footer={
+          <EntityButton type="submit" variant="primary" disabled={isSaving}>
+            {isSaving ? "Criando..." : "Criar venda"}
+          </EntityButton>
+        }
+      >
+        {erroClientes ? <EntityAlert>{erroClientes}</EntityAlert> : null}
 
-      <form className="ck-entity-form" onSubmit={handleSubmit}>
-        <header className="ck-entity-form__header">
-          <div>
-            <p className="ck-entity-kicker">Vendas</p>
-            <h1>Nova venda</h1>
-            <p>
-              Crie uma transação de venda e depois adicione os itens na tela de
-              detalhes.
-            </p>
-          </div>
-        </header>
-
-        {erro ? <div className="ck-entity-alert">{erro}</div> : null}
-
-        {erroClientes ? (
-          <div className="ck-entity-alert">{erroClientes}</div>
-        ) : null}
-
-        <section className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Cliente</h2>
-            <p>Selecione o cliente vinculado à venda.</p>
-          </div>
-
-          <div className="ck-entity-form-grid">
-            <label className="ck-entity-field ck-entity-field--wide">
-              <span>Buscar cliente</span>
+        <EntityCard title="Cliente" description="Selecione o cliente vinculado à venda.">
+          <EntityFormGrid>
+            <EntityField label="Buscar cliente" wide>
               <input
                 value={buscaCliente}
                 onChange={(event) => setBuscaCliente(event.target.value)}
                 placeholder="Nome, documento, e-mail ou telefone"
               />
-            </label>
+            </EntityField>
 
-            <label className="ck-entity-field ck-entity-field--wide">
-              <span>Cliente</span>
+            <EntityField label="Cliente" wide>
               <select
                 value={clienteId}
                 onChange={(event) => setClienteId(event.target.value)}
@@ -161,46 +158,44 @@ export default function NovaVendaPage() {
                   </option>
                 ))}
               </select>
-            </label>
+            </EntityField>
 
             {clienteSelecionado ? (
-              <div className="ck-entity-card ck-entity-field--wide">
-                <div className="ck-entity-card__title">
-                  <h2>Cliente selecionado</h2>
-                  <p>{formatClienteLabel(clienteSelecionado)}</p>
-                </div>
-              </div>
+              <EntityCard
+                className="ck-entity-field--wide"
+                title="Cliente selecionado"
+                description={formatClienteLabel(clienteSelecionado)}
+              >
+                <dl className="ck-entity-detail-list">
+                  <div>
+                    <dt>Telefone</dt>
+                    <dd>{clienteSelecionado.telefone ?? "—"}</dd>
+                  </div>
+
+                  <div>
+                    <dt>E-mail</dt>
+                    <dd>{clienteSelecionado.email ?? "—"}</dd>
+                  </div>
+                </dl>
+              </EntityCard>
             ) : null}
-          </div>
-        </section>
+          </EntityFormGrid>
+        </EntityCard>
 
-        <section className="ck-entity-card">
-          <div className="ck-entity-card__title">
-            <h2>Observação</h2>
-            <p>Registre condições comerciais ou contexto do atendimento.</p>
-          </div>
-
-          <label className="ck-entity-field">
-            <span>Observação da venda</span>
+        <EntityCard
+          title="Observação"
+          description="Registre condições comerciais ou contexto do atendimento."
+        >
+          <EntityField label="Observação da venda">
             <textarea
               value={observacao}
               onChange={(event) => setObservacao(event.target.value)}
               placeholder="Ex.: venda balcão, pedido especial, condições combinadas..."
               rows={5}
             />
-          </label>
-        </section>
-
-        <footer className="ck-entity-form__footer">
-          <button
-            className="ck-entity-button ck-entity-button--primary"
-            disabled={isSaving}
-            type="submit"
-          >
-            {isSaving ? "Criando..." : "Criar venda"}
-          </button>
-        </footer>
-      </form>
-    </div>
+          </EntityField>
+        </EntityCard>
+      </EntityForm>
+    </EntityPage>
   );
 }

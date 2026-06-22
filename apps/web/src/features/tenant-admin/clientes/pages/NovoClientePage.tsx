@@ -1,10 +1,10 @@
 // apps/web/src/features/tenant-admin/clientes/pages/NovoClientePage.tsx
 
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { EntityButton, EntityPage } from "../../shared/entity-ui";
 import { ClienteForm } from "../components/ClienteForm";
 import { useSalvarCliente } from "../hooks/useSalvarCliente";
 import type { AtualizarClienteInput, CriarClienteInput } from "../tipos";
-import "../../shared/entityPages.css";
 
 export default function NovoClientePage() {
   const navigate = useNavigate();
@@ -19,19 +19,19 @@ export default function NovoClientePage() {
   }
 
   return (
-    <div className="ck-entity-page">
-      <div className="ck-entity-page__actions">
-        <Link className="ck-entity-button" to="/app/clientes">
+    <EntityPage
+      actions={
+        <EntityButton to="/app/clientes">
           Voltar para clientes
-        </Link>
-      </div>
-
+        </EntityButton>
+      }
+    >
       <ClienteForm
         mode="create"
         isSaving={isSaving}
         erro={erro}
         onSubmit={handleSubmit}
       />
-    </div>
+    </EntityPage>
   );
 }

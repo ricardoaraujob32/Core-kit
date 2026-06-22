@@ -1,10 +1,10 @@
 // apps/web/src/features/tenant-admin/fornecedores/pages/NovoFornecedorPage.tsx
 
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { EntityButton, EntityPage } from "../../shared/entity-ui";
 import { FornecedorForm } from "../components/FornecedorForm";
 import { useSalvarFornecedor } from "../hooks/useSalvarFornecedor";
 import type { AtualizarFornecedorInput, CriarFornecedorInput } from "../tipos";
-import "../../shared/entityPages.css";
 
 export default function NovoFornecedorPage() {
   const navigate = useNavigate();
@@ -21,19 +21,19 @@ export default function NovoFornecedorPage() {
   }
 
   return (
-    <div className="ck-entity-page">
-      <div className="ck-entity-page__actions">
-        <Link className="ck-entity-button" to="/app/fornecedores">
+    <EntityPage
+      actions={
+        <EntityButton to="/app/fornecedores">
           Voltar para fornecedores
-        </Link>
-      </div>
-
+        </EntityButton>
+      }
+    >
       <FornecedorForm
         mode="create"
         isSaving={isSaving}
         erro={erro}
         onSubmit={handleSubmit}
       />
-    </div>
+    </EntityPage>
   );
 }

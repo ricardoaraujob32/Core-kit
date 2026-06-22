@@ -4,6 +4,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { mapError } from "../../../../core/errors/mapError";
 import { ClienteSelect } from "../../../../shared/domain-selects";
 import { formatClienteLabel } from "../../../../shared/formatters";
+import {
+  EntityAlert,
+  EntityButton,
+  EntityCard,
+  EntityField,
+  EntityForm,
+  EntityFormGrid,
+} from "../../shared/entity-ui";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import type { CriarOrdemServicoInput } from "../tipos";
@@ -40,11 +48,17 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
       try {
         const response = await clientesApi.listar();
 
-        if (ativo) setClientes(response.itens);
+        if (ativo) {
+          setClientes(response.itens);
+        }
       } catch (error) {
-        if (ativo) setErroClientes(mapError(error).message);
+        if (ativo) {
+          setErroClientes(mapError(error).message);
+        }
       } finally {
-        if (ativo) setCarregandoClientes(false);
+        if (ativo) {
+          setCarregandoClientes(false);
+        }
       }
     }
 
@@ -58,7 +72,9 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
   const clientesFiltrados = useMemo(() => {
     const termo = buscaCliente.trim().toLowerCase();
 
-    if (!termo) return clientes;
+    if (!termo) {
+      return clientes;
+    }
 
     return clientes.filter((cliente) =>
       textoBuscaCliente(cliente).includes(termo),
@@ -69,7 +85,7 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
     (cliente) => cliente.clienteId === clienteId,
   );
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSalvando(true);
 
@@ -85,96 +101,97 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
   }
 
   return (
-    <form className="ck-register-form-card" onSubmit={handleSubmit}>
-      <div className="ck-register-form-header">
-        <div className="ck-register-form-title">Dados da OS</div>
-        <p className="ck-register-form-desc">
-          O cliente é escolhido por nome, documento ou contato. O ID fica oculto.
-        </p>
-      </div>
+    <EntityForm
+      kicker="Ordens de serviço"
+      title="Dados da OS"
+      description="O cliente é escolhido por nome, documento ou contato. O ID fica oculto."
+      onSubmit={handleSubmit}
+      footer={
+        <EntityButton type="submit" variant="primary" disabled={salvando}>
+          {salvando ? "Salvando..." : "Salvar ordem de serviço"}
+        </EntityButton>
+      }
+    >
+      {erroClientes ? (
+        <EntityAlert>
+          Não foi possível carregar clientes: {erroClientes}
+        </EntityAlert>
+      ) : null}
 
-      <div className="ck-register-form-body">
-        {erroClientes ? (
-          <div className="ck-register-alert">
-            Não foi possível carregar clientes: {erroClientes}
-          </div>
-        ) : null}
+      <EntityCard
+        title="Cliente"
+        description="Vincule a OS a um cliente ou deixe sem cliente se ainda não houver cadastro."
+      >
+        <EntityFormGrid>
+          <EntityField label="Buscar cliente" wide>
+            <input
+              placeholder="Ex.: Maria, CPF/CNPJ, e-mail ou telefone"
+              value={buscaCliente}
+              onChange={(event) => setBuscaCliente(event.target.value)}
+            />
+          </EntityField>
 
-        <label className="ck-register-field">
-          <span>Buscar cliente</span>
-          <input
-            className="ck-register-input"
-            placeholder="Ex.: Maria, CPF/CNPJ, e-mail ou telefone"
-            value={buscaCliente}
-            onChange={(event) => setBuscaCliente(event.target.value)}
-          />
-        </label>
+          <EntityField label="Cliente selecionado" wide>
+            <ClienteSelect
+              value={clienteId}
+              clientes={clientesFiltrados}
+              disabled={carregandoClientes}
+              emptyLabel={
+                carregandoClientes ? "Carregando clientes..." : "OS sem cliente"
+              }
+              className=""
+              onChange={setClienteId}
+            />
+          </EntityField>
 
-        <label className="ck-register-field">
-          <span>Cliente selecionado</span>
-          <ClienteSelect
-            value={clienteId}
-            clientes={clientesFiltrados}
-            disabled={carregandoClientes}
-            emptyLabel={
-              carregandoClientes ? "Carregando clientes..." : "OS sem cliente"
-            }
-            onChange={setClienteId}
-          />
-        </label>
-
-        {clienteSelecionado ? (
-          <div className="ck-selected-box">
-            <div className="ck-selected-grid">
-              <div>
-                <div className="ck-selected-label">Cliente</div>
-                <div className="ck-selected-value">
-                  {formatClienteLabel(clienteSelecionado)}
-                </div>
+          {clienteSelecionado ? (
+            <div className="ck-entity-card ck-entity-field--wide">
+              <div className="ck-entity-card__title">
+                <h2>Cliente selecionado</h2>
+                <p>{formatClienteLabel(clienteSelecionado)}</p>
               </div>
 
-              <div>
-                <div className="ck-selected-label">Telefone</div>
-                <div className="ck-selected-value">
-                  {clienteSelecionado.telefone ?? "—"}
+              <dl className="ck-entity-detail-list">
+                <div>
+                  <dt>Telefone</dt>
+                  <dd>{clienteSelecionado.telefone ?? "—"}</dd>
                 </div>
-              </div>
+
+                <div>
+                  <dt>E-mail</dt>
+                  <dd>{clienteSelecionado.email ?? "—"}</dd>
+                </div>
+              </dl>
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </EntityFormGrid>
+      </EntityCard>
 
-        <label className="ck-register-field">
-          <span>Título da OS</span>
-          <input
-            className="ck-register-input"
-            value={titulo}
-            onChange={(event) => setTitulo(event.target.value)}
-            placeholder="Ex.: Formatação de notebook"
-            required
-            minLength={3}
-          />
-        </label>
+      <EntityCard
+        title="Serviço"
+        description="Descreva o serviço solicitado, problema relatado ou combinação com o cliente."
+      >
+        <EntityFormGrid>
+          <EntityField label="Título da OS" wide>
+            <input
+              value={titulo}
+              onChange={(event) => setTitulo(event.target.value)}
+              placeholder="Ex.: Formatação de notebook"
+              required
+              minLength={3}
+            />
+          </EntityField>
 
-        <label className="ck-register-field">
-          <span>Descrição</span>
-          <textarea
-            className="ck-register-textarea"
-            value={descricao}
-            onChange={(event) => setDescricao(event.target.value)}
-            placeholder="Descreva o problema, serviço combinado ou observações..."
-          />
-        </label>
-
-        <div className="flex justify-end">
-          <button
-            className="ck-register-action-primary"
-            type="submit"
-            disabled={salvando}
-          >
-            {salvando ? "Salvando..." : "Salvar ordem de serviço"}
-          </button>
-        </div>
-      </div>
-    </form>
+          <EntityField label="Descrição" wide>
+            <textarea
+              value={descricao}
+              onChange={(event) => setDescricao(event.target.value)}
+              placeholder="Descreva o problema, serviço combinado ou observações..."
+              rows={5}
+            />
+          </EntityField>
+        </EntityFormGrid>
+      </EntityCard>
+    </EntityForm>
   );
 }

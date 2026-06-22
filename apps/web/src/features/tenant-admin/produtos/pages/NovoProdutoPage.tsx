@@ -1,10 +1,10 @@
 // apps/web/src/features/tenant-admin/produtos/pages/NovoProdutoPage.tsx
 
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { EntityButton, EntityPage } from "../../shared/entity-ui";
 import { ProdutoForm } from "../components/ProdutoForm";
 import { useSalvarProduto } from "../hooks/useSalvarProduto";
 import type { AtualizarProdutoInput, CriarProdutoInput } from "../tipos";
-import "./produtoPages.css";
 
 export default function NovoProdutoPage() {
   const navigate = useNavigate();
@@ -21,19 +21,19 @@ export default function NovoProdutoPage() {
   }
 
   return (
-    <div className="ck-product-page">
-      <div className="ck-product-page__actions">
-        <Link className="ck-product-button" to="/app/produtos">
+    <EntityPage
+      actions={
+        <EntityButton to="/app/produtos">
           Voltar para produtos
-        </Link>
-      </div>
-
+        </EntityButton>
+      }
+    >
       <ProdutoForm
         mode="create"
         isSaving={isSaving}
         erro={erro}
         onSubmit={handleSubmit}
       />
-    </div>
+    </EntityPage>
   );
 }

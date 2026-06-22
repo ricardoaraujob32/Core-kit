@@ -1,0 +1,73 @@
+/* apps/web/src/shared/styles/expandable.css */
+
+.ck-expandable-cell {
+  position: relative;
+}
+
+.ck-expandable-cell__summary {
+  display: grid;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.ck-expandable-cell__title {
+  color: #000000;
+  font-weight: 800;
+}
+
+.ck-expandable-cell__hint {
+  color: #000000;
+  font-size: 0.75rem;
+}
+
+.ck-expandable-cell__detail {
+  display: none;
+  margin-top: 0.6rem;
+  padding: 0.7rem;
+  border: 1px solid #d7dce3;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #000000;
+}
+
+.ck-expandable-cell.is-expanded .ck-expandable-cell__detail {
+  display: block;
+}
+
+.ck-expandable-native {
+  color: #000000;
+}
+
+.ck-expandable-native__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  cursor: pointer;
+  color: #000000;
+}
+
+.ck-expandable-native__summary-text {
+  color: #000000;
+  font-weight: 800;
+}
+
+.ck-expandable-native__detail {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.6rem;
+  padding: 0.7rem;
+  border: 1px solid #d7dce3;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  color: #000000;
+}
+
+.ck-expandable-native__detail p {
+  margin: 0;
+  color: #000000;
+}
+
+.ck-expandable-native__detail strong {
+  color: #000000;
+}
