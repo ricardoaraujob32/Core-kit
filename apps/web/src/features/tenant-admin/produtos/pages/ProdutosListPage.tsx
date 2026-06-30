@@ -1,8 +1,14 @@
 // apps/web/src/features/tenant-admin/produtos/pages/ProdutosListPage.tsx
 
 import { Link } from "react-router-dom";
+import {
+  PRODUTOS_MODULE,
+  PRODUTOS_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { ProdutosTable } from "../components/ProdutosTable";
 import { useProdutos } from "../hooks/useProdutos";
+import { useProdutosPermissions } from "../hooks/useProdutosPermissions";
 import type { Produto } from "../tipos";
 import "../../cadastros/cadastros.css";
 import { toProdutoViewModel } from "../produto.viewModel";
@@ -17,6 +23,7 @@ function contarComSku(itens: Produto[]): number {
 
 export default function ProdutosListPage() {
   const { produtos, busca, setBusca, isLoading, erro, recarregar } = useProdutos();
+  const permissions = useProdutosPermissions();
 
   return (
     <div className="ck-register-page">
@@ -32,12 +39,23 @@ export default function ProdutosListPage() {
           </div>
 
           <div className="ck-register-actions">
-            <Link className="ck-register-action-primary" to="/app/produtos/novo">
-              Novo produto
-            </Link>
+            <PageGuard
+              requiredModule={PRODUTOS_MODULE}
+              requiredPermissions={[PRODUTOS_PERMISSIONS.CRIAR]}
+            >
+              <Link className="ck-register-action-primary" to="/app/produtos/novo">
+                Novo produto
+              </Link>
+            </PageGuard>
           </div>
         </div>
       </section>
+
+      {!permissions.canList ? (
+        <div className="ck-register-alert">
+          Você não possui permissão para acessar produtos.
+        </div>
+      ) : null}
 
       <section className="ck-register-stats">
         <article className="ck-register-stat" style={{ "--stat-color": "#f97316" } as React.CSSProperties}>
@@ -95,11 +113,11 @@ export default function ProdutosListPage() {
 
       {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
-      {isLoading ? (
+      {permissions.canList && isLoading ? (
         <div className="ck-register-filter">Carregando produtos...</div>
-      ) : (
+      ) : permissions.canList ? (
         <ProdutosTable itens={produtos} />
-      )}
+      ) : null}
     </div>
   );
 }

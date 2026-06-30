@@ -2,6 +2,11 @@
 
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  PRODUTOS_MODULE,
+  PRODUTOS_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
+import {
   EntityAlert,
   EntityButton,
   EntityCard,
@@ -61,26 +66,31 @@ export default function EditarProdutoPage() {
   }
 
   return (
-    <EntityPage
-      actions={
-        <>
-          <EntityButton to={`/app/produtos/${produto.produtoId}`}>
-            Voltar para detalhes
-          </EntityButton>
-
-          <EntityButton to="/app/produtos">
-            Lista de produtos
-          </EntityButton>
-        </>
-      }
+    <PageGuard
+      requiredModule={PRODUTOS_MODULE}
+      requiredPermissions={[PRODUTOS_PERMISSIONS.ATUALIZAR]}
     >
-      <ProdutoForm
-        mode="edit"
-        initialData={produto}
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
-    </EntityPage>
+      <EntityPage
+        actions={
+          <>
+            <EntityButton to={`/app/produtos/${produto.produtoId}`}>
+              Voltar para detalhes
+            </EntityButton>
+
+            <EntityButton to="/app/produtos">
+              Lista de produtos
+            </EntityButton>
+          </>
+        }
+      >
+        <ProdutoForm
+          mode="edit"
+          initialData={produto}
+          isSaving={isSaving}
+          erro={erro}
+          onSubmit={handleSubmit}
+        />
+      </EntityPage>
+    </PageGuard>
   );
 }

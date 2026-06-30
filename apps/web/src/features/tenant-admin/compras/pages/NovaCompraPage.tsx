@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  TRANSACOES_MODULE,
+  TRANSACOES_PERMISSIONS,
+} from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { formatFornecedorLabel } from "../../../../shared/formatters";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
@@ -114,25 +119,29 @@ export default function NovaCompraPage() {
   }
 
   return (
-    <EntityPage
-      actions={
-        <EntityButton to="/app/transacoes">
-          Voltar para transações
-        </EntityButton>
-      }
+    <PageGuard
+      requiredModule={TRANSACOES_MODULE}
+      requiredPermissions={[TRANSACOES_PERMISSIONS.CRIAR]}
     >
-      <EntityForm
-        kicker="Compras"
-        title="Nova compra"
-        description="Crie uma transação de compra e depois adicione os itens na tela de detalhes."
-        error={erro}
-        onSubmit={handleSubmit}
-        footer={
-          <EntityButton type="submit" variant="primary" disabled={isSaving}>
-            {isSaving ? "Criando..." : "Criar compra"}
+      <EntityPage
+        actions={
+          <EntityButton to="/app/transacoes">
+            Voltar para transações
           </EntityButton>
         }
       >
+        <EntityForm
+          kicker="Compras"
+          title="Nova compra"
+          description="Crie uma transação de compra e depois adicione os itens na tela de detalhes."
+          error={erro}
+          onSubmit={handleSubmit}
+          footer={
+            <EntityButton type="submit" variant="primary" disabled={isSaving}>
+              {isSaving ? "Criando..." : "Criar compra"}
+            </EntityButton>
+          }
+        >
         {erroFornecedores ? (
           <EntityAlert>{erroFornecedores}</EntityAlert>
         ) : null}
@@ -205,7 +214,8 @@ export default function NovaCompraPage() {
             />
           </EntityField>
         </EntityCard>
-      </EntityForm>
-    </EntityPage>
+        </EntityForm>
+      </EntityPage>
+    </PageGuard>
   );
 }

@@ -2,6 +2,11 @@
 
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  FORNECEDORES_MODULE,
+  FORNECEDORES_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
+import {
   EntityAlert,
   EntityButton,
   EntityCard,
@@ -65,26 +70,31 @@ export default function EditarFornecedorPage() {
   }
 
   return (
-    <EntityPage
-      actions={
-        <>
-          <EntityButton to={`/app/fornecedores/${fornecedor.fornecedorId}`}>
-            Voltar para detalhes
-          </EntityButton>
-
-          <EntityButton to="/app/fornecedores">
-            Lista de fornecedores
-          </EntityButton>
-        </>
-      }
+    <PageGuard
+      requiredModule={FORNECEDORES_MODULE}
+      requiredPermissions={[FORNECEDORES_PERMISSIONS.ATUALIZAR]}
     >
-      <FornecedorForm
-        mode="edit"
-        initialData={fornecedor}
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
-    </EntityPage>
+      <EntityPage
+        actions={
+          <>
+            <EntityButton to={`/app/fornecedores/${fornecedor.fornecedorId}`}>
+              Voltar para detalhes
+            </EntityButton>
+
+            <EntityButton to="/app/fornecedores">
+              Lista de fornecedores
+            </EntityButton>
+          </>
+        }
+      >
+        <FornecedorForm
+          mode="edit"
+          initialData={fornecedor}
+          isSaving={isSaving}
+          erro={erro}
+          onSubmit={handleSubmit}
+        />
+      </EntityPage>
+    </PageGuard>
   );
 }

@@ -1,0 +1,52 @@
+/* apps/web/src/features/superadmin/shared/superAdminPages.css */
+
+/* Acrescente estas regras ao arquivo existente da etapa 37. */
+
+.ck-superadmin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.ck-superadmin-field {
+  display: grid;
+  gap: 0.35rem;
+  color: #000000;
+  font-weight: 700;
+}
+
+.ck-superadmin-field--wide {
+  grid-column: 1 / -1;
+}
+
+.ck-superadmin-field input,
+.ck-superadmin-field select,
+.ck-superadmin-field textarea {
+  width: 100%;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.7rem;
+  background: #ffffff;
+  color: #000000;
+  font: inherit;
+  font-weight: 500;
+}
+
+.ck-superadmin-field input:disabled {
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.ck-superadmin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .ck-superadmin-form-grid,
+  .ck-superadmin-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

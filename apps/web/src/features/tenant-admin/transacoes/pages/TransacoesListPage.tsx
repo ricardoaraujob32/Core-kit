@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  TRANSACOES_MODULE,
+  TRANSACOES_PERMISSIONS,
+} from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import { TransacoesTable } from "../components/TransacoesTable";
+import { useTransacoesPermissions } from "../hooks/useTransacoesPermissions";
 import { useTransacoes } from "../hooks/useTransacoes";
 import type { Transacao } from "../tipos";
 import "./transacoes.css";
@@ -84,6 +90,7 @@ export default function TransacoesListPage() {
     erro,
     recarregar,
   } = useTransacoes();
+  const permissions = useTransacoesPermissions();
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -177,16 +184,27 @@ export default function TransacoesListPage() {
           </div>
 
           <div className="ck-page-actions">
-            <Link className="ck-action-primary" to="/app/vendas/nova">
-              Nova venda
-            </Link>
+            <PageGuard
+              requiredModule={TRANSACOES_MODULE}
+              requiredPermissions={[TRANSACOES_PERMISSIONS.CRIAR]}
+            >
+              <Link className="ck-action-primary" to="/app/vendas/nova">
+                Nova venda
+              </Link>
 
-            <Link className="ck-action-secondary" to="/app/compras/nova">
-              Nova compra
-            </Link>
+              <Link className="ck-action-secondary" to="/app/compras/nova">
+                Nova compra
+              </Link>
+            </PageGuard>
           </div>
         </div>
       </section>
+
+      {!permissions.canList ? (
+        <div className="ck-alert">
+          Você não possui permissão para acessar transações.
+        </div>
+      ) : null}
 
       <section className="ck-stats-grid">
         <article className="ck-stat-card" style={{ "--stat-color": "#16a34a" } as React.CSSProperties}>
@@ -272,22 +290,22 @@ export default function TransacoesListPage() {
         </div>
       ) : null}
 
-      {isLoading ? (
+      {permissions.canList && isLoading ? (
         <div className="ck-filter-panel">Carregando transações...</div>
-      ) : transacoesFiltradas.length === 0 ? (
+      ) : permissions.canList && transacoesFiltradas.length === 0 ? (
         <div className="ck-empty">
           <div className="ck-empty-title">Nenhuma transação encontrada</div>
           <p className="ck-empty-desc">
             Crie uma venda ou compra para começar a movimentar o sistema.
           </p>
         </div>
-      ) : (
+      ) : permissions.canList ? (
         <TransacoesTable
           clientes={clientes}
           fornecedores={fornecedores}
           itens={transacoesFiltradas}
         />
-      )}
+      ) : null}
     </div>
   );
 }

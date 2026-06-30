@@ -85,6 +85,7 @@ export type CancelarOrdemServicoResult = Promise<Result<MudarStatusOrdemServicoO
 export type GerarVendaDaOrdemServicoInput = {
   locatarioId: LocatarioId;
   ordemServicoId: OrdemServicoId;
+  produtoId: string;
   valorTotal: number;
   vencimentoEm: Date;
   observacao?: string | null;

@@ -1,19 +1,27 @@
 // apps/web/src/features/superadmin/locatarios/pages/LocatarioDetailsPage.tsx
 
-import { Link, useParams } from "react-router-dom";
-import { LocatarioBrandingResumo } from "../components/LocatarioBrandingResumo";
-import { LocatarioModulosResumo } from "../components/LocatarioModulosResumo";
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { mapError } from "../../../../core/errors/mapError";
+import { formatDateTime } from "../../../../shared/formatters";
+import { SuperAdminButton, SuperAdminCard, SuperAdminDetailList, SuperAdminPage } from "../../shared";
+import { locatariosApi } from "../api/locatariosApi";
 import { useLocatario } from "../hooks/useLocatario";
-import { useLocatarioActions } from "../hooks/useLocatarioActions";
-import { useLocatarioConfiguracoes } from "../hooks/useLocatarioConfiguracoes";
+import type { Locatario, StatusLocatario } from "../tipos";
 
-function formatarData(value?: string | null): string {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("pt-BR");
-}
-
-function normalizarStatus(status?: string | null): string {
-  return status?.trim().toUpperCase() ?? "";
+function statusText(status: StatusLocatario): string {
+  switch (status) {
+    case "ATIVO":
+      return "Ativo";
+    case "SUSPENSO":
+      return "Suspenso";
+    case "ENCERRADO":
+      return "Encerrado";
+    case "INATIVO":
+      return "Inativo";
+    default:
+      return status;
+  }
 }
 
 export default function LocatarioDetailsPage() {
@@ -21,84 +29,194 @@ export default function LocatarioDetailsPage() {
   const locatarioId = params.locatarioId?.trim();
 
   const { item, isLoading, erro, recarregar } = useLocatario(locatarioId);
-  const {
-    branding,
-    modulos,
-    isLoading: isLoadingConfiguracoes,
-    erro: erroConfiguracoes,
-    recarregar: recarregarConfiguracoes,
-  } = useLocatarioConfiguracoes(locatarioId);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState<
+    "suspender" | "reativar" | "encerrar" | null
+  >(null);
 
-  const { erro: erroAcao, isRunning, suspender, reativar, encerrar } =
-    useLocatarioActions(async () => {
+  async function executarAcao(acao: "suspender" | "reativar" | "encerrar") {
+    if (!locatarioId) return;
+
+    setIsRunning(acao);
+    setErroAcao(null);
+
+    try {
+      if (acao === "suspender") {
+        await locatariosApi.suspender(locatarioId, {
+          motivoSuspensao: "Suspenso pela plataforma.",
+        });
+      }
+
+      if (acao === "reativar") {
+        await locatariosApi.reativar(locatarioId, {
+          motivoReativacao: "Reativado pela plataforma.",
+        });
+      }
+
+      if (acao === "encerrar") {
+        await locatariosApi.encerrar(locatarioId, {
+          motivoExclusao: "Encerrado pela plataforma.",
+        });
+      }
+
       await recarregar();
-      await recarregarConfiguracoes();
-    });
-
-  if (isLoading) {
-    return <div className="rounded-2xl border bg-white p-6">Carregando locatário...</div>;
+    } catch (error) {
+      setErroAcao(mapError(error).message);
+    } finally {
+      setIsRunning(null);
+    }
   }
 
-  if (erro) {
-    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div>;
-  }
+  function renderDetails(locatario: Locatario) {
+    return (
+      <>
+        <section className="ck-superadmin-detail-grid">
+          <SuperAdminCard
+            title="Identificação"
+            description="Dados principais do locatário."
+          >
+            <SuperAdminDetailList
+              items={[
+                { label: "Nome", value: locatario.nome },
+                { label: "Slug", value: locatario.slug },
+                {
+                  label: "ID técnico",
+                  value: locatario.locatarioId,
+                  technical: true,
+                },
+                { label: "Status", value: statusText(locatario.status) },
+              ]}
+            />
+          </SuperAdminCard>
 
-  if (!item || !locatarioId) {
-    return <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Locatário não encontrado.</div>;
-  }
+          <SuperAdminCard
+            title="Contato e operação"
+            description="Dados administrativos usados pela plataforma."
+          >
+            <SuperAdminDetailList
+              items={[
+                { label: "E-mail", value: locatario.email },
+                { label: "Documento", value: locatario.documento },
+                { label: "Fuso horário", value: locatario.fusoHorario },
+              ]}
+            />
+          </SuperAdminCard>
+        </section>
 
-  const id = locatarioId;
-  const status = normalizarStatus(item.status);
-  const estaEncerrado = status === "ENCERRADO" || Boolean(item.excluidoEm);
-  const estaSuspenso = !estaEncerrado && status.includes("SUSPENS");
-  const estaAtivo = !estaEncerrado && status === "ATIVO";
+        <section className="ck-superadmin-detail-grid">
+          <SuperAdminCard title="Datas">
+            <SuperAdminDetailList
+              items={[
+                { label: "Criado em", value: formatDateTime(locatario.criadoEm) },
+                {
+                  label: "Atualizado em",
+                  value: formatDateTime(locatario.atualizadoEm),
+                },
+                {
+                  label: "Excluído em",
+                  value: formatDateTime(locatario.excluidoEm),
+                },
+              ]}
+            />
+          </SuperAdminCard>
 
-  async function handleSuspender() {
-    const motivoSuspensao = window.prompt("Motivo da suspensão do locatário:")?.trim() || undefined;
-    await suspender(id, motivoSuspensao);
-  }
+          <SuperAdminCard title="Motivos administrativos">
+            <SuperAdminDetailList
+              items={[
+                {
+                  label: "Motivo da suspensão",
+                  value: locatario.motivoSuspensao,
+                },
+                {
+                  label: "Motivo do encerramento",
+                  value: locatario.motivoExclusao,
+                },
+              ]}
+            />
+          </SuperAdminCard>
+        </section>
 
-  async function handleReativar() {
-    const motivoReativacao = window.prompt("Motivo da reativação do locatário:")?.trim() || undefined;
-    await reativar(id, motivoReativacao);
-  }
+        <SuperAdminCard
+          title="Ações administrativas"
+          description="Use com cautela. Estas ações alteram o ciclo de vida do locatário."
+        >
+          {erroAcao ? <p>{erroAcao}</p> : null}
 
-  async function handleEncerrar() {
-    const confirmado = window.confirm("Encerrar este locatário? Esta operação deve ser usada apenas quando o contrato/conta será finalizado.");
-    if (!confirmado) return;
-    const motivoExclusao = window.prompt("Motivo do encerramento do locatário:")?.trim() || undefined;
-    await encerrar(id, motivoExclusao);
+          <div className="ck-superadmin-page__actions">
+            <SuperAdminButton
+              type="button"
+              disabled={Boolean(isRunning)}
+              onClick={() => executarAcao("suspender")}
+            >
+              {isRunning === "suspender" ? "Suspendendo..." : "Suspender"}
+            </SuperAdminButton>
+
+            <SuperAdminButton
+              type="button"
+              disabled={Boolean(isRunning)}
+              onClick={() => executarAcao("reativar")}
+            >
+              {isRunning === "reativar" ? "Reativando..." : "Reativar"}
+            </SuperAdminButton>
+
+            <SuperAdminButton
+              type="button"
+              disabled={Boolean(isRunning)}
+              onClick={() => executarAcao("encerrar")}
+            >
+              {isRunning === "encerrar" ? "Encerrando..." : "Encerrar"}
+            </SuperAdminButton>
+          </div>
+        </SuperAdminCard>
+      </>
+    );
   }
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><h1 className="text-2xl font-semibold">{item.nome}</h1><p className="text-sm text-slate-600">{item.email}</p></div>
-        <div className="flex flex-wrap gap-3">
-          <Link className="rounded-xl border px-4 py-2" to={`/plataforma/locatarios/${id}/editar`}>Editar</Link>
-          <Link className="rounded-xl border px-4 py-2" to={`/plataforma/locatarios/${id}/usuarios`}>Usuários</Link>
-          {!estaEncerrado ? <Link className="rounded-xl border px-4 py-2" to={`/plataforma/locatarios/${id}/usuarios/novo`}>Novo usuário</Link> : null}
-        </div>
-      </div>
+    <SuperAdminPage
+      kicker="Plataforma"
+      title={item?.nome ?? "Locatário"}
+      description={
+        item
+          ? `${item.slug} — ${statusText(item.status)}`
+          : "Detalhes administrativos do locatário."
+      }
+      actions={
+        item ? (
+          <>
+            <SuperAdminButton
+              to={`/plataforma/locatarios/${item.locatarioId}/editar`}
+              variant="primary"
+            >
+              Editar
+            </SuperAdminButton>
 
-      {erroAcao ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroAcao}</div> : null}
+            <SuperAdminButton
+              to={`/plataforma/locatarios/${item.locatarioId}/usuarios`}
+            >
+              Usuários
+            </SuperAdminButton>
 
-      <div className="grid gap-2 rounded-2xl border bg-white p-6 text-sm">
-        <div><strong>ID:</strong> {item.locatarioId}</div><div><strong>Slug:</strong> {item.slug}</div><div><strong>Status:</strong> {item.status}</div>
-        <div><strong>Documento:</strong> {item.documento ?? "—"}</div><div><strong>Fuso horário:</strong> {item.fusoHorario ?? "—"}</div>
-        <div><strong>Criado em:</strong> {formatarData(item.criadoEm)}</div><div><strong>Atualizado em:</strong> {formatarData(item.atualizadoEm)}</div><div><strong>Excluído em:</strong> {formatarData(item.excluidoEm)}</div>
-      </div>
+            <SuperAdminButton to="/plataforma/locatarios">
+              Lista de locatários
+            </SuperAdminButton>
+          </>
+        ) : (
+          <SuperAdminButton to="/plataforma/locatarios">
+            Lista de locatários
+          </SuperAdminButton>
+        )
+      }
+    >
+      {isLoading ? <SuperAdminCard>Carregando locatário...</SuperAdminCard> : null}
 
-      {erroConfiguracoes ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erroConfiguracoes}</div> : null}
-      {isLoadingConfiguracoes ? <div className="rounded-2xl border bg-white p-6">Carregando configurações...</div> : <><LocatarioBrandingResumo branding={branding} /><LocatarioModulosResumo modulos={modulos} /></>}
+      {erro ? <SuperAdminCard title="Erro">{erro}</SuperAdminCard> : null}
 
-      <div className="rounded-2xl border bg-white p-6">
-        <h2 className="mb-3 text-lg font-semibold">Operações do locatário</h2>
-        {estaAtivo ? <div className="flex flex-wrap gap-3"><button className="rounded-xl border px-4 py-2" type="button" onClick={() => void handleSuspender()} disabled={isRunning !== null}>{isRunning === "suspender" ? "Suspendendo..." : "Suspender"}</button><button className="rounded-xl border px-4 py-2 text-red-700" type="button" onClick={() => void handleEncerrar()} disabled={isRunning !== null}>{isRunning === "encerrar" ? "Encerrando..." : "Encerrar"}</button></div> : null}
-        {estaSuspenso ? <div className="flex flex-wrap gap-3"><button className="rounded-xl border px-4 py-2" type="button" onClick={() => void handleReativar()} disabled={isRunning !== null}>{isRunning === "reativar" ? "Reativando..." : "Reativar"}</button><button className="rounded-xl border px-4 py-2 text-red-700" type="button" onClick={() => void handleEncerrar()} disabled={isRunning !== null}>{isRunning === "encerrar" ? "Encerrando..." : "Encerrar"}</button></div> : null}
-        {estaEncerrado ? <p className="text-sm text-slate-600">Locatário encerrado. Nenhuma operação operacional disponível.</p> : null}
-        {!estaAtivo && !estaSuspenso && !estaEncerrado ? <p className="text-sm text-slate-600">Nenhuma operação disponível para o status atual: {item.status}.</p> : null}
-      </div>
-    </div>
+      {!isLoading && !erro && item ? renderDetails(item) : null}
+
+      {!isLoading && !erro && !item ? (
+        <SuperAdminCard>Locatário não encontrado.</SuperAdminCard>
+      ) : null}
+    </SuperAdminPage>
   );
 }

@@ -1,6 +1,11 @@
 // apps/web/src/features/tenant-admin/produtos/pages/ProdutoDetailsPage.tsx
 
 import { useParams } from "react-router-dom";
+import {
+  PRODUTOS_MODULE,
+  PRODUTOS_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { formatDateTime, formatMoney } from "../../../../shared/formatters";
 import {
   EntityAlert,
@@ -12,6 +17,7 @@ import {
   EntityPage,
 } from "../../shared/entity-ui";
 import { useProdutoDetails } from "../hooks/useProdutoDetails";
+import { useProdutosPermissions } from "../hooks/useProdutosPermissions";
 import { toProdutoViewModel } from "../produto.viewModel";
 
 function statusLabel(ativo?: boolean): string {
@@ -27,6 +33,7 @@ export default function ProdutoDetailsPage() {
   const produtoId = params.produtoId?.trim();
 
   const { produto, isLoading, erro } = useProdutoDetails(produtoId);
+  const permissions = useProdutosPermissions();
 
   if (isLoading) {
     return (
@@ -58,26 +65,32 @@ export default function ProdutoDetailsPage() {
   });
 
   return (
-    <EntityPage>
-      <EntityHero
-        kicker="Produto"
-        title={vm.titulo}
-        description={[vm.subtitulo, vm.contexto].filter(Boolean).join(" — ")}
-        actions={
-          <>
-            <EntityButton
-              to={`/app/produtos/${produto.produtoId}/editar`}
-              variant="primary"
-            >
-              Editar
-            </EntityButton>
+    <PageGuard
+      requiredModule={PRODUTOS_MODULE}
+      requiredPermissions={[PRODUTOS_PERMISSIONS.LISTAR]}
+    >
+      <EntityPage>
+        <EntityHero
+          kicker="Produto"
+          title={vm.titulo}
+          description={[vm.subtitulo, vm.contexto].filter(Boolean).join(" — ")}
+          actions={
+            <>
+              {permissions.canEdit ? (
+                <EntityButton
+                  to={`/app/produtos/${produto.produtoId}/editar`}
+                  variant="primary"
+                >
+                  Editar
+                </EntityButton>
+              ) : null}
 
-            <EntityButton to="/app/produtos">
-              Lista de produtos
-            </EntityButton>
-          </>
-        }
-      />
+              <EntityButton to="/app/produtos">
+                Lista de produtos
+              </EntityButton>
+            </>
+          }
+        />
 
       <EntityDetailGrid columns={3}>
         <EntityCard title="Identificação" description="Dados principais do catálogo.">
@@ -115,13 +128,14 @@ export default function ProdutoDetailsPage() {
             ]}
           />
         </EntityCard>
-      </EntityDetailGrid>
+        </EntityDetailGrid>
 
-      <EntityCard title="Descrição">
-        <p className="ck-entity-description">
-          {produto.descricao ?? "Nenhuma descrição cadastrada."}
-        </p>
-      </EntityCard>
-    </EntityPage>
+        <EntityCard title="Descrição">
+          <p className="ck-entity-description">
+            {produto.descricao ?? "Nenhuma descrição cadastrada."}
+          </p>
+        </EntityCard>
+      </EntityPage>
+    </PageGuard>
   );
 }

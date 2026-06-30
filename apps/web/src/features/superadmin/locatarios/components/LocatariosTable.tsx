@@ -2,38 +2,69 @@
 
 import { Link } from "react-router-dom";
 import type { Locatario } from "../tipos";
+import "../../shared/superAdminPages.css";
 
-type Props = { itens: Locatario[] };
+type Props = {
+  itens: Locatario[];
+};
+
+function statusLabel(status?: string | null): string {
+  return status ?? "—";
+}
 
 export function LocatariosTable({ itens }: Props) {
   if (itens.length === 0) {
-    return <div className="rounded-xl border bg-white p-4 text-sm text-slate-600">Nenhum locatário encontrado.</div>;
+    return (
+      <div className="ck-superadmin-card">
+        Nenhum locatário encontrado.
+      </div>
+    );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-white">
-      <table className="min-w-full border-collapse text-sm">
+    <div className="ck-superadmin-table-panel">
+      <table className="ck-superadmin-table">
         <thead>
-          <tr className="border-b bg-slate-50 text-left">
-            <th className="px-4 py-3">Nome</th>
-            <th className="px-4 py-3">Slug</th>
-            <th className="px-4 py-3">E-mail</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Ações</th>
+          <tr>
+            <th>Locatário</th>
+            <th>Slug</th>
+            <th>Status</th>
+            <th>ID técnico</th>
+            <th>Ações</th>
           </tr>
         </thead>
+
         <tbody>
-          {itens.map((item) => (
-            <tr key={item.locatarioId} className="border-b last:border-b-0">
-              <td className="px-4 py-3">{item.nome}</td>
-              <td className="px-4 py-3">{item.slug}</td>
-              <td className="px-4 py-3">{item.email}</td>
-              <td className="px-4 py-3">{item.status}</td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-3">
-                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}`}>Detalhes</Link>
-                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}/editar`}>Editar</Link>
-                  <Link className="text-blue-600 underline" to={`/plataforma/locatarios/${item.locatarioId}/usuarios/novo`}>Novo usuário</Link>
+          {itens.map((locatario) => (
+            <tr key={locatario.locatarioId}>
+              <td>{locatario.nome ?? "Sem nome"}</td>
+              <td>{locatario.slug ?? "—"}</td>
+              <td>{statusLabel(locatario.status)}</td>
+              <td className="ck-superadmin-technical">
+                {locatario.locatarioId}
+              </td>
+              <td>
+                <div className="ck-superadmin-row-actions">
+                  <Link
+                    className="ck-superadmin-button"
+                    to={`/plataforma/locatarios/${locatario.locatarioId}`}
+                  >
+                    Ver
+                  </Link>
+
+                  <Link
+                    className="ck-superadmin-button"
+                    to={`/plataforma/locatarios/${locatario.locatarioId}/editar`}
+                  >
+                    Editar
+                  </Link>
+
+                  <Link
+                    className="ck-superadmin-button"
+                    to={`/plataforma/locatarios/${locatario.locatarioId}/usuarios`}
+                  >
+                    Usuários
+                  </Link>
                 </div>
               </td>
             </tr>

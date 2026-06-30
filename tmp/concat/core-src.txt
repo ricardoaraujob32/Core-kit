@@ -6550,6 +6550,320 @@ export function validarMarcarExportacaoComFalhaInput(input: MarcarExportacaoComF
 }
 
 
+===== packages/core/src/financeiro/erros.ts =====
+
+// packages/core/src/financeiro/erros.ts
+
+import { createErroApp, type ErroApp, type Result } from "../kernel/index.js";
+
+export type CodigoErroFinanceiro = "FINANCEIRO_INVALIDO";
+
+export function erroFinanceiroInvalido(detalhes?: Record<string, unknown>): Result<never, ErroApp> {
+  return createErroApp({
+    codigo: "INVALIDO",
+    mensagem: "Dados financeiros inválidos.",
+    detalhes: {
+      operacao: "financeiro.validacao",
+      ...detalhes,
+    },
+  });
+}
+
+
+===== packages/core/src/financeiro/index.ts =====
+
+// packages/core/src/financeiro/index.ts
+
+export type {
+  ContaFinanceira,
+  FiltroStatusContaFinanceira,
+  ListarContasFinanceirasInput,
+  ListarContasFinanceirasOutput,
+  ListarContasFinanceirasResult,
+  ObterResumoFinanceiroInput,
+  ObterResumoFinanceiroOutput,
+  ObterResumoFinanceiroResult,
+  PeriodoFinanceiro,
+  ResumoFinanceiro,
+  StatusContaFinanceira,
+  TipoContaFinanceira,
+} from "./tipos.js";
+
+export type { FinanceiroTransacoesConsultaRepositorio } from "./portasRepositorio.js";
+
+export { createFnObterResumoFinanceiro } from "./usecases/obterResumoFinanceiro.js";
+export { createFnListarContasReceber } from "./usecases/listarContasReceber.js";
+export { createFnListarContasPagar } from "./usecases/listarContasPagar.js";
+
+
+===== packages/core/src/financeiro/portasRepositorio.ts =====
+
+// packages/core/src/financeiro/portasRepositorio.ts
+
+import type { ErroApp, Result } from "../kernel/index.js";
+import type { ContaFinanceira, ListarContasFinanceirasInput, ResumoFinanceiro, ObterResumoFinanceiroInput } from "./tipos.js";
+
+/**
+ * Porta de consulta financeira derivada de transações comerciais.
+ *
+ * Importante: este módulo não possui tabela própria na v1. O adapter real deve
+ * consultar a tabela de transações e projetar os dados para visão financeira.
+ */
+export interface FinanceiroTransacoesConsultaRepositorio {
+  obterResumoFinanceiro(input: ObterResumoFinanceiroInput): Promise<Result<ResumoFinanceiro, ErroApp>>;
+
+  listarContasReceber(input: ListarContasFinanceirasInput): Promise<Result<ContaFinanceira[], ErroApp>>;
+
+  listarContasPagar(input: ListarContasFinanceirasInput): Promise<Result<ContaFinanceira[], ErroApp>>;
+}
+
+
+===== packages/core/src/financeiro/tipos.ts =====
+
+// packages/core/src/financeiro/tipos.ts
+
+import type { ErroApp, Result } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { ClienteId } from "../clientes/index.js";
+import type { FornecedorId } from "../fornecedores/index.js";
+import type { TransacaoId } from "../vendas/index.js";
+
+export type TipoContaFinanceira = "RECEBER" | "PAGAR";
+export type StatusContaFinanceira = "ABERTO" | "LIQUIDADO";
+export type FiltroStatusContaFinanceira = StatusContaFinanceira | "TODOS";
+
+export type ContaFinanceira = {
+  transacaoId: TransacaoId;
+  locatarioId: LocatarioId;
+  tipo: TipoContaFinanceira;
+  status: StatusContaFinanceira;
+  clienteId: ClienteId | null;
+  fornecedorId: FornecedorId | null;
+  descricao: string | null;
+  valor: number;
+  vencimentoEm: Date;
+  criadoEm: Date;
+  atualizadoEm: Date;
+};
+
+export type PeriodoFinanceiro = {
+  inicio?: Date | null;
+  fim?: Date | null;
+};
+
+export type ObterResumoFinanceiroInput = {
+  locatarioId: LocatarioId;
+  hoje?: Date;
+  periodo?: PeriodoFinanceiro;
+};
+
+export type ResumoFinanceiro = {
+  locatarioId: LocatarioId;
+  totalAReceber: number;
+  totalAPagar: number;
+  saldoPrevisto: number;
+  totalRecebidoPeriodo: number;
+  totalPagoPeriodo: number;
+  totalVencidoReceber: number;
+  totalVencidoPagar: number;
+  quantidadeVencidosReceber: number;
+  quantidadeVencidosPagar: number;
+  geradoEm: Date;
+};
+
+export type ObterResumoFinanceiroOutput = {
+  resumo: ResumoFinanceiro;
+};
+
+export type ObterResumoFinanceiroResult = Promise<Result<ObterResumoFinanceiroOutput, ErroApp>>;
+
+export type ListarContasFinanceirasInput = {
+  locatarioId: LocatarioId;
+  status?: FiltroStatusContaFinanceira;
+  vencidas?: boolean;
+  dataInicial?: Date | null;
+  dataFinal?: Date | null;
+  cursor?: TransacaoId;
+  limite?: number;
+};
+
+export type ListarContasFinanceirasOutput = {
+  itens: ContaFinanceira[];
+};
+
+export type ListarContasFinanceirasResult = Promise<Result<ListarContasFinanceirasOutput, ErroApp>>;
+
+
+===== packages/core/src/financeiro/usecases/listarContasPagar.ts =====
+
+// packages/core/src/financeiro/usecases/listarContasPagar.ts
+
+import { wrapOk } from "../../kernel/index.js";
+import type { FinanceiroTransacoesConsultaRepositorio } from "../portasRepositorio.js";
+import type { ListarContasFinanceirasInput, ListarContasFinanceirasResult } from "../tipos.js";
+import { validarListarContasFinanceirasInput } from "../validadores.js";
+
+type Deps = {
+  financeiroRepositorio: FinanceiroTransacoesConsultaRepositorio;
+};
+
+export function createFnListarContasPagar(deps: Deps) {
+  return async function listarContasPagar(input: ListarContasFinanceirasInput): ListarContasFinanceirasResult {
+    const validado = validarListarContasFinanceirasInput(input);
+    if (!validado.ok) return validado;
+
+    const itens = await deps.financeiroRepositorio.listarContasPagar(validado.value);
+    if (!itens.ok) return itens;
+
+    return wrapOk({ itens: itens.value });
+  };
+}
+
+
+===== packages/core/src/financeiro/usecases/listarContasReceber.ts =====
+
+// packages/core/src/financeiro/usecases/listarContasReceber.ts
+
+import { wrapOk } from "../../kernel/index.js";
+import type { FinanceiroTransacoesConsultaRepositorio } from "../portasRepositorio.js";
+import type { ListarContasFinanceirasInput, ListarContasFinanceirasResult } from "../tipos.js";
+import { validarListarContasFinanceirasInput } from "../validadores.js";
+
+type Deps = {
+  financeiroRepositorio: FinanceiroTransacoesConsultaRepositorio;
+};
+
+export function createFnListarContasReceber(deps: Deps) {
+  return async function listarContasReceber(input: ListarContasFinanceirasInput): ListarContasFinanceirasResult {
+    const validado = validarListarContasFinanceirasInput(input);
+    if (!validado.ok) return validado;
+
+    const itens = await deps.financeiroRepositorio.listarContasReceber(validado.value);
+    if (!itens.ok) return itens;
+
+    return wrapOk({ itens: itens.value });
+  };
+}
+
+
+===== packages/core/src/financeiro/usecases/obterResumoFinanceiro.ts =====
+
+// packages/core/src/financeiro/usecases/obterResumoFinanceiro.ts
+
+import { wrapOk } from "../../kernel/index.js";
+import type { FinanceiroTransacoesConsultaRepositorio } from "../portasRepositorio.js";
+import type { ObterResumoFinanceiroInput, ObterResumoFinanceiroResult } from "../tipos.js";
+import { validarObterResumoFinanceiroInput } from "../validadores.js";
+
+type Deps = {
+  financeiroRepositorio: FinanceiroTransacoesConsultaRepositorio;
+};
+
+export function createFnObterResumoFinanceiro(deps: Deps) {
+  return async function obterResumoFinanceiro(input: ObterResumoFinanceiroInput): ObterResumoFinanceiroResult {
+    const validado = validarObterResumoFinanceiroInput(input);
+    if (!validado.ok) return validado;
+
+    const resumo = await deps.financeiroRepositorio.obterResumoFinanceiro(validado.value);
+    if (!resumo.ok) return resumo;
+
+    return wrapOk({ resumo: resumo.value });
+  };
+}
+
+
+===== packages/core/src/financeiro/validadores.ts =====
+
+// packages/core/src/financeiro/validadores.ts
+
+import { wrapOk, type ErroApp, type Result } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { FiltroStatusContaFinanceira, ListarContasFinanceirasInput, ObterResumoFinanceiroInput } from "./tipos.js";
+import { erroFinanceiroInvalido } from "./erros.js";
+
+function validarTextoObrigatorio(value: unknown, campo: string): Result<string, ErroApp> {
+  if (typeof value !== "string" || !value.trim()) {
+    return erroFinanceiroInvalido({ campo, motivo: "obrigatorio" });
+  }
+
+  return wrapOk(value.trim());
+}
+
+function validarDataOpcional(value: unknown, campo: string): Result<Date | null, ErroApp> {
+  if (value === undefined || value === null) return wrapOk(null);
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return wrapOk(value);
+
+  return erroFinanceiroInvalido({ campo, motivo: "data_invalida" });
+}
+
+function validarLimite(value: unknown): Result<number | undefined, ErroApp> {
+  if (value === undefined || value === null) return wrapOk(undefined);
+
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 100) {
+    return erroFinanceiroInvalido({ campo: "limite", motivo: "deve_ser_inteiro_entre_1_e_100" });
+  }
+
+  return wrapOk(value);
+}
+
+function validarStatus(value: unknown): Result<FiltroStatusContaFinanceira | undefined, ErroApp> {
+  if (value === undefined || value === null || value === "") return wrapOk(undefined);
+  if (value === "ABERTO" || value === "LIQUIDADO" || value === "TODOS") return wrapOk(value);
+
+  return erroFinanceiroInvalido({ campo: "status", motivo: "status_invalido" });
+}
+
+export function validarObterResumoFinanceiroInput(input: ObterResumoFinanceiroInput): Result<ObterResumoFinanceiroInput, ErroApp> {
+  const locatarioId = validarTextoObrigatorio(input.locatarioId, "locatarioId");
+  if (!locatarioId.ok) return locatarioId;
+
+  const hoje = validarDataOpcional(input.hoje, "hoje");
+  if (!hoje.ok) return hoje;
+
+  const inicio = validarDataOpcional(input.periodo?.inicio, "periodo.inicio");
+  if (!inicio.ok) return inicio;
+
+  const fim = validarDataOpcional(input.periodo?.fim, "periodo.fim");
+  if (!fim.ok) return fim;
+
+  return wrapOk({
+    ...input,
+    locatarioId: locatarioId.value as LocatarioId,
+    hoje: hoje.value ?? undefined,
+    periodo: {
+      inicio: inicio.value,
+      fim: fim.value,
+    },
+  });
+}
+
+export function validarListarContasFinanceirasInput(input: ListarContasFinanceirasInput): Result<ListarContasFinanceirasInput, ErroApp> {
+  const locatarioId = validarTextoObrigatorio(input.locatarioId, "locatarioId");
+  if (!locatarioId.ok) return locatarioId;
+
+  const status = validarStatus(input.status);
+  if (!status.ok) return status;
+
+  const dataInicial = validarDataOpcional(input.dataInicial, "dataInicial");
+  if (!dataInicial.ok) return dataInicial;
+
+  const dataFinal = validarDataOpcional(input.dataFinal, "dataFinal");
+  if (!dataFinal.ok) return dataFinal;
+
+  const limite = validarLimite(input.limite);
+  if (!limite.ok) return limite;
+
+  return wrapOk({
+    ...input,
+    locatarioId: locatarioId.value as LocatarioId,
+    status: status.value,
+    dataInicial: dataInicial.value,
+    dataFinal: dataFinal.value,
+    limite: limite.value,
+  });
+}
+
+
 ===== packages/core/src/fornecedores/erros.ts =====
 
 import { createErroApp } from "../kernel/index.js";
@@ -8159,6 +8473,8 @@ export * from "./clientes/index.js";
 export * from "./fornecedores/index.js";
 export * from "./produtos/index.js";
 export * from "./vendas/index.js";
+export * from "./financeiro/index.js";
+export * from "./ordensServico/index.js";
 
 
 ===== packages/core/src/kernel/autorizacao.ts =====
@@ -12402,6 +12718,501 @@ export function validarModuloEstaHabilitadoInput(
     locatarioId: locatarioId.value,
     codigo: codigo.value.toUpperCase(),
   });
+}
+
+
+===== packages/core/src/ordensServico/erros.ts =====
+
+import { createErroApp, type ErroApp, type Result } from "../kernel/index.js";
+import type { OrdemServicoId } from "./tipos.js";
+
+export function ordemServicoInvalida(detalhes?: Record<string, unknown>): Result<never, ErroApp> {
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Dados da ordem de serviço são inválidos.", detalhes });
+}
+
+export function ordemServicoNaoEncontrada(ordemServicoId: OrdemServicoId): Result<never, ErroApp> {
+  return createErroApp({ codigo: "NAO_ENCONTRADO", mensagem: "Ordem de serviço não encontrada.", detalhes: { ordemServicoId } });
+}
+
+export function ordemServicoTransicaoInvalida(ordemServicoId: OrdemServicoId, statusAtual: string, evento: string): Result<never, ErroApp> {
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Transição de status da ordem de serviço inválida.", detalhes: { ordemServicoId, statusAtual, evento } });
+}
+
+export function ordemServicoNaoConcluida(ordemServicoId: OrdemServicoId): Result<never, ErroApp> {
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Somente ordem de serviço concluída pode gerar venda.", detalhes: { ordemServicoId } });
+}
+
+export function ordemServicoVendaJaGerada(ordemServicoId: OrdemServicoId): Result<never, ErroApp> {
+  return createErroApp({ codigo: "CONFLITO", mensagem: "Esta ordem de serviço já possui venda vinculada.", detalhes: { ordemServicoId } });
+}
+
+
+===== packages/core/src/ordensServico/index.ts =====
+
+export * from "./tipos.js";
+export * from "./portasRepositorio.js";
+export * from "./maquinaEstados.js";
+export * from "./usecases/criarOrdemServico.js";
+export * from "./usecases/listarOrdensServico.js";
+export * from "./usecases/obterOrdemServico.js";
+export * from "./usecases/atualizarOrdemServico.js";
+export * from "./usecases/mudarStatusOrdemServico.js";
+export * from "./usecases/gerarVendaDaOrdemServico.js";
+
+
+===== packages/core/src/ordensServico/maquinaEstados.ts =====
+
+import { transicionarEstado, type TabelaTransicoes } from "../kernel/index.js";
+import { ordemServicoTransicaoInvalida } from "./erros.js";
+import type { EventoOrdemServico, OrdemServicoId, StatusOrdemServico } from "./tipos.js";
+
+const TRANSICOES_OS: TabelaTransicoes<StatusOrdemServico, EventoOrdemServico> = {
+  ABERTA: { INICIAR: "EM_ANDAMENTO", AGUARDAR: "AGUARDANDO", CONCLUIR: "CONCLUIDA", CANCELAR: "CANCELADA" },
+  EM_ANDAMENTO: { AGUARDAR: "AGUARDANDO", CONCLUIR: "CONCLUIDA", CANCELAR: "CANCELADA" },
+  AGUARDANDO: { INICIAR: "EM_ANDAMENTO", CONCLUIR: "CONCLUIDA", CANCELAR: "CANCELADA" },
+  CONCLUIDA: {},
+  CANCELADA: {},
+};
+
+export function transicionarEstadoOrdemServico(params: {
+  ordemServicoId: OrdemServicoId;
+  statusAtual: StatusOrdemServico;
+  evento: EventoOrdemServico;
+}) {
+  return transicionarEstado({
+    tabela: TRANSICOES_OS,
+    estadoAtual: params.statusAtual,
+    evento: params.evento,
+    contexto: { ordemServicoId: params.ordemServicoId },
+    onTransicaoInvalida: ({ estadoAtual, evento, contexto }) =>
+      ordemServicoTransicaoInvalida(contexto?.ordemServicoId ?? params.ordemServicoId, estadoAtual, evento),
+  });
+}
+
+
+===== packages/core/src/ordensServico/portasRepositorio.ts =====
+
+import type { ErroApp, Result } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { ClienteId } from "../clientes/index.js";
+import type { TransacaoId } from "../vendas/index.js";
+import type { OrdemServico, OrdemServicoId, StatusOrdemServico } from "./tipos.js";
+
+export type RegistrarOrdemServicoParams = {
+  locatarioId: LocatarioId;
+  clienteId?: ClienteId | null;
+  titulo: string;
+  descricao?: string | null;
+};
+
+export type AtualizarOrdemServicoParams = {
+  locatarioId: LocatarioId;
+  ordemServicoId: OrdemServicoId;
+  clienteId?: ClienteId | null;
+  titulo?: string;
+  descricao?: string | null;
+};
+
+export type ListarOrdensServicoParams = {
+  locatarioId: LocatarioId;
+  status?: StatusOrdemServico;
+  clienteId?: ClienteId | null;
+  cursor?: OrdemServicoId;
+  limite?: number;
+};
+
+export type CriarVendaDaOrdemServicoParams = {
+  locatarioId: LocatarioId;
+  ordemServicoId: OrdemServicoId;
+  clienteId?: ClienteId | null;
+  valorTotal: number;
+  vencimentoEm: Date;
+  observacao?: string | null;
+};
+
+export interface OrdensServicoRepositorio {
+  criar(params: RegistrarOrdemServicoParams): Promise<Result<OrdemServico, ErroApp>>;
+  listar(params: ListarOrdensServicoParams): Promise<Result<OrdemServico[], ErroApp>>;
+  buscarPorId(params: { locatarioId: LocatarioId; ordemServicoId: OrdemServicoId }): Promise<Result<OrdemServico | null, ErroApp>>;
+  atualizar(params: AtualizarOrdemServicoParams): Promise<Result<OrdemServico, ErroApp>>;
+  atualizarStatus(params: { locatarioId: LocatarioId; ordemServicoId: OrdemServicoId; status: StatusOrdemServico; fechadaEm?: Date | null }): Promise<Result<OrdemServico, ErroApp>>;
+  buscarVendaVinculada(params: { locatarioId: LocatarioId; ordemServicoId: OrdemServicoId }): Promise<Result<{ transacaoId: TransacaoId } | null, ErroApp>>;
+  criarVendaDaOrdemServico(params: CriarVendaDaOrdemServicoParams): Promise<Result<{ transacaoId: TransacaoId }, ErroApp>>;
+}
+
+
+===== packages/core/src/ordensServico/tipos.ts =====
+
+import type { Result, ErroApp } from "../kernel/index.js";
+import type { ClienteId } from "../clientes/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { UsuarioId } from "../usuarios/index.js";
+import type { TransacaoId } from "../vendas/index.js";
+
+export type OrdemServicoId = string;
+
+export type StatusOrdemServico =
+  | "ABERTA"
+  | "EM_ANDAMENTO"
+  | "AGUARDANDO"
+  | "CONCLUIDA"
+  | "CANCELADA";
+
+export type EventoOrdemServico =
+  | "INICIAR"
+  | "AGUARDAR"
+  | "CONCLUIR"
+  | "CANCELAR";
+
+export type OrdemServico = {
+  ordemServicoId: OrdemServicoId;
+  locatarioId: LocatarioId;
+  clienteId: ClienteId | null;
+  status: StatusOrdemServico;
+  titulo: string;
+  descricao: string | null;
+  abertaEm: Date;
+  fechadaEm: Date | null;
+  criadoEm: Date;
+  atualizadoEm: Date;
+  excluidoEm: Date | null;
+  excluidoPor: UsuarioId | null;
+  excluidoMotivo: string | null;
+  transacaoId?: TransacaoId | null;
+};
+
+export type CriarOrdemServicoInput = {
+  locatarioId: LocatarioId;
+  clienteId?: ClienteId | null;
+  titulo: string;
+  descricao?: string | null;
+  usuarioId?: UsuarioId | null;
+};
+export type CriarOrdemServicoOutput = { ordemServico: OrdemServico };
+export type CriarOrdemServicoResult = Promise<Result<CriarOrdemServicoOutput, ErroApp>>;
+
+export type ListarOrdensServicoInput = {
+  locatarioId: LocatarioId;
+  status?: StatusOrdemServico;
+  clienteId?: ClienteId | null;
+  cursor?: OrdemServicoId;
+  limite?: number;
+};
+export type ListarOrdensServicoOutput = { itens: OrdemServico[] };
+export type ListarOrdensServicoResult = Promise<Result<ListarOrdensServicoOutput, ErroApp>>;
+
+export type ObterOrdemServicoInput = { locatarioId: LocatarioId; ordemServicoId: OrdemServicoId };
+export type ObterOrdemServicoOutput = { ordemServico: OrdemServico };
+export type ObterOrdemServicoResult = Promise<Result<ObterOrdemServicoOutput, ErroApp>>;
+
+export type AtualizarOrdemServicoInput = {
+  locatarioId: LocatarioId;
+  ordemServicoId: OrdemServicoId;
+  titulo?: string;
+  descricao?: string | null;
+  clienteId?: ClienteId | null;
+  usuarioId?: UsuarioId | null;
+};
+export type AtualizarOrdemServicoOutput = { ordemServico: OrdemServico };
+export type AtualizarOrdemServicoResult = Promise<Result<AtualizarOrdemServicoOutput, ErroApp>>;
+
+export type MudarStatusOrdemServicoInput = {
+  locatarioId: LocatarioId;
+  ordemServicoId: OrdemServicoId;
+  usuarioId?: UsuarioId | null;
+};
+export type MudarStatusOrdemServicoOutput = { ordemServico: OrdemServico };
+export type MudarStatusOrdemServicoResult = Promise<Result<MudarStatusOrdemServicoOutput, ErroApp>>;
+
+export type CancelarOrdemServicoInput = MudarStatusOrdemServicoInput & { motivo?: string | null };
+export type CancelarOrdemServicoResult = Promise<Result<MudarStatusOrdemServicoOutput, ErroApp>>;
+
+export type GerarVendaDaOrdemServicoInput = {
+  locatarioId: LocatarioId;
+  ordemServicoId: OrdemServicoId;
+  valorTotal: number;
+  vencimentoEm: Date;
+  observacao?: string | null;
+  usuarioId?: UsuarioId | null;
+};
+export type GerarVendaDaOrdemServicoOutput = {
+  ordemServico: OrdemServico;
+  transacaoId: TransacaoId;
+};
+export type GerarVendaDaOrdemServicoResult = Promise<Result<GerarVendaDaOrdemServicoOutput, ErroApp>>;
+
+
+===== packages/core/src/ordensServico/usecases/atualizarOrdemServico.ts =====
+
+import { executarEmTransacao, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { ordemServicoNaoEncontrada, ordemServicoTransicaoInvalida } from "../erros.js";
+import type { OrdensServicoRepositorio } from "../portasRepositorio.js";
+import type { AtualizarOrdemServicoInput, AtualizarOrdemServicoResult } from "../tipos.js";
+import { validarDescricao, validarLocatarioId, validarOrdemServicoId, validarTitulo } from "../validadores.js";
+
+export function createFnAtualizarOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; transacao?: TransacaoPorta }) {
+  return async function atualizarOrdemServico(input: AtualizarOrdemServicoInput): AtualizarOrdemServicoResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+    const ordemServicoId = validarOrdemServicoId(input.ordemServicoId);
+    if (!ordemServicoId.ok) return ordemServicoId;
+
+    let titulo: string | undefined;
+    if (input.titulo !== undefined) {
+      const validado = validarTitulo(input.titulo);
+      if (!validado.ok) return validado;
+      titulo = validado.value;
+    }
+
+    let descricao: string | null | undefined;
+    if (input.descricao !== undefined) {
+      const validada = validarDescricao(input.descricao);
+      if (!validada.ok) return validada;
+      descricao = validada.value;
+    }
+
+    return executarEmTransacao(deps.transacao, async () => {
+      const atual = await deps.ordensServicoRepositorio.buscarPorId({ locatarioId: locatarioId.value, ordemServicoId: ordemServicoId.value });
+      if (!atual.ok) return atual;
+      if (!atual.value) return ordemServicoNaoEncontrada(ordemServicoId.value);
+      if (atual.value.status === "CONCLUIDA" || atual.value.status === "CANCELADA") {
+        return ordemServicoTransicaoInvalida(ordemServicoId.value, atual.value.status, "ATUALIZAR");
+      }
+
+      const ordemServico = await deps.ordensServicoRepositorio.atualizar({
+        locatarioId: locatarioId.value,
+        ordemServicoId: ordemServicoId.value,
+        clienteId: input.clienteId,
+        titulo,
+        descricao,
+      });
+      if (!ordemServico.ok) return ordemServico;
+      return wrapOk({ ordemServico: ordemServico.value });
+    });
+  };
+}
+
+
+===== packages/core/src/ordensServico/usecases/criarOrdemServico.ts =====
+
+import { executarEmTransacao, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import type { OrdensServicoRepositorio } from "../portasRepositorio.js";
+import type { CriarOrdemServicoInput, CriarOrdemServicoResult } from "../tipos.js";
+import { validarDescricao, validarLocatarioId, validarTitulo } from "../validadores.js";
+
+export function createFnCriarOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; transacao?: TransacaoPorta }) {
+  return async function criarOrdemServico(input: CriarOrdemServicoInput): CriarOrdemServicoResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+
+    const titulo = validarTitulo(input.titulo);
+    if (!titulo.ok) return titulo;
+
+    const descricao = validarDescricao(input.descricao);
+    if (!descricao.ok) return descricao;
+
+    return executarEmTransacao(deps.transacao, async () => {
+      const ordemServico = await deps.ordensServicoRepositorio.criar({
+        locatarioId: locatarioId.value,
+        clienteId: input.clienteId ?? null,
+        titulo: titulo.value,
+        descricao: descricao.value,
+      });
+      if (!ordemServico.ok) return ordemServico;
+      return wrapOk({ ordemServico: ordemServico.value });
+    });
+  };
+}
+
+
+===== packages/core/src/ordensServico/usecases/gerarVendaDaOrdemServico.ts =====
+
+import { executarEmTransacao, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { ordemServicoNaoConcluida, ordemServicoNaoEncontrada, ordemServicoVendaJaGerada } from "../erros.js";
+import type { OrdensServicoRepositorio } from "../portasRepositorio.js";
+import type { GerarVendaDaOrdemServicoInput, GerarVendaDaOrdemServicoResult } from "../tipos.js";
+import { validarLocatarioId, validarOrdemServicoId, validarValorTotal } from "../validadores.js";
+
+export function createFnGerarVendaDaOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; transacao?: TransacaoPorta }) {
+  return async function gerarVendaDaOrdemServico(input: GerarVendaDaOrdemServicoInput): GerarVendaDaOrdemServicoResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+    const ordemServicoId = validarOrdemServicoId(input.ordemServicoId);
+    if (!ordemServicoId.ok) return ordemServicoId;
+    const valorTotal = validarValorTotal(input.valorTotal);
+    if (!valorTotal.ok) return valorTotal;
+
+    return executarEmTransacao(deps.transacao, async () => {
+      const ordemServico = await deps.ordensServicoRepositorio.buscarPorId({ locatarioId: locatarioId.value, ordemServicoId: ordemServicoId.value });
+      if (!ordemServico.ok) return ordemServico;
+      if (!ordemServico.value) return ordemServicoNaoEncontrada(ordemServicoId.value);
+      if (ordemServico.value.status !== "CONCLUIDA") return ordemServicoNaoConcluida(ordemServicoId.value);
+
+      const existente = await deps.ordensServicoRepositorio.buscarVendaVinculada({ locatarioId: locatarioId.value, ordemServicoId: ordemServicoId.value });
+      if (!existente.ok) return existente;
+      if (existente.value) return ordemServicoVendaJaGerada(ordemServicoId.value);
+
+      const venda = await deps.ordensServicoRepositorio.criarVendaDaOrdemServico({
+        locatarioId: locatarioId.value,
+        ordemServicoId: ordemServicoId.value,
+        clienteId: ordemServico.value.clienteId,
+        valorTotal: valorTotal.value,
+        vencimentoEm: input.vencimentoEm,
+        observacao: input.observacao ?? `Venda gerada a partir da OS ${ordemServico.value.titulo}`,
+      });
+      if (!venda.ok) return venda;
+
+      return wrapOk({ ordemServico: { ...ordemServico.value, transacaoId: venda.value.transacaoId }, transacaoId: venda.value.transacaoId });
+    });
+  };
+}
+
+
+===== packages/core/src/ordensServico/usecases/listarOrdensServico.ts =====
+
+import { wrapOk } from "../../kernel/index.js";
+import type { OrdensServicoRepositorio } from "../portasRepositorio.js";
+import type { ListarOrdensServicoInput, ListarOrdensServicoResult } from "../tipos.js";
+import { validarLocatarioId, validarStatusOrdemServico } from "../validadores.js";
+
+export function createFnListarOrdensServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio }) {
+  return async function listarOrdensServico(input: ListarOrdensServicoInput): ListarOrdensServicoResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+
+    const status = validarStatusOrdemServico(input.status);
+    if (!status.ok) return status;
+
+    const itens = await deps.ordensServicoRepositorio.listar({
+      locatarioId: locatarioId.value,
+      status: status.value,
+      clienteId: input.clienteId ?? undefined,
+      cursor: input.cursor,
+      limite: input.limite,
+    });
+    if (!itens.ok) return itens;
+
+    return wrapOk({ itens: itens.value });
+  };
+}
+
+
+===== packages/core/src/ordensServico/usecases/mudarStatusOrdemServico.ts =====
+
+import { executarEmTransacao, type RelogioPorta, type TransacaoPorta, wrapOk } from "../../kernel/index.js";
+import { ordemServicoNaoEncontrada } from "../erros.js";
+import type { OrdensServicoRepositorio } from "../portasRepositorio.js";
+import type { CancelarOrdemServicoInput, EventoOrdemServico, MudarStatusOrdemServicoInput, MudarStatusOrdemServicoResult } from "../tipos.js";
+import { transicionarEstadoOrdemServico } from "../maquinaEstados.js";
+import { validarLocatarioId, validarOrdemServicoId } from "../validadores.js";
+
+function createFnMudarStatusOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; relogio: RelogioPorta; transacao?: TransacaoPorta }, evento: EventoOrdemServico) {
+  return async function mudarStatus(input: MudarStatusOrdemServicoInput | CancelarOrdemServicoInput): MudarStatusOrdemServicoResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+    const ordemServicoId = validarOrdemServicoId(input.ordemServicoId);
+    if (!ordemServicoId.ok) return ordemServicoId;
+
+    return executarEmTransacao(deps.transacao, async () => {
+      const atual = await deps.ordensServicoRepositorio.buscarPorId({ locatarioId: locatarioId.value, ordemServicoId: ordemServicoId.value });
+      if (!atual.ok) return atual;
+      if (!atual.value) return ordemServicoNaoEncontrada(ordemServicoId.value);
+
+      const proximoStatus = transicionarEstadoOrdemServico({ ordemServicoId: ordemServicoId.value, statusAtual: atual.value.status, evento });
+      if (!proximoStatus.ok) return proximoStatus;
+
+      const ordemServico = await deps.ordensServicoRepositorio.atualizarStatus({
+        locatarioId: locatarioId.value,
+        ordemServicoId: ordemServicoId.value,
+        status: proximoStatus.value,
+        fechadaEm: proximoStatus.value === "CONCLUIDA" || proximoStatus.value === "CANCELADA" ? deps.relogio.agora() : null,
+      });
+      if (!ordemServico.ok) return ordemServico;
+
+      return wrapOk({ ordemServico: ordemServico.value });
+    });
+  };
+}
+
+export function createFnIniciarOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
+  return createFnMudarStatusOrdemServico(deps, "INICIAR");
+}
+
+export function createFnAguardarOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
+  return createFnMudarStatusOrdemServico(deps, "AGUARDAR");
+}
+
+export function createFnConcluirOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
+  return createFnMudarStatusOrdemServico(deps, "CONCLUIR");
+}
+
+export function createFnCancelarOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; relogio: RelogioPorta; transacao?: TransacaoPorta }) {
+  return createFnMudarStatusOrdemServico(deps, "CANCELAR");
+}
+
+
+===== packages/core/src/ordensServico/usecases/obterOrdemServico.ts =====
+
+import { wrapOk } from "../../kernel/index.js";
+import { ordemServicoNaoEncontrada } from "../erros.js";
+import type { OrdensServicoRepositorio } from "../portasRepositorio.js";
+import type { ObterOrdemServicoInput, ObterOrdemServicoResult } from "../tipos.js";
+import { validarLocatarioId, validarOrdemServicoId } from "../validadores.js";
+
+export function createFnObterOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio }) {
+  return async function obterOrdemServico(input: ObterOrdemServicoInput): ObterOrdemServicoResult {
+    const locatarioId = validarLocatarioId(input.locatarioId);
+    if (!locatarioId.ok) return locatarioId;
+    const ordemServicoId = validarOrdemServicoId(input.ordemServicoId);
+    if (!ordemServicoId.ok) return ordemServicoId;
+
+    const ordemServico = await deps.ordensServicoRepositorio.buscarPorId({ locatarioId: locatarioId.value, ordemServicoId: ordemServicoId.value });
+    if (!ordemServico.ok) return ordemServico;
+    if (!ordemServico.value) return ordemServicoNaoEncontrada(ordemServicoId.value);
+
+    return wrapOk({ ordemServico: ordemServico.value });
+  };
+}
+
+
+===== packages/core/src/ordensServico/validadores.ts =====
+
+import { createErroApp, type ErroApp, type Result, wrapOk } from "../kernel/index.js";
+import type { LocatarioId } from "../locatarios/index.js";
+import type { OrdemServicoId, StatusOrdemServico } from "./tipos.js";
+
+export function validarLocatarioId(v: unknown): Result<LocatarioId, ErroApp> {
+  if (typeof v === "string" && v.trim()) return wrapOk(v.trim());
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Locatário inválido.", detalhes: { campo: "locatarioId" } });
+}
+
+export function validarOrdemServicoId(v: unknown): Result<OrdemServicoId, ErroApp> {
+  if (typeof v === "string" && v.trim()) return wrapOk(v.trim());
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Ordem de serviço inválida.", detalhes: { campo: "ordemServicoId" } });
+}
+
+export function validarTitulo(v: unknown): Result<string, ErroApp> {
+  if (typeof v === "string" && v.trim().length >= 3) return wrapOk(v.trim());
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Título da ordem de serviço é obrigatório e deve ter ao menos 3 caracteres.", detalhes: { campo: "titulo" } });
+}
+
+export function validarDescricao(v: unknown): Result<string | null, ErroApp> {
+  if (v === undefined || v === null) return wrapOk(null);
+  if (typeof v === "string") return wrapOk(v.trim() || null);
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Descrição inválida.", detalhes: { campo: "descricao" } });
+}
+
+export function validarStatusOrdemServico(v: unknown): Result<StatusOrdemServico | undefined, ErroApp> {
+  if (v === undefined || v === null || v === "") return wrapOk(undefined);
+  const allowed = ["ABERTA", "EM_ANDAMENTO", "AGUARDANDO", "CONCLUIDA", "CANCELADA"] as const;
+  if (typeof v === "string" && (allowed as readonly string[]).includes(v)) return wrapOk(v as StatusOrdemServico);
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Status da ordem de serviço inválido.", detalhes: { campo: "status" } });
+}
+
+export function validarValorTotal(v: unknown): Result<number, ErroApp> {
+  const n = typeof v === "number" ? v : Number(v);
+  if (Number.isFinite(n) && n >= 0) return wrapOk(n);
+  return createErroApp({ codigo: "INVALIDO", mensagem: "Valor total inválido.", detalhes: { campo: "valorTotal" } });
 }
 
 

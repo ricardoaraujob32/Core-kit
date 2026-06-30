@@ -2,19 +2,16 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  TRANSACOES_MODULE,
+  TRANSACOES_PERMISSIONS,
+} from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { formatClienteLabel } from "../../../../shared/formatters";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
-import {
-  EntityAlert,
-  EntityButton,
-  EntityCard,
-  EntityField,
-  EntityForm,
-  EntityFormGrid,
-  EntityPage,
-} from "../../shared/entity-ui";
+import { EntityAlert, EntityButton, EntityCard, EntityField, EntityForm, EntityFormGrid, EntityPage } from "../../shared/entity-ui";
 import { vendasApi } from "../api/vendasApi";
 
 function textoBuscaCliente(cliente: Cliente): string {
@@ -109,25 +106,29 @@ export default function NovaVendaPage() {
   }
 
   return (
-    <EntityPage
-      actions={
-        <EntityButton to="/app/transacoes">
-          Voltar para transações
-        </EntityButton>
-      }
+    <PageGuard
+      requiredModule={TRANSACOES_MODULE}
+      requiredPermissions={[TRANSACOES_PERMISSIONS.CRIAR]}
     >
-      <EntityForm
-        kicker="Vendas"
-        title="Nova venda"
-        description="Crie uma transação de venda e depois adicione os itens na tela de detalhes."
-        error={erro}
-        onSubmit={handleSubmit}
-        footer={
-          <EntityButton type="submit" variant="primary" disabled={isSaving}>
-            {isSaving ? "Criando..." : "Criar venda"}
+      <EntityPage
+        actions={
+          <EntityButton to="/app/transacoes">
+            Voltar para transações
           </EntityButton>
         }
       >
+        <EntityForm
+          kicker="Vendas"
+          title="Nova venda"
+          description="Crie uma transação de venda e depois adicione os itens na tela de detalhes."
+          error={erro}
+          onSubmit={handleSubmit}
+          footer={
+            <EntityButton type="submit" variant="primary" disabled={isSaving}>
+              {isSaving ? "Criando..." : "Criar venda"}
+            </EntityButton>
+          }
+        >
         {erroClientes ? <EntityAlert>{erroClientes}</EntityAlert> : null}
 
         <EntityCard title="Cliente" description="Selecione o cliente vinculado à venda.">
@@ -159,8 +160,7 @@ export default function NovaVendaPage() {
                 ))}
               </select>
             </EntityField>
-
-            {clienteSelecionado ? (
+{clienteSelecionado ? (
               <EntityCard
                 className="ck-entity-field--wide"
                 title="Cliente selecionado"
@@ -195,7 +195,8 @@ export default function NovaVendaPage() {
             />
           </EntityField>
         </EntityCard>
-      </EntityForm>
-    </EntityPage>
+        </EntityForm>
+      </EntityPage>
+    </PageGuard>
   );
 }

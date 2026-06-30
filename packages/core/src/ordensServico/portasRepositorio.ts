@@ -1,8 +1,11 @@
+// packages/core/src/ordensServico/portasRepositorio.ts
+
 import type { ErroApp, Result } from "../kernel/index.js";
 import type { LocatarioId } from "../locatarios/index.js";
 import type { ClienteId } from "../clientes/index.js";
 import type { TransacaoId } from "../vendas/index.js";
 import type { OrdemServico, OrdemServicoId, StatusOrdemServico } from "./tipos.js";
+import { ProdutoId } from "../produtos/tipos.js";
 
 export type RegistrarOrdemServicoParams = {
   locatarioId: LocatarioId;
@@ -31,9 +34,16 @@ export type CriarVendaDaOrdemServicoParams = {
   locatarioId: LocatarioId;
   ordemServicoId: OrdemServicoId;
   clienteId?: ClienteId | null;
+  produtoId: ProdutoId;
   valorTotal: number;
   vencimentoEm: Date;
   observacao?: string | null;
+  descricaoItem: string;
+  quantidade: number;
+  valorUnitario: number;
+  valorSubtotal: number;
+  valorTotalItem: number;
+  movimentaEstoque: boolean;
 };
 
 export interface OrdensServicoRepositorio {

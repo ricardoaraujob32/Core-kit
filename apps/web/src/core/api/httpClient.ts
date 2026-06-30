@@ -46,7 +46,9 @@ export class HttpError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "https://corekit-api-homolog.onrender.com/api";;
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ?? "https://corekit-api-homolog.onrender.com/api"
+).replace(/\/+$/, "");
 
 let accessTokenGetter: (() => string | null) | null = null;
 let refreshSessionHandler: (() => Promise<boolean>) | null = null;
@@ -112,13 +114,11 @@ function buildHeaders(config: HttpRequestConfig, token: string | null): Record<s
     headers["Content-Type"] = "application/json";
   }
 
-  // Só insere o header Authorization quando há token e não houver
-  // um header `Authorization` explícito (ou quando ele for uma string vazia
-  // usada para desabilitar a injeção automática, por exemplo em refresh/logout).
-  // if (token && (headers.Authorization === undefined || headers.Authorization === "")) {
-if (token && headers.Authorization !== "") {
-  headers.Authorization = `Bearer ${token}`;
-}
+  // Permite desabilitar a injeção automática com `Authorization: ""`,
+  // útil em refresh/logout.
+  if (token && headers.Authorization !== "") {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   return headers;
 }

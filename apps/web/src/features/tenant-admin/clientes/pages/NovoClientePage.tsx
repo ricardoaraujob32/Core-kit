@@ -1,6 +1,11 @@
 // apps/web/src/features/tenant-admin/clientes/pages/NovoClientePage.tsx
 
 import { useNavigate } from "react-router-dom";
+import {
+  CLIENTES_MODULE,
+  CLIENTES_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { EntityButton, EntityPage } from "../../shared/entity-ui";
 import { ClienteForm } from "../components/ClienteForm";
 import { useSalvarCliente } from "../hooks/useSalvarCliente";
@@ -19,19 +24,24 @@ export default function NovoClientePage() {
   }
 
   return (
-    <EntityPage
-      actions={
-        <EntityButton to="/app/clientes">
-          Voltar para clientes
-        </EntityButton>
-      }
+    <PageGuard
+      requiredModule={CLIENTES_MODULE}
+      requiredPermissions={[CLIENTES_PERMISSIONS.CRIAR]}
     >
-      <ClienteForm
-        mode="create"
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
-    </EntityPage>
+      <EntityPage
+        actions={
+          <EntityButton to="/app/clientes">
+            Voltar para clientes
+          </EntityButton>
+        }
+      >
+        <ClienteForm
+          mode="create"
+          isSaving={isSaving}
+          erro={erro}
+          onSubmit={handleSubmit}
+        />
+      </EntityPage>
+    </PageGuard>
   );
 }

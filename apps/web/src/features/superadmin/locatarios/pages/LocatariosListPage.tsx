@@ -1,26 +1,72 @@
 // apps/web/src/features/superadmin/locatarios/pages/LocatariosListPage.tsx
 
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { mapError } from "../../../../core/errors/mapError";
+import { SuperAdminButton, SuperAdminCard, SuperAdminPage } from "../../shared";
+import { locatariosApi } from "../api/locatariosApi";
 import { LocatariosTable } from "../components/LocatariosTable";
-import { useLocatarios } from "../hooks/useLocatarios";
+import type { Locatario } from "../tipos";
 
 export default function LocatariosListPage() {
-  const { itens, isLoading, erro, recarregar } = useLocatarios();
+  const [itens, setItens] = useState<Locatario[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregar() {
+      setIsLoading(true);
+      setErro(null);
+
+      try {
+        const response = await locatariosApi.listar();
+
+        if (ativo) {
+          setItens(response.itens);
+        }
+      } catch (error) {
+        if (ativo) {
+          setErro(mapError(error).message);
+        }
+      } finally {
+        if (ativo) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void carregar();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Locatários</h1>
-          <p className="text-sm text-slate-600">Gerencie os locatários da plataforma.</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="rounded-xl border px-4 py-2" type="button" onClick={() => void recarregar()}>Recarregar</button>
-          <Link className="rounded-xl border px-4 py-2" to="/plataforma/locatarios/novo">Novo locatário</Link>
-        </div>
-      </div>
-      {erro ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erro}</div> : null}
-      {isLoading ? <div className="rounded-2xl border bg-white p-6">Carregando locatários...</div> : <LocatariosTable itens={itens} />}
-    </div>
+    <SuperAdminPage
+      kicker="Plataforma"
+      title="Locatários"
+      description="Gerencie empresas, tenants, usuários vinculados e configurações globais."
+      actions={
+        <SuperAdminButton to="/plataforma/locatarios/novo" variant="primary">
+          Novo locatário
+        </SuperAdminButton>
+      }
+    >
+      {erro ? (
+        <SuperAdminCard title="Erro ao carregar locatários">
+          {erro}
+        </SuperAdminCard>
+      ) : null}
+
+      {isLoading ? (
+        <SuperAdminCard>
+          Carregando locatários...
+        </SuperAdminCard>
+      ) : (
+        <LocatariosTable itens={itens} />
+      )}
+    </SuperAdminPage>
   );
 }

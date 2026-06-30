@@ -1,28 +1,22 @@
 // apps/web/src/features/tenant-admin/ordens-servico/pages/OrdemServicoDetailsPage.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { mapError } from "../../../../core/errors/mapError";
 import {
-  formatClienteLabel,
-  formatDateTime,
-  formatMoney,
-} from "../../../../shared/formatters";
+  ORDENS_SERVICO_MODULE,
+  ORDENS_SERVICO_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { mapError } from "../../../../core/errors/mapError";
+import { PageGuard } from "../../../../core/routing/pageGuard";
+import { formatClienteLabel, formatDateTime, formatMoney } from "../../../../shared/formatters";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
-import {
-  EntityActions,
-  EntityAlert,
-  EntityButton,
-  EntityCard,
-  EntityDetailGrid,
-  EntityDetailList,
-  EntityField,
-  EntityFormGrid,
-  EntityHero,
-  EntityPage,
-} from "../../shared/entity-ui";
+import { produtosApi } from "../../produtos/api/produtosApi";
+import type { Produto } from "../../produtos/tipos";
+import { EntityActions, EntityAlert, EntityButton, EntityCard, EntityDetailGrid, EntityDetailList, EntityField, EntityFormGrid, EntityHero, EntityPage,
+  } from "../../shared/entity-ui";
 import { ordensServicoApi } from "../api/ordensServicoApi";
+import { useOrdensServicoPermissions } from "../hooks/useOrdensServicoPermissions";
 import { toOrdemServicoViewModel } from "../ordemServico.viewModel";
 import type { OrdemServico } from "../tipos";
 
@@ -38,17 +32,32 @@ function statusClass(status: OrdemServico["status"]): string {
   return "ck-status";
 }
 
+function produtoLabel(produto: Produto): string {
+  const nome = produto.nome ?? "Produto/serviço sem nome";
+  const preco = produto.precoVenda != null ? ` — ${formatMoney(produto.precoVenda)}` : "";
+
+  return `${nome}${preco}`;
+}
+
 export default function OrdemServicoDetailsPage() {
   const { ordemServicoId } = useParams();
   const navigate = useNavigate();
+  const permissions = useOrdensServicoPermissions();
 
   const [item, setItem] = useState<OrdemServico | null>(null);
   const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [valorTotal, setValorTotal] = useState("0");
+  const [produtoId, setProdutoId] = useState("");
   const [isRunning, setIsRunning] = useState<AcaoOs | "gerar-venda" | null>(
     null,
+  );
+
+  const produtosServico = useMemo(
+    () => produtos.filter((produto) => produto.tipo === "SERVICO"),
+    [produtos],
   );
 
   async function carregar() {
@@ -65,6 +74,13 @@ export default function OrdemServicoDetailsPage() {
         setCliente(clienteResponse.item);
       } else {
         setCliente(null);
+      }
+
+      try {
+        const produtosResponse = await produtosApi.listar();
+        setProdutos(produtosResponse.itens);
+      } catch {
+        setProdutos([]);
       }
     } catch (error) {
       setErro(mapError(error).message);
@@ -98,11 +114,17 @@ export default function OrdemServicoDetailsPage() {
   async function gerarVenda() {
     if (!ordemServicoId) return;
 
+    if (!produtoId.trim()) {
+      setErroAcao("Selecione o produto/serviço usado para gerar a venda.");
+      return;
+    }
+
     setIsRunning("gerar-venda");
     setErroAcao(null);
 
     try {
       const response = await ordensServicoApi.gerarVenda(ordemServicoId, {
+        produtoId: produtoId.trim(),
         valorTotal: Number(valorTotal) || 0,
         vencimentoEm: new Date().toISOString(),
       });
@@ -141,7 +163,11 @@ export default function OrdemServicoDetailsPage() {
   });
 
   return (
-    <EntityPage>
+    <PageGuard
+      requiredModule={ORDENS_SERVICO_MODULE}
+      requiredPermissions={[ORDENS_SERVICO_PERMISSIONS.LISTAR]}
+    >
+      <EntityPage>
       <EntityHero
         kicker="Ordem de serviço"
         title={vm.titulo}
@@ -165,7 +191,11 @@ export default function OrdemServicoDetailsPage() {
               { label: "Cliente", value: clienteLabel },
               {
                 label: "Status",
-                value: <span className={statusClass(item.status)}>{item.status}</span>,
+                value: (
+                  <span className={statusClass(item.status)}>
+                    {item.status}
+                  </span>
+                ),
               },
             ]}
           />
@@ -177,48 +207,55 @@ export default function OrdemServicoDetailsPage() {
               { label: "Aberta em", value: formatDateTime(item.abertaEm) },
               { label: "Fechada em", value: formatDateTime(item.fechadaEm) },
               { label: "Criada em", value: formatDateTime(item.criadoEm) },
-              {
-                label: "Atualizada em",
-                value: formatDateTime(item.atualizadoEm),
-              },
+              { label: "Atualizada em", value: formatDateTime(item.atualizadoEm) },
             ]}
           />
         </EntityCard>
 
         <EntityCard title="Ações" description="Atualize o andamento da ordem.">
-          <EntityActions>
-            <EntityButton
-              type="button"
-              disabled={Boolean(isRunning)}
-              onClick={() => executarAcao("iniciar")}
-            >
-              Iniciar
-            </EntityButton>
+          {permissions.canEdit ? (
+            <EntityActions>
+              <EntityButton
+                type="button"
+                disabled={Boolean(isRunning)}
+                onClick={() => executarAcao("iniciar")}
+              >
+                Iniciar
+              </EntityButton>
 
-            <EntityButton
-              type="button"
-              disabled={Boolean(isRunning)}
-              onClick={() => executarAcao("aguardar")}
-            >
-              Aguardar
-            </EntityButton>
+              <EntityButton
+                type="button"
+                disabled={Boolean(isRunning)}
+                onClick={() => executarAcao("aguardar")}
+              >
+                Aguardar
+              </EntityButton>
 
-            <EntityButton
-              type="button"
-              disabled={Boolean(isRunning)}
-              onClick={() => executarAcao("concluir")}
-            >
-              Concluir
-            </EntityButton>
+              {permissions.canConclude ? (
+                <EntityButton
+                  type="button"
+                  disabled={Boolean(isRunning)}
+                  onClick={() => executarAcao("concluir")}
+                >
+                  Concluir
+                </EntityButton>
+              ) : null}
 
-            <EntityButton
-              type="button"
-              disabled={Boolean(isRunning)}
-              onClick={() => executarAcao("cancelar")}
-            >
-              Cancelar
-            </EntityButton>
-          </EntityActions>
+              {permissions.canCancel ? (
+                <EntityButton
+                  type="button"
+                  disabled={Boolean(isRunning)}
+                  onClick={() => executarAcao("cancelar")}
+                >
+                  Cancelar
+                </EntityButton>
+              ) : null}
+            </EntityActions>
+          ) : (
+            <p className="ck-entity-description">
+              Você não possui permissão para atualizar o andamento desta ordem.
+            </p>
+          )}
         </EntityCard>
       </EntityDetailGrid>
 
@@ -233,6 +270,26 @@ export default function OrdemServicoDetailsPage() {
         description="Converta a ordem em transação financeira quando o serviço for cobrado."
       >
         <EntityFormGrid>
+          <EntityField label="Produto/serviço">
+            <select
+              value={produtoId}
+              onChange={(event) => setProdutoId(event.target.value)}
+              disabled={!permissions.canGenerateVenda || produtosServico.length === 0}
+            >
+              <option value="">
+                {produtosServico.length === 0
+                  ? "Nenhum serviço cadastrado"
+                  : "Selecione um serviço"}
+              </option>
+
+              {produtosServico.map((produto) => (
+                <option key={produto.produtoId} value={produto.produtoId}>
+                  {produtoLabel(produto)}
+                </option>
+              ))}
+            </select>
+          </EntityField>
+
           <EntityField label="Valor total">
             <input
               inputMode="decimal"
@@ -247,13 +304,23 @@ export default function OrdemServicoDetailsPage() {
           <EntityButton
             type="button"
             variant="primary"
-            disabled={isRunning === "gerar-venda"}
+            disabled={
+              !permissions.canGenerateVenda ||
+              isRunning === "gerar-venda" ||
+              produtosServico.length === 0
+            }
             onClick={gerarVenda}
           >
             {isRunning === "gerar-venda" ? "Gerando..." : "Gerar venda"}
           </EntityButton>
         </EntityActions>
+        {!permissions.canGenerateVenda ? (
+          <p className="ck-entity-description">
+            Você não possui permissão para gerar venda a partir desta OS.
+          </p>
+        ) : null}
       </EntityCard>
-    </EntityPage>
+      </EntityPage>
+    </PageGuard>
   );
 }

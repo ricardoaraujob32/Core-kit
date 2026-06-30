@@ -1,6 +1,11 @@
 // apps/web/src/features/tenant-admin/produtos/pages/NovoProdutoPage.tsx
 
 import { useNavigate } from "react-router-dom";
+import {
+  PRODUTOS_MODULE,
+  PRODUTOS_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { EntityButton, EntityPage } from "../../shared/entity-ui";
 import { ProdutoForm } from "../components/ProdutoForm";
 import { useSalvarProduto } from "../hooks/useSalvarProduto";
@@ -21,19 +26,24 @@ export default function NovoProdutoPage() {
   }
 
   return (
-    <EntityPage
-      actions={
-        <EntityButton to="/app/produtos">
-          Voltar para produtos
-        </EntityButton>
-      }
+    <PageGuard
+      requiredModule={PRODUTOS_MODULE}
+      requiredPermissions={[PRODUTOS_PERMISSIONS.CRIAR]}
     >
-      <ProdutoForm
-        mode="create"
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
-    </EntityPage>
+      <EntityPage
+        actions={
+          <EntityButton to="/app/produtos">
+            Voltar para produtos
+          </EntityButton>
+        }
+      >
+        <ProdutoForm
+          mode="create"
+          isSaving={isSaving}
+          erro={erro}
+          onSubmit={handleSubmit}
+        />
+      </EntityPage>
+    </PageGuard>
   );
 }

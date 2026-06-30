@@ -1,8 +1,14 @@
 // apps/web/src/features/tenant-admin/fornecedores/pages/FornecedoresListPage.tsx
 
 import { Link } from "react-router-dom";
+import {
+  FORNECEDORES_MODULE,
+  FORNECEDORES_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { FornecedoresTable } from "../components/FornecedoresTable";
 import { useFornecedores } from "../hooks/useFornecedores";
+import { useFornecedoresPermissions } from "../hooks/useFornecedoresPermissions";
 import "../../cadastros/cadastros.css";
 
 function contarComEmail<T extends { email?: string | null }>(itens: T[]): number {
@@ -22,6 +28,7 @@ export default function FornecedoresListPage() {
     erro,
     recarregar,
   } = useFornecedores();
+  const permissions = useFornecedoresPermissions();
 
   return (
     <div className="ck-register-page">
@@ -37,12 +44,23 @@ export default function FornecedoresListPage() {
           </div>
 
           <div className="ck-register-actions">
-            <Link className="ck-register-action-primary" to="/app/fornecedores/novo">
-              Novo fornecedor
-            </Link>
+            <PageGuard
+              requiredModule={FORNECEDORES_MODULE}
+              requiredPermissions={[FORNECEDORES_PERMISSIONS.CRIAR]}
+            >
+              <Link className="ck-register-action-primary" to="/app/fornecedores/novo">
+                Novo fornecedor
+              </Link>
+            </PageGuard>
           </div>
         </div>
       </section>
+
+      {!permissions.canList ? (
+        <div className="ck-register-alert">
+          Você não possui permissão para acessar fornecedores.
+        </div>
+      ) : null}
 
       <section className="ck-register-stats">
         <article className="ck-register-stat" style={{ "--stat-color": "#2563eb" } as React.CSSProperties}>
@@ -100,11 +118,11 @@ export default function FornecedoresListPage() {
 
       {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
-      {isLoading ? (
+      {permissions.canList && isLoading ? (
         <div className="ck-register-filter">Carregando fornecedores...</div>
-      ) : (
+      ) : permissions.canList ? (
         <FornecedoresTable itens={fornecedores} />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -21,7 +21,9 @@ export type TransacaoItem = {
   tipoProduto: "PRODUTO" | "SERVICO";
   quantidade: number;
   valorUnitario: number;
+  valorSubtotal: number;
   valorDesconto: number;
+  valorAcrescimo: number;
   valorTotal: number;
   movimentaEstoque: boolean;
   criadoEm?: string;

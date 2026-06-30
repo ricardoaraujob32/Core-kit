@@ -23,6 +23,7 @@ export type CriarOrdemServicoInput = {
 export type AtualizarOrdemServicoInput = Partial<CriarOrdemServicoInput>;
 
 export type GerarVendaOrdemServicoInput = {
+  produtoId: string;
   valorTotal: number;
   vencimentoEm: string;
   observacao?: string | null;

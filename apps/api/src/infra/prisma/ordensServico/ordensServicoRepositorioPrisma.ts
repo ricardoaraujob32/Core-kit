@@ -173,29 +173,50 @@ export function createOrdensServicoRepositorioPrisma(prisma: PrismaLike): Ordens
 
     async criarVendaDaOrdemServico(params) {
       try {
-        const venda = await prisma.transacoes.create({
-          data: {
-            locatario_id: params.locatarioId,
-            cliente_id: params.clienteId ?? null,
-            fornecedor_id: null,
-            ordem_servico_id: params.ordemServicoId,
-            tipo: "VENDA",
-            origem: "ORDEM_SERVICO",
-            valor_subtotal: params.valorTotal,
-            valor_desconto: 0,
-            valor_acrescimo: 0,
-            valor_total: params.valorTotal,
-            vencimento_em: params.vencimentoEm,
-            status: "ABERTA",
-            observacao: params.observacao ?? null,
-          },
-          select: { transacao_id: true },
+        const venda = await prisma.$transaction(async (tx) => {
+          const transacao = await tx.transacoes.create({
+            data: {
+              locatario_id: params.locatarioId,
+              cliente_id: params.clienteId ?? null,
+              fornecedor_id: null,
+              ordem_servico_id: params.ordemServicoId,
+              tipo: "VENDA",
+              origem: "ORDEM_SERVICO",
+              valor_subtotal: params.valorTotal,
+              valor_desconto: 0,
+              valor_acrescimo: 0,
+              valor_total: params.valorTotal,
+              vencimento_em: params.vencimentoEm,
+              status: "ABERTA",
+              observacao: params.observacao ?? null,
+            },
+            select: { transacao_id: true },
+          });
+
+          await tx.itens_transacao.create({
+            data: {
+              locatario_id: params.locatarioId,
+              transacao_id: transacao.transacao_id,
+              produto_id: params.produtoId,
+              descricao: params.descricaoItem,
+              tipo_produto: "SERVICO",
+              quantidade: params.quantidade,
+              valor_unitario: params.valorUnitario,
+              valor_subtotal: params.valorSubtotal,
+              valor_desconto: 0,
+              valor_acrescimo: 0,
+              valor_total: params.valorTotalItem,
+              movimenta_estoque: params.movimentaEstoque,
+            },
+          });
+
+          return transacao;
         });
 
         return wrapOk({ transacaoId: venda.transacao_id });
       } catch (error) {
         return erroRepositorio(error, "ordensServico.criarVendaDaOrdemServico");
       }
-    },
+    }
   };
 }

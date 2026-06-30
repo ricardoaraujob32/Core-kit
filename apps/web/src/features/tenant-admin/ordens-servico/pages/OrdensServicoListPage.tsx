@@ -2,12 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  ORDENS_SERVICO_MODULE,
+  ORDENS_SERVICO_PERMISSIONS,
+} from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { PageSectionHeader } from "../../../../shared/layout/PageSectionHeader";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { OrdensServicoTable } from "../components/OrdensServicoTable";
 import { useOrdensServico } from "../hooks/useOrdensServico";
+import { useOrdensServicoPermissions } from "../hooks/useOrdensServicoPermissions";
 import type { OrdemServico } from "../tipos";
 import "../../cadastros/cadastros.css";
 import "../../transacoes/pages/transacoes.css";
@@ -18,6 +24,7 @@ function contarStatus(itens: OrdemServico[], status: OrdemServico["status"]) {
 
 export default function OrdensServicoListPage() {
   const { itens, loading, erro, recarregar } = useOrdensServico();
+  const permissions = useOrdensServicoPermissions();
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [erroClientes, setErroClientes] = useState<string | null>(null);
@@ -70,15 +77,26 @@ export default function OrdensServicoListPage() {
               Atualizar
             </button>
 
-            <Link
-              className="ck-register-action-primary"
-              to="/app/ordens-servico/nova"
+            <PageGuard
+              requiredModule={ORDENS_SERVICO_MODULE}
+              requiredPermissions={[ORDENS_SERVICO_PERMISSIONS.CRIAR]}
             >
-              Nova OS
-            </Link>
+              <Link
+                className="ck-register-action-primary"
+                to="/app/ordens-servico/nova"
+              >
+                Nova OS
+              </Link>
+            </PageGuard>
           </>
         }
       />
+
+      {!permissions.canList ? (
+        <div className="ck-register-alert">
+          Você não possui permissão para acessar ordens de serviço.
+        </div>
+      ) : null}
 
       <section className="ck-register-stats">
         <article className="ck-register-stat">
@@ -125,11 +143,11 @@ export default function OrdensServicoListPage() {
         </div>
       ) : null}
 
-      {loading ? (
+      {permissions.canList && loading ? (
         <div className="ck-register-filter">Carregando ordens de serviço...</div>
-      ) : (
+      ) : permissions.canList ? (
         <OrdensServicoTable itens={itens} clientes={clientes} />
-      )}
+      ) : null}
     </main>
   );
 }

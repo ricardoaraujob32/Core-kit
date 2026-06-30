@@ -24,6 +24,7 @@ export const atualizarOrdemServicoBodySchema = z.object({
 });
 
 export const gerarVendaOrdemServicoBodySchema = z.object({
+  produtoId: z.string().uuid(),
   valorTotal: z.coerce.number().nonnegative(),
   vencimentoEm: z.coerce.date(),
   observacao: z.string().nullable().optional(),

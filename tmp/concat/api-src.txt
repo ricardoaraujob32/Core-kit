@@ -1442,6 +1442,8 @@ import { vendasRoutes } from "./routes/vendas.routes.js";
 import { auditoriaRoutes } from "./routes/auditoria.routes.js";
 import { plataformaRoutes } from "./routes/plataforma/plataforma.routes.js";
 import { dashboardRoutes } from "./routes/dashboard.routes.js";
+import { financeiroRoutes } from "./routes/financeiro.routes.js";
+import { ordensServicoRoutes } from "./routes/ordensServico.routes.js";
 
 export const routes: FastifyPluginAsync = async (app) => {
   await app.register(healthRoutes, { prefix: "/api" });
@@ -1456,6 +1458,8 @@ export const routes: FastifyPluginAsync = async (app) => {
   await app.register(auditoriaRoutes, { prefix: "/api" });
   await app.register(plataformaRoutes, { prefix: "/api/plataforma" });
   await app.register(dashboardRoutes, { prefix: "/api" });
+  await app.register(financeiroRoutes, { prefix: "/api" });
+  await app.register(ordensServicoRoutes, { prefix: "/api" });
 };
 
 ===== apps/api/src/infra/hash/hashPortaAdapter.ts =====
@@ -5623,6 +5627,286 @@ export async function executarComContexto<T>(prisma: PrismaClient, contexto: Con
 }
 
 
+===== apps/api/src/infra/prisma/financeiro/financeiroTransacoesConsultaRepositorioPrisma.ts =====
+
+// apps/api/src/infra/prisma/financeiro/financeiroTransacoesConsultaRepositorioPrisma.ts
+
+import type {
+  ContaFinanceira,
+  ErroApp,
+  FinanceiroTransacoesConsultaRepositorio,
+  FiltroStatusContaFinanceira,
+  ListarContasFinanceirasInput,
+  LocatarioId,
+  ObterResumoFinanceiroInput,
+  Result,
+  ResumoFinanceiro,
+  TipoContaFinanceira,
+} from "@core-kit/core";
+import { wrapOk } from "@core-kit/core";
+import type { PrismaDb } from "../tipos.js";
+import { mapearErroInfra } from "../erros.js";
+
+type DecimalLike = { toString(): string } | number | string | null | undefined;
+
+type TransacaoFinanceiraRow = {
+  transacao_id: string;
+  locatario_id: string;
+  cliente_id: string | null;
+  fornecedor_id: string | null;
+  tipo: string;
+  status: string;
+  valor_total: DecimalLike;
+  observacao: string | null;
+  vencimento_em: Date | null;
+  criado_em: Date;
+  atualizado_em: Date;
+};
+
+const STATUS_FINANCEIRO_ABERTO_DB = "EM_PROCESSAMENTO";
+const STATUS_FINANCEIRO_LIQUIDADO_DB = "CONCLUIDA";
+
+const transacaoFinanceiraSelect = {
+  transacao_id: true,
+  locatario_id: true,
+  cliente_id: true,
+  fornecedor_id: true,
+  tipo: true,
+  status: true,
+  valor_total: true,
+  observacao: true,
+  vencimento_em: true,
+  criado_em: true,
+  atualizado_em: true,
+} as const;
+
+function numberFromDecimal(value: DecimalLike, fallback = 0): number {
+  if (value === null || value === undefined) return fallback;
+
+  const numero = typeof value === "number" ? value : Number(value.toString());
+  return Number.isFinite(numero) ? numero : fallback;
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function startOfNextMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
+
+function mapStatusConta(statusDb: string): "ABERTO" | "LIQUIDADO" {
+  return statusDb === STATUS_FINANCEIRO_LIQUIDADO_DB ? "LIQUIDADO" : "ABERTO";
+}
+
+function mapConta(row: TransacaoFinanceiraRow, tipo: TipoContaFinanceira): ContaFinanceira {
+  return {
+    transacaoId: row.transacao_id,
+    locatarioId: row.locatario_id as LocatarioId,
+    tipo,
+    status: mapStatusConta(row.status),
+    clienteId: row.cliente_id,
+    fornecedorId: row.fornecedor_id,
+    descricao: row.observacao,
+    valor: numberFromDecimal(row.valor_total),
+    vencimentoEm: row.vencimento_em ?? row.criado_em,
+    criadoEm: row.criado_em,
+    atualizadoEm: row.atualizado_em,
+  };
+}
+
+function statusWhere(status?: FiltroStatusContaFinanceira) {
+  if (!status || status === "TODOS") {
+    return { in: [STATUS_FINANCEIRO_ABERTO_DB, STATUS_FINANCEIRO_LIQUIDADO_DB] };
+  }
+
+  return status === "LIQUIDADO" ? STATUS_FINANCEIRO_LIQUIDADO_DB : STATUS_FINANCEIRO_ABERTO_DB;
+}
+
+function periodoVencimentoWhere(input: ListarContasFinanceirasInput, hoje: Date) {
+  const where: Record<string, unknown> = {};
+
+  if (input.vencidas) {
+    where.lt = startOfDay(hoje);
+  }
+
+  if (input.dataInicial) {
+    where.gte = input.dataInicial;
+  }
+
+  if (input.dataFinal) {
+    where.lte = input.dataFinal;
+  }
+
+  return Object.keys(where).length > 0 ? where : undefined;
+}
+
+async function listarContas(
+  db: PrismaDb,
+  input: ListarContasFinanceirasInput,
+  tipoTransacao: "VENDA" | "COMPRA",
+  tipoConta: TipoContaFinanceira,
+): Promise<Result<ContaFinanceira[], ErroApp>> {
+  try {
+    const vencimentoWhere = periodoVencimentoWhere(input, new Date());
+
+    const rows = await db.transacoes.findMany({
+      where: {
+        locatario_id: input.locatarioId,
+        tipo: tipoTransacao,
+        excluido_em: null,
+        status: statusWhere(input.status),
+        ...(vencimentoWhere ? { vencimento_em: vencimentoWhere } : {}),
+      },
+      orderBy: [{ vencimento_em: "asc" }, { transacao_id: "asc" }],
+      ...(input.cursor
+        ? {
+            cursor: {
+              locatario_id_transacao_id: {
+                locatario_id: input.locatarioId,
+                transacao_id: input.cursor,
+              },
+            },
+            skip: 1,
+          }
+        : {}),
+      take: input.limite ?? 50,
+      select: transacaoFinanceiraSelect,
+    });
+
+    return wrapOk(rows.map((row) => mapConta(row as TransacaoFinanceiraRow, tipoConta)));
+  } catch (causa) {
+    return mapearErroInfra(causa, {
+      entidade: "transacoes",
+      operacao: `infra.financeiro.${tipoConta === "RECEBER" ? "listarContasReceber" : "listarContasPagar"}`,
+      detalhes: input,
+    });
+  }
+}
+
+async function somarTransacoes(
+  db: PrismaDb,
+  params: {
+    locatarioId: string;
+    tipo: "VENDA" | "COMPRA";
+    status: string;
+    vencimentoAntesDe?: Date;
+    atualizadoDe?: Date;
+    atualizadoAte?: Date;
+  },
+): Promise<{ total: number; quantidade: number }> {
+  const rows = await db.transacoes.findMany({
+    where: {
+      locatario_id: params.locatarioId,
+      tipo: params.tipo,
+      status: params.status,
+      excluido_em: null,
+      ...(params.vencimentoAntesDe ? { vencimento_em: { lt: params.vencimentoAntesDe } } : {}),
+      ...(params.atualizadoDe || params.atualizadoAte
+        ? {
+            atualizado_em: {
+              ...(params.atualizadoDe ? { gte: params.atualizadoDe } : {}),
+              ...(params.atualizadoAte ? { lt: params.atualizadoAte } : {}),
+            },
+          }
+        : {}),
+    },
+    select: {
+      valor_total: true,
+    },
+  });
+
+  return {
+    total: rows.reduce((acc, row) => acc + numberFromDecimal(row.valor_total), 0),
+    quantidade: rows.length,
+  };
+}
+
+export function createFinanceiroTransacoesConsultaRepositorioPrisma(db: PrismaDb): FinanceiroTransacoesConsultaRepositorio {
+  return {
+    async obterResumoFinanceiro(input: ObterResumoFinanceiroInput): Promise<Result<ResumoFinanceiro, ErroApp>> {
+      const hoje = input.hoje ?? new Date();
+      const inicioPeriodo = input.periodo?.inicio ?? startOfMonth(hoje);
+      const fimPeriodo = input.periodo?.fim ?? startOfNextMonth(hoje);
+      const hojeInicio = startOfDay(hoje);
+
+      try {
+        const [aReceber, aPagar, recebidoPeriodo, pagoPeriodo, vencidoReceber, vencidoPagar] = await Promise.all([
+          somarTransacoes(db, {
+            locatarioId: input.locatarioId,
+            tipo: "VENDA",
+            status: STATUS_FINANCEIRO_ABERTO_DB,
+          }),
+          somarTransacoes(db, {
+            locatarioId: input.locatarioId,
+            tipo: "COMPRA",
+            status: STATUS_FINANCEIRO_ABERTO_DB,
+          }),
+          somarTransacoes(db, {
+            locatarioId: input.locatarioId,
+            tipo: "VENDA",
+            status: STATUS_FINANCEIRO_LIQUIDADO_DB,
+            atualizadoDe: inicioPeriodo,
+            atualizadoAte: fimPeriodo,
+          }),
+          somarTransacoes(db, {
+            locatarioId: input.locatarioId,
+            tipo: "COMPRA",
+            status: STATUS_FINANCEIRO_LIQUIDADO_DB,
+            atualizadoDe: inicioPeriodo,
+            atualizadoAte: fimPeriodo,
+          }),
+          somarTransacoes(db, {
+            locatarioId: input.locatarioId,
+            tipo: "VENDA",
+            status: STATUS_FINANCEIRO_ABERTO_DB,
+            vencimentoAntesDe: hojeInicio,
+          }),
+          somarTransacoes(db, {
+            locatarioId: input.locatarioId,
+            tipo: "COMPRA",
+            status: STATUS_FINANCEIRO_ABERTO_DB,
+            vencimentoAntesDe: hojeInicio,
+          }),
+        ]);
+
+        return wrapOk({
+          locatarioId: input.locatarioId,
+          totalAReceber: aReceber.total,
+          totalAPagar: aPagar.total,
+          saldoPrevisto: aReceber.total - aPagar.total,
+          totalRecebidoPeriodo: recebidoPeriodo.total,
+          totalPagoPeriodo: pagoPeriodo.total,
+          totalVencidoReceber: vencidoReceber.total,
+          totalVencidoPagar: vencidoPagar.total,
+          quantidadeVencidosReceber: vencidoReceber.quantidade,
+          quantidadeVencidosPagar: vencidoPagar.quantidade,
+          geradoEm: new Date(),
+        });
+      } catch (causa) {
+        return mapearErroInfra(causa, {
+          entidade: "transacoes",
+          operacao: "infra.financeiro.obterResumoFinanceiro",
+          detalhes: input,
+        });
+      }
+    },
+
+    listarContasReceber(input) {
+      return listarContas(db, input, "VENDA", "RECEBER");
+    },
+
+    listarContasPagar(input) {
+      return listarContas(db, input, "COMPRA", "PAGAR");
+    },
+  };
+}
+
+
 ===== apps/api/src/infra/prisma/fornecedores/fornecedoresRepositorioPrisma.ts =====
 
 // apps/api/src/infra/prisma/fornecedores/fornecedoresRepositorioPrisma.ts
@@ -6492,6 +6776,211 @@ export function criarModulosHabilitadosRepositorioPrisma(
     },
   };
 }
+
+===== apps/api/src/infra/prisma/ordensServico/ordensServicoRepositorioPrisma.ts =====
+
+import { createErroApp, type ErroApp, type OrdensServicoRepositorio, type OrdemServico, type Result, wrapOk } from "@core-kit/core";
+import type { PrismaClient } from "@prisma/client";
+
+type PrismaLike = PrismaClient;
+
+function toNumberDecimal(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "number") return value;
+  if (typeof value === "object" && value !== null && "toNumber" in value && typeof (value as { toNumber: () => number }).toNumber === "function") {
+    return (value as { toNumber: () => number }).toNumber();
+  }
+  return Number(value);
+}
+
+function toOrdemServico(row: any, transacaoId?: string | null): OrdemServico {
+  return {
+    ordemServicoId: row.ordem_servico_id,
+    locatarioId: row.locatario_id,
+    clienteId: row.cliente_id ?? null,
+    status: row.status,
+    titulo: row.titulo,
+    descricao: row.descricao ?? null,
+    abertaEm: row.aberta_em,
+    fechadaEm: row.fechada_em ?? null,
+    criadoEm: row.criado_em,
+    atualizadoEm: row.atualizado_em,
+    excluidoEm: row.excluido_em ?? null,
+    excluidoPor: row.excluido_por ?? null,
+    excluidoMotivo: row.excluido_motivo ?? null,
+    transacaoId: transacaoId ?? null,
+  };
+}
+
+function erroRepositorio(error: unknown, operacao: string): Result<never, ErroApp> {
+  return createErroApp({
+    codigo: "ERRO_INTERNO",
+    mensagem: "Erro ao acessar ordens de serviço.",
+    detalhes: { operacao, erro: error instanceof Error ? error.message : String(error) },
+  });
+}
+
+export function createOrdensServicoRepositorioPrisma(prisma: PrismaLike): OrdensServicoRepositorio {
+  return {
+    async criar(params) {
+      try {
+        const row = await prisma.ordens_servico.create({
+          data: {
+            locatario_id: params.locatarioId,
+            cliente_id: params.clienteId ?? null,
+            titulo: params.titulo,
+            descricao: params.descricao ?? null,
+            status: "ABERTA",
+          },
+        });
+        return wrapOk(toOrdemServico(row));
+      } catch (error) {
+        return erroRepositorio(error, "ordensServico.criar");
+      }
+    },
+
+    async listar(params) {
+      try {
+        const take = Math.min(Math.max(params.limite ?? 20, 1), 100);
+        const rows = await prisma.ordens_servico.findMany({
+          where: {
+            locatario_id: params.locatarioId,
+            excluido_em: null,
+            status: params.status,
+            cliente_id: params.clienteId === undefined ? undefined : params.clienteId,
+            ...(params.cursor
+              ? {
+                  ordem_servico_id: { lt: params.cursor },
+                }
+              : {}),
+          },
+          orderBy: [{ criado_em: "desc" }, { ordem_servico_id: "desc" }],
+          take,
+        });
+        return wrapOk(rows.map((row) => toOrdemServico(row)));
+      } catch (error) {
+        return erroRepositorio(error, "ordensServico.listar");
+      }
+    },
+
+    async buscarPorId(params) {
+      try {
+        const row = await prisma.ordens_servico.findFirst({
+          where: {
+            locatario_id: params.locatarioId,
+            ordem_servico_id: params.ordemServicoId,
+            excluido_em: null,
+          },
+        });
+        if (!row) return wrapOk(null);
+
+        const venda = await prisma.transacoes.findFirst({
+          where: {
+            locatario_id: params.locatarioId,
+            ordem_servico_id: params.ordemServicoId,
+            tipo: "VENDA",
+            excluido_em: null,
+          },
+          select: { transacao_id: true },
+          orderBy: { criado_em: "desc" },
+        });
+
+        return wrapOk(toOrdemServico(row, venda?.transacao_id ?? null));
+      } catch (error) {
+        return erroRepositorio(error, "ordensServico.buscarPorId");
+      }
+    },
+
+    async atualizar(params) {
+      try {
+        const row = await prisma.ordens_servico.update({
+          where: {
+            locatario_id_ordem_servico_id: {
+              locatario_id: params.locatarioId,
+              ordem_servico_id: params.ordemServicoId,
+            },
+          },
+          data: {
+            cliente_id: params.clienteId === undefined ? undefined : params.clienteId,
+            titulo: params.titulo,
+            descricao: params.descricao === undefined ? undefined : params.descricao,
+            atualizado_em: new Date(),
+          },
+        });
+        return wrapOk(toOrdemServico(row));
+      } catch (error) {
+        return erroRepositorio(error, "ordensServico.atualizar");
+      }
+    },
+
+    async atualizarStatus(params) {
+      try {
+        const row = await prisma.ordens_servico.update({
+          where: {
+            locatario_id_ordem_servico_id: {
+              locatario_id: params.locatarioId,
+              ordem_servico_id: params.ordemServicoId,
+            },
+          },
+          data: {
+            status: params.status,
+            fechada_em: params.fechadaEm === undefined ? undefined : params.fechadaEm,
+            atualizado_em: new Date(),
+          },
+        });
+        return wrapOk(toOrdemServico(row));
+      } catch (error) {
+        return erroRepositorio(error, "ordensServico.atualizarStatus");
+      }
+    },
+
+    async buscarVendaVinculada(params) {
+      try {
+        const venda = await prisma.transacoes.findFirst({
+          where: {
+            locatario_id: params.locatarioId,
+            ordem_servico_id: params.ordemServicoId,
+            tipo: "VENDA",
+            excluido_em: null,
+          },
+          select: { transacao_id: true },
+          orderBy: { criado_em: "desc" },
+        });
+        return wrapOk(venda ? { transacaoId: venda.transacao_id } : null);
+      } catch (error) {
+        return erroRepositorio(error, "ordensServico.buscarVendaVinculada");
+      }
+    },
+
+    async criarVendaDaOrdemServico(params) {
+      try {
+        const venda = await prisma.transacoes.create({
+          data: {
+            locatario_id: params.locatarioId,
+            cliente_id: params.clienteId ?? null,
+            fornecedor_id: null,
+            ordem_servico_id: params.ordemServicoId,
+            tipo: "VENDA",
+            origem: "ORDEM_SERVICO",
+            valor_subtotal: params.valorTotal,
+            valor_desconto: 0,
+            valor_acrescimo: 0,
+            valor_total: params.valorTotal,
+            vencimento_em: params.vencimentoEm,
+            status: "ABERTA",
+            observacao: params.observacao ?? null,
+          },
+          select: { transacao_id: true },
+        });
+
+        return wrapOk({ transacaoId: venda.transacao_id });
+      } catch (error) {
+        return erroRepositorio(error, "ordensServico.criarVendaDaOrdemServico");
+      }
+    },
+  };
+}
+
 
 ===== apps/api/src/infra/prisma/produtos/produtosRepositorioPrisma.ts =====
 
@@ -9884,6 +10373,218 @@ export function serializarDashboardResumo(dto: DashboardResumoDto): DashboardRes
 }
 
 
+===== apps/api/src/modules/financeiro/financeiro.controller.ts =====
+
+// apps/api/src/modules/financeiro/financeiro.controller.ts
+
+import type { FastifyReply, FastifyRequest } from "fastify";
+import { createFnListarContasPagar, createFnListarContasReceber, createFnObterResumoFinanceiro, metaAcao, type Permissao } from "@core-kit/core";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { createFinanceiroTransacoesConsultaRepositorioPrisma } from "../../infra/prisma/financeiro/financeiroTransacoesConsultaRepositorioPrisma.js";
+import { auditarController } from "../auditoria/auditarController.js";
+import { responderErroValidacaoZod } from "../helpersValidacao.js";
+import { parseFinanceiroQuery, type FinanceiroQueryDto } from "./financeiro.dto.js";
+import { toContaFinanceiraDto, toResumoFinanceiroDto } from "./financeiro.presenter.js";
+
+const PERMISSAO_FINANCEIRO_LER = "tenant.financeiro.ler" as Permissao;
+const MODULO_FINANCEIRO = "FINANCEIRO";
+
+function criarDepsFinanceiro() {
+  return {
+    financeiroRepositorio: createFinanceiroTransacoesConsultaRepositorioPrisma(clientePrisma),
+  };
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function obterResumoFinanceiroController(request: FastifyRequest, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSAO_FINANCEIRO_LER,
+    modulo: MODULO_FINANCEIRO,
+  });
+  if (!ctx) return;
+
+  const obterResumoFinanceiro = createFnObterResumoFinanceiro(criarDepsFinanceiro());
+
+  const resultado = await obterResumoFinanceiro({
+    locatarioId: ctx.locatarioId,
+  });
+
+  await auditarController(request, ctx, {
+    evento: "financeiro.resumo.obtido",
+    sucesso: resultado.ok,
+    entidadeTipo: "financeiro",
+    entidadeId: null,
+    erroCodigo: !resultado.ok ? resultado.error.codigo : null,
+    erroMensagem: !resultado.ok ? resultado.error.mensagem : null,
+    metadados: metaAcao({}),
+  });
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    item: toResumoFinanceiroDto(resultado.value.resumo),
+  });
+}
+
+/**
+ * 
+ * @param ctxLocatarioId 
+ * @param query 
+ * @returns 
+ */
+function montarInputListagem(ctxLocatarioId: string, query: FinanceiroQueryDto) {
+  return {
+    locatarioId: ctxLocatarioId,
+    status: query.status,
+    vencidas: query.vencidas,
+    dataInicial: query.dataInicial ?? null,
+    dataFinal: query.dataFinal ?? null,
+    cursor: query.cursor,
+    limite: query.limite,
+  };
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarContasReceberController(request: FastifyRequest<{ Querystring: FinanceiroQueryDto }>, reply: FastifyReply) {
+  const queryParse = parseFinanceiroQuery(request.query);
+  if (!queryParse.success) return responderErroValidacaoZod(reply, queryParse, "http.financeiro.listarContasReceber.validacao");
+
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSAO_FINANCEIRO_LER,
+    modulo: MODULO_FINANCEIRO,
+  });
+  if (!ctx) return;
+
+  const listarContasReceber = createFnListarContasReceber(criarDepsFinanceiro());
+  const resultado = await listarContasReceber(montarInputListagem(ctx.locatarioId, queryParse.data));
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    itens: resultado.value.itens.map(toContaFinanceiraDto),
+  });
+}
+
+/**
+ * 
+ * @param request 
+ * @param reply 
+ * @returns 
+ */
+export async function listarContasPagarController(request: FastifyRequest<{ Querystring: FinanceiroQueryDto }>, reply: FastifyReply) {
+  const queryParse = parseFinanceiroQuery(request.query);
+  if (!queryParse.success) return responderErroValidacaoZod(reply, queryParse, "http.financeiro.listarContasPagar.validacao");
+
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSAO_FINANCEIRO_LER,
+    modulo: MODULO_FINANCEIRO,
+  });
+  if (!ctx) return;
+
+  const listarContasPagar = createFnListarContasPagar(criarDepsFinanceiro());
+  const resultado = await listarContasPagar(montarInputListagem(ctx.locatarioId, queryParse.data));
+
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({
+    itens: resultado.value.itens.map(toContaFinanceiraDto),
+  });
+}
+
+
+===== apps/api/src/modules/financeiro/financeiro.dto.ts =====
+
+// apps/api/src/modules/financeiro/financeiro.dto.ts
+
+import { z } from "zod";
+
+const dateQuerySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .optional()
+  .transform((value) => {
+    if (!value) return undefined;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  });
+
+export const financeiroQuerySchema = z.object({
+  status: z.enum(["ABERTO", "LIQUIDADO", "TODOS"]).optional(),
+  vencidas: z
+    .union([z.literal("true"), z.literal("false")])
+    .optional()
+    .transform((value) => value === "true"),
+  dataInicial: dateQuerySchema,
+  dataFinal: dateQuerySchema,
+  cursor: z.string().trim().min(1).optional(),
+  limite: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+export type FinanceiroQueryDto = z.infer<typeof financeiroQuerySchema>;
+
+export function parseFinanceiroQuery(input: unknown) {
+  return financeiroQuerySchema.safeParse(input ?? {});
+}
+
+
+===== apps/api/src/modules/financeiro/financeiro.presenter.ts =====
+
+// apps/api/src/modules/financeiro/financeiro.presenter.ts
+
+import type { ContaFinanceira, ResumoFinanceiro } from "@core-kit/core";
+
+function toIso(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+export function toResumoFinanceiroDto(resumo: ResumoFinanceiro) {
+  return {
+    locatarioId: resumo.locatarioId,
+    totalAReceber: resumo.totalAReceber,
+    totalAPagar: resumo.totalAPagar,
+    saldoPrevisto: resumo.saldoPrevisto,
+    totalRecebidoPeriodo: resumo.totalRecebidoPeriodo,
+    totalPagoPeriodo: resumo.totalPagoPeriodo,
+    totalVencidoReceber: resumo.totalVencidoReceber,
+    totalVencidoPagar: resumo.totalVencidoPagar,
+    quantidadeVencidosReceber: resumo.quantidadeVencidosReceber,
+    quantidadeVencidosPagar: resumo.quantidadeVencidosPagar,
+    geradoEm: toIso(resumo.geradoEm),
+  };
+}
+
+export function toContaFinanceiraDto(conta: ContaFinanceira) {
+  return {
+    transacaoId: conta.transacaoId,
+    locatarioId: conta.locatarioId,
+    tipo: conta.tipo,
+    status: conta.status,
+    clienteId: conta.clienteId,
+    fornecedorId: conta.fornecedorId,
+    descricao: conta.descricao,
+    valor: conta.valor,
+    vencimentoEm: toIso(conta.vencimentoEm),
+    criadoEm: toIso(conta.criadoEm),
+    atualizadoEm: toIso(conta.atualizadoEm),
+  };
+}
+
+
 ===== apps/api/src/modules/fornecedores/fornecedores.controller.ts =====
 
 // apps/api/src/modules/fornecedores/fornecedores.controller.ts
@@ -11337,6 +12038,264 @@ export function serializarLocatario(locatario: Locatario): LocatarioResponseDto 
     reativadoEm: serializarData(locatario.reativadoEm),
     motivoReativacao: locatario.motivoReativacao,
     configuracoes: locatario.configuracoes.map(serializarConfiguracaoLocatario),
+  };
+}
+
+
+===== apps/api/src/modules/ordensServico/ordensServico.controller.ts =====
+
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { Permissao } from "@core-kit/core";
+import {
+  createFnAguardarOrdemServico,
+  createFnAtualizarOrdemServico,
+  createFnCancelarOrdemServico,
+  createFnConcluirOrdemServico,
+  createFnCriarOrdemServico,
+  createFnGerarVendaDaOrdemServico,
+  createFnIniciarOrdemServico,
+  createFnListarOrdensServico,
+  createFnObterOrdemServico,
+} from "@core-kit/core";
+import { autorizarHttp } from "../../http/autorizarHttp.js";
+import { sendHttpError } from "../../http/serializarErroApp.js";
+import { clientePrisma } from "../../infra/prisma/client.js";
+import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { createOrdensServicoRepositorioPrisma } from "../../infra/prisma/ordensServico/ordensServicoRepositorioPrisma.js";
+import {
+  parseAtualizarOrdemServicoBody,
+  parseCriarOrdemServicoBody,
+  parseGerarVendaOrdemServicoBody,
+  parseListarOrdensServicoQuery,
+  parseOrdemServicoIdParams,
+  type AtualizarOrdemServicoBodyDto,
+  type CriarOrdemServicoBodyDto,
+  type GerarVendaOrdemServicoBodyDto,
+  type ListarOrdensServicoQueryDto,
+  type OrdemServicoIdParamsDto,
+} from "./ordensServico.dto.js";
+import { toOrdemServicoDto } from "./ordensServico.presenter.js";
+
+const PERMISSOES = {
+  ler: "tenant.ordens_servico.ler" as Permissao,
+  criar: "tenant.ordens_servico.criar" as Permissao,
+  atualizar: "tenant.ordens_servico.atualizar" as Permissao,
+  cancelar: "tenant.ordens_servico.cancelar" as Permissao,
+  concluir: "tenant.ordens_servico.concluir" as Permissao,
+  gerarVenda: "tenant.ordens_servico.gerar_venda" as Permissao,
+};
+
+function deps() {
+  return {
+    ordensServicoRepositorio: createOrdensServicoRepositorioPrisma(clientePrisma),
+    relogio: getAuthBootstrap().runtime.technical.relogio,
+    transacao: getAuthBootstrap().runtime.transacao,
+  };
+}
+
+function responderErroValidacao(reply: FastifyReply, parseResult: { error: { flatten: () => { fieldErrors: Record<string, string[] | undefined>; formErrors: string[] } } }) {
+  const { fieldErrors, formErrors } = parseResult.error.flatten();
+  return sendHttpError(reply, {
+    codigo: "INVALIDO",
+    mensagem: formErrors[0] ?? "Dados inválidos na requisição.",
+    detalhes: { campos: fieldErrors, formulario: formErrors },
+  });
+}
+
+export async function listarOrdensServicoController(request: FastifyRequest<{ Querystring: ListarOrdensServicoQueryDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.ler, modulo: "ORDENS_SERVICO" });
+  if (!ctx) return;
+
+  const query = parseListarOrdensServicoQuery(request.query);
+  if (!query.success) return responderErroValidacao(reply, query);
+
+  const listar = createFnListarOrdensServico(deps());
+  const resultado = await listar({
+    locatarioId: ctx.locatarioId,
+    status: query.data.status,
+    clienteId: query.data.clienteId,
+    cursor: query.data.cursor,
+    limite: query.data.limite,
+  });
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ itens: resultado.value.itens.map(toOrdemServicoDto) });
+}
+
+export async function criarOrdemServicoController(request: FastifyRequest<{ Body: CriarOrdemServicoBodyDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.criar, modulo: "ORDENS_SERVICO" });
+  if (!ctx) return;
+
+  const body = parseCriarOrdemServicoBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body);
+
+  const criar = createFnCriarOrdemServico(deps());
+  const resultado = await criar({
+    locatarioId: ctx.locatarioId,
+    clienteId: body.data.clienteId,
+    titulo: body.data.titulo,
+    descricao: body.data.descricao,
+    usuarioId: ctx.usuarioId,
+  });
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(201).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
+}
+
+export async function obterOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.ler, modulo: "ORDENS_SERVICO" });
+  if (!ctx) return;
+
+  const params = parseOrdemServicoIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params);
+
+  const obter = createFnObterOrdemServico(deps());
+  const resultado = await obter({ locatarioId: ctx.locatarioId, ordemServicoId: params.data.ordemServicoId });
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
+}
+
+export async function atualizarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto; Body: AtualizarOrdemServicoBodyDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.atualizar, modulo: "ORDENS_SERVICO" });
+  if (!ctx) return;
+
+  const params = parseOrdemServicoIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params);
+  const body = parseAtualizarOrdemServicoBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body);
+
+  const atualizar = createFnAtualizarOrdemServico(deps());
+  const resultado = await atualizar({
+    locatarioId: ctx.locatarioId,
+    ordemServicoId: params.data.ordemServicoId,
+    clienteId: body.data.clienteId,
+    titulo: body.data.titulo,
+    descricao: body.data.descricao,
+    usuarioId: ctx.usuarioId,
+  });
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(200).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
+}
+
+async function mudarStatus(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply, permissao: Permissao, factory: ReturnType<typeof createFnIniciarOrdemServico> | ReturnType<typeof createFnAguardarOrdemServico> | ReturnType<typeof createFnConcluirOrdemServico> | ReturnType<typeof createFnCancelarOrdemServico>) {
+  const ctx = await autorizarHttp(request, reply, { permissao, modulo: "ORDENS_SERVICO" });
+  if (!ctx) return;
+  const params = parseOrdemServicoIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params);
+
+  const resultado = await factory({ locatarioId: ctx.locatarioId, ordemServicoId: params.data.ordemServicoId, usuarioId: ctx.usuarioId });
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+  return reply.status(200).send({ item: toOrdemServicoDto(resultado.value.ordemServico) });
+}
+
+export async function iniciarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
+  return mudarStatus(request, reply, PERMISSOES.atualizar, createFnIniciarOrdemServico(deps()));
+}
+
+export async function aguardarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
+  return mudarStatus(request, reply, PERMISSOES.atualizar, createFnAguardarOrdemServico(deps()));
+}
+
+export async function concluirOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
+  return mudarStatus(request, reply, PERMISSOES.concluir, createFnConcluirOrdemServico(deps()));
+}
+
+export async function cancelarOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto }>, reply: FastifyReply) {
+  return mudarStatus(request, reply, PERMISSOES.cancelar, createFnCancelarOrdemServico(deps()));
+}
+
+export async function gerarVendaDaOrdemServicoController(request: FastifyRequest<{ Params: OrdemServicoIdParamsDto; Body: GerarVendaOrdemServicoBodyDto }>, reply: FastifyReply) {
+  const ctx = await autorizarHttp(request, reply, { permissao: PERMISSOES.gerarVenda, modulo: "ORDENS_SERVICO" });
+  if (!ctx) return;
+
+  const params = parseOrdemServicoIdParams(request.params);
+  if (!params.success) return responderErroValidacao(reply, params);
+  const body = parseGerarVendaOrdemServicoBody(request.body);
+  if (!body.success) return responderErroValidacao(reply, body);
+
+  const gerarVenda = createFnGerarVendaDaOrdemServico(deps());
+  const resultado = await gerarVenda({
+    locatarioId: ctx.locatarioId,
+    ordemServicoId: params.data.ordemServicoId,
+    valorTotal: body.data.valorTotal,
+    vencimentoEm: body.data.vencimentoEm,
+    observacao: body.data.observacao,
+    usuarioId: ctx.usuarioId,
+  });
+  if (!resultado.ok) return sendHttpError(reply, resultado.error);
+
+  return reply.status(201).send({
+    item: toOrdemServicoDto(resultado.value.ordemServico),
+    transacaoId: resultado.value.transacaoId,
+  });
+}
+
+
+===== apps/api/src/modules/ordensServico/ordensServico.dto.ts =====
+
+import { z } from "zod";
+
+export const listarOrdensServicoQuerySchema = z.object({
+  status: z.enum(["ABERTA", "EM_ANDAMENTO", "AGUARDANDO", "CONCLUIDA", "CANCELADA"]).optional(),
+  clienteId: z.string().uuid().optional(),
+  cursor: z.string().uuid().optional(),
+  limite: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+export const ordemServicoIdParamsSchema = z.object({
+  ordemServicoId: z.string().uuid(),
+});
+
+export const criarOrdemServicoBodySchema = z.object({
+  clienteId: z.string().uuid().nullable().optional(),
+  titulo: z.string().min(3),
+  descricao: z.string().nullable().optional(),
+});
+
+export const atualizarOrdemServicoBodySchema = z.object({
+  clienteId: z.string().uuid().nullable().optional(),
+  titulo: z.string().min(3).optional(),
+  descricao: z.string().nullable().optional(),
+});
+
+export const gerarVendaOrdemServicoBodySchema = z.object({
+  valorTotal: z.coerce.number().nonnegative(),
+  vencimentoEm: z.coerce.date(),
+  observacao: z.string().nullable().optional(),
+});
+
+export type ListarOrdensServicoQueryDto = z.infer<typeof listarOrdensServicoQuerySchema>;
+export type OrdemServicoIdParamsDto = z.infer<typeof ordemServicoIdParamsSchema>;
+export type CriarOrdemServicoBodyDto = z.infer<typeof criarOrdemServicoBodySchema>;
+export type AtualizarOrdemServicoBodyDto = z.infer<typeof atualizarOrdemServicoBodySchema>;
+export type GerarVendaOrdemServicoBodyDto = z.infer<typeof gerarVendaOrdemServicoBodySchema>;
+
+export const parseListarOrdensServicoQuery = (input: unknown) => listarOrdensServicoQuerySchema.safeParse(input);
+export const parseOrdemServicoIdParams = (input: unknown) => ordemServicoIdParamsSchema.safeParse(input);
+export const parseCriarOrdemServicoBody = (input: unknown) => criarOrdemServicoBodySchema.safeParse(input);
+export const parseAtualizarOrdemServicoBody = (input: unknown) => atualizarOrdemServicoBodySchema.safeParse(input);
+export const parseGerarVendaOrdemServicoBody = (input: unknown) => gerarVendaOrdemServicoBodySchema.safeParse(input);
+
+
+===== apps/api/src/modules/ordensServico/ordensServico.presenter.ts =====
+
+import type { OrdemServico } from "@core-kit/core";
+
+export function toOrdemServicoDto(ordemServico: OrdemServico) {
+  return {
+    ordemServicoId: ordemServico.ordemServicoId,
+    locatarioId: ordemServico.locatarioId,
+    clienteId: ordemServico.clienteId,
+    transacaoId: ordemServico.transacaoId ?? null,
+    status: ordemServico.status,
+    titulo: ordemServico.titulo,
+    descricao: ordemServico.descricao,
+    abertaEm: ordemServico.abertaEm.toISOString(),
+    fechadaEm: ordemServico.fechadaEm?.toISOString() ?? null,
+    criadoEm: ordemServico.criadoEm.toISOString(),
+    atualizadoEm: ordemServico.atualizadoEm.toISOString(),
   };
 }
 
@@ -13641,6 +14600,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: [authGuard] }, 
     meController
   );
+
+  app.post(
+    "/auth/refresh",
+    refreshController,
+  );
+
+  app.post(
+    "/auth/logout",
+    logoutController,
+  );
   
   app.post<{ Body: RefreshPlataformaBodyDto }>(
     "/auth/plataforma/refresh",
@@ -13708,6 +14677,36 @@ import { obterDashboardResumoController } from "../modules/dashboard/dashboard.c
 
 export const dashboardRoutes: FastifyPluginAsync = async (app) => {
   app.get("/dashboard/resumo", obterDashboardResumoController);
+};
+
+
+===== apps/api/src/routes/financeiro.routes.ts =====
+
+// apps/api/src/routes/financeiro.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { listarContasPagarController, listarContasReceberController, obterResumoFinanceiroController } from "../modules/financeiro/financeiro.controller.js";
+import type { FinanceiroQueryDto } from "../modules/financeiro/financeiro.dto.js";
+
+export const financeiroRoutes: FastifyPluginAsync = async (app) => {
+  app.get(
+    "/financeiro/resumo",
+    { preHandler: [authGuard] },
+    obterResumoFinanceiroController,
+  );
+
+  app.get<{ Querystring: FinanceiroQueryDto }>(
+    "/financeiro/contas-receber",
+    { preHandler: [authGuard] },
+    listarContasReceberController,
+  );
+
+  app.get<{ Querystring: FinanceiroQueryDto }>(
+    "/financeiro/contas-pagar",
+    { preHandler: [authGuard] },
+    listarContasPagarController,
+  );
 };
 
 
@@ -13867,6 +14866,74 @@ export const locatariosRoutes: FastifyPluginAsync = async (app) => {
     "/me/locatario/configuracoes/:configuracaoId/ativar",
     { preHandler: [authGuard] },
     ativarConfiguracaoLocatarioController,
+  );
+};
+
+
+===== apps/api/src/routes/ordensServico.routes.ts =====
+
+// apps/api/src/routes/ordensServico.routes.ts
+
+import type { FastifyPluginAsync } from "fastify";
+import { authGuard } from "../middlewares/authGuard.js";
+import { aguardarOrdemServicoController, atualizarOrdemServicoController, cancelarOrdemServicoController, concluirOrdemServicoController, criarOrdemServicoController,
+  gerarVendaDaOrdemServicoController, iniciarOrdemServicoController, listarOrdensServicoController, obterOrdemServicoController
+} from "../modules/ordensServico/ordensServico.controller.js";
+import { AtualizarOrdemServicoBodyDto, CriarOrdemServicoBodyDto, GerarVendaOrdemServicoBodyDto, ListarOrdensServicoQueryDto, OrdemServicoIdParamsDto } from "../modules/ordensServico/ordensServico.dto.js";
+
+export const ordensServicoRoutes: FastifyPluginAsync = async (app) => {
+  app.get<{ Querystring: ListarOrdensServicoQueryDto }>(
+    "/ordens-servico",
+    { preHandler: [authGuard] },
+    listarOrdensServicoController,
+  );
+
+  app.post<{ Body: CriarOrdemServicoBodyDto }>(
+    "/ordens-servico",
+    { preHandler: [authGuard] },
+    criarOrdemServicoController,
+  );
+
+  app.get<{ Params: OrdemServicoIdParamsDto }>(
+    "/ordens-servico/:ordemServicoId",
+    { preHandler: [authGuard] },
+    obterOrdemServicoController,
+  );
+
+  app.patch<{ Params: OrdemServicoIdParamsDto; Body: AtualizarOrdemServicoBodyDto }>(
+    "/ordens-servico/:ordemServicoId",
+    { preHandler: [authGuard] },
+    atualizarOrdemServicoController,
+  );
+
+  app.post<{ Params: OrdemServicoIdParamsDto }>(
+    "/ordens-servico/:ordemServicoId/iniciar",
+    { preHandler: [authGuard] },
+    iniciarOrdemServicoController,
+  );
+
+  app.post<{ Params: OrdemServicoIdParamsDto }>(
+    "/ordens-servico/:ordemServicoId/aguardar",
+    { preHandler: [authGuard] },
+    aguardarOrdemServicoController,
+  );
+
+  app.post<{ Params: OrdemServicoIdParamsDto }>(
+    "/ordens-servico/:ordemServicoId/concluir",
+    { preHandler: [authGuard] },
+    concluirOrdemServicoController,
+  );
+
+  app.post<{ Params: OrdemServicoIdParamsDto }>(
+    "/ordens-servico/:ordemServicoId/cancelar",
+    { preHandler: [authGuard] },
+    cancelarOrdemServicoController,
+  );
+
+  app.post<{ Params: OrdemServicoIdParamsDto; Body: GerarVendaOrdemServicoBodyDto }>(
+    "/ordens-servico/:ordemServicoId/gerar-venda",
+    { preHandler: [authGuard] },
+    gerarVendaDaOrdemServicoController,
   );
 };
 

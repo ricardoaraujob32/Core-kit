@@ -1,8 +1,14 @@
 // apps/web/src/features/tenant-admin/clientes/pages/ClientesListPage.tsx
 
 import { Link } from "react-router-dom";
+import {
+  CLIENTES_MODULE,
+  CLIENTES_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
 import { ClientesTable } from "../components/ClientesTable";
 import { useClientes } from "../hooks/useClientes";
+import { useClientesPermissions } from "../hooks/useClientesPermissions";
 import "../../cadastros/cadastros.css";
 
 function contarComEmail<T extends { email?: string | null }>(itens: T[]): number {
@@ -15,6 +21,7 @@ function contarComDocumento<T extends { documento?: string | null }>(itens: T[])
 
 export default function ClientesListPage() {
   const { clientes, busca, setBusca, isLoading, erro, recarregar } = useClientes();
+  const permissions = useClientesPermissions();
 
   return (
     <div className="ck-register-page">
@@ -30,12 +37,23 @@ export default function ClientesListPage() {
           </div>
 
           <div className="ck-register-actions">
-            <Link className="ck-register-action-primary" to="/app/clientes/novo">
-              Novo cliente
-            </Link>
+            <PageGuard
+              requiredModule={CLIENTES_MODULE}
+              requiredPermissions={[CLIENTES_PERMISSIONS.CRIAR]}
+            >
+              <Link className="ck-register-action-primary" to="/app/clientes/novo">
+                Novo cliente
+              </Link>
+            </PageGuard>
           </div>
         </div>
       </section>
+
+      {!permissions.canList ? (
+        <div className="ck-register-alert">
+          Você não possui permissão para acessar clientes.
+        </div>
+      ) : null}
 
       <section className="ck-register-stats">
         <article className="ck-register-stat" style={{ "--stat-color": "#7c3aed" } as React.CSSProperties}>
@@ -93,11 +111,11 @@ export default function ClientesListPage() {
 
       {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
-      {isLoading ? (
+      {permissions.canList && isLoading ? (
         <div className="ck-register-filter">Carregando clientes...</div>
-      ) : (
+      ) : permissions.canList ? (
         <ClientesTable itens={clientes} />
-      )}
+      ) : null}
     </div>
   );
 }

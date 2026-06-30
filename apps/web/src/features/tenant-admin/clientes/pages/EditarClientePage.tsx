@@ -2,6 +2,11 @@
 
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  CLIENTES_MODULE,
+  CLIENTES_PERMISSIONS,
+} from "../../../../core/api/permissions";
+import { PageGuard } from "../../../../core/routing/pageGuard";
+import {
   EntityAlert,
   EntityButton,
   EntityCard,
@@ -55,26 +60,31 @@ export default function EditarClientePage() {
   }
 
   return (
-    <EntityPage
-      actions={
-        <>
-          <EntityButton to={`/app/clientes/${cliente.clienteId}`}>
-            Voltar para detalhes
-          </EntityButton>
-
-          <EntityButton to="/app/clientes">
-            Lista de clientes
-          </EntityButton>
-        </>
-      }
+    <PageGuard
+      requiredModule={CLIENTES_MODULE}
+      requiredPermissions={[CLIENTES_PERMISSIONS.ATUALIZAR]}
     >
-      <ClienteForm
-        mode="edit"
-        initialData={cliente}
-        isSaving={isSaving}
-        erro={erro}
-        onSubmit={handleSubmit}
-      />
-    </EntityPage>
+      <EntityPage
+        actions={
+          <>
+            <EntityButton to={`/app/clientes/${cliente.clienteId}`}>
+              Voltar para detalhes
+            </EntityButton>
+
+            <EntityButton to="/app/clientes">
+              Lista de clientes
+            </EntityButton>
+          </>
+        }
+      >
+        <ClienteForm
+          mode="edit"
+          initialData={cliente}
+          isSaving={isSaving}
+          erro={erro}
+          onSubmit={handleSubmit}
+        />
+      </EntityPage>
+    </PageGuard>
   );
 }

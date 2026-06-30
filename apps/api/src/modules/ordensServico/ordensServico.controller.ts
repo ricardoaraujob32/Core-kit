@@ -173,6 +173,7 @@ export async function gerarVendaDaOrdemServicoController(request: FastifyRequest
   const resultado = await gerarVenda({
     locatarioId: ctx.locatarioId,
     ordemServicoId: params.data.ordemServicoId,
+    produtoId: body.data.produtoId,
     valorTotal: body.data.valorTotal,
     vencimentoEm: body.data.vencimentoEm,
     observacao: body.data.observacao,
