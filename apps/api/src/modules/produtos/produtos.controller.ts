@@ -11,6 +11,15 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { toListarProdutosResponseDto, toProdutoResponseDto } from "./produtos.presenter.js";
 import { auditarController } from "../auditoria/auditarController.js";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { Permissao } from "@core-kit/core";
+
+const MODULO = "VENDAS" as const;
+const PERMISSOES = {
+  listar: "tenant.produto.listar" as Permissao,
+  criar: "tenant.produto.criar" as Permissao,
+  atualizar: "tenant.produto.atualizar" as Permissao,
+  excluir: "tenant.produto.excluir" as Permissao,
+};
 
 function criarDepsProdutos() {
   return {
@@ -52,7 +61,10 @@ function responderErroValidacao(
  * @returns 
  */
 export async function listarProdutosController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { produtosRepositorio } = criarDepsProdutos();
@@ -86,7 +98,10 @@ export async function obterProdutoController(request: FastifyRequest<{ Params: P
     return responderErroValidacao(reply, paramsParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { produtosRepositorio } = criarDepsProdutos();
@@ -121,7 +136,10 @@ export async function criarProdutoController(request: FastifyRequest<{ Body: Cri
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.criar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { produtosRepositorio, transacao, relogio, idPorta } =
@@ -178,7 +196,10 @@ export async function atualizarProdutoController(request: FastifyRequest<{ Param
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.atualizar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { produtosRepositorio, transacao, relogio } = criarDepsProdutos();
@@ -230,7 +251,10 @@ export async function excluirProdutoController(request: FastifyRequest<{ Params:
     return responderErroValidacao(reply, paramsParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.excluir,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { produtosRepositorio, transacao, relogio } = criarDepsProdutos();

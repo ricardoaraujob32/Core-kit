@@ -1,11 +1,7 @@
 // apps/web/src/features/tenant-admin/fornecedores/pages/FornecedoresListPage.tsx
 
+import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
-import {
-  FORNECEDORES_MODULE,
-  FORNECEDORES_PERMISSIONS,
-} from "../../../../core/api/permissions";
-import { PageGuard } from "../../../../core/routing/pageGuard";
 import { FornecedoresTable } from "../components/FornecedoresTable";
 import { useFornecedores } from "../hooks/useFornecedores";
 import { useFornecedoresPermissions } from "../hooks/useFornecedoresPermissions";
@@ -22,12 +18,14 @@ function contarComDocumento<T extends { documento?: string | null }>(itens: T[])
 export default function FornecedoresListPage() {
   const {
     fornecedores,
+    fornecedoresFiltrados,
     busca,
     setBusca,
     isLoading,
     erro,
     recarregar,
   } = useFornecedores();
+
   const permissions = useFornecedoresPermissions();
 
   return (
@@ -44,26 +42,23 @@ export default function FornecedoresListPage() {
           </div>
 
           <div className="ck-register-actions">
-            <PageGuard
-              requiredModule={FORNECEDORES_MODULE}
-              requiredPermissions={[FORNECEDORES_PERMISSIONS.CRIAR]}
-            >
-              <Link className="ck-register-action-primary" to="/app/fornecedores/novo">
+            {permissions.canCreate ? (
+              <Link
+                className="ck-register-action-primary"
+                to="/app/fornecedores/novo"
+              >
                 Novo fornecedor
               </Link>
-            </PageGuard>
+            ) : null}
           </div>
         </div>
       </section>
 
-      {!permissions.canList ? (
-        <div className="ck-register-alert">
-          Você não possui permissão para acessar fornecedores.
-        </div>
-      ) : null}
-
       <section className="ck-register-stats">
-        <article className="ck-register-stat" style={{ "--stat-color": "#2563eb" } as React.CSSProperties}>
+        <article
+          className="ck-register-stat"
+          style={{ "--stat-color": "#2563eb" } as CSSProperties}
+        >
           <div className="ck-register-stat-row">
             <div>
               <div className="ck-register-stat-label">Fornecedores</div>
@@ -74,22 +69,32 @@ export default function FornecedoresListPage() {
           </div>
         </article>
 
-        <article className="ck-register-stat" style={{ "--stat-color": "#7c3aed" } as React.CSSProperties}>
+        <article
+          className="ck-register-stat"
+          style={{ "--stat-color": "#7c3aed" } as CSSProperties}
+        >
           <div className="ck-register-stat-row">
             <div>
               <div className="ck-register-stat-label">Com documento</div>
-              <div className="ck-register-stat-value">{contarComDocumento(fornecedores)}</div>
+              <div className="ck-register-stat-value">
+                {contarComDocumento(fornecedores)}
+              </div>
               <div className="ck-register-stat-hint">CPF/CNPJ informado</div>
             </div>
             <div className="ck-register-stat-icon">🪪</div>
           </div>
         </article>
 
-        <article className="ck-register-stat" style={{ "--stat-color": "#16a34a" } as React.CSSProperties}>
+        <article
+          className="ck-register-stat"
+          style={{ "--stat-color": "#16a34a" } as CSSProperties}
+        >
           <div className="ck-register-stat-row">
             <div>
               <div className="ck-register-stat-label">Com e-mail</div>
-              <div className="ck-register-stat-value">{contarComEmail(fornecedores)}</div>
+              <div className="ck-register-stat-value">
+                {contarComEmail(fornecedores)}
+              </div>
               <div className="ck-register-stat-hint">Contato digital</div>
             </div>
             <div className="ck-register-stat-icon">✉️</div>
@@ -118,11 +123,11 @@ export default function FornecedoresListPage() {
 
       {erro ? <div className="ck-register-alert">{erro}</div> : null}
 
-      {permissions.canList && isLoading ? (
+      {isLoading ? (
         <div className="ck-register-filter">Carregando fornecedores...</div>
-      ) : permissions.canList ? (
-        <FornecedoresTable itens={fornecedores} />
-      ) : null}
+      ) : (
+        <FornecedoresTable itens={fornecedoresFiltrados} />
+      )}
     </div>
   );
 }

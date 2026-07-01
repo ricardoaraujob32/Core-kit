@@ -532,10 +532,10 @@ export const USUARIOS_PERMISSIONS = {
 } as const;
 
 export const USUARIOS_MODULE = "USUARIOS" as const;
-export const CLIENTES_MODULE = "CLIENTES" as const;
-export const FORNECEDORES_MODULE = "FORNECEDORES" as const;
-export const PRODUTOS_MODULE = "PRODUTOS" as const;
-export const TRANSACOES_MODULE = "TRANSACOES" as const;
+export const CLIENTES_MODULE = "VENDAS" as const;
+export const FORNECEDORES_MODULE = "VENDAS" as const;
+export const PRODUTOS_MODULE = "VENDAS" as const;
+export const TRANSACOES_MODULE = "VENDAS" as const;
 export const ORDENS_SERVICO_MODULE = "ORDENS_SERVICO" as const;
 
 export const CLIENTES_PERMISSIONS = {
@@ -560,11 +560,11 @@ export const PRODUTOS_PERMISSIONS = {
 } as const;
 
 export const TRANSACOES_PERMISSIONS = {
-  LISTAR: "tenant.transacao.listar",
-  CRIAR: "tenant.transacao.criar",
-  ATUALIZAR: "tenant.transacao.atualizar",
-  CANCELAR: "tenant.transacao.cancelar",
-  CONCLUIR: "tenant.transacao.concluir",
+  LISTAR: "tenant.transacoes.listar",
+  CRIAR: "tenant.transacoes.criar",
+  ATUALIZAR: "tenant.transacoes.atualizar",
+  CANCELAR: "tenant.transacoes.cancelar",
+  CONCLUIR: "tenant.transacoes.concluir",
 } as const;
 
 export const ORDENS_SERVICO_PERMISSIONS = {
@@ -594,50 +594,39 @@ function normalizarLista(values?: string[]) {
   return (values ?? []).map((value) => value.trim().toUpperCase());
 }
 
-export function hasPermission(
-  ctx: FrontendAuthorizationContext,
-  permission: string,
-): boolean {
+export function hasPermission(ctx: FrontendAuthorizationContext, permission: string): boolean {
   if (ctx.isSuperAdmin) return true;
   return normalizarLista(ctx.permissions).includes(permission.trim().toUpperCase());
 }
 
-export function hasModule(
-  ctx: FrontendAuthorizationContext,
-  moduleCode: string,
-): boolean {
+export function hasModule(ctx: FrontendAuthorizationContext, moduleCode: string): boolean {
   if (ctx.isSuperAdmin) return true;
-  return normalizarLista(ctx.modules).includes(moduleCode.trim().toUpperCase());
+
+  const modules = normalizarLista(ctx.modules);
+
+  if (modules.length === 0) {
+    return true;
+  }
+
+  return modules.includes(moduleCode.trim().toUpperCase());
 }
 
-export function canAccessUsuariosModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessUsuariosModule(ctx: FrontendAuthorizationContext): boolean {
   return (
     hasModule(ctx, USUARIOS_MODULE) &&
     hasPermission(ctx, USUARIOS_PERMISSIONS.LISTAR)
   );
 }
 
-function canReadCrudModule(
-  ctx: FrontendAuthorizationContext,
-  moduleCode: string,
-  listPermission: string,
-): boolean {
+function canReadCrudModule(ctx: FrontendAuthorizationContext, moduleCode: string, listPermission: string): boolean {
   return hasModule(ctx, moduleCode) && hasPermission(ctx, listPermission);
 }
 
-function canWriteCrudModule(
-  ctx: FrontendAuthorizationContext,
-  moduleCode: string,
-  writePermission: string,
-): boolean {
+function canWriteCrudModule(ctx: FrontendAuthorizationContext, moduleCode: string, writePermission: string): boolean {
   return hasModule(ctx, moduleCode) && hasPermission(ctx, writePermission);
 }
 
-export function canAccessClientesModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessClientesModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(ctx, CLIENTES_MODULE, CLIENTES_PERMISSIONS.LISTAR);
 }
 
@@ -653,9 +642,7 @@ export function canEditCliente(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canAccessFornecedoresModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessFornecedoresModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(
     ctx,
     FORNECEDORES_MODULE,
@@ -663,9 +650,7 @@ export function canAccessFornecedoresModule(
   );
 }
 
-export function canCreateFornecedor(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCreateFornecedor(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     FORNECEDORES_MODULE,
@@ -681,9 +666,7 @@ export function canEditFornecedor(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canAccessProdutosModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessProdutosModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(ctx, PRODUTOS_MODULE, PRODUTOS_PERMISSIONS.LISTAR);
 }
 
@@ -699,9 +682,7 @@ export function canEditProduto(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canAccessTransacoesModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessTransacoesModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(
     ctx,
     TRANSACOES_MODULE,
@@ -725,9 +706,7 @@ export function canEditTransacao(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canCancelTransacao(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCancelTransacao(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     TRANSACOES_MODULE,
@@ -735,9 +714,7 @@ export function canCancelTransacao(
   );
 }
 
-export function canConcludeTransacao(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canConcludeTransacao(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     TRANSACOES_MODULE,
@@ -745,9 +722,7 @@ export function canConcludeTransacao(
   );
 }
 
-export function canAccessOrdensServicoModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessOrdensServicoModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -755,9 +730,7 @@ export function canAccessOrdensServicoModule(
   );
 }
 
-export function canCreateOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCreateOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -765,9 +738,7 @@ export function canCreateOrdemServico(
   );
 }
 
-export function canEditOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canEditOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -775,9 +746,7 @@ export function canEditOrdemServico(
   );
 }
 
-export function canCancelOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCancelOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -785,9 +754,7 @@ export function canCancelOrdemServico(
   );
 }
 
-export function canConcludeOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canConcludeOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -795,9 +762,7 @@ export function canConcludeOrdemServico(
   );
 }
 
-export function canGenerateVendaFromOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canGenerateVendaFromOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -805,28 +770,21 @@ export function canGenerateVendaFromOrdemServico(
   );
 }
 
-export function canCreateUsuario(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCreateUsuario(ctx: FrontendAuthorizationContext): boolean {
   return (
     hasModule(ctx, USUARIOS_MODULE) &&
     hasPermission(ctx, USUARIOS_PERMISSIONS.CRIAR)
   );
 }
 
-export function canEditUsuario(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canEditUsuario(ctx: FrontendAuthorizationContext): boolean {
   return (
     hasModule(ctx, USUARIOS_MODULE) &&
     hasPermission(ctx, USUARIOS_PERMISSIONS.ATUALIZAR)
   );
 }
 
-export function canToggleUsuarioStatus(
-  ctx: FrontendAuthorizationContext,
-  statusAtual: StatusUsuario,
-): boolean {
+export function canToggleUsuarioStatus(ctx: FrontendAuthorizationContext, statusAtual: StatusUsuario): boolean {
   if (
     !hasModule(ctx, USUARIOS_MODULE) ||
     !hasPermission(ctx, USUARIOS_PERMISSIONS.ATUALIZAR)
@@ -837,11 +795,7 @@ export function canToggleUsuarioStatus(
   return statusAtual === "ATIVO" || statusAtual === "INATIVO";
 }
 
-export function canRunUsuarioAction(
-  ctx: FrontendAuthorizationContext,
-  action: UsuarioAction,
-  statusAtual?: StatusUsuario,
-): boolean {
+export function canRunUsuarioAction(ctx: FrontendAuthorizationContext, action: UsuarioAction, statusAtual?: StatusUsuario): boolean {
   switch (action) {
     case "listar":
     case "ver":
@@ -1239,9 +1193,8 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
           authStorage.removeRefreshToken();
         }
 
-        const usuario =
-          (response as { usuario?: SessionUser }).usuario ??
-          (await meRequest()).usuario;
+        const usuario = (await meRequest()).usuario;
+        console.log(usuario);
 
         return applySession({
           accessToken: response.accessToken,
@@ -1575,6 +1528,42 @@ export function setupInactivityWatcher({
 
 export type PerfilSessao = "TENANT" | "PLATAFORMA";
 
+export type AutorizacaoTenant = {
+  clientes?: {
+    acessar?: boolean;
+    criar?: boolean;
+    editar?: boolean;
+    excluir?: boolean;
+  };
+  fornecedores?: {
+    acessar?: boolean;
+    criar?: boolean;
+    editar?: boolean;
+    excluir?: boolean;
+  };
+  produtos?: {
+    acessar?: boolean;
+    criar?: boolean;
+    editar?: boolean;
+    excluir?: boolean;
+  };
+  transacoes?: {
+    acessar?: boolean;
+    criar?: boolean;
+    editar?: boolean;
+    cancelar?: boolean;
+    concluir?: boolean;
+  };
+  ordensServico?: {
+    acessar?: boolean;
+    criar?: boolean;
+    editar?: boolean;
+    cancelar?: boolean;
+    concluir?: boolean;
+    gerarVenda?: boolean;
+  };
+};
+
 export type SessionUser = {
   usuarioId: string;
   locatarioId: string | null;
@@ -1584,6 +1573,7 @@ export type SessionUser = {
   papeis?: string[];
   permissoes?: string[];
   modulosHabilitados?: string[];
+  autorizacao?: AutorizacaoTenant;
 };
 
 export type LoginInput = {
@@ -1665,36 +1655,116 @@ export function isSuperAdmin(user: SessionUser | null | undefined): boolean {
 // apps/web/src/core/auth/useAuthorization.ts
 
 import { useMemo } from "react";
-import { canAccessUsuariosModule, canCreateUsuario, canEditUsuario, hasModule, hasPermission, type FrontendAuthorizationContext } from "../api/permissions";
+import {
+  canAccessClientesModule,
+  canAccessFornecedoresModule,
+  canAccessOrdensServicoModule,
+  canAccessProdutosModule,
+  canAccessTransacoesModule,
+  canAccessUsuariosModule,
+  canCancelOrdemServico,
+  canCancelTransacao,
+  canConcludeOrdemServico,
+  canConcludeTransacao,
+  canCreateCliente,
+  canCreateFornecedor,
+  canCreateOrdemServico,
+  canCreateProduto,
+  canCreateTransacao,
+  canCreateUsuario,
+  canEditCliente,
+  canEditFornecedor,
+  canEditOrdemServico,
+  canEditProduto,
+  canEditTransacao,
+  canEditUsuario,
+  canGenerateVendaFromOrdemServico,
+  hasModule as hasModuleRule,
+  hasPermission as hasPermissionRule,
+  type FrontendAuthorizationContext,
+} from "../api/permissions";
 import { useAuth } from "./useAuth";
 import { isSuperAdmin } from "./tipos";
 
 export function useAuthorization() {
   const { user, isAuthenticated } = useAuth();
 
-  const ctx = useMemo<FrontendAuthorizationContext>(
+  const autorizacao = useMemo(() => user?.autorizacao ?? {}, [user]);
+  const superAdmin = isSuperAdmin(user);
+  const context = useMemo<FrontendAuthorizationContext>(
     () => ({
+      isSuperAdmin: superAdmin,
       permissions: user?.permissoes ?? [],
       modules: user?.modulosHabilitados ?? [],
-      isSuperAdmin: isSuperAdmin(user),
     }),
-    [user],
+    [superAdmin, user],
   );
 
   return {
     isAuthenticated,
     user,
-    ctx,
-    permissions: ctx.permissions ?? [],
-    modules: ctx.modules ?? [],
-    isSuperAdmin: ctx.isSuperAdmin === true,
-    hasPermission: (permission: string) => hasPermission(ctx, permission),
-    hasModule: (moduleCode: string) => hasModule(ctx, moduleCode),
-    canAccessUsuariosModule: () => canAccessUsuariosModule(ctx),
-    canCreateUsuario: () => canCreateUsuario(ctx),
-    canEditUsuario: () => canEditUsuario(ctx),
+    isSuperAdmin: superAdmin,
+    hasPermission: (permission: string) => hasPermissionRule(context, permission),
+    hasModule: (moduleCode: string) => hasModuleRule(context, moduleCode),
+
+    canAccessClientesModule: () =>
+      autorizacao.clientes?.acessar === true || canAccessClientesModule(context),
+    canCreateCliente: () =>
+      autorizacao.clientes?.criar === true || canCreateCliente(context),
+    canEditCliente: () =>
+      autorizacao.clientes?.editar === true || canEditCliente(context),
+
+    canAccessFornecedoresModule: () =>
+      autorizacao.fornecedores?.acessar === true ||
+      canAccessFornecedoresModule(context),
+    canCreateFornecedor: () =>
+      autorizacao.fornecedores?.criar === true || canCreateFornecedor(context),
+    canEditFornecedor: () =>
+      autorizacao.fornecedores?.editar === true || canEditFornecedor(context),
+
+    canAccessProdutosModule: () =>
+      autorizacao.produtos?.acessar === true || canAccessProdutosModule(context),
+    canCreateProduto: () =>
+      autorizacao.produtos?.criar === true || canCreateProduto(context),
+    canEditProduto: () =>
+      autorizacao.produtos?.editar === true || canEditProduto(context),
+
+    canAccessTransacoesModule: () =>
+      autorizacao.transacoes?.acessar === true ||
+      canAccessTransacoesModule(context),
+    canCreateTransacao: () =>
+      autorizacao.transacoes?.criar === true || canCreateTransacao(context),
+    canEditTransacao: () =>
+      autorizacao.transacoes?.editar === true || canEditTransacao(context),
+    canCancelTransacao: () =>
+      autorizacao.transacoes?.cancelar === true || canCancelTransacao(context),
+    canConcludeTransacao: () =>
+      autorizacao.transacoes?.concluir === true ||
+      canConcludeTransacao(context),
+
+    canAccessOrdensServicoModule: () =>
+      autorizacao.ordensServico?.acessar === true ||
+      canAccessOrdensServicoModule(context),
+    canCreateOrdemServico: () =>
+      autorizacao.ordensServico?.criar === true || canCreateOrdemServico(context),
+    canEditOrdemServico: () =>
+      autorizacao.ordensServico?.editar === true || canEditOrdemServico(context),
+    canCancelOrdemServico: () =>
+      autorizacao.ordensServico?.cancelar === true ||
+      canCancelOrdemServico(context),
+    canConcludeOrdemServico: () =>
+      autorizacao.ordensServico?.concluir === true ||
+      canConcludeOrdemServico(context),
+    canGenerateVendaFromOrdemServico: () =>
+      autorizacao.ordensServico?.gerarVenda === true ||
+      canGenerateVendaFromOrdemServico(context),
+
+    canAccessUsuariosModule: () => canAccessUsuariosModule(context),
+    canCreateUsuario: () => canCreateUsuario(context),
+    canEditUsuario: () => canEditUsuario(context),
   };
 }
+
 
 ===== apps/web/src/core/auth/useAuth.ts =====
 
@@ -1918,54 +1988,106 @@ export function mapError(error: unknown): UiError {
 // apps/web/src/core/routing/pageGuard.tsx
 
 import type { PropsWithChildren, ReactNode } from "react";
+import {
+  CLIENTES_MODULE,
+  CLIENTES_PERMISSIONS,
+  FORNECEDORES_MODULE,
+  FORNECEDORES_PERMISSIONS,
+  ORDENS_SERVICO_MODULE,
+  ORDENS_SERVICO_PERMISSIONS,
+  PRODUTOS_MODULE,
+  PRODUTOS_PERMISSIONS,
+  TRANSACOES_MODULE,
+  TRANSACOES_PERMISSIONS,
+  USUARIOS_MODULE,
+  USUARIOS_PERMISSIONS,
+} from "../api/permissions";
 import { useAuthorization } from "../auth/useAuthorization";
 
 type PageGuardProps = PropsWithChildren<{
-  requiredPermissions?: string[];
+  allowed?: boolean;
   requiredModule?: string;
-  requireAllPermissions?: boolean;
+  requiredPermissions?: string[];
   fallback?: ReactNode;
 }>;
 
-function hasRequiredPermissions(currentPermissions: string[], requiredPermissions: string[], requireAllPermissions: boolean): boolean {
-  if (requiredPermissions.length === 0) {
+function resolveAllowedFromRequirements(
+  requiredModule: string | undefined,
+  requiredPermissions: string[] | undefined,
+  authorization: ReturnType<typeof useAuthorization>,
+): boolean {
+  if (!requiredModule && (!requiredPermissions || requiredPermissions.length === 0)) {
     return true;
   }
 
-  if (requireAllPermissions) {
-    return requiredPermissions.every((permission) =>
-      currentPermissions.includes(permission),
-    );
+  switch (requiredModule) {
+    case CLIENTES_MODULE:
+      if (!requiredPermissions?.length) return authorization.canAccessClientesModule();
+      if (requiredPermissions.includes(CLIENTES_PERMISSIONS.CRIAR)) return authorization.canCreateCliente();
+      if (requiredPermissions.includes(CLIENTES_PERMISSIONS.ATUALIZAR)) return authorization.canEditCliente();
+      if (requiredPermissions.includes(CLIENTES_PERMISSIONS.LISTAR)) return authorization.canAccessClientesModule();
+      return authorization.canAccessClientesModule();
+    case FORNECEDORES_MODULE:
+      if (!requiredPermissions?.length) return authorization.canAccessFornecedoresModule();
+      if (requiredPermissions.includes(FORNECEDORES_PERMISSIONS.CRIAR)) return authorization.canCreateFornecedor();
+      if (requiredPermissions.includes(FORNECEDORES_PERMISSIONS.ATUALIZAR)) return authorization.canEditFornecedor();
+      if (requiredPermissions.includes(FORNECEDORES_PERMISSIONS.LISTAR)) return authorization.canAccessFornecedoresModule();
+      return authorization.canAccessFornecedoresModule();
+    case PRODUTOS_MODULE:
+      if (!requiredPermissions?.length) return authorization.canAccessProdutosModule();
+      if (requiredPermissions.includes(PRODUTOS_PERMISSIONS.CRIAR)) return authorization.canCreateProduto();
+      if (requiredPermissions.includes(PRODUTOS_PERMISSIONS.ATUALIZAR)) return authorization.canEditProduto();
+      if (requiredPermissions.includes(PRODUTOS_PERMISSIONS.LISTAR)) return authorization.canAccessProdutosModule();
+      return authorization.canAccessProdutosModule();
+    case TRANSACOES_MODULE:
+      if (!requiredPermissions?.length) return authorization.canAccessTransacoesModule();
+      if (requiredPermissions.includes(TRANSACOES_PERMISSIONS.CRIAR)) return authorization.canCreateTransacao();
+      if (requiredPermissions.includes(TRANSACOES_PERMISSIONS.ATUALIZAR)) return authorization.canEditTransacao();
+      if (requiredPermissions.includes(TRANSACOES_PERMISSIONS.CANCELAR)) return authorization.canCancelTransacao();
+      if (requiredPermissions.includes(TRANSACOES_PERMISSIONS.CONCLUIR)) return authorization.canConcludeTransacao();
+      if (requiredPermissions.includes(TRANSACOES_PERMISSIONS.LISTAR)) return authorization.canAccessTransacoesModule();
+      return authorization.canAccessTransacoesModule();
+    case ORDENS_SERVICO_MODULE:
+      if (!requiredPermissions?.length) return authorization.canAccessOrdensServicoModule();
+      if (requiredPermissions.includes(ORDENS_SERVICO_PERMISSIONS.CRIAR)) return authorization.canCreateOrdemServico();
+      if (requiredPermissions.includes(ORDENS_SERVICO_PERMISSIONS.ATUALIZAR)) return authorization.canEditOrdemServico();
+      if (requiredPermissions.includes(ORDENS_SERVICO_PERMISSIONS.CANCELAR)) return authorization.canCancelOrdemServico();
+      if (requiredPermissions.includes(ORDENS_SERVICO_PERMISSIONS.CONCLUIR)) return authorization.canConcludeOrdemServico();
+      if (requiredPermissions.includes(ORDENS_SERVICO_PERMISSIONS.GERAR_VENDA)) return authorization.canGenerateVendaFromOrdemServico();
+      if (requiredPermissions.includes(ORDENS_SERVICO_PERMISSIONS.LISTAR)) return authorization.canAccessOrdensServicoModule();
+      return authorization.canAccessOrdensServicoModule();
+    case USUARIOS_MODULE:
+      if (!requiredPermissions?.length) return authorization.canAccessUsuariosModule();
+      if (requiredPermissions.includes(USUARIOS_PERMISSIONS.CRIAR)) return authorization.canCreateUsuario();
+      if (requiredPermissions.includes(USUARIOS_PERMISSIONS.ATUALIZAR)) return authorization.canEditUsuario();
+      if (requiredPermissions.includes(USUARIOS_PERMISSIONS.LISTAR)) return authorization.canAccessUsuariosModule();
+      return authorization.canAccessUsuariosModule();
+    default:
+      return true;
   }
-
-  return requiredPermissions.some((permission) =>
-    currentPermissions.includes(permission),
-  );
 }
 
-export function PageGuard({ children, requiredPermissions = [], requiredModule, requireAllPermissions = true, fallback }: PageGuardProps) {
-  const { hasModule, permissions } = useAuthorization();
+export function PageGuard({
+  children,
+  allowed,
+  requiredModule,
+  requiredPermissions,
+  fallback,
+}: PageGuardProps) {
+  const authorization = useAuthorization();
+  const resolvedAllowed =
+    typeof allowed === "boolean"
+      ? allowed
+      : resolveAllowedFromRequirements(
+          requiredModule,
+          requiredPermissions,
+          authorization,
+        );
 
-  if (requiredModule && !hasModule(requiredModule)) {
+  if (!resolvedAllowed) {
     return (
       fallback ?? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Você não possui acesso a este módulo.
-        </div>
-      )
-    );
-  }
-
-  const ok = hasRequiredPermissions(
-    permissions,
-    requiredPermissions,
-    requireAllPermissions,
-  );
-
-  if (!ok) {
-    return (
-      fallback ?? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="ck-register-alert">
           Você não possui permissão para acessar este conteúdo.
         </div>
       )
@@ -1974,6 +2096,7 @@ export function PageGuard({ children, requiredPermissions = [], requiredModule, 
 
   return <>{children}</>;
 }
+
 
 ===== apps/web/src/core/routing/protectedRoute.tsx =====
 
@@ -6156,25 +6279,20 @@ export function useClienteDetails(clienteId?: string) {
 
 ===== apps/web/src/features/tenant-admin/clientes/hooks/useClientesPermissions.ts =====
 
-import { useMemo } from "react";
-import {
-  canAccessClientesModule,
-  canCreateCliente,
-  canEditCliente,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/clientes/hooks/useClientesPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useClientesPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
+  const canAccess = auth.canAccessClientesModule();
 
-  return useMemo(
-    () => ({
-      canList: canAccessClientesModule(ctx),
-      canCreate: canCreateCliente(ctx),
-      canEdit: canEditCliente(ctx),
-    }),
-    [ctx],
-  );
+  return {
+    canAccess,
+    canList: canAccess,
+    canCreate: auth.canCreateCliente(),
+    canEdit: auth.canEditCliente(),
+  };
 }
 
 
@@ -7921,25 +8039,18 @@ export function useFornecedorDetails(fornecedorId?: string) {
 
 ===== apps/web/src/features/tenant-admin/fornecedores/hooks/useFornecedoresPermissions.ts =====
 
-import { useMemo } from "react";
-import {
-  canAccessFornecedoresModule,
-  canCreateFornecedor,
-  canEditFornecedor,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/fornecedores/hooks/useFornecedoresPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useFornecedoresPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessFornecedoresModule(ctx),
-      canCreate: canCreateFornecedor(ctx),
-      canEdit: canEditFornecedor(ctx),
-    }),
-    [ctx],
-  );
+  return {
+    canList: auth.canAccessFornecedoresModule(),
+    canCreate: auth.canCreateFornecedor(),
+    canEdit: auth.canEditFornecedor(),
+  };
 }
 
 
@@ -9812,31 +9923,21 @@ export function OrdensServicoTable({ itens, clientes = [] }: Props) {
 
 ===== apps/web/src/features/tenant-admin/ordens-servico/hooks/useOrdensServicoPermissions.ts =====
 
-import { useMemo } from "react";
-import {
-  canAccessOrdensServicoModule,
-  canCancelOrdemServico,
-  canConcludeOrdemServico,
-  canCreateOrdemServico,
-  canEditOrdemServico,
-  canGenerateVendaFromOrdemServico,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/ordens-servico/hooks/useOrdensServicoPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useOrdensServicoPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessOrdensServicoModule(ctx),
-      canCreate: canCreateOrdemServico(ctx),
-      canEdit: canEditOrdemServico(ctx),
-      canCancel: canCancelOrdemServico(ctx),
-      canConclude: canConcludeOrdemServico(ctx),
-      canGenerateVenda: canGenerateVendaFromOrdemServico(ctx),
-    }),
-    [ctx],
-  );
+  return {
+      canList: auth.canAccessOrdensServicoModule(),
+      canCreate: auth.canCreateOrdemServico(),
+      canEdit: auth.canEditOrdemServico(),
+      canCancel: auth.canCancelOrdemServico(),
+      canConclude: auth.canConcludeOrdemServico(),
+      canGenerateVenda: auth.canGenerateVendaFromOrdemServico(),
+  };
 }
 
 
@@ -11476,25 +11577,18 @@ export function useProdutoDetails(produtoId?: string) {
 
 ===== apps/web/src/features/tenant-admin/produtos/hooks/useProdutosPermissions.ts =====
 
-import { useMemo } from "react";
-import {
-  canAccessProdutosModule,
-  canCreateProduto,
-  canEditProduto,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/produtos/hooks/useProdutosPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useProdutosPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessProdutosModule(ctx),
-      canCreate: canCreateProduto(ctx),
-      canEdit: canEditProduto(ctx),
-    }),
-    [ctx],
-  );
+  return {
+      canList: auth.canAccessProdutosModule(),
+      canCreate: auth.canCreateProduto(),
+      canEdit: auth.canEditProduto(),
+  };
 }
 
 
@@ -13340,29 +13434,20 @@ export function useTransacaoDetails(transacaoId?: string) {
 
 ===== apps/web/src/features/tenant-admin/transacoes/hooks/useTransacoesPermissions.ts =====
 
-import { useMemo } from "react";
-import {
-  canAccessTransacoesModule,
-  canCancelTransacao,
-  canConcludeTransacao,
-  canCreateTransacao,
-  canEditTransacao,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/transacoes/hooks/useTransacoesPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useTransacoesPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessTransacoesModule(ctx),
-      canCreate: canCreateTransacao(ctx),
-      canEdit: canEditTransacao(ctx),
-      canCancel: canCancelTransacao(ctx),
-      canConclude: canConcludeTransacao(ctx),
-    }),
-    [ctx],
-  );
+  return {
+      canList: auth.canAccessTransacoesModule(),
+      canCreate: auth.canCreateTransacao(),
+      canEdit: auth.canEditTransacao(),
+      canCancel: auth.canCancelTransacao(),
+      canConclude: auth.canConcludeTransacao(),
+    };
 }
 
 
@@ -13417,14 +13502,21 @@ function filtrarTransacoes(
   });
 }
 
-export function useTransacoes() {
+export function useTransacoes(enabled = true) {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState<FiltroTipo>("TODOS");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
+    if (!enabled) {
+      setTransacoes([]);
+      setErro(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErro(null);
 
@@ -13436,7 +13528,7 @@ export function useTransacoes() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     void carregar();
@@ -13483,6 +13575,7 @@ import {
 } from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
 import { PageGuard } from "../../../../core/routing/pageGuard";
+import { useAuthorization } from "../../../../core/auth/useAuthorization";
 import {
   formatClienteLabel,
   formatDateTime,
@@ -13548,6 +13641,7 @@ function podeEditarItens(status?: string | null): boolean {
 export default function TransacaoDetailsPage() {
   const params = useParams<{ transacaoId: string }>();
   const transacaoId = params.transacaoId?.trim();
+  const authorization = useAuthorization();
   const permissions = useTransacoesPermissions();
 
   const [transacao, setTransacao] = useState<TransacaoDetalhada | null>(null);
@@ -13577,6 +13671,16 @@ export default function TransacaoDetailsPage() {
   >(null);
 
   async function carregar() {
+    if (!permissions.canList) {
+      setTransacao(null);
+      setCliente(null);
+      setFornecedor(null);
+      setProdutos([]);
+      setErro(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (!transacaoId) {
       setErro("Transação inválida.");
       setIsLoading(false);
@@ -13587,23 +13691,28 @@ export default function TransacaoDetailsPage() {
     setErro(null);
 
     try {
+      const canLoadProdutos = authorization.canAccessProdutosModule();
+      const canLoadClientes = authorization.canAccessClientesModule();
+      const canLoadFornecedores = authorization.canAccessFornecedoresModule();
       const [response, produtosResponse] = await Promise.all([
         transacoesApi.obter(transacaoId),
-        produtosApi.listar().catch(() => ({ itens: [] as Produto[] })),
+        canLoadProdutos
+          ? produtosApi.listar().catch(() => ({ itens: [] as Produto[] }))
+          : Promise.resolve({ itens: [] as Produto[] }),
       ]);
       const item = response.item;
 
       setTransacao(item);
       setProdutos(produtosResponse.itens);
 
-      if (item.clienteId) {
+      if (item.clienteId && canLoadClientes) {
         const clienteResponse = await clientesApi.obter(item.clienteId);
         setCliente(clienteResponse.item);
       } else {
         setCliente(null);
       }
 
-      if (item.fornecedorId) {
+      if (item.fornecedorId && canLoadFornecedores) {
         const fornecedorResponse = await fornecedoresApi.obter(
           item.fornecedorId,
         );
@@ -13620,7 +13729,7 @@ export default function TransacaoDetailsPage() {
 
   useEffect(() => {
     void carregar();
-  }, [transacaoId]);
+  }, [transacaoId, permissions.canList]);
 
   async function confirmar() {
     if (!transacaoId) return;
@@ -14107,7 +14216,7 @@ export default function TransacaoDetailsPage() {
         title="Ações"
         description="Confirme ou cancele a transação conforme o fluxo operacional."
       >
-        {permissions.canEdit ? (
+        {permissions.canConclude ? (
           <EntityActions>
             <EntityButton
               type="button"
@@ -14166,6 +14275,7 @@ import {
 } from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
 import { PageGuard } from "../../../../core/routing/pageGuard";
+import { useAuthorization } from "../../../../core/auth/useAuthorization";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
@@ -14238,6 +14348,8 @@ function labelPessoaBusca(
 }
 
 export default function TransacoesListPage() {
+  const authorization = useAuthorization();
+  const permissions = useTransacoesPermissions();
   const {
     transacoes,
     busca,
@@ -14247,8 +14359,10 @@ export default function TransacoesListPage() {
     isLoading,
     erro,
     recarregar,
-  } = useTransacoes();
-  const permissions = useTransacoesPermissions();
+  } = useTransacoes(permissions.canList);
+
+  const canLoadClientes = authorization.canAccessClientesModule();
+  const canLoadFornecedores = authorization.canAccessFornecedoresModule();
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -14258,12 +14372,23 @@ export default function TransacoesListPage() {
     let ativo = true;
 
     async function carregarApoio() {
+      if (!permissions.canList) {
+        setClientes([]);
+        setFornecedores([]);
+        setErroApoio(null);
+        return;
+      }
+
       setErroApoio(null);
 
       try {
         const [clientesResponse, fornecedoresResponse] = await Promise.all([
-          clientesApi.listar(),
-          fornecedoresApi.listar(),
+          canLoadClientes
+            ? clientesApi.listar()
+            : Promise.resolve({ itens: [] as Cliente[] }),
+          canLoadFornecedores
+            ? fornecedoresApi.listar()
+            : Promise.resolve({ itens: [] as Fornecedor[] }),
         ]);
 
         if (!ativo) return;
@@ -14280,7 +14405,7 @@ export default function TransacoesListPage() {
     return () => {
       ativo = false;
     };
-  }, []);
+  }, [canLoadClientes, canLoadFornecedores, permissions.canList]);
 
   const clientesPorId = useMemo(
     () => new Map(clientes.map((cliente) => [cliente.clienteId, cliente])),

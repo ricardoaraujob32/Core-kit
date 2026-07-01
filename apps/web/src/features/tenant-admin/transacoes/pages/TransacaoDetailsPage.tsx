@@ -8,6 +8,7 @@ import {
 } from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
 import { PageGuard } from "../../../../core/routing/pageGuard";
+import { useAuthorization } from "../../../../core/auth/useAuthorization";
 import {
   formatClienteLabel,
   formatDateTime,
@@ -73,6 +74,7 @@ function podeEditarItens(status?: string | null): boolean {
 export default function TransacaoDetailsPage() {
   const params = useParams<{ transacaoId: string }>();
   const transacaoId = params.transacaoId?.trim();
+  const authorization = useAuthorization();
   const permissions = useTransacoesPermissions();
 
   const [transacao, setTransacao] = useState<TransacaoDetalhada | null>(null);
@@ -102,6 +104,16 @@ export default function TransacaoDetailsPage() {
   >(null);
 
   async function carregar() {
+    if (!permissions.canList) {
+      setTransacao(null);
+      setCliente(null);
+      setFornecedor(null);
+      setProdutos([]);
+      setErro(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (!transacaoId) {
       setErro("Transação inválida.");
       setIsLoading(false);
@@ -112,23 +124,28 @@ export default function TransacaoDetailsPage() {
     setErro(null);
 
     try {
+      const canLoadProdutos = authorization.canAccessProdutosModule();
+      const canLoadClientes = authorization.canAccessClientesModule();
+      const canLoadFornecedores = authorization.canAccessFornecedoresModule();
       const [response, produtosResponse] = await Promise.all([
         transacoesApi.obter(transacaoId),
-        produtosApi.listar().catch(() => ({ itens: [] as Produto[] })),
+        canLoadProdutos
+          ? produtosApi.listar().catch(() => ({ itens: [] as Produto[] }))
+          : Promise.resolve({ itens: [] as Produto[] }),
       ]);
       const item = response.item;
 
       setTransacao(item);
       setProdutos(produtosResponse.itens);
 
-      if (item.clienteId) {
+      if (item.clienteId && canLoadClientes) {
         const clienteResponse = await clientesApi.obter(item.clienteId);
         setCliente(clienteResponse.item);
       } else {
         setCliente(null);
       }
 
-      if (item.fornecedorId) {
+      if (item.fornecedorId && canLoadFornecedores) {
         const fornecedorResponse = await fornecedoresApi.obter(
           item.fornecedorId,
         );
@@ -145,7 +162,7 @@ export default function TransacaoDetailsPage() {
 
   useEffect(() => {
     void carregar();
-  }, [transacaoId]);
+  }, [transacaoId, permissions.canList]);
 
   async function confirmar() {
     if (!transacaoId) return;
@@ -632,7 +649,7 @@ export default function TransacaoDetailsPage() {
         title="Ações"
         description="Confirme ou cancele a transação conforme o fluxo operacional."
       >
-        {permissions.canEdit ? (
+        {permissions.canConclude ? (
           <EntityActions>
             <EntityButton
               type="button"

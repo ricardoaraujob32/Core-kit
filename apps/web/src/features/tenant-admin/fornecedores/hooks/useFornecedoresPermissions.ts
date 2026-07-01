@@ -1,20 +1,17 @@
-import { useMemo } from "react";
-import {
-  canAccessFornecedoresModule,
-  canCreateFornecedor,
-  canEditFornecedor,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/fornecedores/hooks/useFornecedoresPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useFornecedoresPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessFornecedoresModule(ctx),
-      canCreate: canCreateFornecedor(ctx),
-      canEdit: canEditFornecedor(ctx),
-    }),
-    [ctx],
-  );
+  const canList = auth.canAccessFornecedoresModule();
+
+  return {
+    canList,
+    canAccess: canList,
+    canCreate: auth.canCreateFornecedor(),
+    canEdit: auth.canEditFornecedor(),
+    canDelete: auth.canDeleteFornecedor(),
+  };
 }

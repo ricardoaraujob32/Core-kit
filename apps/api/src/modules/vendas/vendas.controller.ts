@@ -19,6 +19,15 @@ import { auditarController } from "../auditoria/auditarController.js";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
 import { responderErroValidacaoZod } from "../helpersValidacao.js";
 
+const MODULO = "VENDAS" as const;
+const PERMISSOES = {
+  listar: "tenant.transacoes.listar" as Permissao,
+  criar: "tenant.transacoes.criar" as Permissao,
+  atualizar: "tenant.transacoes.atualizar" as Permissao,
+  cancelar: "tenant.transacoes.cancelar" as Permissao,
+  concluir: "tenant.transacoes.concluir" as Permissao,
+};
+
 function criarDepsVendasBase() {
   return {
     vendasRepositorio: createVendasRepositorio(clientePrisma),
@@ -66,7 +75,10 @@ function responderErroValidacao(reply: FastifyReply,
  * @returns 
  */
 export async function listarTransacoesController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { vendasRepositorio } = criarDepsVendasBase();
@@ -100,7 +112,10 @@ export async function obterTransacaoController(request: FastifyRequest<{ Params:
     return responderErroValidacao(reply, paramsParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { vendasRepositorio } = criarDepsVendasBase();
@@ -138,7 +153,10 @@ export async function criarVendaController(request: FastifyRequest<{ Body: Criar
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.criar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const criarVenda = createFnCriarVenda(criarDepsVendasBase());
@@ -182,7 +200,10 @@ export async function criarCompraController(request: FastifyRequest<{ Body: Cria
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.criar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const criarCompra = createFnCriarCompra(criarDepsVendasBase());
@@ -231,7 +252,10 @@ export async function adicionarItemTransacaoController(request: FastifyRequest<{
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.concluir,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const adicionarItemTransacao = createFnAdicionarItemTransacao(
@@ -287,7 +311,10 @@ export async function atualizarItemTransacaoController(request: FastifyRequest<{
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.cancelar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const atualizarItemTransacao = createFnAtualizarItemTransacao(criarDepsVendasBase());
@@ -340,7 +367,10 @@ export async function removerItemTransacaoController(request: FastifyRequest<{ P
     return responderErroValidacao(reply, paramsParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.atualizar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const removerItem = createFnRemoverItemTransacao(criarDepsVendasBase());
@@ -385,7 +415,10 @@ export async function confirmarTransacaoController(request: FastifyRequest<{ Par
     return responderErroValidacao(reply, paramsParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.atualizar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const confirmarTransacao = createFnConfirmarTransacao(criarDepsVendasBase());
@@ -432,7 +465,10 @@ export async function cancelarTransacaoController(request: FastifyRequest<{ Para
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.atualizar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const cancelarTransacao = createFnCancelarTransacao(criarDepsVendasBase());
@@ -467,7 +503,10 @@ export async function cancelarTransacaoController(request: FastifyRequest<{ Para
 }
 
 export async function concluirTransacaoController(request: FastifyRequest<{ Params: TransacaoIdParamsDto }>, reply: FastifyReply) {
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.concluir,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const paramsParse = parseTransacaoIdParams(request.params);

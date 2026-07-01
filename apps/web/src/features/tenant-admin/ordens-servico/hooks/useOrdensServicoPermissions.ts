@@ -1,26 +1,19 @@
-import { useMemo } from "react";
-import {
-  canAccessOrdensServicoModule,
-  canCancelOrdemServico,
-  canConcludeOrdemServico,
-  canCreateOrdemServico,
-  canEditOrdemServico,
-  canGenerateVendaFromOrdemServico,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/ordens-servico/hooks/useOrdensServicoPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useOrdensServicoPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessOrdensServicoModule(ctx),
-      canCreate: canCreateOrdemServico(ctx),
-      canEdit: canEditOrdemServico(ctx),
-      canCancel: canCancelOrdemServico(ctx),
-      canConclude: canConcludeOrdemServico(ctx),
-      canGenerateVenda: canGenerateVendaFromOrdemServico(ctx),
-    }),
-    [ctx],
-  );
+  const canList = auth.canAccessOrdensServicoModule();
+
+  return {
+    canList,
+    canAccess: canList,
+    canCreate: auth.canCreateOrdemServico(),
+    canEdit: auth.canEditOrdemServico(),
+    canCancel: auth.canCancelOrdemServico(),
+    canConclude: auth.canConcludeOrdemServico(),
+    canGenerateVenda: auth.canGenerateVendaFromOrdemServico(),
+  };
 }

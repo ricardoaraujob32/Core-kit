@@ -1,24 +1,18 @@
-import { useMemo } from "react";
-import {
-  canAccessTransacoesModule,
-  canCancelTransacao,
-  canConcludeTransacao,
-  canCreateTransacao,
-  canEditTransacao,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/transacoes/hooks/useTransacoesPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useTransacoesPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessTransacoesModule(ctx),
-      canCreate: canCreateTransacao(ctx),
-      canEdit: canEditTransacao(ctx),
-      canCancel: canCancelTransacao(ctx),
-      canConclude: canConcludeTransacao(ctx),
-    }),
-    [ctx],
-  );
+  const canList = auth.canAccessTransacoesModule();
+
+  return {
+    canList,
+    canAccess: canList,
+    canCreate: auth.canCreateTransacao(),
+    canEdit: auth.canEditTransacao(),
+    canCancel: auth.canCancelTransacao(),
+    canConclude: auth.canConcludeTransacao(),
+  };
 }

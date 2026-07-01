@@ -10,6 +10,7 @@ import { autorizarHttp } from "../../http/autorizarHttp.js";
 import { auditar } from "../auditoria/auditoria.dispatcher.js";
 import { auditarController } from "../auditoria/auditarController.js";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import { toUsuarioSessaoDto } from "./auth.presenter.js";
 
 /**
  * Serializa o contexto autorizado para o shape de usuário esperado pelo frontend.
@@ -104,11 +105,11 @@ export async function meController(request: FastifyRequest, reply: FastifyReply)
   const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
-  const payload: MeResponse = {
-    usuario: serializarUsuarioSessao(ctx),
-  };
-
-  return reply.status(200).send(payload);
+  console.dir(ctx, { depth: null });
+  
+  return reply.status(200).send({
+    usuario: toUsuarioSessaoDto(ctx),
+  });
 }
 
 /**

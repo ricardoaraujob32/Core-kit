@@ -11,6 +11,15 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { toFornecedorResponseDto, toListarFornecedoresResponseDto } from "./fornecedores.presenter.js";
 import { auditarController } from "../auditoria/auditarController.js";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { Permissao } from "@core-kit/core";
+
+const MODULO = "VENDAS" as const;
+const PERMISSOES = {
+  listar: "tenant.fornecedor.listar" as Permissao,
+  criar: "tenant.fornecedor.criar" as Permissao,
+  atualizar: "tenant.fornecedor.atualizar" as Permissao,
+  excluir: "tenant.fornecedor.excluir" as Permissao,
+};
 
 function criarDepsFornecedores() {
   return {
@@ -52,7 +61,10 @@ function responderErroValidacao(
  * @returns 
  */
 export async function listarFornecedoresController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { fornecedoresRepositorio } = criarDepsFornecedores();
@@ -86,7 +98,10 @@ export async function obterFornecedorController(request: FastifyRequest<{ Params
     return responderErroValidacao(reply, paramsParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { fornecedoresRepositorio } = criarDepsFornecedores();
@@ -121,7 +136,10 @@ export async function criarFornecedorController(request: FastifyRequest<{ Body: 
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.criar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { fornecedoresRepositorio, transacao, relogio, idPorta } =
@@ -178,7 +196,10 @@ export async function atualizarFornecedorController(request: FastifyRequest<{ Pa
     return responderErroValidacao(reply, bodyParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.atualizar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { fornecedoresRepositorio, transacao, relogio } =
@@ -231,7 +252,10 @@ export async function excluirFornecedorController(request: FastifyRequest<{ Para
     return responderErroValidacao(reply, paramsParse);
   }
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.excluir,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { fornecedoresRepositorio, transacao, relogio } =

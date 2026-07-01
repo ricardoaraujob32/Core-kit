@@ -9,10 +9,10 @@ export const USUARIOS_PERMISSIONS = {
 } as const;
 
 export const USUARIOS_MODULE = "USUARIOS" as const;
-export const CLIENTES_MODULE = "CLIENTES" as const;
-export const FORNECEDORES_MODULE = "FORNECEDORES" as const;
-export const PRODUTOS_MODULE = "PRODUTOS" as const;
-export const TRANSACOES_MODULE = "TRANSACOES" as const;
+export const CLIENTES_MODULE = "VENDAS" as const;
+export const FORNECEDORES_MODULE = "VENDAS" as const;
+export const PRODUTOS_MODULE = "VENDAS" as const;
+export const TRANSACOES_MODULE = "VENDAS" as const;
 export const ORDENS_SERVICO_MODULE = "ORDENS_SERVICO" as const;
 
 export const CLIENTES_PERMISSIONS = {
@@ -37,11 +37,11 @@ export const PRODUTOS_PERMISSIONS = {
 } as const;
 
 export const TRANSACOES_PERMISSIONS = {
-  LISTAR: "tenant.transacao.listar",
-  CRIAR: "tenant.transacao.criar",
-  ATUALIZAR: "tenant.transacao.atualizar",
-  CANCELAR: "tenant.transacao.cancelar",
-  CONCLUIR: "tenant.transacao.concluir",
+  LISTAR: "tenant.transacoes.listar",
+  CRIAR: "tenant.transacoes.criar",
+  ATUALIZAR: "tenant.transacoes.atualizar",
+  CANCELAR: "tenant.transacoes.cancelar",
+  CONCLUIR: "tenant.transacoes.concluir",
 } as const;
 
 export const ORDENS_SERVICO_PERMISSIONS = {
@@ -71,50 +71,39 @@ function normalizarLista(values?: string[]) {
   return (values ?? []).map((value) => value.trim().toUpperCase());
 }
 
-export function hasPermission(
-  ctx: FrontendAuthorizationContext,
-  permission: string,
-): boolean {
+export function hasPermission(ctx: FrontendAuthorizationContext, permission: string): boolean {
   if (ctx.isSuperAdmin) return true;
   return normalizarLista(ctx.permissions).includes(permission.trim().toUpperCase());
 }
 
-export function hasModule(
-  ctx: FrontendAuthorizationContext,
-  moduleCode: string,
-): boolean {
+export function hasModule(ctx: FrontendAuthorizationContext, moduleCode: string): boolean {
   if (ctx.isSuperAdmin) return true;
-  return normalizarLista(ctx.modules).includes(moduleCode.trim().toUpperCase());
+
+  const modules = normalizarLista(ctx.modules);
+
+  if (modules.length === 0) {
+    return true;
+  }
+
+  return modules.includes(moduleCode.trim().toUpperCase());
 }
 
-export function canAccessUsuariosModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessUsuariosModule(ctx: FrontendAuthorizationContext): boolean {
   return (
     hasModule(ctx, USUARIOS_MODULE) &&
     hasPermission(ctx, USUARIOS_PERMISSIONS.LISTAR)
   );
 }
 
-function canReadCrudModule(
-  ctx: FrontendAuthorizationContext,
-  moduleCode: string,
-  listPermission: string,
-): boolean {
+function canReadCrudModule(ctx: FrontendAuthorizationContext, moduleCode: string, listPermission: string): boolean {
   return hasModule(ctx, moduleCode) && hasPermission(ctx, listPermission);
 }
 
-function canWriteCrudModule(
-  ctx: FrontendAuthorizationContext,
-  moduleCode: string,
-  writePermission: string,
-): boolean {
+function canWriteCrudModule(ctx: FrontendAuthorizationContext, moduleCode: string, writePermission: string): boolean {
   return hasModule(ctx, moduleCode) && hasPermission(ctx, writePermission);
 }
 
-export function canAccessClientesModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessClientesModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(ctx, CLIENTES_MODULE, CLIENTES_PERMISSIONS.LISTAR);
 }
 
@@ -130,9 +119,7 @@ export function canEditCliente(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canAccessFornecedoresModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessFornecedoresModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(
     ctx,
     FORNECEDORES_MODULE,
@@ -140,9 +127,7 @@ export function canAccessFornecedoresModule(
   );
 }
 
-export function canCreateFornecedor(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCreateFornecedor(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     FORNECEDORES_MODULE,
@@ -158,9 +143,7 @@ export function canEditFornecedor(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canAccessProdutosModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessProdutosModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(ctx, PRODUTOS_MODULE, PRODUTOS_PERMISSIONS.LISTAR);
 }
 
@@ -176,9 +159,7 @@ export function canEditProduto(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canAccessTransacoesModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessTransacoesModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(
     ctx,
     TRANSACOES_MODULE,
@@ -202,9 +183,7 @@ export function canEditTransacao(ctx: FrontendAuthorizationContext): boolean {
   );
 }
 
-export function canCancelTransacao(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCancelTransacao(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     TRANSACOES_MODULE,
@@ -212,9 +191,7 @@ export function canCancelTransacao(
   );
 }
 
-export function canConcludeTransacao(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canConcludeTransacao(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     TRANSACOES_MODULE,
@@ -222,9 +199,7 @@ export function canConcludeTransacao(
   );
 }
 
-export function canAccessOrdensServicoModule(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canAccessOrdensServicoModule(ctx: FrontendAuthorizationContext): boolean {
   return canReadCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -232,9 +207,7 @@ export function canAccessOrdensServicoModule(
   );
 }
 
-export function canCreateOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCreateOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -242,9 +215,7 @@ export function canCreateOrdemServico(
   );
 }
 
-export function canEditOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canEditOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -252,9 +223,7 @@ export function canEditOrdemServico(
   );
 }
 
-export function canCancelOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCancelOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -262,9 +231,7 @@ export function canCancelOrdemServico(
   );
 }
 
-export function canConcludeOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canConcludeOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -272,9 +239,7 @@ export function canConcludeOrdemServico(
   );
 }
 
-export function canGenerateVendaFromOrdemServico(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canGenerateVendaFromOrdemServico(ctx: FrontendAuthorizationContext): boolean {
   return canWriteCrudModule(
     ctx,
     ORDENS_SERVICO_MODULE,
@@ -282,28 +247,21 @@ export function canGenerateVendaFromOrdemServico(
   );
 }
 
-export function canCreateUsuario(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canCreateUsuario(ctx: FrontendAuthorizationContext): boolean {
   return (
     hasModule(ctx, USUARIOS_MODULE) &&
     hasPermission(ctx, USUARIOS_PERMISSIONS.CRIAR)
   );
 }
 
-export function canEditUsuario(
-  ctx: FrontendAuthorizationContext,
-): boolean {
+export function canEditUsuario(ctx: FrontendAuthorizationContext): boolean {
   return (
     hasModule(ctx, USUARIOS_MODULE) &&
     hasPermission(ctx, USUARIOS_PERMISSIONS.ATUALIZAR)
   );
 }
 
-export function canToggleUsuarioStatus(
-  ctx: FrontendAuthorizationContext,
-  statusAtual: StatusUsuario,
-): boolean {
+export function canToggleUsuarioStatus(ctx: FrontendAuthorizationContext, statusAtual: StatusUsuario): boolean {
   if (
     !hasModule(ctx, USUARIOS_MODULE) ||
     !hasPermission(ctx, USUARIOS_PERMISSIONS.ATUALIZAR)
@@ -314,11 +272,7 @@ export function canToggleUsuarioStatus(
   return statusAtual === "ATIVO" || statusAtual === "INATIVO";
 }
 
-export function canRunUsuarioAction(
-  ctx: FrontendAuthorizationContext,
-  action: UsuarioAction,
-  statusAtual?: StatusUsuario,
-): boolean {
+export function canRunUsuarioAction(ctx: FrontendAuthorizationContext, action: UsuarioAction, statusAtual?: StatusUsuario): boolean {
   switch (action) {
     case "listar":
     case "ver":

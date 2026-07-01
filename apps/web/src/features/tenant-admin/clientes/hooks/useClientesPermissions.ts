@@ -1,20 +1,17 @@
-import { useMemo } from "react";
-import {
-  canAccessClientesModule,
-  canCreateCliente,
-  canEditCliente,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/clientes/hooks/useClientesPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useClientesPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessClientesModule(ctx),
-      canCreate: canCreateCliente(ctx),
-      canEdit: canEditCliente(ctx),
-    }),
-    [ctx],
-  );
+  const canList = auth.canAccessClientesModule();
+
+  return {
+    canList,
+    canAccess: canList,
+    canCreate: auth.canCreateCliente(),
+    canEdit: auth.canEditCliente(),
+    canDelete: auth.canDeleteCliente(),
+  };
 }

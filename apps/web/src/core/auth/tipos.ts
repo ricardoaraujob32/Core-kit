@@ -2,15 +2,53 @@
 
 export type PerfilSessao = "TENANT" | "PLATAFORMA";
 
+export type CapabilitySet = {
+  acessar?: boolean;
+  criar?: boolean;
+  editar?: boolean;
+  excluir?: boolean;
+};
+
+export type AutorizacaoTenant = {
+  usuarios?: CapabilitySet & {
+    inativar?: boolean;
+    reativar?: boolean;
+  };
+  clientes?: CapabilitySet;
+  fornecedores?: CapabilitySet;
+  produtos?: CapabilitySet;
+  transacoes?: CapabilitySet & {
+    cancelar?: boolean;
+    concluir?: boolean;
+  };
+  financeiro?: {
+    acessar?: boolean;
+  };
+  assinatura?: {
+    acessar?: boolean;
+    atualizar?: boolean;
+  };
+  ordensServico?: CapabilitySet & {
+    cancelar?: boolean;
+    concluir?: boolean;
+    gerarVenda?: boolean;
+  };
+};
+
 export type SessionUser = {
   usuarioId: string;
   locatarioId: string | null;
   perfil: PerfilSessao;
   email?: string;
   nome?: string;
-  papeis?: string[];
-  permissoes?: string[];
-  modulosHabilitados?: string[];
+
+  /**
+   * Contrato público de autorização para o frontend.
+   *
+   * O frontend não deve depender de permissões/módulos crus.
+   * O backend resolve RBAC internamente e envia apenas capacidades booleanas.
+   */
+  autorizacao?: AutorizacaoTenant;
 };
 
 export type LoginInput = {

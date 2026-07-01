@@ -8,6 +8,7 @@ import {
 } from "../../../../core/api/permissions";
 import { mapError } from "../../../../core/errors/mapError";
 import { PageGuard } from "../../../../core/routing/pageGuard";
+import { useAuthorization } from "../../../../core/auth/useAuthorization";
 import { clientesApi } from "../../clientes/api/clientesApi";
 import type { Cliente } from "../../clientes/tipos";
 import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
@@ -80,6 +81,8 @@ function labelPessoaBusca(
 }
 
 export default function TransacoesListPage() {
+  const authorization = useAuthorization();
+  const permissions = useTransacoesPermissions();
   const {
     transacoes,
     busca,
@@ -89,8 +92,10 @@ export default function TransacoesListPage() {
     isLoading,
     erro,
     recarregar,
-  } = useTransacoes();
-  const permissions = useTransacoesPermissions();
+  } = useTransacoes(permissions.canList);
+
+  const canLoadClientes = authorization.canAccessClientesModule();
+  const canLoadFornecedores = authorization.canAccessFornecedoresModule();
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -100,12 +105,23 @@ export default function TransacoesListPage() {
     let ativo = true;
 
     async function carregarApoio() {
+      if (!permissions.canList) {
+        setClientes([]);
+        setFornecedores([]);
+        setErroApoio(null);
+        return;
+      }
+
       setErroApoio(null);
 
       try {
         const [clientesResponse, fornecedoresResponse] = await Promise.all([
-          clientesApi.listar(),
-          fornecedoresApi.listar(),
+          canLoadClientes
+            ? clientesApi.listar()
+            : Promise.resolve({ itens: [] as Cliente[] }),
+          canLoadFornecedores
+            ? fornecedoresApi.listar()
+            : Promise.resolve({ itens: [] as Fornecedor[] }),
         ]);
 
         if (!ativo) return;
@@ -122,7 +138,7 @@ export default function TransacoesListPage() {
     return () => {
       ativo = false;
     };
-  }, []);
+  }, [canLoadClientes, canLoadFornecedores, permissions.canList]);
 
   const clientesPorId = useMemo(
     () => new Map(clientes.map((cliente) => [cliente.clienteId, cliente])),

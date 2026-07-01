@@ -174,9 +174,8 @@ export function AuthProvider({ children }: PropsWithChildren): JSX.Element {
           authStorage.removeRefreshToken();
         }
 
-        const usuario =
-          (response as { usuario?: SessionUser }).usuario ??
-          (await meRequest()).usuario;
+        const usuario = (await meRequest()).usuario;
+        console.log(usuario);
 
         return applySession({
           accessToken: response.accessToken,

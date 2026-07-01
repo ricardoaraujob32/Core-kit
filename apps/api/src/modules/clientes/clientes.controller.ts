@@ -11,6 +11,15 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { toClienteResponseDto, toListarClientesResponseDto } from "./clientes.presenter.js";
 import { auditarController } from "../auditoria/auditarController.js";
 import { getAuthBootstrap } from "../../bootstrap/authBootstrap.js";
+import type { Permissao } from "@core-kit/core";
+
+const MODULO = "VENDAS" as const;
+const PERMISSOES = {
+  listar: "tenant.cliente.listar" as Permissao,
+  criar: "tenant.cliente.criar" as Permissao,
+  atualizar: "tenant.cliente.atualizar" as Permissao,
+  excluir: "tenant.cliente.excluir" as Permissao,
+};
 
 function criarDepsClientes() {
   return {
@@ -40,7 +49,10 @@ function responderErroValidacao(reply: FastifyReply, parseResult: {
  * @returns 
  */
 export async function listarClientesController(request: FastifyRequest, reply: FastifyReply) {
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { clientesRepositorio } = criarDepsClientes();
@@ -66,7 +78,10 @@ export async function obterClienteController(request: FastifyRequest<{ Params: C
   const parse = parseClienteIdParams(request.params);
   if (!parse.success) return responderErroValidacao(reply, parse);
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.listar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const { clientesRepositorio } = criarDepsClientes();
@@ -95,7 +110,10 @@ export async function criarClienteController(request: FastifyRequest<{ Body: Cri
   const parse = parseCriarClienteBody(request.body);
   if (!parse.success) return responderErroValidacao(reply, parse);
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.criar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const criarCliente = createFnCriarCliente(criarDepsClientes());
@@ -138,7 +156,10 @@ export async function atualizarClienteController(request: FastifyRequest<{ Param
   const body = parseAtualizarClienteBody(request.body);
   if (!body.success) return responderErroValidacao(reply, body);
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.atualizar,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const atualizarCliente = createFnAtualizarCliente(criarDepsClientes());
@@ -179,7 +200,10 @@ export async function excluirClienteController(request: FastifyRequest<{ Params:
   const params = parseClienteIdParams(request.params);
   if (!params.success) return responderErroValidacao(reply, params);
 
-  const ctx = await autorizarHttp(request, reply);
+  const ctx = await autorizarHttp(request, reply, {
+    permissao: PERMISSOES.excluir,
+    modulo: MODULO,
+  });
   if (!ctx) return;
 
   const excluirCliente = createFnExcluirCliente(criarDepsClientes());

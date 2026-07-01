@@ -47,14 +47,21 @@ function filtrarTransacoes(
   });
 }
 
-export function useTransacoes() {
+export function useTransacoes(enabled = true) {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState<FiltroTipo>("TODOS");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
+    if (!enabled) {
+      setTransacoes([]);
+      setErro(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setErro(null);
 
@@ -66,7 +73,7 @@ export function useTransacoes() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     void carregar();

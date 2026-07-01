@@ -4,51 +4,51 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { useAuthorization } from "../auth/useAuthorization";
 
 type PageGuardProps = PropsWithChildren<{
+  /**
+   * Novo contrato preferencial.
+   *
+   * Exemplo:
+   * <PageGuard allowed={permissions.canList}>...</PageGuard>
+   */
+  allowed?: boolean;
+
+  /**
+   * Compatibilidade com telas antigas.
+   * Não expõe nem lê permissões cruas do usuário: apenas traduz os códigos
+   * antigos para capacidades booleanas via useAuthorization().
+   */
   requiredPermissions?: string[];
   requiredModule?: string;
   requireAllPermissions?: boolean;
   fallback?: ReactNode;
 }>;
 
-function hasRequiredPermissions(currentPermissions: string[], requiredPermissions: string[], requireAllPermissions: boolean): boolean {
-  if (requiredPermissions.length === 0) {
-    return true;
-  }
+export function PageGuard({
+  children,
+  allowed,
+  requiredPermissions = [],
+  requireAllPermissions = true,
+  fallback,
+}: PageGuardProps) {
+  const { canRunPermissionCode, isSuperAdmin } = useAuthorization();
 
-  if (requireAllPermissions) {
-    return requiredPermissions.every((permission) =>
-      currentPermissions.includes(permission),
-    );
-  }
+  const resolvedAllowed =
+    typeof allowed === "boolean"
+      ? allowed
+      : requiredPermissions.length === 0
+        ? true
+        : requireAllPermissions
+          ? requiredPermissions.every((permission) =>
+              canRunPermissionCode(permission),
+            )
+          : requiredPermissions.some((permission) =>
+              canRunPermissionCode(permission),
+            );
 
-  return requiredPermissions.some((permission) =>
-    currentPermissions.includes(permission),
-  );
-}
-
-export function PageGuard({ children, requiredPermissions = [], requiredModule, requireAllPermissions = true, fallback }: PageGuardProps) {
-  const { hasModule, permissions } = useAuthorization();
-
-  if (requiredModule && !hasModule(requiredModule)) {
+  if (!resolvedAllowed && !isSuperAdmin) {
     return (
       fallback ?? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Você não possui acesso a este módulo.
-        </div>
-      )
-    );
-  }
-
-  const ok = hasRequiredPermissions(
-    permissions,
-    requiredPermissions,
-    requireAllPermissions,
-  );
-
-  if (!ok) {
-    return (
-      fallback ?? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="ck-register-alert">
           Você não possui permissão para acessar este conteúdo.
         </div>
       )
@@ -57,3 +57,5 @@ export function PageGuard({ children, requiredPermissions = [], requiredModule, 
 
   return <>{children}</>;
 }
+
+export default PageGuard;

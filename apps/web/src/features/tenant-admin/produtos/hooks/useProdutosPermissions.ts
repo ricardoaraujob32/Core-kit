@@ -1,20 +1,17 @@
-import { useMemo } from "react";
-import {
-  canAccessProdutosModule,
-  canCreateProduto,
-  canEditProduto,
-} from "../../../../core/api/permissions";
+// apps/web/src/features/tenant-admin/produtos/hooks/useProdutosPermissions.ts
+
 import { useAuthorization } from "../../../../core/auth/useAuthorization";
 
 export function useProdutosPermissions() {
-  const { ctx } = useAuthorization();
+  const auth = useAuthorization();
 
-  return useMemo(
-    () => ({
-      canList: canAccessProdutosModule(ctx),
-      canCreate: canCreateProduto(ctx),
-      canEdit: canEditProduto(ctx),
-    }),
-    [ctx],
-  );
+  const canList = auth.canAccessProdutosModule();
+
+  return {
+    canList,
+    canAccess: canList,
+    canCreate: auth.canCreateProduto(),
+    canEdit: auth.canEditProduto(),
+    canDelete: auth.canDeleteProduto(),
+  };
 }
