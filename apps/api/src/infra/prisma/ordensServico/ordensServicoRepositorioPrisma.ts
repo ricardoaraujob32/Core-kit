@@ -17,6 +17,7 @@ function toOrdemServico(row: any, transacaoId?: string | null): OrdemServico {
     ordemServicoId: row.ordem_servico_id,
     locatarioId: row.locatario_id,
     clienteId: row.cliente_id ?? null,
+    servicoId: row.servico_id ?? null,
     status: row.status,
     titulo: row.titulo,
     descricao: row.descricao ?? null,
@@ -47,6 +48,7 @@ export function createOrdensServicoRepositorioPrisma(prisma: PrismaLike): Ordens
           data: {
             locatario_id: params.locatarioId,
             cliente_id: params.clienteId ?? null,
+            servico_id: params.servicoId ?? null,
             titulo: params.titulo,
             descricao: params.descricao ?? null,
             status: "ABERTA",
@@ -121,6 +123,7 @@ export function createOrdensServicoRepositorioPrisma(prisma: PrismaLike): Ordens
           },
           data: {
             cliente_id: params.clienteId === undefined ? undefined : params.clienteId,
+            servico_id: params.servicoId === undefined ? undefined : params.servicoId,
             titulo: params.titulo,
             descricao: params.descricao === undefined ? undefined : params.descricao,
             atualizado_em: new Date(),

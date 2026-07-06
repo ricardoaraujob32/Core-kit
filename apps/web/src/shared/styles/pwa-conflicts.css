@@ -1,0 +1,17 @@
+/* apps/web/src/shared/styles/pwa-conflicts.css */
+
+.ck-pwa-issue {
+  border-left: 4px solid currentColor;
+}
+
+.ck-pwa-issue--info {
+  color: #1d4ed8;
+}
+
+.ck-pwa-issue--warning {
+  color: #92400e;
+}
+
+.ck-pwa-issue--danger {
+  color: #b91c1c;
+}

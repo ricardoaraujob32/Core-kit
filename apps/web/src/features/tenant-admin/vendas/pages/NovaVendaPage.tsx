@@ -1,18 +1,20 @@
 // apps/web/src/features/tenant-admin/vendas/pages/NovaVendaPage.tsx
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TRANSACOES_MODULE,
   TRANSACOES_PERMISSIONS,
 } from "../../../../core/api/permissions";
-import { mapError } from "../../../../core/errors/mapError";
 import { PageGuard } from "../../../../core/routing/pageGuard";
 import { formatClienteLabel } from "../../../../shared/formatters";
-import { clientesApi } from "../../clientes/api/clientesApi";
+import { OfflineSyncStatus } from "../../../../shared/pwa/OfflineSyncStatus";
+import { PwaResourceNotice } from "../../../../shared/pwa/PwaResourceNotice";
+import { useClientesCached } from "../../clientes/hooks/useClientesCached";
+import { InlineClienteForm } from "../../clientes/components/InlineClienteForm";
 import type { Cliente } from "../../clientes/tipos";
 import { EntityAlert, EntityButton, EntityCard, EntityField, EntityForm, EntityFormGrid, EntityPage } from "../../shared/entity-ui";
-import { vendasApi } from "../api/vendasApi";
+import { useCreateVendaPwa } from "../hooks/useCreateVendaPwa";
 
 function textoBuscaCliente(cliente: Cliente): string {
   return [cliente.nome, cliente.documento, cliente.email, cliente.telefone]
@@ -28,46 +30,28 @@ function normalizeOptionalText(value: string): string | null {
 
 export default function NovaVendaPage() {
   const navigate = useNavigate();
+  const clientesResource = useClientesCached();
+  const createVenda = useCreateVendaPwa();
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientesLocais, setClientesLocais] = useState<Cliente[]>([]);
   const [clienteId, setClienteId] = useState("");
   const [buscaCliente, setBuscaCliente] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
-  const [erroClientes, setErroClientes] = useState<string | null>(null);
-  const [isLoadingClientes, setIsLoadingClientes] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [inlineClienteAberto, setInlineClienteAberto] = useState(false);
 
-  useEffect(() => {
-    let ativo = true;
+  const clientes = useMemo(() => {
+    const ids = new Set<string>();
+    const merged: Cliente[] = [];
 
-    async function carregarClientes() {
-      setIsLoadingClientes(true);
-      setErroClientes(null);
-
-      try {
-        const response = await clientesApi.listar();
-
-        if (ativo) {
-          setClientes(response.itens);
-        }
-      } catch (error) {
-        if (ativo) {
-          setErroClientes(mapError(error).message);
-        }
-      } finally {
-        if (ativo) {
-          setIsLoadingClientes(false);
-        }
+    for (const cliente of [...clientesLocais, ...clientesResource.data]) {
+      if (!ids.has(cliente.clienteId)) {
+        ids.add(cliente.clienteId);
+        merged.push(cliente);
       }
     }
 
-    void carregarClientes();
-
-    return () => {
-      ativo = false;
-    };
-  }, []);
+    return merged;
+  }, [clientesLocais, clientesResource.data]);
 
   const clientesFiltrados = useMemo(() => {
     const termo = buscaCliente.trim().toLowerCase();
@@ -85,24 +69,32 @@ export default function NovaVendaPage() {
     (cliente) => cliente.clienteId === clienteId,
   );
 
+  function selecionarClienteCriado(cliente: Cliente) {
+    setClientesLocais((current) => [
+      cliente,
+      ...current.filter((item) => item.clienteId !== cliente.clienteId),
+    ]);
+    setClienteId(cliente.clienteId);
+    setBuscaCliente("");
+    setInlineClienteAberto(false);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setErro(null);
-    setIsSaving(true);
+    const venda = await createVenda.criar({
+      clienteId: clienteId || null,
+      observacao: normalizeOptionalText(observacao),
+    });
 
-    try {
-      const response = await vendasApi.criar({
-        clienteId: clienteId || null,
-        observacao: normalizeOptionalText(observacao),
-      });
+    if (!venda) return;
 
-      navigate(`/app/transacoes/${response.item.transacaoId}`);
-    } catch (error) {
-      setErro(mapError(error).message);
-    } finally {
-      setIsSaving(false);
+    if (createVenda.isOffline) {
+      navigate("/app/transacoes");
+      return;
     }
+
+    navigate(`/app/transacoes/${venda.transacaoId}`);
   }
 
   return (
@@ -117,84 +109,135 @@ export default function NovaVendaPage() {
           </EntityButton>
         }
       >
+        <OfflineSyncStatus />
+
+        {createVenda.error ? (
+          <EntityAlert>{createVenda.error}</EntityAlert>
+        ) : null}
+
+        {createVenda.isOffline ? (
+          <EntityAlert>
+            Você está offline. A venda será salva como pendente e sincronizada quando a conexão voltar.
+          </EntityAlert>
+        ) : null}
+
         <EntityForm
           kicker="Vendas"
           title="Nova venda"
           description="Crie uma transação de venda e depois adicione os itens na tela de detalhes."
-          error={erro}
           onSubmit={handleSubmit}
           footer={
-            <EntityButton type="submit" variant="primary" disabled={isSaving}>
-              {isSaving ? "Criando..." : "Criar venda"}
+            <EntityButton
+              type="submit"
+              variant="primary"
+              disabled={createVenda.isSaving}
+            >
+              {createVenda.isSaving ? "Criando..." : "Criar venda"}
             </EntityButton>
           }
         >
-        {erroClientes ? <EntityAlert>{erroClientes}</EntityAlert> : null}
+          <PwaResourceNotice
+            isFromCache={clientesResource.isFromCache}
+            isRefreshing={clientesResource.isRefreshing}
+            updatedAt={clientesResource.updatedAt}
+            error={clientesResource.error}
+          />
 
-        <EntityCard title="Cliente" description="Selecione o cliente vinculado à venda.">
-          <EntityFormGrid>
-            <EntityField label="Buscar cliente" wide>
-              <input
-                value={buscaCliente}
-                onChange={(event) => setBuscaCliente(event.target.value)}
-                placeholder="Nome, documento, e-mail ou telefone"
+          <EntityCard
+            title="Cliente"
+            description="Selecione o cliente vinculado à venda."
+          >
+            <EntityFormGrid>
+              <EntityField label="Buscar cliente" wide>
+                <input
+                  value={buscaCliente}
+                  onChange={(event) => setBuscaCliente(event.target.value)}
+                  placeholder="Nome, documento, e-mail ou telefone"
+                />
+              </EntityField>
+
+              <EntityField label="Cliente" wide>
+                <div className="ck-entity-actions-row">
+                  <EntityButton
+                    type="button"
+                    disabled={createVenda.isSaving}
+                    onClick={() => setInlineClienteAberto((value) => !value)}
+                  >
+                    {inlineClienteAberto ? "Fechar cadastro" : "+ Novo cliente"}
+                  </EntityButton>
+
+                  <EntityButton
+                    type="button"
+                    disabled={
+                      clientesResource.isRefreshing || createVenda.isSaving
+                    }
+                    onClick={() => void clientesResource.reload()}
+                  >
+                    Atualizar clientes
+                  </EntityButton>
+                </div>
+
+                <select
+                  value={clienteId}
+                  onChange={(event) => setClienteId(event.target.value)}
+                  disabled={clientesResource.isLoading}
+                >
+                  <option value="">
+                    {clientesResource.isLoading
+                      ? "Carregando clientes..."
+                      : "Venda sem cliente vinculado"}
+                  </option>
+
+                  {clientesFiltrados.map((cliente) => (
+                    <option key={cliente.clienteId} value={cliente.clienteId}>
+                      {formatClienteLabel(cliente)}
+                    </option>
+                  ))}
+                </select>
+              </EntityField>
+
+              {inlineClienteAberto ? (
+                <InlineClienteForm
+                  onCreated={selecionarClienteCriado}
+                  onCancel={() => setInlineClienteAberto(false)}
+                />
+              ) : null}
+
+              {clienteSelecionado ? (
+                <EntityCard
+                  className="ck-entity-field--wide"
+                  title="Cliente selecionado"
+                  description={formatClienteLabel(clienteSelecionado)}
+                >
+                  <dl className="ck-entity-detail-list">
+                    <div>
+                      <dt>Telefone</dt>
+                      <dd>{clienteSelecionado.telefone ?? "—"}</dd>
+                    </div>
+
+                    <div>
+                      <dt>E-mail</dt>
+                      <dd>{clienteSelecionado.email ?? "—"}</dd>
+                    </div>
+                  </dl>
+                </EntityCard>
+              ) : null}
+            </EntityFormGrid>
+          </EntityCard>
+
+          <EntityCard
+            title="Observação"
+            description="Registre condições comerciais ou contexto do atendimento."
+          >
+            <EntityField label="Observação da venda">
+              <textarea
+                value={observacao}
+                onChange={(event) => setObservacao(event.target.value)}
+                placeholder="Ex.: venda balcão, pedido especial, condições combinadas..."
+                rows={5}
               />
             </EntityField>
-
-            <EntityField label="Cliente" wide>
-              <select
-                value={clienteId}
-                onChange={(event) => setClienteId(event.target.value)}
-                disabled={isLoadingClientes}
-              >
-                <option value="">
-                  {isLoadingClientes
-                    ? "Carregando clientes..."
-                    : "Venda sem cliente vinculado"}
-                </option>
-
-                {clientesFiltrados.map((cliente) => (
-                  <option key={cliente.clienteId} value={cliente.clienteId}>
-                    {formatClienteLabel(cliente)}
-                  </option>
-                ))}
-              </select>
-            </EntityField>
-{clienteSelecionado ? (
-              <EntityCard
-                className="ck-entity-field--wide"
-                title="Cliente selecionado"
-                description={formatClienteLabel(clienteSelecionado)}
-              >
-                <dl className="ck-entity-detail-list">
-                  <div>
-                    <dt>Telefone</dt>
-                    <dd>{clienteSelecionado.telefone ?? "—"}</dd>
-                  </div>
-
-                  <div>
-                    <dt>E-mail</dt>
-                    <dd>{clienteSelecionado.email ?? "—"}</dd>
-                  </div>
-                </dl>
-              </EntityCard>
-            ) : null}
-          </EntityFormGrid>
-        </EntityCard>
-
-        <EntityCard
-          title="Observação"
-          description="Registre condições comerciais ou contexto do atendimento."
-        >
-          <EntityField label="Observação da venda">
-            <textarea
-              value={observacao}
-              onChange={(event) => setObservacao(event.target.value)}
-              placeholder="Ex.: venda balcão, pedido especial, condições combinadas..."
-              rows={5}
-            />
-          </EntityField>
-        </EntityCard>
+          </EntityCard>
         </EntityForm>
       </EntityPage>
     </PageGuard>

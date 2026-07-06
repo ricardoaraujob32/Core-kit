@@ -87,6 +87,7 @@ export async function criarOrdemServicoController(request: FastifyRequest<{ Body
   const resultado = await criar({
     locatarioId: ctx.locatarioId,
     clienteId: body.data.clienteId,
+    servicoId: body.data.servicoId ?? null,
     titulo: body.data.titulo,
     descricao: body.data.descricao,
     usuarioId: ctx.usuarioId,
@@ -124,6 +125,7 @@ export async function atualizarOrdemServicoController(request: FastifyRequest<{ 
     locatarioId: ctx.locatarioId,
     ordemServicoId: params.data.ordemServicoId,
     clienteId: body.data.clienteId,
+    servicoId: body.data.servicoId,
     titulo: body.data.titulo,
     descricao: body.data.descricao,
     usuarioId: ctx.usuarioId,
@@ -173,7 +175,7 @@ export async function gerarVendaDaOrdemServicoController(request: FastifyRequest
   const resultado = await gerarVenda({
     locatarioId: ctx.locatarioId,
     ordemServicoId: params.data.ordemServicoId,
-    produtoId: body.data.produtoId,
+    produtoId: body.data.produtoId ?? null,
     valorTotal: body.data.valorTotal,
     vencimentoEm: body.data.vencimentoEm,
     observacao: body.data.observacao,

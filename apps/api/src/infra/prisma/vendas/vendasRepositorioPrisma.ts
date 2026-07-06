@@ -462,6 +462,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           excluidoMotivo: normalizarTextoOpcional(transacao.excluidoMotivo),
         });
       } catch (causa) {
+        console.error("[vendasRepositorioPrisma.atualizarTransacao] transacao recebida:", transacao);
+        console.error("[vendasRepositorioPrisma.atualizarTransacao] causa real:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "transacoes",
           operacao: "infra.vendas.atualizarTransacao",

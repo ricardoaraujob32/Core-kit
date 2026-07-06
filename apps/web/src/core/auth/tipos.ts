@@ -42,6 +42,10 @@ export type SessionUser = {
   email?: string;
   nome?: string;
 
+  papeis?: string[];
+  permissoes?: string[];
+  modulosHabilitados?: string[];
+
   /**
    * Contrato público de autorização para o frontend.
    *

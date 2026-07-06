@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 export const listarOrdensServicoQuerySchema = z.object({
-  status: z.enum(["ABERTA", "EM_ANDAMENTO", "AGUARDANDO", "CONCLUIDA", "CANCELADA"]).optional(),
+  status: z
+    .enum(["ABERTA", "EM_ANDAMENTO", "AGUARDANDO", "CONCLUIDA", "CANCELADA"])
+    .optional(),
   clienteId: z.string().uuid().optional(),
   cursor: z.string().uuid().optional(),
   limite: z.coerce.number().int().min(1).max(100).optional(),
@@ -13,18 +15,23 @@ export const ordemServicoIdParamsSchema = z.object({
 
 export const criarOrdemServicoBodySchema = z.object({
   clienteId: z.string().uuid().nullable().optional(),
+  servicoId: z.string().uuid().nullable().optional(),
   titulo: z.string().min(3),
   descricao: z.string().nullable().optional(),
 });
 
 export const atualizarOrdemServicoBodySchema = z.object({
   clienteId: z.string().uuid().nullable().optional(),
+  servicoId: z.string().uuid().nullable().optional(),
   titulo: z.string().min(3).optional(),
   descricao: z.string().nullable().optional(),
 });
 
 export const gerarVendaOrdemServicoBodySchema = z.object({
-  produtoId: z.string().uuid(),
+  /**
+   * Opcional: quando ausente, o backend usa `ordemServico.servicoId`.
+   */
+  produtoId: z.string().uuid().nullable().optional(),
   valorTotal: z.coerce.number().nonnegative(),
   vencimentoEm: z.coerce.date(),
   observacao: z.string().nullable().optional(),
@@ -36,8 +43,17 @@ export type CriarOrdemServicoBodyDto = z.infer<typeof criarOrdemServicoBodySchem
 export type AtualizarOrdemServicoBodyDto = z.infer<typeof atualizarOrdemServicoBodySchema>;
 export type GerarVendaOrdemServicoBodyDto = z.infer<typeof gerarVendaOrdemServicoBodySchema>;
 
-export const parseListarOrdensServicoQuery = (input: unknown) => listarOrdensServicoQuerySchema.safeParse(input);
-export const parseOrdemServicoIdParams = (input: unknown) => ordemServicoIdParamsSchema.safeParse(input);
-export const parseCriarOrdemServicoBody = (input: unknown) => criarOrdemServicoBodySchema.safeParse(input);
-export const parseAtualizarOrdemServicoBody = (input: unknown) => atualizarOrdemServicoBodySchema.safeParse(input);
-export const parseGerarVendaOrdemServicoBody = (input: unknown) => gerarVendaOrdemServicoBodySchema.safeParse(input);
+export const parseListarOrdensServicoQuery = (input: unknown) =>
+  listarOrdensServicoQuerySchema.safeParse(input);
+
+export const parseOrdemServicoIdParams = (input: unknown) =>
+  ordemServicoIdParamsSchema.safeParse(input);
+
+export const parseCriarOrdemServicoBody = (input: unknown) =>
+  criarOrdemServicoBodySchema.safeParse(input);
+
+export const parseAtualizarOrdemServicoBody = (input: unknown) =>
+  atualizarOrdemServicoBodySchema.safeParse(input);
+
+export const parseGerarVendaOrdemServicoBody = (input: unknown) =>
+  gerarVendaOrdemServicoBodySchema.safeParse(input);

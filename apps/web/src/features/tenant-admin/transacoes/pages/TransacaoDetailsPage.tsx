@@ -23,6 +23,8 @@ import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import { produtosApi } from "../../produtos/api/produtosApi";
 import type { Produto } from "../../produtos/tipos";
+import { TransacaoItemForm } from "../components/TransacaoItemForm";
+import { TransacaoItensTable } from "../components/TransacaoItensTable";
 import {
   EntityActions,
   EntityAlert,
@@ -41,7 +43,6 @@ import type {
   AdicionarItemTransacaoInput,
   AtualizarItemTransacaoInput,
   TransacaoDetalhada,
-  TransacaoItem,
 } from "../tipos";
 
 function statusClass(status?: string | null): string {
@@ -59,17 +60,12 @@ function tipoLabel(tipo: string): string {
   return tipo === "COMPRA" ? "Compra" : "Venda";
 }
 
-function produtoLabel(produto: Produto): string {
-  return `${produto.nome} • ${produto.tipo} • ${formatMoney(produto.precoVenda)}`;
-}
 
-function valorComoTexto(valor?: number | null): string {
-  return typeof valor === "number" && Number.isFinite(valor) ? String(valor) : "";
-}
 
 function podeEditarItens(status?: string | null): boolean {
   return status === "RASCUNHO" || status === "ABERTA";
 }
+
 
 export default function TransacaoDetailsPage() {
   const params = useParams<{ transacaoId: string }>();
@@ -85,16 +81,10 @@ export default function TransacaoDetailsPage() {
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [erroItens, setErroItens] = useState<string | null>(null);
   const [motivoCancelamento, setMotivoCancelamento] = useState("");
+  const [cancelamentoAberto, setCancelamentoAberto] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [novoItem, setNovoItem] = useState<AdicionarItemTransacaoInput>({
     produtoId: "",
-    quantidade: 1,
-    valorUnitario: 0,
-    valorDesconto: 0,
-  });
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [itemEmEdicao, setItemEmEdicao] = useState<AtualizarItemTransacaoInput>({
-    descricao: "",
     quantidade: 1,
     valorUnitario: 0,
     valorDesconto: 0,
@@ -192,6 +182,8 @@ export default function TransacaoDetailsPage() {
       });
 
       await carregar();
+      setCancelamentoAberto(false);
+      setMotivoCancelamento("");
     } catch (error) {
       setErroAcao(mapError(error).message);
     } finally {
@@ -231,28 +223,10 @@ export default function TransacaoDetailsPage() {
     }
   }
 
-  function iniciarEdicao(item: TransacaoItem) {
-    setEditingItemId(item.itemTransacaoId);
-    setErroItens(null);
-    setItemEmEdicao({
-      descricao: item.descricao ?? "",
-      quantidade: item.quantidade,
-      valorUnitario: item.valorUnitario,
-      valorDesconto: item.valorDesconto,
-    });
-  }
-
-  function cancelarEdicao() {
-    setEditingItemId(null);
-    setItemEmEdicao({
-      descricao: "",
-      quantidade: 1,
-      valorUnitario: 0,
-      valorDesconto: 0,
-    });
-  }
-
-  async function salvarEdicao(itemId: string) {
+  async function atualizarItem(
+    itemId: string,
+    input: AtualizarItemTransacaoInput,
+  ) {
     if (!transacaoId) return;
 
     setIsRunning("atualizar-item");
@@ -260,13 +234,12 @@ export default function TransacaoDetailsPage() {
 
     try {
       await transacoesApi.atualizarItem(transacaoId, itemId, {
-        descricao: itemEmEdicao.descricao ?? "",
-        quantidade: Number(itemEmEdicao.quantidade) || 1,
-        valorUnitario: Number(itemEmEdicao.valorUnitario) || 0,
-        valorDesconto: Number(itemEmEdicao.valorDesconto) || 0,
+        descricao: input.descricao ?? "",
+        quantidade: Number(input.quantidade) || 1,
+        valorUnitario: Number(input.valorUnitario) || 0,
+        valorDesconto: Number(input.valorDesconto) || 0,
       });
 
-      cancelarEdicao();
       await carregar();
     } catch (error) {
       setErroItens(mapError(error).message);
@@ -283,9 +256,6 @@ export default function TransacaoDetailsPage() {
 
     try {
       await transacoesApi.removerItem(transacaoId, itemId);
-      if (editingItemId === itemId) {
-        cancelarEdicao();
-      }
       await carregar();
     } catch (error) {
       setErroItens(mapError(error).message);
@@ -304,7 +274,12 @@ export default function TransacaoDetailsPage() {
     return "Pessoa não vinculada";
   }, [cliente, fornecedor, transacao]);
 
-  const itensEditaveis = podeEditarItens(transacao?.status) && permissions.canEdit;
+  const podeGerenciarItens =
+    permissions.canEdit || permissions.canCreate;
+
+  const itensEditaveis =
+    podeEditarItens(transacao?.status) && podeGerenciarItens;
+
 
   if (isLoading) {
     return (
@@ -410,233 +385,40 @@ export default function TransacaoDetailsPage() {
         {erroItens ? <EntityAlert>{erroItens}</EntityAlert> : null}
 
         {itensEditaveis ? (
-          <EntityFormGrid>
-            <EntityField label="Produto ou serviço" wide>
-              <select
-                value={novoItem.produtoId}
-                onChange={(event) =>
-                  setNovoItem((current) => ({
-                    ...current,
-                    produtoId: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Selecione um item</option>
-                {produtos.map((produto) => (
-                  <option key={produto.produtoId} value={produto.produtoId}>
-                    {produtoLabel(produto)}
-                  </option>
-                ))}
-              </select>
-            </EntityField>
-
-            <EntityField label="Quantidade">
-              <input
-                type="number"
-                min="0.001"
-                step="0.001"
-                value={novoItem.quantidade}
-                onChange={(event) =>
-                  setNovoItem((current) => ({
-                    ...current,
-                    quantidade: Number(event.target.value),
-                  }))
-                }
-              />
-            </EntityField>
-
-            <EntityField label="Valor unitário">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={novoItem.valorUnitario}
-                onChange={(event) =>
-                  setNovoItem((current) => ({
-                    ...current,
-                    valorUnitario: Number(event.target.value),
-                  }))
-                }
-              />
-            </EntityField>
-
-            <EntityField label="Desconto">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={novoItem.valorDesconto ?? 0}
-                onChange={(event) =>
-                  setNovoItem((current) => ({
-                    ...current,
-                    valorDesconto: Number(event.target.value),
-                  }))
-                }
-              />
-            </EntityField>
-          </EntityFormGrid>
+          <TransacaoItemForm
+            produtos={produtos}
+            value={novoItem}
+            disabled={isRunning !== null}
+            isSubmitting={isRunning === "adicionar-item"}
+            onChange={setNovoItem}
+            onSubmit={adicionarItem}
+            onProdutoCreated={(produto) => {
+              setProdutos((current) => [
+                produto,
+                ...current.filter((item) => item.produtoId !== produto.produtoId),
+              ]);
+              setNovoItem((current) => ({
+                ...current,
+                produtoId: produto.produtoId,
+                valorUnitario: Number(produto.precoVenda ?? 0),
+              }));
+            }}
+          />
         ) : (
           <p className="ck-entity-description">
-            Itens só podem ser alterados quando a transação estiver em rascunho ou aberta.
+            {podeGerenciarItens
+              ? "Itens só podem ser alterados quando a transação estiver em rascunho ou aberta."
+              : "Você não possui permissão para alterar os itens desta transação."}
           </p>
         )}
 
-        {itensEditaveis ? (
-          <EntityActions>
-            <EntityButton
-              type="button"
-              variant="primary"
-              disabled={isRunning !== null || produtos.length === 0}
-              onClick={adicionarItem}
-            >
-              {isRunning === "adicionar-item" ? "Adicionando..." : "Adicionar item"}
-            </EntityButton>
-          </EntityActions>
-        ) : null}
-
-        {transacao.itens.length === 0 ? (
-          <p className="ck-entity-description">
-            Nenhum item foi adicionado a esta transação.
-          </p>
-        ) : (
-          <div className="ck-register-table-panel">
-            <table className="ck-register-table">
-              <thead>
-                <tr>
-                  <th>Descrição</th>
-                  <th>Tipo</th>
-                  <th>Quantidade</th>
-                  <th>Valor unitário</th>
-                  <th>Subtotal</th>
-                  <th>Desconto</th>
-                  <th>Total</th>
-                  {itensEditaveis ? <th>Ações</th> : null}
-                </tr>
-              </thead>
-
-              <tbody>
-                {transacao.itens.map((item) => (
-                  <tr key={item.itemTransacaoId}>
-                    <td>
-                      {editingItemId === item.itemTransacaoId ? (
-                        <input
-                          value={itemEmEdicao.descricao ?? ""}
-                          onChange={(event) =>
-                            setItemEmEdicao((current) => ({
-                              ...current,
-                              descricao: event.target.value,
-                            }))
-                          }
-                        />
-                      ) : (
-                        item.descricao ?? "Item sem descrição"
-                      )}
-                    </td>
-                    <td>{item.tipoProduto}</td>
-                    <td>
-                      {editingItemId === item.itemTransacaoId ? (
-                        <input
-                          type="number"
-                          min="0.001"
-                          step="0.001"
-                          value={valorComoTexto(itemEmEdicao.quantidade)}
-                          onChange={(event) =>
-                            setItemEmEdicao((current) => ({
-                              ...current,
-                              quantidade: Number(event.target.value),
-                            }))
-                          }
-                        />
-                      ) : (
-                        item.quantidade
-                      )}
-                    </td>
-                    <td>
-                      {editingItemId === item.itemTransacaoId ? (
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={valorComoTexto(itemEmEdicao.valorUnitario)}
-                          onChange={(event) =>
-                            setItemEmEdicao((current) => ({
-                              ...current,
-                              valorUnitario: Number(event.target.value),
-                            }))
-                          }
-                        />
-                      ) : (
-                        formatMoney(item.valorUnitario)
-                      )}
-                    </td>
-                    <td>{formatMoney(item.valorSubtotal)}</td>
-                    <td>
-                      {editingItemId === item.itemTransacaoId ? (
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={valorComoTexto(itemEmEdicao.valorDesconto)}
-                          onChange={(event) =>
-                            setItemEmEdicao((current) => ({
-                              ...current,
-                              valorDesconto: Number(event.target.value),
-                            }))
-                          }
-                        />
-                      ) : (
-                        formatMoney(item.valorDesconto)
-                      )}
-                    </td>
-                    <td>{formatMoney(item.valorTotal)}</td>
-                    {itensEditaveis ? (
-                      <td>
-                        <EntityActions>
-                          {editingItemId === item.itemTransacaoId ? (
-                            <>
-                              <EntityButton
-                                type="button"
-                                variant="primary"
-                                disabled={isRunning !== null}
-                                onClick={() => salvarEdicao(item.itemTransacaoId)}
-                              >
-                                {isRunning === "atualizar-item" ? "Salvando..." : "Salvar"}
-                              </EntityButton>
-                              <EntityButton
-                                type="button"
-                                disabled={isRunning !== null}
-                                onClick={cancelarEdicao}
-                              >
-                                Cancelar
-                              </EntityButton>
-                            </>
-                          ) : (
-                            <>
-                              <EntityButton
-                                type="button"
-                                disabled={isRunning !== null}
-                                onClick={() => iniciarEdicao(item)}
-                              >
-                                Editar
-                              </EntityButton>
-                              <EntityButton
-                                type="button"
-                                disabled={isRunning !== null}
-                                onClick={() => removerItem(item.itemTransacaoId)}
-                              >
-                                {isRunning === "remover-item" ? "Removendo..." : "Remover"}
-                              </EntityButton>
-                            </>
-                          )}
-                        </EntityActions>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <TransacaoItensTable
+          itens={transacao.itens}
+          editavel={itensEditaveis}
+          isRunning={isRunning !== null}
+          onSalvarItem={atualizarItem}
+          onRemoverItem={removerItem}
+        />
       </EntityCard>
 
       <EntityCard title="Observação">
@@ -662,28 +444,55 @@ export default function TransacaoDetailsPage() {
           </EntityActions>
         ) : null}
 
-        <EntityFormGrid>
-          <EntityField label="Motivo do cancelamento" wide>
-            <textarea
-              value={motivoCancelamento}
-              onChange={(event) => setMotivoCancelamento(event.target.value)}
-              placeholder="Opcional"
-              rows={4}
-              disabled={!permissions.canCancel}
-            />
-          </EntityField>
-        </EntityFormGrid>
-
         {permissions.canCancel ? (
-          <EntityActions>
-            <EntityButton
-              type="button"
-              disabled={Boolean(isRunning)}
-              onClick={cancelar}
-            >
-              {isRunning === "cancelar" ? "Cancelando..." : "Cancelar"}
-            </EntityButton>
-          </EntityActions>
+          cancelamentoAberto ? (
+            <>
+              <EntityFormGrid>
+                <EntityField label="Motivo do cancelamento" wide>
+                  <textarea
+                    value={motivoCancelamento}
+                    onChange={(event) => setMotivoCancelamento(event.target.value)}
+                    placeholder="Opcional"
+                    rows={4}
+                    disabled={isRunning === "cancelar"}
+                  />
+                </EntityField>
+              </EntityFormGrid>
+
+              <EntityActions>
+                <EntityButton
+                  type="button"
+                  disabled={Boolean(isRunning)}
+                  onClick={cancelar}
+                >
+                  {isRunning === "cancelar"
+                    ? "Cancelando..."
+                    : "Confirmar cancelamento"}
+                </EntityButton>
+
+                <EntityButton
+                  type="button"
+                  disabled={Boolean(isRunning)}
+                  onClick={() => {
+                    setCancelamentoAberto(false);
+                    setMotivoCancelamento("");
+                  }}
+                >
+                  Voltar
+                </EntityButton>
+              </EntityActions>
+            </>
+          ) : (
+            <EntityActions>
+              <EntityButton
+                type="button"
+                disabled={Boolean(isRunning)}
+                onClick={() => setCancelamentoAberto(true)}
+              >
+                Cancelar
+              </EntityButton>
+            </EntityActions>
+          )
         ) : (
           <p className="ck-entity-description">
             Você não possui permissão para alterar o status desta transação.

@@ -2,12 +2,23 @@ import { executarEmTransacao, type TransacaoPorta, wrapOk } from "../../kernel/i
 import { ordemServicoNaoEncontrada, ordemServicoTransicaoInvalida } from "../erros.js";
 import type { OrdensServicoRepositorio } from "../portasRepositorio.js";
 import type { AtualizarOrdemServicoInput, AtualizarOrdemServicoResult } from "../tipos.js";
-import { validarDescricao, validarLocatarioId, validarOrdemServicoId, validarTitulo } from "../validadores.js";
+import {
+  validarDescricao,
+  validarLocatarioId,
+  validarOrdemServicoId,
+  validarTitulo,
+} from "../validadores.js";
 
-export function createFnAtualizarOrdemServico(deps: { ordensServicoRepositorio: OrdensServicoRepositorio; transacao?: TransacaoPorta }) {
-  return async function atualizarOrdemServico(input: AtualizarOrdemServicoInput): AtualizarOrdemServicoResult {
+export function createFnAtualizarOrdemServico(deps: {
+  ordensServicoRepositorio: OrdensServicoRepositorio;
+  transacao?: TransacaoPorta;
+}) {
+  return async function atualizarOrdemServico(
+    input: AtualizarOrdemServicoInput,
+  ): AtualizarOrdemServicoResult {
     const locatarioId = validarLocatarioId(input.locatarioId);
     if (!locatarioId.ok) return locatarioId;
+
     const ordemServicoId = validarOrdemServicoId(input.ordemServicoId);
     if (!ordemServicoId.ok) return ordemServicoId;
 
@@ -26,21 +37,33 @@ export function createFnAtualizarOrdemServico(deps: { ordensServicoRepositorio: 
     }
 
     return executarEmTransacao(deps.transacao, async () => {
-      const atual = await deps.ordensServicoRepositorio.buscarPorId({ locatarioId: locatarioId.value, ordemServicoId: ordemServicoId.value });
+      const atual = await deps.ordensServicoRepositorio.buscarPorId({
+        locatarioId: locatarioId.value,
+        ordemServicoId: ordemServicoId.value,
+      });
+
       if (!atual.ok) return atual;
       if (!atual.value) return ordemServicoNaoEncontrada(ordemServicoId.value);
+
       if (atual.value.status === "CONCLUIDA" || atual.value.status === "CANCELADA") {
-        return ordemServicoTransicaoInvalida(ordemServicoId.value, atual.value.status, "ATUALIZAR");
+        return ordemServicoTransicaoInvalida(
+          ordemServicoId.value,
+          atual.value.status,
+          "ATUALIZAR",
+        );
       }
 
       const ordemServico = await deps.ordensServicoRepositorio.atualizar({
         locatarioId: locatarioId.value,
         ordemServicoId: ordemServicoId.value,
         clienteId: input.clienteId,
+        servicoId: input.servicoId,
         titulo,
         descricao,
       });
+
       if (!ordemServico.ok) return ordemServico;
+
       return wrapOk({ ordemServico: ordemServico.value });
     });
   };

@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useAuth } from "./useAuth";
 import { isSuperAdmin } from "./tipos";
+import { canEditTransacao as canEditTransacaoByPermissions } from "../api/permissions";
 
 function normalizePermissionCode(value: string): string {
   return value.trim().toLowerCase();
@@ -137,8 +138,7 @@ export function useAuthorization() {
     canEditCliente: () => allow(autorizacao.clientes?.editar),
     canDeleteCliente: () => allow(autorizacao.clientes?.excluir),
 
-    canAccessFornecedoresModule: () =>
-      allow(autorizacao.fornecedores?.acessar),
+    canAccessFornecedoresModule: () => allow(autorizacao.fornecedores?.acessar),
     canCreateFornecedor: () => allow(autorizacao.fornecedores?.criar),
     canEditFornecedor: () => allow(autorizacao.fornecedores?.editar),
     canDeleteFornecedor: () => allow(autorizacao.fornecedores?.excluir),
@@ -150,7 +150,12 @@ export function useAuthorization() {
 
     canAccessTransacoesModule: () => allow(autorizacao.transacoes?.acessar),
     canCreateTransacao: () => allow(autorizacao.transacoes?.criar),
-    canEditTransacao: () => allow(autorizacao.transacoes?.editar),
+    canEditTransacao: () => user
+    ? canEditTransacaoByPermissions({
+        permissions: user.permissoes ?? [],
+        modules: user.modulosHabilitados ?? [],
+      })
+    : false,
     canCancelTransacao: () => allow(autorizacao.transacoes?.cancelar),
     canConcludeTransacao: () => allow(autorizacao.transacoes?.concluir),
 
@@ -159,13 +164,11 @@ export function useAuthorization() {
     canAccessAssinaturaModule: () => allow(autorizacao.assinatura?.acessar),
     canUpdateAssinatura: () => allow(autorizacao.assinatura?.atualizar),
 
-    canAccessOrdensServicoModule: () =>
-      allow(autorizacao.ordensServico?.acessar),
+    canAccessOrdensServicoModule: () => allow(autorizacao.ordensServico?.acessar),
     canCreateOrdemServico: () => allow(autorizacao.ordensServico?.criar),
     canEditOrdemServico: () => allow(autorizacao.ordensServico?.editar),
     canCancelOrdemServico: () => allow(autorizacao.ordensServico?.cancelar),
     canConcludeOrdemServico: () => allow(autorizacao.ordensServico?.concluir),
-    canGenerateVendaFromOrdemServico: () =>
-      allow(autorizacao.ordensServico?.gerarVenda),
+    canGenerateVendaFromOrdemServico: () => allow(autorizacao.ordensServico?.gerarVenda),
   };
 }

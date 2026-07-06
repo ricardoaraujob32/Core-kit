@@ -1,15 +1,17 @@
 // apps/web/src/features/tenant-admin/compras/pages/NovaCompraPage.tsx
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TRANSACOES_MODULE,
   TRANSACOES_PERMISSIONS,
 } from "../../../../core/api/permissions";
-import { mapError } from "../../../../core/errors/mapError";
 import { PageGuard } from "../../../../core/routing/pageGuard";
 import { formatFornecedorLabel } from "../../../../shared/formatters";
-import { fornecedoresApi } from "../../fornecedores/api/fornecedoresApi";
+import { OfflineSyncStatus } from "../../../../shared/pwa/OfflineSyncStatus";
+import { PwaResourceNotice } from "../../../../shared/pwa/PwaResourceNotice";
+import { useFornecedoresCached } from "../../fornecedores/hooks/useFornecedoresCached";
+import { InlineFornecedorForm } from "../../fornecedores/components/InlineFornecedorForm";
 import type { Fornecedor } from "../../fornecedores/tipos";
 import {
   EntityAlert,
@@ -20,7 +22,7 @@ import {
   EntityFormGrid,
   EntityPage,
 } from "../../shared/entity-ui";
-import { comprasApi } from "../api/comprasApi";
+import { useCreateCompraPwa } from "../hooks/useCreateCompraPwa";
 
 function textoBuscaFornecedor(fornecedor: Fornecedor): string {
   return [
@@ -41,46 +43,33 @@ function normalizeOptionalText(value: string): string | null {
 
 export default function NovaCompraPage() {
   const navigate = useNavigate();
+  const fornecedoresResource = useFornecedoresCached();
+  const createCompra = useCreateCompraPwa();
 
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [fornecedoresLocais, setFornecedoresLocais] = useState<Fornecedor[]>(
+    [],
+  );
   const [fornecedorId, setFornecedorId] = useState("");
   const [buscaFornecedor, setBuscaFornecedor] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
-  const [erroFornecedores, setErroFornecedores] = useState<string | null>(null);
-  const [isLoadingFornecedores, setIsLoadingFornecedores] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [inlineFornecedorAberto, setInlineFornecedorAberto] = useState(false);
 
-  useEffect(() => {
-    let ativo = true;
+  const fornecedores = useMemo(() => {
+    const ids = new Set<string>();
+    const merged: Fornecedor[] = [];
 
-    async function carregarFornecedores() {
-      setIsLoadingFornecedores(true);
-      setErroFornecedores(null);
-
-      try {
-        const response = await fornecedoresApi.listar();
-
-        if (ativo) {
-          setFornecedores(response.itens);
-        }
-      } catch (error) {
-        if (ativo) {
-          setErroFornecedores(mapError(error).message);
-        }
-      } finally {
-        if (ativo) {
-          setIsLoadingFornecedores(false);
-        }
+    for (const fornecedor of [
+      ...fornecedoresLocais,
+      ...fornecedoresResource.data,
+    ]) {
+      if (!ids.has(fornecedor.fornecedorId)) {
+        ids.add(fornecedor.fornecedorId);
+        merged.push(fornecedor);
       }
     }
 
-    void carregarFornecedores();
-
-    return () => {
-      ativo = false;
-    };
-  }, []);
+    return merged;
+  }, [fornecedoresLocais, fornecedoresResource.data]);
 
   const fornecedoresFiltrados = useMemo(() => {
     const termo = buscaFornecedor.trim().toLowerCase();
@@ -98,24 +87,32 @@ export default function NovaCompraPage() {
     (fornecedor) => fornecedor.fornecedorId === fornecedorId,
   );
 
+  function selecionarFornecedorCriado(fornecedor: Fornecedor) {
+    setFornecedoresLocais((current) => [
+      fornecedor,
+      ...current.filter((item) => item.fornecedorId !== fornecedor.fornecedorId),
+    ]);
+    setFornecedorId(fornecedor.fornecedorId);
+    setBuscaFornecedor("");
+    setInlineFornecedorAberto(false);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setErro(null);
-    setIsSaving(true);
+    const compra = await createCompra.criar({
+      fornecedorId: fornecedorId || null,
+      observacao: normalizeOptionalText(observacao),
+    });
 
-    try {
-      const response = await comprasApi.criar({
-        fornecedorId: fornecedorId || null,
-        observacao: normalizeOptionalText(observacao),
-      });
+    if (!compra) return;
 
-      navigate(`/app/transacoes/${response.item.transacaoId}`);
-    } catch (error) {
-      setErro(mapError(error).message);
-    } finally {
-      setIsSaving(false);
+    if (createCompra.isOffline) {
+      navigate("/app/transacoes");
+      return;
     }
+
+    navigate(`/app/transacoes/${compra.transacaoId}`);
   }
 
   return (
@@ -130,90 +127,141 @@ export default function NovaCompraPage() {
           </EntityButton>
         }
       >
+        <OfflineSyncStatus />
+
+        {createCompra.error ? (
+          <EntityAlert>{createCompra.error}</EntityAlert>
+        ) : null}
+
+        {createCompra.isOffline ? (
+          <EntityAlert>
+            Você está offline. A compra será salva como pendente e sincronizada quando a conexão voltar.
+          </EntityAlert>
+        ) : null}
+
         <EntityForm
           kicker="Compras"
           title="Nova compra"
           description="Crie uma transação de compra e depois adicione os itens na tela de detalhes."
-          error={erro}
           onSubmit={handleSubmit}
           footer={
-            <EntityButton type="submit" variant="primary" disabled={isSaving}>
-              {isSaving ? "Criando..." : "Criar compra"}
+            <EntityButton
+              type="submit"
+              variant="primary"
+              disabled={createCompra.isSaving}
+            >
+              {createCompra.isSaving ? "Criando..." : "Criar compra"}
             </EntityButton>
           }
         >
-        {erroFornecedores ? (
-          <EntityAlert>{erroFornecedores}</EntityAlert>
-        ) : null}
+          <PwaResourceNotice
+            isFromCache={fornecedoresResource.isFromCache}
+            isRefreshing={fornecedoresResource.isRefreshing}
+            updatedAt={fornecedoresResource.updatedAt}
+            error={fornecedoresResource.error}
+          />
 
-        <EntityCard title="Fornecedor" description="Selecione o fornecedor vinculado à compra.">
-          <EntityFormGrid>
-            <EntityField label="Buscar fornecedor" wide>
-              <input
-                value={buscaFornecedor}
-                onChange={(event) => setBuscaFornecedor(event.target.value)}
-                placeholder="Nome, documento, e-mail ou telefone"
+          <EntityCard
+            title="Fornecedor"
+            description="Selecione o fornecedor vinculado à compra."
+          >
+            <EntityFormGrid>
+              <EntityField label="Buscar fornecedor" wide>
+                <input
+                  value={buscaFornecedor}
+                  onChange={(event) => setBuscaFornecedor(event.target.value)}
+                  placeholder="Nome, documento, e-mail ou telefone"
+                />
+              </EntityField>
+
+              <EntityField label="Fornecedor" wide>
+                <div className="ck-entity-actions-row">
+                  <EntityButton
+                    type="button"
+                    disabled={createCompra.isSaving}
+                    onClick={() => setInlineFornecedorAberto((value) => !value)}
+                  >
+                    {inlineFornecedorAberto
+                      ? "Fechar cadastro"
+                      : "+ Novo fornecedor"}
+                  </EntityButton>
+
+                  <EntityButton
+                    type="button"
+                    disabled={
+                      fornecedoresResource.isRefreshing ||
+                      createCompra.isSaving
+                    }
+                    onClick={() => void fornecedoresResource.reload()}
+                  >
+                    Atualizar fornecedores
+                  </EntityButton>
+                </div>
+
+                <select
+                  value={fornecedorId}
+                  onChange={(event) => setFornecedorId(event.target.value)}
+                  disabled={fornecedoresResource.isLoading}
+                >
+                  <option value="">
+                    {fornecedoresResource.isLoading
+                      ? "Carregando fornecedores..."
+                      : "Compra sem fornecedor vinculado"}
+                  </option>
+
+                  {fornecedoresFiltrados.map((fornecedor) => (
+                    <option
+                      key={fornecedor.fornecedorId}
+                      value={fornecedor.fornecedorId}
+                    >
+                      {formatFornecedorLabel(fornecedor)}
+                    </option>
+                  ))}
+                </select>
+              </EntityField>
+
+              {inlineFornecedorAberto ? (
+                <InlineFornecedorForm
+                  onCreated={selecionarFornecedorCriado}
+                  onCancel={() => setInlineFornecedorAberto(false)}
+                />
+              ) : null}
+
+              {fornecedorSelecionado ? (
+                <EntityCard
+                  className="ck-entity-field--wide"
+                  title="Fornecedor selecionado"
+                  description={formatFornecedorLabel(fornecedorSelecionado)}
+                >
+                  <dl className="ck-entity-detail-list">
+                    <div>
+                      <dt>Telefone</dt>
+                      <dd>{fornecedorSelecionado.telefone ?? "—"}</dd>
+                    </div>
+
+                    <div>
+                      <dt>E-mail</dt>
+                      <dd>{fornecedorSelecionado.email ?? "—"}</dd>
+                    </div>
+                  </dl>
+                </EntityCard>
+              ) : null}
+            </EntityFormGrid>
+          </EntityCard>
+
+          <EntityCard
+            title="Observação"
+            description="Registre condições comerciais ou contexto da compra."
+          >
+            <EntityField label="Observação da compra">
+              <textarea
+                value={observacao}
+                onChange={(event) => setObservacao(event.target.value)}
+                placeholder="Ex.: reposição de estoque, negociação, observações..."
+                rows={5}
               />
             </EntityField>
-
-            <EntityField label="Fornecedor" wide>
-              <select
-                value={fornecedorId}
-                onChange={(event) => setFornecedorId(event.target.value)}
-                disabled={isLoadingFornecedores}
-              >
-                <option value="">
-                  {isLoadingFornecedores
-                    ? "Carregando fornecedores..."
-                    : "Compra sem fornecedor vinculado"}
-                </option>
-
-                {fornecedoresFiltrados.map((fornecedor) => (
-                  <option
-                    key={fornecedor.fornecedorId}
-                    value={fornecedor.fornecedorId}
-                  >
-                    {formatFornecedorLabel(fornecedor)}
-                  </option>
-                ))}
-              </select>
-            </EntityField>
-
-            {fornecedorSelecionado ? (
-              <EntityCard
-                className="ck-entity-field--wide"
-                title="Fornecedor selecionado"
-                description={formatFornecedorLabel(fornecedorSelecionado)}
-              >
-                <dl className="ck-entity-detail-list">
-                  <div>
-                    <dt>Telefone</dt>
-                    <dd>{fornecedorSelecionado.telefone ?? "—"}</dd>
-                  </div>
-
-                  <div>
-                    <dt>E-mail</dt>
-                    <dd>{fornecedorSelecionado.email ?? "—"}</dd>
-                  </div>
-                </dl>
-              </EntityCard>
-            ) : null}
-          </EntityFormGrid>
-        </EntityCard>
-
-        <EntityCard
-          title="Observação"
-          description="Registre condições comerciais ou contexto da compra."
-        >
-          <EntityField label="Observação da compra">
-            <textarea
-              value={observacao}
-              onChange={(event) => setObservacao(event.target.value)}
-              placeholder="Ex.: reposição de estoque, compra direta, fornecedor preferencial..."
-              rows={5}
-            />
-          </EntityField>
-        </EntityCard>
+          </EntityCard>
         </EntityForm>
       </EntityPage>
     </PageGuard>

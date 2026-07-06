@@ -6798,6 +6798,7 @@ function toOrdemServico(row: any, transacaoId?: string | null): OrdemServico {
     ordemServicoId: row.ordem_servico_id,
     locatarioId: row.locatario_id,
     clienteId: row.cliente_id ?? null,
+    servicoId: row.servico_id ?? null,
     status: row.status,
     titulo: row.titulo,
     descricao: row.descricao ?? null,
@@ -6828,6 +6829,7 @@ export function createOrdensServicoRepositorioPrisma(prisma: PrismaLike): Ordens
           data: {
             locatario_id: params.locatarioId,
             cliente_id: params.clienteId ?? null,
+            servico_id: params.servicoId ?? null
             titulo: params.titulo,
             descricao: params.descricao ?? null,
             status: "ABERTA",
@@ -6902,6 +6904,7 @@ export function createOrdensServicoRepositorioPrisma(prisma: PrismaLike): Ordens
           },
           data: {
             cliente_id: params.clienteId === undefined ? undefined : params.clienteId,
+            servico_id: params.servicoId === undefined ? undefined : params.servicoId,
             titulo: params.titulo,
             descricao: params.descricao === undefined ? undefined : params.descricao,
             atualizado_em: new Date(),
@@ -8185,6 +8188,9 @@ export function createVendasRepositorio(db: PrismaDb): VendasRepositorio {
           excluidoMotivo: normalizarTextoOpcional(transacao.excluidoMotivo),
         });
       } catch (causa) {
+        console.error("[vendasRepositorioPrisma.atualizarTransacao] transacao recebida:", transacao);
+        console.error("[vendasRepositorioPrisma.atualizarTransacao] causa real:", causa);
+
         return mapearErroInfra(causa, {
           entidade: "transacoes",
           operacao: "infra.vendas.atualizarTransacao",
@@ -9228,20 +9234,27 @@ export async function listarAuditoriaPlataformaController(request: FastifyReques
 
 // apps/api/src/modules/auditoria/auditoria.dispatcher.ts
 
-import { createFnRegistrarEventoAuditoriaPlataforma, RegistrarEventoAuditoriaPlataformaInput, resolverEventoAuditoria } from "@core-kit/core";
-import { ContextoAuditoriaHttp, montarEventoAuditoria } from "./auditoria.helpers.js";
+import { createFnRegistrarEventoAuditoriaLocatario, createFnRegistrarEventoAuditoriaPlataforma, resolverEventoAuditoria } from "@core-kit/core";
+import type { RegistrarEventoAuditoriaLocatarioInput, RegistrarEventoAuditoriaPlataformaInput } from "@core-kit/core";
 import { clientePrisma } from "../../infra/prisma/client.js";
+import { createAuditoriaLocatarioRepositorio } from "../../infra/prisma/auditoria/auditoriaAtivaLocatarioRepositorioPrisma.js";
 import { createAuditoriaPlataformaRepositorio } from "../../infra/prisma/auditoria/auditoriaInternaRepositorioPrisma.js";
+import { type ContextoAuditoriaHttp, montarEventoAuditoria } from "./auditoria.helpers.js";
+
+const registrarEventoAuditoriaLocatario = createFnRegistrarEventoAuditoriaLocatario({
+    auditoriaLocatarioRepositorio: createAuditoriaLocatarioRepositorio(clientePrisma),
+  });
 
 const registrarEventoAuditoriaPlataforma = createFnRegistrarEventoAuditoriaPlataforma({
-  auditoriaPlataformaRepositorio: createAuditoriaPlataformaRepositorio(clientePrisma),
-});
+    auditoriaPlataformaRepositorio: createAuditoriaPlataformaRepositorio(clientePrisma),
+  });
 
-type EventoAuditoriaControllerInput = Omit<
-  RegistrarEventoAuditoriaPlataformaInput,
-  | "escopo"
+type EventoAuditoriaControllerInput = Omit<RegistrarEventoAuditoriaLocatarioInput & RegistrarEventoAuditoriaPlataformaInput,
+  | "categoria"
   | "locatarioId"
   | "usuarioId"
+  | "superadminUsuarioId"
+  | "locatarioAlvoId"
   | "origem"
   | "requisicaoId"
   | "enderecoIp"
@@ -9249,14 +9262,49 @@ type EventoAuditoriaControllerInput = Omit<
   | "agenteTipo"
 >;
 
+/**
+ * Dispatcher canônico de auditoria.
+ *
+ * Responsabilidades:
+ * - montar o input HTTP de auditoria;
+ * - consultar o catálogo canônico do Core;
+ * - enviar eventos de locatário para a trilha de locatário;
+ * - enviar eventos de plataforma para a trilha de plataforma.
+ *
+ * O dispatcher não deve assumir que todo evento é de plataforma.
+ */
 export async function auditar(contexto: ContextoAuditoriaHttp, evento: EventoAuditoriaControllerInput) {
   const input = montarEventoAuditoria(contexto, evento);
 
-  const resultado = await registrarEventoAuditoriaPlataforma(input);
+  let definicaoEvento: ReturnType<typeof resolverEventoAuditoria>;
+
+  try {
+    definicaoEvento = resolverEventoAuditoria(input.evento);
+  } catch (error) {
+    console.error("[auditoria.falha][evento-nao-mapeado]", {
+      evento: input.evento,
+      erro: error,
+    });
+
+    return {
+      ok: false as const,
+      error,
+    };
+  }
+
+  const resultado =
+    definicaoEvento.destino === "LOCATARIO"
+      ? await registrarEventoAuditoriaLocatario(
+          input as RegistrarEventoAuditoriaLocatarioInput,
+        )
+      : await registrarEventoAuditoriaPlataforma(
+          input as RegistrarEventoAuditoriaPlataformaInput,
+        );
 
   if (!resultado.ok) {
     console.error("[auditoria.falha]", {
       evento: input.evento,
+      destino: definicaoEvento.destino,
       erro: resultado.error,
     });
   }
@@ -9627,6 +9675,8 @@ export async function meController(request: FastifyRequest, reply: FastifyReply)
   const ctx = await autorizarHttp(request, reply);
   if (!ctx) return;
 
+  console.dir(ctx, { depth: null });
+  
   return reply.status(200).send({
     usuario: toUsuarioSessaoDto(ctx),
   });
@@ -12318,6 +12368,7 @@ export async function criarOrdemServicoController(request: FastifyRequest<{ Body
   const resultado = await criar({
     locatarioId: ctx.locatarioId,
     clienteId: body.data.clienteId,
+    servicoId: body.data.servicoId ?? null,
     titulo: body.data.titulo,
     descricao: body.data.descricao,
     usuarioId: ctx.usuarioId,
@@ -12355,6 +12406,7 @@ export async function atualizarOrdemServicoController(request: FastifyRequest<{ 
     locatarioId: ctx.locatarioId,
     ordemServicoId: params.data.ordemServicoId,
     clienteId: body.data.clienteId,
+    servicoId: body.data.servicoId,
     titulo: body.data.titulo,
     descricao: body.data.descricao,
     usuarioId: ctx.usuarioId,
@@ -12404,7 +12456,7 @@ export async function gerarVendaDaOrdemServicoController(request: FastifyRequest
   const resultado = await gerarVenda({
     locatarioId: ctx.locatarioId,
     ordemServicoId: params.data.ordemServicoId,
-    produtoId: body.data.produtoId,
+    produtoId: body.data.produtoId ?? null,
     valorTotal: body.data.valorTotal,
     vencimentoEm: body.data.vencimentoEm,
     observacao: body.data.observacao,
@@ -12424,7 +12476,9 @@ export async function gerarVendaDaOrdemServicoController(request: FastifyRequest
 import { z } from "zod";
 
 export const listarOrdensServicoQuerySchema = z.object({
-  status: z.enum(["ABERTA", "EM_ANDAMENTO", "AGUARDANDO", "CONCLUIDA", "CANCELADA"]).optional(),
+  status: z
+    .enum(["ABERTA", "EM_ANDAMENTO", "AGUARDANDO", "CONCLUIDA", "CANCELADA"])
+    .optional(),
   clienteId: z.string().uuid().optional(),
   cursor: z.string().uuid().optional(),
   limite: z.coerce.number().int().min(1).max(100).optional(),
@@ -12436,18 +12490,23 @@ export const ordemServicoIdParamsSchema = z.object({
 
 export const criarOrdemServicoBodySchema = z.object({
   clienteId: z.string().uuid().nullable().optional(),
+  servicoId: z.string().uuid().nullable().optional(),
   titulo: z.string().min(3),
   descricao: z.string().nullable().optional(),
 });
 
 export const atualizarOrdemServicoBodySchema = z.object({
   clienteId: z.string().uuid().nullable().optional(),
+  servicoId: z.string().uuid().nullable().optional(),
   titulo: z.string().min(3).optional(),
   descricao: z.string().nullable().optional(),
 });
 
 export const gerarVendaOrdemServicoBodySchema = z.object({
-  produtoId: z.string().uuid(),
+  /**
+   * Opcional: quando ausente, o backend usa `ordemServico.servicoId`.
+   */
+  produtoId: z.string().uuid().nullable().optional(),
   valorTotal: z.coerce.number().nonnegative(),
   vencimentoEm: z.coerce.date(),
   observacao: z.string().nullable().optional(),
@@ -12459,11 +12518,20 @@ export type CriarOrdemServicoBodyDto = z.infer<typeof criarOrdemServicoBodySchem
 export type AtualizarOrdemServicoBodyDto = z.infer<typeof atualizarOrdemServicoBodySchema>;
 export type GerarVendaOrdemServicoBodyDto = z.infer<typeof gerarVendaOrdemServicoBodySchema>;
 
-export const parseListarOrdensServicoQuery = (input: unknown) => listarOrdensServicoQuerySchema.safeParse(input);
-export const parseOrdemServicoIdParams = (input: unknown) => ordemServicoIdParamsSchema.safeParse(input);
-export const parseCriarOrdemServicoBody = (input: unknown) => criarOrdemServicoBodySchema.safeParse(input);
-export const parseAtualizarOrdemServicoBody = (input: unknown) => atualizarOrdemServicoBodySchema.safeParse(input);
-export const parseGerarVendaOrdemServicoBody = (input: unknown) => gerarVendaOrdemServicoBodySchema.safeParse(input);
+export const parseListarOrdensServicoQuery = (input: unknown) =>
+  listarOrdensServicoQuerySchema.safeParse(input);
+
+export const parseOrdemServicoIdParams = (input: unknown) =>
+  ordemServicoIdParamsSchema.safeParse(input);
+
+export const parseCriarOrdemServicoBody = (input: unknown) =>
+  criarOrdemServicoBodySchema.safeParse(input);
+
+export const parseAtualizarOrdemServicoBody = (input: unknown) =>
+  atualizarOrdemServicoBodySchema.safeParse(input);
+
+export const parseGerarVendaOrdemServicoBody = (input: unknown) =>
+  gerarVendaOrdemServicoBodySchema.safeParse(input);
 
 
 ===== apps/api/src/modules/ordensServico/ordensServico.presenter.ts =====
@@ -12475,6 +12543,7 @@ export function toOrdemServicoDto(ordemServico: OrdemServico) {
     ordemServicoId: ordemServico.ordemServicoId,
     locatarioId: ordemServico.locatarioId,
     clienteId: ordemServico.clienteId,
+    servicoId: ordemServico.servicoId ?? null,
     transacaoId: ordemServico.transacaoId ?? null,
     status: ordemServico.status,
     titulo: ordemServico.titulo,

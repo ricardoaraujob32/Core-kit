@@ -5,6 +5,7 @@ export function toOrdemServicoDto(ordemServico: OrdemServico) {
     ordemServicoId: ordemServico.ordemServicoId,
     locatarioId: ordemServico.locatarioId,
     clienteId: ordemServico.clienteId,
+    servicoId: ordemServico.servicoId ?? null,
     transacaoId: ordemServico.transacaoId ?? null,
     status: ordemServico.status,
     titulo: ordemServico.titulo,

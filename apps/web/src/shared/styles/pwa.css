@@ -1,0 +1,38 @@
+/* apps/web/src/shared/styles/pwa.css */
+
+.ck-pwa-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid currentColor;
+  line-height: 1.2;
+}
+
+.ck-pwa-badge--pending {
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.ck-pwa-badge--syncing {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.ck-pwa-badge--failed {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.ck-pwa-badge--blocked {
+  color: #6b21a8;
+  background: #faf5ff;
+}
+
+.ck-pwa-badge--synced {
+  color: #047857;
+  background: #ecfdf5;
+}

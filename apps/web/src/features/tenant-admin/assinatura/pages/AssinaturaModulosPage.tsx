@@ -96,9 +96,7 @@ export default function AssinaturaModulosPage() {
     onSuccess: recarregar,
   });
 
-  const podeAtualizar =
-    hasModule(ASSINATURAS_MODULE) &&
-    hasPermission(ASSINATURAS_PERMISSIONS.ATUALIZAR);
+  const podeAtualizar = hasModule() && hasPermission(ASSINATURAS_PERMISSIONS.ATUALIZAR);
 
   if (isLoading) {
     return (

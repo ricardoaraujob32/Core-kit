@@ -1,36 +1,36 @@
 // apps/web/src/features/tenant-admin/ordens-servico/pages/NovaOrdemServicoPage.tsx
 
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ORDENS_SERVICO_MODULE,
   ORDENS_SERVICO_PERMISSIONS,
 } from "../../../../core/api/permissions";
-import { mapError } from "../../../../core/errors/mapError";
 import { PageGuard } from "../../../../core/routing/pageGuard";
+import { OfflineSyncStatus } from "../../../../shared/pwa/OfflineSyncStatus";
 import {
   EntityAlert,
   EntityButton,
-  EntityHero,
   EntityPage,
 } from "../../shared/entity-ui";
-import { ordensServicoApi } from "../api/ordensServicoApi";
 import { OrdemServicoForm } from "../components/OrdemServicoForm";
+import { useCreateOrdemServicoPwa } from "../hooks/useCreateOrdemServicoPwa";
 import type { CriarOrdemServicoInput } from "../tipos";
 
 export default function NovaOrdemServicoPage() {
   const navigate = useNavigate();
-  const [erro, setErro] = useState<string | null>(null);
+  const createOs = useCreateOrdemServicoPwa();
 
-  async function criar(input: CriarOrdemServicoInput) {
-    setErro(null);
+  async function handleSubmit(input: CriarOrdemServicoInput) {
+    const ordemServico = await createOs.criar(input);
 
-    try {
-      const response = await ordensServicoApi.criar(input);
-      navigate(`/app/ordens-servico/${response.item.ordemServicoId}`);
-    } catch (error) {
-      setErro(mapError(error).message);
+    if (!ordemServico) return;
+
+    if (createOs.isOffline) {
+      navigate("/app/ordens-servico");
+      return;
     }
+
+    navigate(`/app/ordens-servico/${ordemServico.ordemServicoId}`);
   }
 
   return (
@@ -41,19 +41,23 @@ export default function NovaOrdemServicoPage() {
       <EntityPage
         actions={
           <EntityButton to="/app/ordens-servico">
-            Voltar para ordens
+            Voltar para OS
           </EntityButton>
         }
       >
-        <EntityHero
-          kicker="Ordens de serviço"
-          title="Nova OS"
-          description="Registre uma ordem de serviço usando cliente, título e descrição. A data e o horário serão usados como referência principal."
-        />
+        <OfflineSyncStatus />
 
-        {erro ? <EntityAlert>{erro}</EntityAlert> : null}
+        {createOs.error ? (
+          <EntityAlert>{createOs.error}</EntityAlert>
+        ) : null}
 
-        <OrdemServicoForm onSubmit={criar} />
+        {createOs.isOffline ? (
+          <EntityAlert>
+            Você está offline. A OS será salva como pendente e sincronizada quando a conexão voltar.
+          </EntityAlert>
+        ) : null}
+
+        <OrdemServicoForm onSubmit={handleSubmit} />
       </EntityPage>
     </PageGuard>
   );
