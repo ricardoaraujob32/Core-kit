@@ -22,10 +22,14 @@ type CreateCompraPwaResult = {
   isOffline: boolean;
 };
 
-function criarCompraOffline(input: CriarCompraPwaInput): Transacao {
+function criarCompraOffline(
+  locatarioId: string,
+  input: CriarCompraPwaInput,
+): Transacao {
   const agora = new Date().toISOString();
 
   return {
+    locatarioId,
     transacaoId: createOfflineId("transacao"),
     tipo: "COMPRA",
     clienteId: null,
@@ -39,8 +43,6 @@ function criarCompraOffline(input: CriarCompraPwaInput): Transacao {
     criadoEm: agora,
     atualizadoEm: agora,
     canceladoEm: null,
-    canceladoPor: null,
-    canceladoMotivo: null,
     itens: [],
   } as Transacao;
 }
@@ -60,7 +62,12 @@ export function useCreateCompraPwa(): CreateCompraPwaResult {
 
     try {
       if (isOffline) {
-        const transacao = criarCompraOffline(input);
+        if (!scope.locatarioId) {
+          setError("Locatário não identificado para criação offline.");
+          return null;
+        }
+
+        const transacao = criarCompraOffline(scope.locatarioId, input);
 
         const queued = enqueue({
           type: "compras.criar",

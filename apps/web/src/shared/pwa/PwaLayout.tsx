@@ -3,23 +3,25 @@
 import type { ReactNode } from "react";
 import { AuthAwareOfflineSyncBootstrap } from "./AuthAwareOfflineSyncBootstrap";
 import { AuthAwareOfflineSyncStatus } from "./AuthAwareOfflineSyncStatus";
-import { PwaLocalMigrationBootstrap } from "./PwaLocalMigrationBootstrap";
 import { ServiceWorkerUpdateNotice } from "./ServiceWorkerUpdateNotice";
-import { PwaStorageRetentionBootstrap } from "./PwaStorageRetentionBootstrap";
 
 type PwaLayoutProps = {
   children: ReactNode;
   showSyncStatus?: boolean;
 };
 
+/**
+ * Camada global PWA com:
+ * - Service Worker update notice;
+ * - fila offline escopada;
+ * - sincronização consciente de autenticação.
+ */
 export function PwaLayout({
   children,
   showSyncStatus = true,
 }: PwaLayoutProps) {
   return (
     <>
-      <PwaStorageRetentionBootstrap />
-      <PwaLocalMigrationBootstrap />
       <AuthAwareOfflineSyncBootstrap />
       <ServiceWorkerUpdateNotice />
 

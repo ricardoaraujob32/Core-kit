@@ -1,3 +1,5 @@
+// apps/web/src/features/tenant-admin/ordens-servico/tipos.ts
+
 export type StatusOrdemServico =
   | "ABERTA"
   | "EM_ANDAMENTO"
@@ -9,7 +11,7 @@ export type OrdemServico = {
   ordemServicoId: string;
   locatarioId: string;
   clienteId: string | null;
-  servicoId: string | null;
+  servicoId?: string | null;
   transacaoId: string | null;
   status: StatusOrdemServico;
   titulo: string;
@@ -21,6 +23,7 @@ export type OrdemServico = {
 };
 
 export type CriarOrdemServicoInput = {
+  usuarioId: string;
   clienteId?: string | null;
   servicoId?: string | null;
   titulo: string;
@@ -30,10 +33,7 @@ export type CriarOrdemServicoInput = {
 export type AtualizarOrdemServicoInput = Partial<CriarOrdemServicoInput>;
 
 export type GerarVendaOrdemServicoInput = {
-  /**
-   * Opcional: quando ausente, o backend usa o serviço vinculado à OS.
-   */
-  produtoId?: string | null;
+  produtoId: string;
   valorTotal: number;
   vencimentoEm: string;
   observacao?: string | null;

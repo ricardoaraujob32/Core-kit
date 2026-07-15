@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./app/router";
 import { AppProviders } from "./app/providers";
+import { registerServiceWorker } from "./shared/pwa/registerServiceWorker";
 import "./shared/styles/index.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
@@ -14,3 +15,5 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     </AppProviders>
   </React.StrictMode>,
 );
+
+registerServiceWorker();

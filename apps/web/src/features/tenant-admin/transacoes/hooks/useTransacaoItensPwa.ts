@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { mapError } from "../../../../core/errors/mapError";
 import { createOfflineId } from "../../../../shared/pwa/createOfflineEntity";
+import { usePwaScope } from "../../../../shared/pwa/PwaScopeProvider";
 import { useValidatedScopedOfflineEnqueue } from "../../../../shared/pwa/useValidatedScopedOfflineEnqueue";
 import { useOnlineStatus } from "../../../../shared/pwa/useOnlineStatus";
 import { transacoesApi } from "../api/transacoesApi";
@@ -23,23 +24,32 @@ type UseTransacaoItensPwaParams = {
   reload?: () => Promise<void> | void;
 };
 
-function calcularItemLocal(input: AdicionarItemTransacaoInput): TransacaoItem {
-  const quantidade = Number(input.quantidade) || 1;
-  const valorUnitario = Number(input.valorUnitario) || 0;
-  const valorDesconto = Number(input.valorDesconto) || 0;
+function calcularItemLocal(params: {
+  locatarioId: string;
+  transacaoId: string;
+  input: AdicionarItemTransacaoInput;
+}): TransacaoItem {
+  const quantidade = Number(params.input.quantidade) || 1;
+  const valorUnitario = Number(params.input.valorUnitario) || 0;
+  const valorDesconto = Number(params.input.valorDesconto) || 0;
   const valorSubtotal = quantidade * valorUnitario;
   const valorTotal = Math.max(valorSubtotal - valorDesconto, 0);
 
   return {
+    locatarioId: params.locatarioId,
+    transacaoId: params.transacaoId,
     itemTransacaoId: createOfflineId("itemTransacao"),
-    produtoId: input.produtoId,
-    descricao: input.descricao ?? "Item pendente",
-    tipoProduto: "PENDENTE",
+    produtoId: params.input.produtoId,
+    estoqueId: params.input.estoqueId ?? null,
+    descricao: params.input.descricao ?? "Item pendente",
+    tipoProduto: "SERVICO",
     quantidade,
     valorUnitario,
     valorSubtotal,
     valorDesconto,
+    valorAcrescimo: 0,
     valorTotal,
+    movimentaEstoque: false,
     criadoEm: new Date().toISOString(),
     atualizadoEm: new Date().toISOString(),
   } as TransacaoItem;
@@ -52,6 +62,7 @@ export function useTransacaoItensPwa({
   onLocalItemRemoved,
   reload,
 }: UseTransacaoItensPwaParams) {
+  const { scope } = usePwaScope();
   const { isOffline } = useOnlineStatus();
   const { enqueue } = useValidatedScopedOfflineEnqueue();
 
@@ -64,7 +75,16 @@ export function useTransacaoItensPwa({
 
     try {
       if (isOffline) {
-        const itemLocal = calcularItemLocal(input);
+        if (!scope.locatarioId) {
+          setError("Locatário não identificado para criação offline.");
+          return null;
+        }
+
+        const itemLocal = calcularItemLocal({
+          locatarioId: scope.locatarioId,
+          transacaoId,
+          input,
+        });
 
         const queued = enqueue({
           type: "transacoes.itens.adicionar",
@@ -72,8 +92,8 @@ export function useTransacaoItensPwa({
             transacaoId,
             produtoId: input.produtoId,
             quantidade: Number(input.quantidade) || 1,
-            valorUnitario: input.valorUnitario ?? null,
-            valorDesconto: input.valorDesconto ?? null,
+            valorUnitario: input.valorUnitario,
+            valorDesconto: input.valorDesconto ?? 0,
             descricao: input.descricao ?? null,
           },
           localId: itemLocal.itemTransacaoId,

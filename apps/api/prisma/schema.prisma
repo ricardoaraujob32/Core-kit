@@ -438,6 +438,7 @@ model ordens_servico {
   excluido_em      DateTime?            @db.Timestamptz(6)
   excluido_por     String?              @db.Uuid
   excluido_motivo  String?
+  servico_id       String?              @db.Uuid
   clientes         clientes?            @relation(fields: [locatario_id, cliente_id], references: [locatario_id, cliente_id], map: "ordens_servico_clientes_fk")
   locatarios       locatarios           @relation(fields: [locatario_id], references: [locatario_id], onDelete: Cascade, map: "ordens_servico_locatarios_fk")
   transacoes       transacoes[]

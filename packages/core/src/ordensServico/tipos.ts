@@ -2,7 +2,8 @@ import type { ErroApp, Result } from "../kernel/index.js";
 import type { ClienteId } from "../clientes/index.js";
 import type { LocatarioId } from "../locatarios/index.js";
 import type { UsuarioId } from "../usuarios/index.js";
-import type { ProdutoId, TransacaoId } from "../vendas/index.js";
+import type { ProdutoId } from "../produtos/index.js";
+import type { TransacaoId } from "../vendas/index.js";
 
 export type OrdemServicoId = string;
 
@@ -48,6 +49,7 @@ export type OrdemServico = {
 
 export type CriarOrdemServicoInput = {
   locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
   clienteId?: ClienteId | null;
   servicoId?: ProdutoId | null;
   titulo: string;
@@ -62,6 +64,7 @@ export type CriarOrdemServicoResult = Promise<Result<CriarOrdemServicoOutput, Er
 
 export type AtualizarOrdemServicoInput = {
   locatarioId: LocatarioId;
+  usuarioId: UsuarioId;
   ordemServicoId: OrdemServicoId;
   clienteId?: ClienteId | null;
   servicoId?: ProdutoId | null;

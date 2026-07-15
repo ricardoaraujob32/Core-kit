@@ -5,6 +5,7 @@ import {
   ORDENS_SERVICO_MODULE,
   ORDENS_SERVICO_PERMISSIONS,
 } from "../../../../core/api/permissions";
+import { useAuth } from "../../../../core/auth/useAuth";
 import { PageGuard } from "../../../../core/routing/pageGuard";
 import { OfflineSyncStatus } from "../../../../shared/pwa/OfflineSyncStatus";
 import {
@@ -18,6 +19,7 @@ import type { CriarOrdemServicoInput } from "../tipos";
 
 export default function NovaOrdemServicoPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const createOs = useCreateOrdemServicoPwa();
 
   async function handleSubmit(input: CriarOrdemServicoInput) {
@@ -57,7 +59,16 @@ export default function NovaOrdemServicoPage() {
           </EntityAlert>
         ) : null}
 
-        <OrdemServicoForm onSubmit={handleSubmit} />
+        {!user?.usuarioId ? (
+          <EntityAlert>
+            Não foi possível identificar o usuário autenticado.
+          </EntityAlert>
+        ) : (
+          <OrdemServicoForm
+            usuarioId={user.usuarioId}
+            onSubmit={handleSubmit}
+          />
+        )}
       </EntityPage>
     </PageGuard>
   );

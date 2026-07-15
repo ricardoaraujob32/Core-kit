@@ -22,10 +22,14 @@ type CreateVendaPwaResult = {
   isOffline: boolean;
 };
 
-function criarVendaOffline(input: CriarVendaPwaInput): Transacao {
+function criarVendaOffline(
+  locatarioId: string,
+  input: CriarVendaPwaInput,
+): Transacao {
   const agora = new Date().toISOString();
 
   return {
+    locatarioId,
     transacaoId: createOfflineId("transacao"),
     tipo: "VENDA",
     clienteId: input.clienteId ?? null,
@@ -39,8 +43,6 @@ function criarVendaOffline(input: CriarVendaPwaInput): Transacao {
     criadoEm: agora,
     atualizadoEm: agora,
     canceladoEm: null,
-    canceladoPor: null,
-    canceladoMotivo: null,
     itens: [],
   } as Transacao;
 }
@@ -60,7 +62,12 @@ export function useCreateVendaPwa(): CreateVendaPwaResult {
 
     try {
       if (isOffline) {
-        const transacao = criarVendaOffline(input);
+        if (!scope.locatarioId) {
+          setError("Locatário não identificado para criação offline.");
+          return null;
+        }
+
+        const transacao = criarVendaOffline(scope.locatarioId, input);
 
         const queued = enqueue({
           type: "vendas.criar",

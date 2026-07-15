@@ -3,27 +3,55 @@
 import { useCallback, useMemo } from "react";
 import { useMergePwaPendingItems } from "../../../../shared/pwa/useMergePwaPendingItems";
 import { usePwaPendingProjections } from "../../../../shared/pwa/usePwaPendingProjections";
+import { usePwaScope } from "../../../../shared/pwa/PwaScopeProvider";
 import { useOrdensServico } from "./useOrdensServico";
 import type { OrdemServico } from "../tipos";
 
+function isOrdemServico(value: OrdemServico | null): value is OrdemServico {
+  return value !== null;
+}
+
+type PendingWithOs = {
+  ordensServico?: Array<Partial<OrdemServico> | null>;
+  ordens?: Array<Partial<OrdemServico> | null>;
+};
+
 export function useOrdensServicoPwaList() {
   const resource = useOrdensServico();
-  const pending = usePwaPendingProjections();
+  const pending = usePwaPendingProjections() as PendingWithOs;
+  const { scope } = usePwaScope();
 
   const getId = useCallback((item: OrdemServico) => item.ordemServicoId, []);
 
-  const data = useMergePwaPendingItems<OrdemServico>({
-    items: resource.ordens ?? [],
-    pendingItems: pending.ordensServico as OrdemServico[],
+  const pendingRaw = pending.ordensServico ?? pending.ordens ?? [];
+
+  const pendingItems = useMemo(
+    () =>
+      pendingRaw
+        .map((ordem) =>
+          ordem
+            ? ({
+                ...ordem,
+                locatarioId: scope.locatarioId,
+              } as OrdemServico)
+            : null,
+        )
+        .filter(isOrdemServico),
+    [pendingRaw, scope.locatarioId],
+  );
+
+  const itens = useMergePwaPendingItems<OrdemServico>({
+    items: resource.itens ?? [],
+    pendingItems,
     getId,
   });
 
   return useMemo(
     () => ({
       ...resource,
-      ordens: data,
-      data,
+      itens,
+      data: itens,
     }),
-    [resource, data],
+    [resource, itens],
   );
 }

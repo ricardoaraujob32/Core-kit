@@ -42,7 +42,7 @@ export function useScopedOfflineMutationQueue(
   );
 
   const sync = useCallback(async () => {
-    if (!activeProcessor || !isOnline) return;
+    if (!isOnline) return;
 
     setIsSyncing(true);
 
@@ -59,10 +59,10 @@ export function useScopedOfflineMutationQueue(
   }, [refresh, scopeKey]);
 
   useEffect(() => {
-    if (isOnline && activeProcessor) {
+    if (isOnline) {
       void sync();
     }
-  }, [isOnline, activeProcessor, sync]);
+  }, [isOnline, sync]);
 
   return {
     items,

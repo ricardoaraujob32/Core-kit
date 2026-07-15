@@ -1,7 +1,8 @@
 import type { ErroApp, Result } from "../kernel/index.js";
 import type { LocatarioId } from "../locatarios/index.js";
 import type { ClienteId } from "../clientes/index.js";
-import type { ProdutoId, TransacaoId } from "../vendas/index.js";
+import type { ProdutoId } from "../produtos/index.js";
+import type { TransacaoId } from "../vendas/index.js";
 import type { OrdemServico, OrdemServicoId, StatusOrdemServico } from "./tipos.js";
 
 export type RegistrarOrdemServicoParams = {
@@ -49,6 +50,13 @@ export type CriarVendaDaOrdemServicoParams = {
   valorTotal: number;
   vencimentoEm: Date;
   observacao?: string | null;
+  descricaoItem?: string | null;
+  quantidade: number;
+  valorUnitario: number;
+  valorSubtotal: number;
+  valorDesconto: number;
+  valorTotalItem: number;
+  movimentaEstoque: boolean;
 };
 
 export interface OrdensServicoRepositorio {

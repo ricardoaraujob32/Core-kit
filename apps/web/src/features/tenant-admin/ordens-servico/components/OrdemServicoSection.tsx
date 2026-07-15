@@ -1,5 +1,6 @@
 // apps/web/src/features/tenant-admin/ordens-servico/components/OrdemServicoSection.tsx
 
+import { useAuth } from "../../../../core/auth/useAuth";
 import {
   EntityAlert,
   EntityCard,
@@ -24,6 +25,8 @@ export function OrdemServicoSection({
   erro,
   onSubmit,
 }: OrdemServicoSectionProps) {
+  const { user } = useAuth();
+
   return (
     <EntityCard
       title="Ordem de serviço"
@@ -31,10 +34,15 @@ export function OrdemServicoSection({
     >
       {erro ? <EntityAlert>{erro}</EntityAlert> : null}
 
-      <OrdemServicoForm
-        initialValues={initialValues}
-        onSubmit={onSubmit}
-      />
+      {!user?.usuarioId ? (
+        <EntityAlert>Não foi possível identificar o usuário autenticado.</EntityAlert>
+      ) : (
+        <OrdemServicoForm
+          usuarioId={user.usuarioId}
+          initialValues={initialValues}
+          onSubmit={onSubmit}
+        />
+      )}
     </EntityCard>
   );
 }

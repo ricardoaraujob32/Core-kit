@@ -69,6 +69,7 @@ export function normalizeCompraPayload(payload: Record<string, unknown>) {
 
 export function normalizeOrdemServicoPayload(payload: Record<string, unknown>) {
   return {
+    usuarioId: text(payload.usuarioId),
     clienteId: nullableText(payload.clienteId),
     servicoId: nullableText(payload.servicoId),
     titulo: text(payload.titulo),

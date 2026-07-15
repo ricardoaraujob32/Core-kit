@@ -129,6 +129,7 @@ export function createScopedOfflineProcessor(scope: PwaScope) {
 
       case "ordensServico.criar": {
         const payload = normalizedItem.payload as {
+          usuarioId: string;
           clienteId?: string | null;
           servicoId?: string | null;
           titulo: string;
@@ -148,9 +149,11 @@ export function createScopedOfflineProcessor(scope: PwaScope) {
         });
 
         const response = await ordensServicoApi.criar({
-          ...payload,
+          usuarioId: payload.usuarioId,
           clienteId,
           servicoId,
+          titulo: payload.titulo,
+          descricao: payload.descricao ?? null,
         });
 
         if (normalizedItem.localId) {

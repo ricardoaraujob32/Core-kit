@@ -7,212 +7,110 @@ import { ordensServicoApi } from "../../features/tenant-admin/ordens-servico/api
 import { produtosApi } from "../../features/tenant-admin/produtos/api/produtosApi";
 import { transacoesApi } from "../../features/tenant-admin/transacoes/api/transacoesApi";
 import { vendasApi } from "../../features/tenant-admin/vendas/api/vendasApi";
-import { offlineIdMap, resolveOfflineId } from "./offlineIdMap";
-import type { CriarOrdemServicoOfflinePayload } from "./offlineOsTypes";
-import type {
-  CriarCompraOfflinePayload,
-  CriarVendaOfflinePayload,
-} from "./offlineTransacaoTypes";
-import type {
-  AdicionarItemTransacaoOfflinePayload,
-  AtualizarItemTransacaoOfflinePayload,
-  RemoverItemTransacaoOfflinePayload,
-} from "./offlineTransacaoItemTypes";
 import type { PwaQueueItem } from "./pwaSyncTypes";
 
-function assertLocalId(item: PwaQueueItem): string {
-  if (!item.localId) {
-    throw new Error(`Item offline sem localId: ${item.type}`);
-  }
-
-  return item.localId;
-}
-
-function resolveProdutoOuServicoId(id: string | null | undefined): string | null {
-  const comoServico = resolveOfflineId("servico", id);
-  const comoProduto = resolveOfflineId("produto", comoServico);
-
-  return comoProduto;
-}
-
-function assertResolvedId(id: string | null, label: string): string {
-  if (!id) {
-    throw new Error(`ID obrigatório não resolvido: ${label}`);
-  }
-
-  return id;
-}
-
-export async function offlineCreateProcessor(item: PwaQueueItem) {
+export async function offlineCreateProcessor(item: PwaQueueItem): Promise<void> {
   switch (item.type) {
     case "clientes.criar": {
-      const response = await clientesApi.criar(item.payload as never);
-
-      offlineIdMap.register({
-        kind: "cliente",
-        localId: assertLocalId(item),
-        remoteId: response.item.clienteId,
-      });
-
+      await clientesApi.criar(item.payload as never);
       return;
     }
 
     case "fornecedores.criar": {
-      const response = await fornecedoresApi.criar(item.payload as never);
-
-      offlineIdMap.register({
-        kind: "fornecedor",
-        localId: assertLocalId(item),
-        remoteId: response.item.fornecedorId,
-      });
-
+      await fornecedoresApi.criar(item.payload as never);
       return;
     }
 
     case "servicos.criar": {
-      const response = await produtosApi.criar(item.payload as never);
-
-      offlineIdMap.register({
-        kind: "servico",
-        localId: assertLocalId(item),
-        remoteId: response.item.produtoId,
-      });
-
-      return;
-    }
-
-    case "ordensServico.criar": {
-      const payload = item.payload as CriarOrdemServicoOfflinePayload;
-
-      const clienteId = resolveOfflineId("cliente", payload.clienteId);
-      const servicoId = resolveOfflineId("servico", payload.servicoId);
-
-      const response = await ordensServicoApi.criar({
-        ...payload,
-        clienteId,
-        servicoId,
-      });
-
-      if (item.localId) {
-        offlineIdMap.register({
-          kind: "ordemServico",
-          localId: item.localId,
-          remoteId: response.item.ordemServicoId,
-        });
-      }
-
+      await produtosApi.criar(item.payload as never);
       return;
     }
 
     case "vendas.criar": {
-      const payload = item.payload as CriarVendaOfflinePayload;
-      const clienteId = resolveOfflineId("cliente", payload.clienteId);
-
-      const response = await vendasApi.criar({
-        ...payload,
-        clienteId,
-      });
-
-      if (item.localId) {
-        offlineIdMap.register({
-          kind: "transacao",
-          localId: item.localId,
-          remoteId: response.item.transacaoId,
-        });
-      }
-
+      await vendasApi.criar(item.payload as never);
       return;
     }
 
     case "compras.criar": {
-      const payload = item.payload as CriarCompraOfflinePayload;
-      const fornecedorId = resolveOfflineId("fornecedor", payload.fornecedorId);
+      await comprasApi.criar(item.payload as never);
+      return;
+    }
 
-      const response = await comprasApi.criar({
-        ...payload,
-        fornecedorId,
+    case "ordensServico.criar": {
+      const payload = item.payload as {
+        usuarioId: string;
+        clienteId?: string | null;
+        servicoId?: string | null;
+        titulo: string;
+        descricao?: string | null;
+      };
+
+      await ordensServicoApi.criar({
+        usuarioId: payload.usuarioId,
+        clienteId: payload.clienteId ?? null,
+        servicoId: payload.servicoId ?? null,
+        titulo: payload.titulo,
+        descricao: payload.descricao ?? null,
       });
-
-      if (item.localId) {
-        offlineIdMap.register({
-          kind: "transacao",
-          localId: item.localId,
-          remoteId: response.item.transacaoId,
-        });
-      }
 
       return;
     }
 
     case "transacoes.itens.adicionar": {
-      const payload = item.payload as AdicionarItemTransacaoOfflinePayload;
+      const payload = item.payload as {
+        transacaoId: string;
+        produtoId: string;
+        quantidade: number;
+        valorUnitario?: number | null;
+        valorDesconto?: number | null;
+        descricao?: string | null;
+      };
 
-      const transacaoId = assertResolvedId(
-        resolveOfflineId("transacao", payload.transacaoId),
-        "transacaoId",
-      );
-
-      const produtoId = assertResolvedId(
-        resolveProdutoOuServicoId(payload.produtoId),
-        "produtoId",
-      );
-
-      const response = await transacoesApi.adicionarItem(transacaoId, {
-        produtoId,
-        quantidade: payload.quantidade,
-        valorUnitario: payload.valorUnitario ?? undefined,
-        valorDesconto: payload.valorDesconto ?? undefined,
+      await transacoesApi.adicionarItem(payload.transacaoId, {
+        produtoId: payload.produtoId,
+        quantidade: Number(payload.quantidade) || 1,
+        valorUnitario: Number(payload.valorUnitario ?? 0),
+        valorDesconto: Number(payload.valorDesconto ?? 0),
         descricao: payload.descricao ?? undefined,
       });
-
-      if (item.localId && response.item?.itemTransacaoId) {
-        offlineIdMap.register({
-          kind: "produto",
-          localId: item.localId,
-          remoteId: response.item.itemTransacaoId,
-        });
-      }
 
       return;
     }
 
     case "transacoes.itens.atualizar": {
-      const payload = item.payload as AtualizarItemTransacaoOfflinePayload;
+      const payload = item.payload as {
+        transacaoId: string;
+        itemTransacaoId: string;
+        quantidade?: number;
+        valorUnitario?: number;
+        valorDesconto?: number;
+        descricao?: string | null;
+      };
 
-      const transacaoId = assertResolvedId(
-        resolveOfflineId("transacao", payload.transacaoId),
-        "transacaoId",
+      await transacoesApi.atualizarItem(
+        payload.transacaoId,
+        payload.itemTransacaoId,
+        {
+          quantidade: payload.quantidade,
+          valorUnitario: payload.valorUnitario,
+          valorDesconto: payload.valorDesconto,
+          descricao: payload.descricao ?? null,
+        },
       );
-
-      const itemTransacaoId = assertResolvedId(
-        resolveOfflineId("produto", payload.itemTransacaoId),
-        "itemTransacaoId",
-      );
-
-      await transacoesApi.atualizarItem(transacaoId, itemTransacaoId, {
-        quantidade: payload.quantidade,
-        valorUnitario: payload.valorUnitario,
-        valorDesconto: payload.valorDesconto,
-        descricao: payload.descricao,
-      });
 
       return;
     }
 
     case "transacoes.itens.remover": {
-      const payload = item.payload as RemoverItemTransacaoOfflinePayload;
+      const payload = item.payload as {
+        transacaoId: string;
+        itemTransacaoId: string;
+      };
 
-      const transacaoId = assertResolvedId(
-        resolveOfflineId("transacao", payload.transacaoId),
-        "transacaoId",
+      await transacoesApi.removerItem(
+        payload.transacaoId,
+        payload.itemTransacaoId,
       );
-
-      const itemTransacaoId = assertResolvedId(
-        resolveOfflineId("produto", payload.itemTransacaoId),
-        "itemTransacaoId",
-      );
-
-      await transacoesApi.removerItem(transacaoId, itemTransacaoId);
 
       return;
     }

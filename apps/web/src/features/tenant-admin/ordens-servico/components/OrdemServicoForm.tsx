@@ -21,6 +21,7 @@ import {
 import type { CriarOrdemServicoInput } from "../tipos";
 
 type Props = {
+  usuarioId: string;
   onSubmit: (input: CriarOrdemServicoInput) => Promise<void>;
   initialValues?: Partial<CriarOrdemServicoInput>;
 };
@@ -70,7 +71,11 @@ function montarDescricaoComServico(
   return Array.from(new Set(partes)).join("\n\n");
 }
 
-export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
+export function OrdemServicoForm({
+  usuarioId,
+  onSubmit,
+  initialValues,
+}: Props) {
   const clientesResource = useClientesCached();
   const servicosResource = useServicosCached();
 
@@ -84,12 +89,10 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
 
   const [buscaCliente, setBuscaCliente] = useState("");
   const [buscaServico, setBuscaServico] = useState("");
-
-  const [erroForm, setErroForm] = useState<string | null>(null);
-  const [salvando, setSalvando] = useState(false);
-
   const [inlineClienteAberto, setInlineClienteAberto] = useState(false);
   const [inlineServicoAberto, setInlineServicoAberto] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
 
   const clientes = useMemo(() => {
     const ids = new Set<string>();
@@ -121,6 +124,7 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
 
   const clientesFiltrados = useMemo(() => {
     const termo = buscaCliente.trim().toLowerCase();
+
     if (!termo) return clientes;
 
     return clientes.filter((cliente) =>
@@ -130,6 +134,7 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
 
   const servicosFiltrados = useMemo(() => {
     const termo = buscaServico.trim().toLowerCase();
+
     if (!termo) return servicos;
 
     return servicos.filter((servico) =>
@@ -155,50 +160,48 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
     setInlineClienteAberto(false);
   }
 
-  function aplicarServicoNaOs(servico: Produto) {
-    setServicoId(servico.produtoId);
-    setTitulo((current) => current.trim() || servico.nome || "");
-    setDescricao((current) => montarDescricaoComServico(servico, current));
-    setBuscaServico("");
-  }
-
   function selecionarServicoCriado(servico: Produto) {
-    const servicoNormalizado: Produto = {
-      ...servico,
-      tipo: "SERVICO",
-    };
-
     setServicosLocais((current) => [
-      servicoNormalizado,
-      ...current.filter(
-        (item) => item.produtoId !== servicoNormalizado.produtoId,
-      ),
+      servico,
+      ...current.filter((item) => item.produtoId !== servico.produtoId),
     ]);
-
-    aplicarServicoNaOs(servicoNormalizado);
+    setServicoId(servico.produtoId);
+    setBuscaServico("");
     setInlineServicoAberto(false);
+
+    if (!titulo.trim()) {
+      setTitulo(servico.nome ?? "");
+    }
+
+    setDescricao((current) => montarDescricaoComServico(servico, current));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!titulo.trim()) {
-      setErroForm("Informe o título da ordem de serviço.");
+    if (!usuarioId.trim()) {
+      setErro("Usuário autenticado não identificado.");
       return;
     }
 
-    setErroForm(null);
+    if (!titulo.trim()) {
+      setErro("Informe o título da ordem de serviço.");
+      return;
+    }
+
+    setErro(null);
     setSalvando(true);
 
     try {
       await onSubmit({
+        usuarioId,
         clienteId: clienteId || null,
         servicoId: servicoId || null,
         titulo: titulo.trim(),
         descricao: normalizarTextoOpcional(descricao),
       });
     } catch (error) {
-      setErroForm(mapError(error).message);
+      setErro(mapError(error).message);
     } finally {
       setSalvando(false);
     }
@@ -207,45 +210,62 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
   return (
     <EntityForm
       kicker="Ordens de serviço"
-      title="Dados da OS"
-      description="Cliente e serviço são escolhidos por nome, documento, contato ou catálogo."
-      error={erroForm}
+      title="Nova ordem de serviço"
+      description="Cadastre a OS com cliente, serviço e descrição operacional."
+      error={erro}
       onSubmit={handleSubmit}
       footer={
         <EntityButton type="submit" variant="primary" disabled={salvando}>
-          {salvando ? "Salvando..." : "Salvar ordem de serviço"}
+          {salvando ? "Salvando..." : "Salvar OS"}
         </EntityButton>
       }
     >
-      <PwaResourceNotice
-        isFromCache={clientesResource.isFromCache || servicosResource.isFromCache}
-        isRefreshing={
-          clientesResource.isRefreshing || servicosResource.isRefreshing
-        }
-        updatedAt={clientesResource.updatedAt ?? servicosResource.updatedAt}
-        error={clientesResource.error ?? servicosResource.error}
-      />
-
       <EntityCard
         title="Cliente"
-        description="Vincule a OS a um cliente ou cadastre um cliente sem sair da tela."
+        description="Vincule um cliente existente ou cadastre rapidamente um novo."
       >
+        <PwaResourceNotice
+          isRefreshing={clientesResource.isRefreshing}
+          isFromCache={clientesResource.isFromCache}
+          updatedAt={clientesResource.updatedAt}
+          error={clientesResource.error}
+        />
+
         <EntityFormGrid>
           <EntityField label="Buscar cliente" wide>
             <input
               value={buscaCliente}
               onChange={(event) => setBuscaCliente(event.target.value)}
-              placeholder="Ex.: Maria, CPF/CNPJ, e-mail ou telefone"
+              placeholder="Nome, documento, e-mail ou telefone"
               disabled={salvando}
             />
           </EntityField>
 
-          <EntityField label="Cliente selecionado" wide>
+          <EntityField label="Cliente" wide>
+            <select
+              value={clienteId}
+              onChange={(event) => setClienteId(event.target.value)}
+              disabled={clientesResource.isLoading || salvando}
+            >
+              <option value="">
+                {clientesResource.isLoading
+                  ? "Carregando clientes..."
+                  : "Cliente não informado"}
+              </option>
+              {clientesFiltrados.map((cliente) => (
+                <option key={cliente.clienteId} value={cliente.clienteId}>
+                  {formatClienteLabel(cliente)}
+                </option>
+              ))}
+            </select>
+          </EntityField>
+
+          <EntityField label="Ações" wide>
             <div className="ck-entity-actions-row">
               <EntityButton
                 type="button"
                 disabled={salvando}
-                onClick={() => setInlineClienteAberto((value) => !value)}
+                onClick={() => setInlineClienteAberto((current) => !current)}
               >
                 {inlineClienteAberto ? "Fechar cadastro" : "+ Novo cliente"}
               </EntityButton>
@@ -258,24 +278,6 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
                 Atualizar clientes
               </EntityButton>
             </div>
-
-            <select
-              value={clienteId}
-              onChange={(event) => setClienteId(event.target.value)}
-              disabled={clientesResource.isLoading || salvando}
-            >
-              <option value="">
-                {clientesResource.isLoading
-                  ? "Carregando clientes..."
-                  : "OS sem cliente"}
-              </option>
-
-              {clientesFiltrados.map((cliente) => (
-                <option key={cliente.clienteId} value={cliente.clienteId}>
-                  {formatClienteLabel(cliente)}
-                </option>
-              ))}
-            </select>
           </EntityField>
 
           {inlineClienteAberto ? (
@@ -309,24 +311,67 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
 
       <EntityCard
         title="Serviço"
-        description="Selecione um serviço do catálogo ou cadastre um serviço inline."
+        description="Vincule um serviço do catálogo ou cadastre um serviço rapidamente."
       >
+        <PwaResourceNotice
+          isRefreshing={servicosResource.isRefreshing}
+          isFromCache={servicosResource.isFromCache}
+          updatedAt={servicosResource.updatedAt}
+          error={servicosResource.error}
+        />
+
         <EntityFormGrid>
           <EntityField label="Buscar serviço" wide>
             <input
               value={buscaServico}
               onChange={(event) => setBuscaServico(event.target.value)}
-              placeholder="Ex.: limpeza, formatação, instalação, manutenção..."
+              placeholder="Nome, código, descrição ou unidade"
               disabled={salvando}
             />
           </EntityField>
 
-          <EntityField label="Serviço selecionado" wide>
+          <EntityField label="Serviço" wide>
+            <select
+              value={servicoId}
+              onChange={(event) => {
+                const nextServicoId = event.target.value;
+                setServicoId(nextServicoId);
+
+                const servico = servicos.find(
+                  (item) => item.produtoId === nextServicoId,
+                );
+
+                if (servico && !titulo.trim()) {
+                  setTitulo(servico.nome ?? "");
+                }
+
+                if (servico) {
+                  setDescricao((current) =>
+                    montarDescricaoComServico(servico, current),
+                  );
+                }
+              }}
+              disabled={servicosResource.isLoading || salvando}
+            >
+              <option value="">
+                {servicosResource.isLoading
+                  ? "Carregando serviços..."
+                  : "Serviço não informado"}
+              </option>
+              {servicosFiltrados.map((servico) => (
+                <option key={servico.produtoId} value={servico.produtoId}>
+                  {formatServicoLabel(servico)}
+                </option>
+              ))}
+            </select>
+          </EntityField>
+
+          <EntityField label="Ações" wide>
             <div className="ck-entity-actions-row">
               <EntityButton
                 type="button"
                 disabled={salvando}
-                onClick={() => setInlineServicoAberto((value) => !value)}
+                onClick={() => setInlineServicoAberto((current) => !current)}
               >
                 {inlineServicoAberto ? "Fechar cadastro" : "+ Novo serviço"}
               </EntityButton>
@@ -339,35 +384,6 @@ export function OrdemServicoForm({ onSubmit, initialValues }: Props) {
                 Atualizar serviços
               </EntityButton>
             </div>
-
-            <select
-              value={servicoId}
-              onChange={(event) => {
-                const novoServicoId = event.target.value;
-                const servico = servicos.find(
-                  (item) => item.produtoId === novoServicoId,
-                );
-
-                setServicoId(novoServicoId);
-
-                if (servico) {
-                  aplicarServicoNaOs(servico);
-                }
-              }}
-              disabled={servicosResource.isLoading || salvando}
-            >
-              <option value="">
-                {servicosResource.isLoading
-                  ? "Carregando serviços..."
-                  : "OS sem serviço do catálogo"}
-              </option>
-
-              {servicosFiltrados.map((servico) => (
-                <option key={servico.produtoId} value={servico.produtoId}>
-                  {formatServicoLabel(servico)}
-                </option>
-              ))}
-            </select>
           </EntityField>
 
           {inlineServicoAberto ? (

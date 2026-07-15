@@ -93,6 +93,7 @@ export function validateAndNormalizePwaPayload(item: PwaQueueItem): unknown {
 
     case "ordensServico.criar": {
       const normalized = normalizeOrdemServicoPayload(payload);
+      required(normalized.usuarioId, "usuarioId");
       required(normalized.titulo, "titulo");
       return normalized;
     }

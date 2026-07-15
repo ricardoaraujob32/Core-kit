@@ -64,16 +64,27 @@ export function createFnGerarVendaDaOrdemServico(deps: {
       if (!existente.ok) return existente;
       if (existente.value) return ordemServicoVendaJaGerada(ordemServicoId.value);
 
+      const valorTotal = input.valorTotal;
+
       const venda = await deps.ordensServicoRepositorio.criarVendaDaOrdemServico({
         locatarioId: locatarioId.value,
         ordemServicoId: ordemServicoId.value,
         clienteId: ordemServico.value.clienteId,
-        produtoId,
-        valorTotal: valorTotal.value,
+        produtoId: produtoId,
+
+        valorTotal,
         vencimentoEm: input.vencimentoEm,
         observacao:
           input.observacao ??
           `Venda gerada a partir da OS ${ordemServico.value.titulo}`,
+
+        descricaoItem: ordemServico.value.titulo,
+        quantidade: 1,
+        valorUnitario: valorTotal,
+        valorSubtotal: valorTotal,
+        valorDesconto: 0,
+        valorTotalItem: valorTotal,
+        movimentaEstoque: false,
       });
 
       if (!venda.ok) return venda;
